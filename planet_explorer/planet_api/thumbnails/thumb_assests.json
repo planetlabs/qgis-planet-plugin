@@ -1,0 +1,233 @@
+{
+  "analytic": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWMiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWMiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/analytic"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "analytic"
+  },
+  "analytic_dn": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfZG4iLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfZG4iLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/analytic_dn"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "analytic_dn"
+  },
+  "analytic_dn_xml": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfZG5feG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfZG5feG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/analytic_dn_xml"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "analytic_dn_xml"
+  },
+  "analytic_sr": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfc3IiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfc3IiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/analytic_sr"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "analytic_sr"
+  },
+  "analytic_xml": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfeG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYW5hbHl0aWNfeG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/analytic_xml"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "analytic_xml"
+  },
+  "basic_analytic": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWMiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWMiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic"
+  },
+  "basic_analytic_dn": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG4iLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG4iLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn"
+  },
+  "basic_analytic_dn_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fbml0ZiIsICJjdCI6ICJpdGVtLXR5cGUifQ",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fbml0ZiIsICJjdCI6ICJpdGVtLXR5cGUifQ/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn_nitf"
+  },
+  "basic_analytic_dn_rpc": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fcnBjIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fcnBjIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn_rpc"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn_rpc"
+  },
+  "basic_analytic_dn_rpc_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fcnBjX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5fcnBjX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn_rpc_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn_rpc_nitf"
+  },
+  "basic_analytic_dn_xml": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5feG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5feG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn_xml"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn_xml"
+  },
+  "basic_analytic_dn_xml_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5feG1sX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfZG5feG1sX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_dn_xml_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_dn_xml_nitf"
+  },
+  "basic_analytic_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfbml0ZiIsICJjdCI6ICJpdGVtLXR5cGUifQ",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfbml0ZiIsICJjdCI6ICJpdGVtLXR5cGUifQ/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_nitf"
+  },
+  "basic_analytic_rpc": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfcnBjIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfcnBjIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_rpc"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_rpc"
+  },
+  "basic_analytic_rpc_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfcnBjX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfcnBjX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_rpc_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_rpc_nitf"
+  },
+  "basic_analytic_xml": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfeG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfeG1sIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_xml"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_xml"
+  },
+  "basic_analytic_xml_nitf": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfeG1sX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfYW5hbHl0aWNfeG1sX25pdGYiLCAiY3QiOiAiaXRlbS10eXBlIn0/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_analytic_xml_nitf"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_analytic_xml_nitf"
+  },
+  "basic_udm": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfdWRtIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfdWRtIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_udm"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_udm"
+  },
+  "basic_udm2": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfdWRtMiIsICJjdCI6ICJpdGVtLXR5cGUifQ",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAiYmFzaWNfdWRtMiIsICJjdCI6ICJpdGVtLXR5cGUifQ/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/basic_udm2"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "basic_udm2"
+  },
+  "udm": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAidWRtIiwgImN0IjogIml0ZW0tdHlwZSJ9",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAidWRtIiwgImN0IjogIml0ZW0tdHlwZSJ9/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/udm"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "udm"
+  },
+  "udm2": {
+    "_links": {
+      "_self": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAidWRtMiIsICJjdCI6ICJpdGVtLXR5cGUifQ",
+      "activate": "https://api.planet.com/data/v1/assets/eyJpIjogIjIwMTkwOTAxXzE4MzIzM18xMDBjIiwgImMiOiAiUFNTY2VuZTRCYW5kIiwgInQiOiAidWRtMiIsICJjdCI6ICJpdGVtLXR5cGUifQ/activate",
+      "type": "https://api.planet.com/data/v1/asset-types/udm2"
+    },
+    "_permissions": ["download"],
+    "md5_digest": null,
+    "status": "inactive",
+    "type": "udm2"
+  }
+}

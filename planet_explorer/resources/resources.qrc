@@ -1,0 +1,41 @@
+<RCC>
+    <qresource prefix="/plugins/planet_explorer">
+        <file>planet-logo-p.svg</file>
+        <file>planet-logo-p.png</file>
+        <file>planet-logo-dark.svg</file>
+        <file>planet-logo-dark.png</file>
+        <file>planet-explorer-inkscape.svg</file>
+        <file>planet-explorer-inkscape-light.svg</file>
+        <file>planet-user.svg</file>
+        <file>extents.svg</file>
+        <file>extent-draw-polygon.svg</file>
+        <file>extent-select.svg</file>
+        <file>zoom-to-aoi-dashed.svg</file>
+        <file>zoom-to-aoi-solid.svg</file>
+        <file>zoom-target.svg</file>
+        <file>zoom-target-search.svg</file>
+        <file>thumb-placeholder.svg</file>
+        <file>thumb-placeholder-128.svg</file>
+        <file>lock-light.svg</file>
+        <file>lock-gray.svg</file>
+        <file>reload.svg</file>
+        <file>search.svg</file>
+        <file>search_p.svg</file>
+        <file>file-open.svg</file>
+        <file>copy.svg</file>
+        <file>info.svg</file>
+        <file>info-light.svg</file>
+        <file>external-link.svg</file>
+        <file>cog.svg</file>
+        <file>cog2.svg</file>
+        <file>download.svg</file>
+        <file>expand-triangle.svg</file>
+        <file>collapse-triangle.svg</file>
+        <file>close.svg</file>
+        <file>close-down.svg</file>
+        <file>closedock-16.png</file>
+        <file>closedock-down-16.png</file>
+        <file>envelope-gray.svg</file>
+        <file>terms.html</file>
+    </qresource>
+</RCC>

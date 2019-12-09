@@ -1,0 +1,29 @@
+name: qgis3-conda-forge
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - analytics-python=1.2.9
+  - autopep8=1.4.4
+  - click=7.0
+  - conda-wrappers=1.1.3
+  - doc8=0.8.0
+  - geojsonio=0.0.3
+  - iso8601=0.1.12
+  - jinja2=2.10.1
+  - jq=1.6
+  - paver=1.2.4
+  - pep8=1.7.1
+  - pip=19.2.3
+  - planet=1.4.1
+  - pygments=2.4.2
+  - pyjwt=1.7.1
+  - pylint=2.3.1
+  - qgis=3.4.12
+  - retrying=1.3.3
+  - rope=0.14.0
+  - shapely=1.6.4
+  - sphinx=2.2.0
+  - pip:
+    - qgiscommons==2.0.12
+    - sentry-sdk=0.12.3

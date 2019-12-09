@@ -1,0 +1,81 @@
+{
+  "_links": {
+    "_self": "https://api.planet.com/data/v1/item-types/PSScene4Band/items/20190901_183233_100c",
+    "assets": "https://api.planet.com/data/v1/item-types/PSScene4Band/items/20190901_183233_100c/assets/",
+    "thumbnail": "https://tiles.planet.com/data/v1/item-types/PSScene4Band/items/20190901_183233_100c/thumb"
+  },
+  "_permissions": [
+    "assets.basic_analytic_rpc_nitf:download",
+    "assets.udm2:download",
+    "assets.analytic_xml:download",
+    "assets.basic_analytic_dn:download",
+    "assets.basic_analytic_dn_xml_nitf:download",
+    "assets.basic_analytic_dn_nitf:download",
+    "assets.basic_analytic_xml:download",
+    "assets.basic_analytic_nitf:download",
+    "assets.basic_analytic_rpc:download",
+    "assets.analytic_dn:download",
+    "assets.basic_udm:download",
+    "assets.basic_analytic_dn_rpc_nitf:download",
+    "assets.analytic:download",
+    "assets.analytic_dn_xml:download",
+    "assets.basic_analytic_dn_xml:download",
+    "assets.basic_udm2:download",
+    "assets.basic_analytic_dn_rpc:download",
+    "assets.basic_analytic_xml_nitf:download",
+    "assets.basic_analytic:download",
+    "assets.udm:download"
+  ],
+  "geometry": {
+    "coordinates": [
+      [
+        [-121.77279869000192, 40.452664368489586],
+        [-121.75273728903328, 40.521644401941806],
+        [-121.45693850716285, 40.471764580144416],
+        [-121.45840086524194, 40.4666230194155],
+        [-121.45993676385947, 40.46138831335781],
+        [-121.45989185433542, 40.46138079380745],
+        [-121.46050003998259, 40.459242450617744],
+        [-121.47802754674746, 40.399358522310784],
+        [-121.77384972662192, 40.44894996930594],
+        [-121.77279869000192, 40.452664368489586]
+      ]
+    ],
+    "type": "Polygon"
+  },
+  "id": "20190901_183233_100c",
+  "properties": {
+    "acquired": "2019-09-01T18:32:33.657775Z",
+    "anomalous_pixels": 0,
+    "clear_confidence_percent": 100,
+    "clear_percent": 100,
+    "cloud_cover": 0,
+    "cloud_percent": 0,
+    "columns": 8944,
+    "epsg_code": 32610,
+    "ground_control": true,
+    "gsd": 3.9,
+    "heavy_haze_percent": 0,
+    "instrument": "PS2",
+    "item_type": "PSScene4Band",
+    "light_haze_percent": 0,
+    "origin_x": 603975,
+    "origin_y": 4486407,
+    "pixel_resolution": 3,
+    "provider": "planetscope",
+    "published": "2019-09-01T22:14:41Z",
+    "quality_category": "standard",
+    "rows": 4404,
+    "satellite_id": "100c",
+    "shadow_percent": 0,
+    "snow_ice_percent": 0,
+    "strip_id": "2643555",
+    "sun_azimuth": 140.7,
+    "sun_elevation": 51.7,
+    "updated": "2019-09-01T22:20:52Z",
+    "view_angle": 1,
+    "visible_confidence_percent": 100,
+    "visible_percent": 100
+  },
+  "type": "Feature"
+}

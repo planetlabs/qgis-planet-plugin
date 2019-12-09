@@ -1,0 +1,36 @@
+// commented, so invalid json. all values are examples. not to be treated as actual data
+{
+  "mosaics": [
+    {
+      "_links": { // dictionary of urls to this object, component geotiff quads, and tileserver
+        "_self": "https://api.planet.com/basemaps/v1/mosaics/49329058-74fa-43d9-aa1b-d6c8d8cdc9b8?api_key=YOUR-API-KEY",
+        "quads": "https://api.planet.com/basemaps/v1/mosaics/49329058-74fa-43d9-aa1b-d6c8d8cdc9b8/quads?api_key=YOUR-API-KEY&bbox={lx},{ly},{ux},{uy}",
+        "tiles": "https://tiles.planet.com/basemaps/v1/planet-tiles/EEA39_demo_narrow_toi_coverage_mosaic/gmap/{z}/{x}/{y}.png?api_key=YOUR-API-KEY"
+      },
+      "bbox": [ // list of floats for pair of bounding box corners
+        -10.722656,
+        47.279229,
+        23.378906,
+        62.186014
+      ],
+      "coordinate_system": "EPSG:3857", //string
+      "datatype": "byte", // string - can be byte, uint16, int16, uint32, int32, float32, float64, cint16, cint32, cfloat32, cfloat64
+      "first_acquired": "2018-06-15T00:00:00.000Z", // string - ISO 8601 datetime
+      "grid": {
+        "quad_pattern": "glevel", // string - NOT ALWAYS PRESENT. can be glevel, tilex, tiley
+        "quad_size": 4096, // int - pixel count
+        "resolution": 4.777314267823516 // float - pixel size in meters
+      },
+      "id": "49329058-74fa-43d9-aa1b-d6c8d8cdc9b8", // string - unique id
+      "interval": "1 year", // string - NOT ALWAYS PRESENT. corresponds to timelapse item type.
+      "item_types": [ // list of strings of source scene type
+        "PSScene3Band"
+      ],
+      "last_acquired": "2018-08-22T00:00:00.000Z", // string - ISO 8601 datetime
+      "level": 15, // int - max zoom level
+      "name": "EEA39_demo_narrow_toi_coverage_mosaic", // string
+      "product_type": "basemap", // string
+      "quad_download": true // bool - user has permission to download quads from this mosaic
+    }
+  ]
+}  

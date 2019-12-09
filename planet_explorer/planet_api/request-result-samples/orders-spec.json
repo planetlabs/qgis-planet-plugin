@@ -1,0 +1,901 @@
+{
+  "info": {
+    "version": "2.0.0",
+    "description": "The Compute API permits complex asset orders.",
+    "title": "Planet Compute API"
+  },
+  "host": "api.planet.com",
+  "schemes": ["https"],
+  "basePath": "/compute/ops",
+  "paths": {
+    "/download": {
+      "get": {
+        "responses": {
+          "302": {
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "redirect to cloud provider for actual download."
+          },
+          "401": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/General"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pToken"
+          }
+        ],
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "download",
+        "summary": "Download Order",
+        "description": "Download ordered asset."
+      }
+    },
+    "/orders/v2": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required": true,
+          "description": "Order details."
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "The Order Request was accepted, and is processing."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/MaxConcurrency"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/General"
+          }
+        },
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "orderScene",
+        "summary": "Create Order",
+        "description": "Orders scenes."
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListPage"
+                }
+              }
+            },
+            "description": "A list of Order requests."
+          },
+          "401": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/General"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pPageMarker"
+          }
+        ],
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "listOrders",
+        "summary": "List Orders",
+        "description": "Returns all pending order requests."
+      }
+    },
+    "/orders/v2/{order_id}": {
+      "put": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Returns the cancelled order details."
+          },
+          "401": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/General"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pOrderId"
+          }
+        ],
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "cancelOrder",
+        "summary": "Cancel an order",
+        "description": "Cancel a running order by Id."
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            },
+            "description": "Gets a single Order record."
+          },
+          "401": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/General"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/pOrderId"
+          }
+        ],
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "getOrder",
+        "summary": "Get Order",
+        "description": "Get order request details by Id."
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "responses": {
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Item not found."
+      },
+      "MaxConcurrency": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Order concurrency limit reached."
+      },
+      "Error": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/APIError"
+            }
+          }
+        },
+        "description": "Server Error."
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Access denied - insufficient privileges."
+      },
+      "BadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/APIError"
+            }
+          }
+        },
+        "description": "Invalid request."
+      },
+      "General": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Other error."
+      }
+    },
+    "parameters": {
+      "pPageMarker": {
+        "in": "query",
+        "description": "Paging marker.",
+        "name": "page_marker",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "pToken": {
+        "required": true,
+        "in": "query",
+        "description": "Download token.",
+        "name": "token",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "pOrderId": {
+        "required": true,
+        "in": "path",
+        "description": "The Order ID (a UUID).",
+        "name": "order_id",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "schemas": {
+      "OrderLinks": {
+        "type": "object",
+        "properties": {
+          "_self": {
+            "type": "string",
+            "description": "The canonical link to this Order request."
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OrderComponent"
+            },
+            "type": "array",
+            "description": "The canonical links to this Order's results.",
+            "x-omitempty": true
+          }
+        }
+      },
+      "Errors": {
+        "items": {
+          "$ref": "#/components/schemas/Error"
+        },
+        "type": "array",
+        "description": "A list of Errors."
+      },
+      "bandmathObject": {
+        "type": "object",
+        "properties": {
+          "pixel_type": {
+            "type": "string"
+          },
+          "b4": {
+            "type": "string"
+          },
+          "b5": {
+            "type": "string"
+          },
+          "b1": {
+            "type": "string"
+          },
+          "b2": {
+            "type": "string"
+          },
+          "b3": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          }
+        }
+      },
+      "tiff_optimizeObject": {
+        "type": "object",
+        "properties": {
+          "compression": {
+            "type": "string"
+          }
+        }
+      },
+      "APIError": {
+        "required": [
+          "general",
+          "field"
+        ],
+        "type": "object",
+        "description": "An APIError communicates both general and field-specific errors. General errors include issues with core API usage as well as conflicts that involve more than one field. Field-specific errors correspond to an individual query parameter or request body attribute. Errors referencing nested fields will be dot-delimited (e.g. user.groups.0.name).",
+        "properties": {
+          "field": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "type": "object"
+          },
+          "general": {
+            "$ref": "#/components/schemas/Errors"
+          }
+        }
+      },
+      "Arbitrary": {
+        "type": "object",
+        "description": "A generic object payload"
+      },
+      "reprojectObject": {
+        "type": "object",
+        "properties": {
+          "kernel": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "number"
+          },
+          "projection": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderListLinks": {
+        "type": "object",
+        "properties": {
+          "_self": {
+            "type": "string",
+            "description": "The canonical link to this Order request."
+          },
+          "next": {
+            "type": "string",
+            "description": "The next page of Order requests."
+          }
+        }
+      },
+      "clipObject": {
+        "type": "object",
+        "properties": {
+          "aoi": {
+            "type": "object"
+          }
+        }
+      },
+      "OrderComponent": {
+        "type": "object",
+        "properties": {
+          "delivery": {
+            "enum": [
+              "pending",
+              "failed",
+              "success"
+            ],
+            "type": "string",
+            "description": "The current state of this order request component."
+          },
+          "name": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "When the download link (if present) expires.",
+            "format": "date-time"
+          },
+          "location": {
+            "type": "string",
+            "description": "The (optional) download link for this asset."
+          }
+        }
+      },
+      "toarObject": {
+        "type": "object",
+        "properties": {
+          "scale_factor": {
+            "type": "number"
+          }
+        }
+      },
+      "AmazonS3": {
+        "required": [
+          "bucket",
+          "aws_region",
+          "aws_access_key_id",
+          "aws_secret_access_key"
+        ],
+        "description": "Amazon S3 destination details.",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "description": "S3 bucket to send results."
+          },
+          "aws_region": {
+            "type": "string",
+            "description": "AWS region bucket resides in."
+          },
+          "aws_access_key_id": {
+            "type": "string",
+            "description": "S3 account access key."
+          },
+          "aws_secret_access_key": {
+            "type": "string",
+            "description": "S3 account secret key."
+          },
+          "path_prefix": {
+            "type": "string",
+            "description": "Prefix for publishing into bucket."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "A descriptive error message."
+          }
+        }
+      },
+      "tileObject": {
+        "type": "object",
+        "properties": {
+          "name_template": {
+            "type": "string"
+          },
+          "conformal_x_scaling": {
+            "type": "boolean"
+          },
+          "origin_y": {
+            "type": "number"
+          },
+          "origin_x": {
+            "type": "number"
+          },
+          "tile_size": {
+            "type": "number"
+          },
+          "pixel_size": {
+            "type": "number"
+          }
+        }
+      },
+      "Order": {
+        "required": [
+          "products"
+        ],
+        "type": "object",
+        "description": "A Order is an object describing an order operation.",
+        "properties": {
+          "prior_orders": {
+            "$ref": "#/components/schemas/PriorOrders"
+          },
+          "name": {
+            "type": "string",
+            "description": "A name given to this Order request."
+          },
+          "last_message": {
+            "type": "string",
+            "description": "Some info on the current order state."
+          },
+          "error_hints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Hints related to any reported error."
+          },
+          "created_on": {
+            "type": "string",
+            "description": "The UTC date this Order request was created.",
+            "format": "date-time"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/Delivery"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/Notifications"
+          },
+          "state": {
+            "enum": [
+              "running",
+              "failed",
+              "success",
+              "partial",
+              "cancelled"
+            ],
+            "type": "string",
+            "description": "The current state of this Order request."
+          },
+          "last_modified": {
+            "type": "string",
+            "description": "The UTC date this Order request was last modified.",
+            "format": "date-time"
+          },
+          "_links": {
+            "$ref": "#/components/schemas/OrderLinks"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "type": "array",
+            "description": "The products from the Data API to order."
+          },
+          "subscription_id": {
+            "type": "integer",
+            "description": "quota subscription this order was applied to."
+          },
+          "tools": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/coregObject"
+                },
+                {
+                  "$ref": "#/components/schemas/bandmathObject"
+                },
+                {
+                  "$ref": "#/components/schemas/toarObject"
+                },
+                {
+                  "$ref": "#/components/schemas/clipObject"
+                },
+                {
+                  "$ref": "#/components/schemas/reprojectObject"
+                },
+                {
+                  "$ref": "#/components/schemas/compositeObject"
+                },
+                {
+                  "$ref": "#/components/schemas/tileObject"
+                },
+                {
+                  "$ref": "#/components/schemas/tiff_optimizeObject"
+                }
+              ]
+            }
+          },
+          "id": {
+            "type": "string",
+            "description": "A UUID to uniquely identify this Order request.",
+            "format": "uuid"
+          },
+          "order_type": {
+            "default": "full",
+            "enum": [
+              "partial",
+              "full"
+            ],
+            "type": "string",
+            "description": "accept order if requested products are not available?"
+          }
+        }
+      },
+      "Product": {
+        "required": [
+          "item_type",
+          "product_bundle",
+          "item_ids"
+        ],
+        "type": "object",
+        "description": "A product is a tuple of [product_bundle/item_type/array of item_ids] to apply an operation on.",
+        "properties": {
+          "item_type": {
+            "type": "string",
+            "description": "item-type for requested item_id."
+          },
+          "item_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "description": "Array of item ids."
+          },
+          "product_bundle": {
+            "type": "string",
+            "description": "asset-type for the item."
+          }
+        }
+      },
+      "Webhook": {
+        "description": "Details for calling your webhook. An OrderComponent will be POST'ed to endpoint.",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "per_order": {
+            "type": "boolean",
+            "description": "If 'true', webhook will be called when order completes. Default is 'false'"
+          }
+        }
+      },
+      "Delivery": {
+        "description": "How should ordered scenes be delivered?",
+        "properties": {
+          "google_cloud_storage": {
+            "$ref": "#/components/schemas/GoogleCloudStorage"
+          },
+          "amazon_s3": {
+            "$ref": "#/components/schemas/AmazonS3"
+          },
+          "azure_blob_storage": {
+            "$ref": "#/components/schemas/AzureBlobStorage"
+          },
+          "single_archive": {
+            "type": "boolean",
+            "description": "If true, results will be combined into a single zip file, regardless of whether or not there is a merge operation."
+          },
+          "archive_filename": {
+            "type": "string",
+            "description": "Archival version 2, supercedes 'zip_filename'. Name of resulting archive."
+          },
+          "archive_type": {
+            "type": "string",
+            "description": "Archival version 2, supercedes 'zip_filename'. Type of archive, like 'zip'. Use together with 'archive_filename'."
+          }
+        }
+      },
+      "Notifications": {
+        "description": "How would you like to be notified when order is complete?",
+        "properties": {
+          "webhook": {
+            "$ref": "#/components/schemas/Webhook"
+          },
+          "email": {
+            "type": "boolean",
+            "description": "Send email to address associated with submitter account."
+          }
+        }
+      },
+      "OrderListPage": {
+        "type": "object",
+        "properties": {
+          "_links": {
+            "$ref": "#/components/schemas/OrderListLinks"
+          },
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/Order"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "GoogleCloudStorage": {
+        "required": [
+          "bucket",
+          "credentials"
+        ],
+        "description": "Google Cloud Storage details.",
+        "properties": {
+          "credentials": {
+            "type": "string",
+            "description": "JSON-string of service account for bucket."
+          },
+          "bucket": {
+            "type": "string",
+            "description": "GCS bucket name."
+          },
+          "path_prefix": {
+            "type": "string",
+            "description": "Prefix for publishing into bucket."
+          }
+        }
+      },
+      "compositeObject": {
+        "type": "object",
+        "properties": {}
+      },
+      "AzureBlobStorage": {
+        "required": [
+          "account",
+          "container",
+          "sas_token"
+        ],
+        "description": "Azure blob storage details.",
+        "properties": {
+          "sas_token": {
+            "type": "string",
+            "description": "Shared-Access Signature token."
+          },
+          "account": {
+            "type": "string",
+            "description": "Azure account."
+          },
+          "container": {
+            "type": "string",
+            "description": "ABS container name."
+          },
+          "storage_endpoint_suffix": {
+            "type": "string",
+            "description": "The storage endpoint suffix."
+          },
+          "path_prefix": {
+            "type": "string",
+            "description": "Prefix for publishing into container."
+          }
+        }
+      },
+      "PriorOrders": {
+        "required": [
+          "orders"
+        ],
+        "type": "object",
+        "description": "Use assets created by previous orders.",
+        "properties": {
+          "failures": {
+            "default": "skip",
+            "enum": [
+              "fail",
+              "skip"
+            ],
+            "type": "string"
+          },
+          "partials": {
+            "default": "accept",
+            "enum": [
+              "fail",
+              "skip",
+              "accept"
+            ],
+            "type": "string"
+          },
+          "orders": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "coregObject": {
+        "type": "object",
+        "properties": {
+          "first_is_master": {
+            "type": "boolean"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "description": "A OrderRequest is an object describing how to order products.",
+        "properties": {
+          "prior_orders": {
+            "$ref": "#/components/schemas/PriorOrders"
+          },
+          "name": {
+            "type": "string",
+            "description": "A name given to this Order request."
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/Delivery"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/Notifications"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "type": "array",
+            "description": "The products from the Data API to order."
+          },
+          "debug": {
+            "type": "string",
+            "description": "Undocumented flag for internal use."
+          },
+          "subscription_id": {
+            "default": 0,
+            "type": "integer",
+            "description": "apply this orders against this quota subscription"
+          },
+          "tools": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/coregObject"
+                },
+                {
+                  "$ref": "#/components/schemas/bandmathObject"
+                },
+                {
+                  "$ref": "#/components/schemas/toarObject"
+                },
+                {
+                  "$ref": "#/components/schemas/clipObject"
+                },
+                {
+                  "$ref": "#/components/schemas/reprojectObject"
+                },
+                {
+                  "$ref": "#/components/schemas/compositeObject"
+                },
+                {
+                  "$ref": "#/components/schemas/tileObject"
+                },
+                {
+                  "$ref": "#/components/schemas/tiff_optimizeObject"
+                }
+              ]
+            }
+          },
+          "order_type": {
+            "default": "full",
+            "enum": [
+              "partial",
+              "full"
+            ],
+            "type": "string",
+            "description": "accept order if requested products are not available (partial)?"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/compute/ops"
+    }
+  ]
+}

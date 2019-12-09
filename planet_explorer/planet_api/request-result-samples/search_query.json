@@ -1,0 +1,49 @@
+{
+  "item_types": [
+    "PSScene4Band"
+  ],
+  "filter": {
+    "type": "AndFilter",
+    "config": [
+      {
+        "field_name": "geometry",
+        "type": "GeometryFilter",
+        "config": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -122.85311925238402,
+                39.38423372796037
+              ],
+              [
+                -119.71945874761533,
+                39.38423372796037
+              ],
+              [
+                -119.71945874761533,
+                41.19895817770122
+              ],
+              [
+                -122.85311925238402,
+                41.19895817770122
+              ],
+              [
+                -122.85311925238402,
+                39.38423372796037
+              ]
+            ]
+          ]
+        }
+      },
+      {
+        "field_name": "cloud_cover",
+        "type": "RangeFilter",
+        "config": {
+          "gte": 0,
+          "lte": 100
+        }
+      }
+    ]
+  }
+}

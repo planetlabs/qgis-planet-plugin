@@ -1,0 +1,12 @@
+# these are explicitly listed, i.e. NO dependencies will be installed
+click
+requests-futures
+planet
+qgiscommons
+iso8601
+analytics-python
+sentry-sdk==0.12.3
+
+# typing
+
+# test requirements

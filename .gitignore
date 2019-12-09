@@ -1,0 +1,7 @@
+**/__pycache__
+**/.vscode
+planet_explorer/extlibs
+pyq5-examples
+planet_explorer*.zip
+bundles-util.js
+qgis_resources.py
