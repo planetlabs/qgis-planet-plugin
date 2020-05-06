@@ -61,7 +61,7 @@ PLANET_MOSAIC_PROC = "planet/mosaicProc"
 PLANET_MOSAIC_RAMP = "planet/mosaicRamp"
 PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
 
-TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
+TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?plugin=qgis_v1&api_key=%s"
 
 class CustomSlider(QSlider):
 

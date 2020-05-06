@@ -75,7 +75,7 @@ ITEM_GROUPS = [
 QUOTA_URL = 'https://api.planet.com/auth/v1/experimental' \
             '/public/my/subscriptions'
 
-TILE_SERVICE_URL = 'https://tiles{0}.planet.com/data/v1/layers'
+TILE_SERVICE_URL = 'https://tiles{0}.planet.com/data/v1/layers?plugin=qgis_v1'
 
 class LoginException(Exception):
     """Issues raised during client login"""
