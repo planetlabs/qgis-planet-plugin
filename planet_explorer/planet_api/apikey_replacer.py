@@ -37,8 +37,8 @@ PLANET_ROOT_URL = "planet.com"
 PLANET_ROOT_URL_PLACEHOLDER = "{planet_url}"
 
 def is_planet_layer(url):
-    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*")
-    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*")
+    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?.*api_key=.*")
+    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?.*api_key=.*")
     isloggedInPattern = loggedInPattern.search(url) is not None
     isloggedOutPattern = loggedOutPattern.search(url) is not None
 
