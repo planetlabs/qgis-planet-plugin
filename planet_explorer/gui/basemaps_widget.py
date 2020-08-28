@@ -895,11 +895,19 @@ class BasemapsListWidget(QListWidget):
             self.addItem(item)
             widget = BasemapItemWidget(mosaic)
             self.setItemWidget(item, widget)
+            widget.setMaximumWidth(self.width())
+            widget.setFixedWidth(self.width())
             item.setSizeHint(widget.sizeHint())
             widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
             self.widgets.append(widget)
         
         self.sortItems()
+
+    def resizeEvent(self, evt):
+        super().resizeEvent(evt)
+        for widget in self.widgets:
+            widget.setMaximumWidth(self.width())
+            widget.setFixedWidth(self.width())
 
     def selected_mosaics(self):
         return sorted([w.mosaic for w in self.widgets if w.isSelected()], 
@@ -959,6 +967,7 @@ class BasemapItemWidget(QWidget):
         layout.addWidget(self.nameLabel)
         layout.addStretch()
         layout.addWidget(self.toolsButton)
+        layout.addSpacing(10)
         self.setLayout(layout)
         self.nam = QNetworkAccessManager()
         self.nam.finished.connect(self.iconDownloaded)
