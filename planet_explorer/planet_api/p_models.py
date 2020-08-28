@@ -75,7 +75,7 @@ from .p_network import (
     RESPONSE_TIMEOUT,
 )
 from .p_thumnails import PlanetThumbnailCache
-from .p_node import PlanetNode
+from .p_node import PlanetNode, PlanetNodeMetadata
 from .p_node import PlanetNodeType as NodeT
 from .p_utils import geometry_from_request
 from .p_specs import (
@@ -99,7 +99,6 @@ LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
 TOP_ITEMS_BATCH_ENV = os.environ.get('TOP_ITEMS_BATCH', None)
 
 LOAD_TEMPLATE = '<br><i><b><a href="link" style="color: rgb(0, 157, 165);">{name}</a></b></i><br>'
-
 
 class SearchException(Exception):
     """Exceptions raised during API search operation"""
@@ -125,18 +124,19 @@ class PlanetSearchResultsModel(QAbstractItemModel):
     searchFinished = pyqtSignal()
     searchNoResults = pyqtSignal()
     searchCancelled = pyqtSignal()
-    searchTimedOut = pyqtSignal(int)  # response timeout in seconds
+    searchTimedOut = pyqtSignal(int)  # response timeout in seconds    
 
     searchShouldCancel = pyqtSignal()
 
     thumbnailFetchShouldCancel = pyqtSignal(str)
+
+    itemCountChanged = pyqtSignal()
 
     results: Optional[models.Items]
     _response: Optional[models.Response]
     page_to_add: Optional[models.Items]
 
     def __init__(self, api_key=None,
-                 request_type=None, request=None,
                  response_timeout=RESPONSE_TIMEOUT,
                  thumb_cache_dir=None,
                  sort_order=None,
@@ -144,36 +144,18 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         super().__init__(parent=parent)
 
         self._api_key = api_key
-        self._request_type = request_type
-        self._request = request
+        self._request = None
         self._response = None
         self._response_timeout = response_timeout
         self._thumb_cache_dir = thumb_cache_dir
-        self._sort_order = sort_order or ('acquired', 'desc')
-        self._sort_field = sort_order[0] if len(sort_order) > 0 else ''
-        self._sort_direction = sort_order[1] if len(sort_order) > 1 else ''
-        log.debug(f'sort_field: {self._sort_field}')
-        self._column_headers = [
-            f'Date {self._sort_field}',
-            ''
-        ]
 
-        # Parsed JSON items into a list
-        self._top_items = []
+        self._metadata_to_show = [PlanetNodeMetadata.CLOUD_PERCENTAGE, 
+                                  PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE]
 
-        # Count for fetch more operations
-        self._top_item_count = 0
+        self._set_sort_order(sort_order)
 
-        # Values for the 'showing X of Y results' label in the 'load more' node
-        self._item_count = 0
-        self._total_count = 0
+        self._reset()
 
-        # self.insertRows(0, [self.root])
-        self._page_iter = None
-        self._page_to_add = None
-        self._page = 0
-
-        self._results = None
         self._initial_search_done = False
 
         self._watcher = PlanetCallbackWatcher(
@@ -213,6 +195,40 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         # This is async now...
         # if self._request is not None:
         #     self.start_api_search()
+
+    def update_request(self, request):
+        self._request = request
+        self.truncate()
+        self.start_api_search()
+
+    def _set_sort_order(self, sort_order):
+        self._sort_order = sort_order or ('acquired', 'desc')
+        self._sort_field = sort_order[0] if len(sort_order) > 0 else ''
+        self._sort_direction = sort_order[1] if len(sort_order) > 1 else ''
+        log.debug(f'sort_field: {self._sort_field}')
+        self._column_headers = [
+            f'Date {self._sort_field}',
+            ''
+        ]
+
+    def update_sort_order(self, sort_order):
+        self._set_sort_order(sort_order)
+        self.truncate()
+        self.start_api_search()
+
+
+    def set_metadata_to_show(self, metadata_to_show):
+        self._metadata_to_show = metadata_to_show
+        def traverse(node):         
+            if node.has_children():
+                for child in node.children():
+                    traverse(child)
+            else:
+                node.set_metadata_to_show(metadata_to_show)                
+        traverse(self.root)
+
+    def metadata_to_show(self):
+        return self._metadata_to_show
 
     def results(self):
         return self._results
@@ -262,12 +278,6 @@ class PlanetSearchResultsModel(QAbstractItemModel):
 
         # Initialize search, then start callback watching timer
         try:
-            # TODO: Add search for mosaics or series
-            # self._results: models.Items = \
-            #     self._p_client.quick_search(
-            #         self._request,
-            #         page_size=self.TOP_ITEMS_BATCH
-            #     ).get_body()
 
             stats_request = {"interval": "year"}
             stats_request.update(self._request)
@@ -357,21 +367,15 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         for item in self._page_to_add.get()[models.Items.ITEM_KEY]:
             node = PlanetNode(
                 resource=item,
-                resource_type=self._request_type,
-                sort_field=self._sort_field
+                resource_type=RESOURCE_DAILY,
+                sort_field=self._sort_field,
+                metadata_to_show = self._metadata_to_show
             )
             nodes.append(node)
             # self._top_items.append(node)
             # self._top_item_count += 1
 
-        # TODO: Parse nodes, then build up AOI scene parents, for Daily Imagery
-        if self._request_type == RESOURCE_DAILY:
-            self._append_daily_items(nodes)
-
-        # if nodes:
-        #     self.insertRows(self.rowCount(), nodes)
-
-        # self._page_to_add.clear()
+        self._append_daily_items(nodes)
 
         # Test for next page
         if self._page_contains_next(self._page_to_add):
@@ -383,11 +387,10 @@ class PlanetSearchResultsModel(QAbstractItemModel):
                             node_type=NodeT.LOAD_MORE)
             self.insertRows(self.rowCount(), [node])
 
+        self.itemCountChanged.emit()
+
     # check if the node has data that has not been loaded yet
     def canFetchMore(self, index):
-        # For Daily imagery we're building parent from children, so not needed.
-        # if self._request_type == RESOURCE_DAILY:
-        #     return False
 
         node = self.get_node(index)
 
@@ -438,6 +441,7 @@ class PlanetSearchResultsModel(QAbstractItemModel):
                     name=n_type,
                     resource_type=RESOURCE_DAILY,
                     node_type=NodeT.DAILY_SCENE,
+                    metadata_to_show = self._metadata_to_show
                 )                                        
                 self.insertRows(
                     self.root.child_count(), [scene], self.root.index())
@@ -576,8 +580,7 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         return self.createIndex(row, column, child)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if (orientation == Qt.Horizontal and role == Qt.DisplayRole
-                and self._request_type == RESOURCE_DAILY):
+        if (orientation == Qt.Horizontal and role == Qt.DisplayRole):
             return self._column_headers[section]
         return super(PlanetSearchResultsModel, self).headerData(
             section, orientation, role=role)
@@ -605,6 +608,8 @@ class PlanetSearchResultsModel(QAbstractItemModel):
                 return node.icon()
             if role == Qt.DisplayRole:
                 return node.description()
+            if role == Qt.ToolTipRole:
+                return node._tooltip
 
         # if role == Qt.CheckStateRole and index.column() == 0:
         #     return node.checked_state
@@ -728,6 +733,31 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         self.endRemoveRows()
 
         return True
+
+    def truncate(self):
+        self._reset()
+        self.removeRows(0, self.rowCount())
+
+    def _reset(self):
+        # Parsed JSON items into a list
+        self._top_items = []
+
+        # Count for fetch more operations
+        self._top_item_count = 0
+
+        # Values for the 'showing X of Y results' label in the 'load more' node
+        self._item_count = 0
+        self._total_count = 0
+
+        # self.insertRows(0, [self.root])
+        self._page_iter = None
+        self._page_to_add = None
+        self._page = 0
+
+        self._results = None
+
+    def item_counts(self):
+        return self._item_count, self._total_count
 
     def roleNames(self):
         return self._roles

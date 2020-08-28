@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ***************************************************************************
-    mosaic_layer_widgets.py
+    basemap_layer_widgets.py
     ---------------------
     Date                 : October 2019
     Copyright            : (C) 2019 Planet Inc, https://planet.com
@@ -34,24 +34,18 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QLabel,
     QStyle, 
-    QStyleOptionSlider,
-    QStyleFactory
+    QStyleOptionSlider
 )
 
 from qgis.core import (
-    QgsMapLayer,
-    QgsDataProvider,
     QgsLayerTreeLayer,
     QgsLayerTreeGroup,
     QgsProject
 )
 
 from qgis.gui import (
-    QgsLayerTreeEmbeddedWidgetProvider,
-    QgsLayerTreeEmbeddedWidgetRegistry
+    QgsLayerTreeEmbeddedWidgetProvider
 )
-
-from ..pe_utils import PLANET_COLOR
 
 from ..planet_api import PlanetClient
 
@@ -60,11 +54,11 @@ PLANET_MOSAICS = "planet/mosaics"
 PLANET_MOSAIC_PROC = "planet/mosaicProc"
 PLANET_MOSAIC_RAMP = "planet/mosaicRamp"
 PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
+PLANET_BASEMAP_LABEL = "planet/basemapLabel"
 
 TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
 
 class CustomSlider(QSlider):
-
 
     def paintEvent(self, event):
         # based on
@@ -118,7 +112,6 @@ class CustomSlider(QSlider):
         painter.setBrush(cur_brush)
         painter.setPen(cur_pen)
 
-
         opt = QStyleOptionSlider()
         self.initStyleOption(opt)
 
@@ -139,13 +132,14 @@ class CustomSlider(QSlider):
         style.drawComplexControl(
             QStyle.CC_Slider, opt, painter, self)
 
-class MosaicLayerWidget(QWidget):
+class BasemapLayerWidget(QWidget):
 
     def __init__(self, layer):
         super().__init__()
         self.current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
         proc = layer.customProperty(PLANET_MOSAIC_PROC)
         ramp = layer.customProperty(PLANET_MOSAIC_RAMP)
+        label = layer.customProperty(PLANET_BASEMAP_LABEL)
         self.datatype = layer.customProperty(PLANET_MOSAIC_DATATYPE)
         self.layer = layer
         self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
@@ -153,6 +147,7 @@ class MosaicLayerWidget(QWidget):
         self.mosaicids = [m[1] for m in self.mosaics]
         self.layout = QVBoxLayout()
         self.labelId = QLabel()
+        self.labelId.setText(label)
         self.layout.addWidget(self.labelId)
         if len(self.mosaics) > 1:
             idx = self.mosaicnames.index(self.current_mosaic_name)            
@@ -169,9 +164,6 @@ class MosaicLayerWidget(QWidget):
             self.slider.sliderReleased.connect(self.change_source)            
             self.layout.addWidget(self.labelName)
             self.layout.addWidget(self.slider)
-        else:
-            idx = 0
-        self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
         self.hlayoutProc = QHBoxLayout()
         self.labelProc = QLabel("Processing:")
         self.comboProc = QComboBox()
@@ -278,7 +270,7 @@ class MosaicLayerWidget(QWidget):
 
 WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
-class MosaicLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
+class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
 
     def __init__(self):
         QgsLayerTreeEmbeddedWidgetProvider.__init__(self)
@@ -288,10 +280,10 @@ class MosaicLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
         return WIDGET_PROVIDER_NAME
 
     def name(self):
-        return "Planet Mosaic Layer Widget"
+        return "Planet Basemap Layer Widget"
 
     def createWidget(self, layer, widgetIndex):
-        widget = MosaicLayerWidget(layer)
+        widget = BasemapLayerWidget(layer)
         self.widgets[layer.id()] = widget
         return widget
 

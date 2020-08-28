@@ -55,8 +55,7 @@ from qgis.PyQt.QtCore import (
     QSize,
     QMargins,
     QTextCodec,
-    QEvent,
-    QPoint,
+    QEvent
 )
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
@@ -79,16 +78,13 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QMenu,
     QToolButton,
-    QPlainTextEdit,
     QAbstractItemView,
     QTreeView,
     QHeaderView,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionButton,
-    QStyleOptionViewItem,
-    # QTabWidget,
-    QGroupBox,
+    QStyleOptionViewItem
 )
 
 from qgis.core import (
@@ -107,8 +103,7 @@ from qgis.core import (
 )
 
 from qgis.gui import (
-    QgsCollapsibleGroupBox,
-    QgsRubberBand,
+    QgsRubberBand
 )
 
 from planet_explorer.pe_utils import(
@@ -174,6 +169,8 @@ else:
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     from ..resources import resources
     from ..gui.waiting_spinner.waitingspinnerwidget import QtWaitingSpinner
+    from ..gui.save_search_dialog import SaveSearchDialog
+    from ..gui.results_configuration_dialog import ResultsConfigurationDialog
     from .pe_thumbnails import (
         PlanetQgisRenderJob,
     )
@@ -195,6 +192,7 @@ else:
     # noinspection PyUnresolvedReferences
     from ..planet_api.p_client import (
         ITEM_GROUPS,
+        PlanetClient
     )
     from ..planet_api.p_node import (
         PlanetNode,
@@ -214,7 +212,8 @@ else:
         # RESOURCE_MOSAICS,
         RESOURCE_DAILY,
         # DAILY_ITEM_TYPES_DICT,
-    )
+    )    
+
 
 CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 500
 
@@ -414,7 +413,6 @@ class PlanetSearchResultsView(QTreeView):
     checkedCountChanged = pyqtSignal(int)
 
     def __init__(self, parent, iface=None, api_key=None,
-                 request_type=None, request=None,
                  response_timeout=RESPONSE_TIMEOUT,
                  sort_order=None):
         super().__init__(parent=parent)
@@ -424,8 +422,7 @@ class PlanetSearchResultsView(QTreeView):
 
         self._iface = iface
         self._api_key = api_key
-        self._request_type = request_type
-        self._request = request
+        self._request = None
         self._response_timeout = response_timeout
         self._sort_order = sort_order
 
@@ -441,8 +438,6 @@ class PlanetSearchResultsView(QTreeView):
         self._search_model = PlanetSearchResultsModel(
             parent=self,
             api_key=api_key,
-            request_type=request_type,
-            request=request,
             thumb_cache_dir=self._thumb_cache_dir,
             sort_order=self._sort_order
         )
@@ -1086,56 +1081,65 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     zoomToAOIRequested = pyqtSignal()
     setAOIRequested = pyqtSignal(dict)
-    setSearchParamsRequested = pyqtSignal(dict, tuple)
     checkedCountChanged = pyqtSignal(int)
+    searchSaved = pyqtSignal(dict)
 
-    grpBoxQuery: QGroupBox
-    teQuery: QPlainTextEdit
+    SORT_ORDER_DATE_TYPES = [
+        ('acquired', 'Acquired'),
+        ('published', 'Published'),
+        # ('updated', 'Updated'),
+    ]
+
+    SORT_ORDER_TYPES = [
+        ('desc', 'descending'),
+        ('asc', 'ascending'),
+    ]
+
     frameSearching: QFrame
     btnCancel: QToolButton
-    btnShowQuery: QToolButton
     btnZoomToAOI: QToolButton
-    btnSetAOI: QToolButton
-    btnSetSearchParams: QToolButton
     lblSearching: QLabel
     frameResults: QFrame
 
     def __init__(self, parent=None, iface=None, api_key=None,
-                 request_type=None, request=None,
-                 response_timeout=RESPONSE_TIMEOUT,
-                 sort_order=None):
+                 response_timeout=RESPONSE_TIMEOUT):
         super().__init__(parent=parent)
 
         self.setupUi(self)
+
+        self._p_client = PlanetClient.getInstance()
+        self._api_client = self._p_client.api_client()
 
         self._parent = parent
 
         self._iface = iface
         # TODO: Grab responseTimeOut from plugin settings and override default
         self._response_timeout = response_timeout
-        self._request_type = request_type
-        self._request = request
-        self.sort_order = sort_order
-
-        self.teQuery.setPlainText(json.dumps(request, indent=2))
-
-        # self.grpBoxQuery.setSaveCollapsedState(False)
-        # self.grpBoxQuery.setCollapsed(True)
-        self.grpBoxQuery.hide()
+        self._request = None
 
         self.btnZoomToAOI.clicked.connect(self._zoom_to_request_aoi)
-        self.btnSetAOI.clicked.connect(self._set_aoi_from_request)
-        self.btnSetSearchParams.clicked.connect(self._set_search_params_from_request)
-        self.btnShowQuery.clicked.connect(self._toggle_query)
+        self.btnSaveSearch.clicked.connect(self._save_search)
+        self.btnSettings.clicked.connect(self._open_settings)
 
         self._aoi_box = None
         self._setup_request_aoi_box()
 
+        self.cmbBoxDateType.clear()
+        for i, (a, b) in enumerate(self.SORT_ORDER_DATE_TYPES):
+            self.cmbBoxDateType.insertItem(i, b, userData=a)
+        self.cmbBoxDateType.setCurrentIndex(0)
+        self.cmbBoxDateType.currentIndexChanged.connect(self._sort_order_changed)
+
+        self.cmbBoxDateSort.clear()
+        for i, (a, b) in enumerate(self.SORT_ORDER_TYPES):
+            self.cmbBoxDateSort.insertItem(i, b, userData=a)
+        self.cmbBoxDateSort.setCurrentIndex(0)
+        self.cmbBoxDateSort.currentIndexChanged.connect(self._sort_order_changed)
+
         self.results_tree = PlanetSearchResultsView(
             parent=self, iface=iface, api_key=api_key,
-            request_type=request_type, request=request,
             response_timeout=self._response_timeout,
-            sort_order=sort_order
+            sort_order=self.sort_order()
         )
 
         self.results_tree.checkedCountChanged[int].connect(
@@ -1147,10 +1151,10 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         search_model = self.results_tree.search_model()
         if self.results_tree.search_model():
             search_model.searchFinished.connect(self._search_finished)
-            search_model.searchNoResults.connect(self._search_no_results)
+            #search_model.searchNoResults.connect(self._search_no_results)
             search_model.searchCancelled.connect(self._search_cancelled)
             search_model.searchTimedOut[int].connect(self._search_timed_out)
-
+            search_model.itemCountChanged.connect(self.item_count_changed)
             self.btnCancel.clicked.connect(search_model.cancel_search)
 
         self.waiting_spinner = QtWaitingSpinner(
@@ -1170,12 +1174,50 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.waiting_spinner.setRevolutionsPerSecond(1.0)
         self.waiting_spinner.setColor(PLANET_COLOR)
 
+        self.widgetActions.hide()
+        self.frameResults.hide()
+        self.widgetNoResults.show()
+        self.frameSearching.hide()
+
+    def search_has_been_performed(self):
+        return self._request is not None
+
+    def _open_settings(self):
+        settings = self.results_tree.search_model().metadata_to_show()
+        dlg = ResultsConfigurationDialog(settings)
+        if dlg.exec_():
+            self.results_tree.search_model().set_metadata_to_show(dlg.selection)
+
+    def _save_search(self):
+        dlg = SaveSearchDialog(self._request)
+        if dlg.exec_():           
+            self._api_client.create_search(dlg.request_to_save)
+            self.searchSaved.emit(dlg.request_to_save)
+
+    def sort_order(self):
+        return (
+            str(self.cmbBoxDateType.currentData()),
+            str(self.cmbBoxDateSort.currentData())
+        )
+
+    def _sort_order_changed(self, idx):  
         self.waiting_spinner.start()
         self.waiting_spinner.show()
+        self.results_tree.hide()
+        self.results_tree.search_model().update_sort_order(self.sort_order())
 
-        search_model.start_api_search()
-        # QTimer.singleShot(0, search_model.start_api_search)
-
+    def update_request(self, request):        
+        if self.widgetNoResults.isVisible():
+            self.lblSearching.setText('Searching...')
+            self.frameSearching.show()
+            self.widgetNoResults.hide()
+        self.frameResults.show()
+        self.results_tree.hide()
+        self.waiting_spinner.start()
+        self.waiting_spinner.show()
+        self._request = request
+        self.results_tree.search_model().update_request(request)
+    
     def _nix_waiting_spinner(self):
         self.waiting_spinner.stop()
         self.waiting_spinner.hide()
@@ -1188,57 +1230,40 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     @pyqtSlot(int)
     def checked_count_changed(self, count):
-        if type(self._parent).__name__ == 'QTabWidget':
-            # self._parent: QTabWidget
-            tab_indx = self._parent.indexOf(self)
-
-            if tab_indx != -1:
-                txt = f'{self._request_type.capitalize()}'
-                if count > 0:
-                    txt += f' ({count})'
-                self._parent.setTabText(tab_indx, txt)
-
         self.checkedCountChanged.emit(count)
-
-    @pyqtSlot()
-    def _toggle_query(self):
-        if self.grpBoxQuery.isVisible():
-            self.grpBoxQuery.hide()
-            self.btnShowQuery.setIcon(
-                QIcon(':/plugins/planet_explorer/expand-triangle.svg')
-            )
-        else:
-            self.grpBoxQuery.show()
-            self.btnShowQuery.setIcon(
-                QIcon(':/plugins/planet_explorer/collapse-triangle.svg')
-            )
 
     @pyqtSlot()
     def _search_finished(self):
         self._nix_waiting_spinner()
-        self.frameSearching.hide()
         self.results_tree.show()
 
     @pyqtSlot()
-    def _search_no_results(self):
-        self._nix_waiting_spinner()
-        self.lblSearching.setText('No results found')
-        self.btnCancel.hide()
-        self.results_tree.hide()
+    def item_count_changed(self):
+        _, total = self.results_tree.search_model().item_counts()
+        self.widgetActions.setVisible(bool(total))
+        self.frameResults.setVisible(bool(total))        
+        self.widgetNoResults.setVisible(not bool(total))
+        self.frameSearching.hide()       
+        self.lblImageCount.setText("%i of %i images" % 
+                self.results_tree.search_model().item_counts())
 
     @pyqtSlot()
     def _search_cancelled(self):
         self._nix_waiting_spinner()
         self.lblSearching.setText('Search cancelled')
         self.btnCancel.hide()
-        self.results_tree.hide()
+        self.widgetActions.hide()
+        self.frameResults.hide()        
+        self.widgetNoResults.hide()
 
     @pyqtSlot(int)
     def _search_timed_out(self, timeout):
         self._nix_waiting_spinner()
         self.lblSearching.setText(f'Search timed out ({timeout} seconds)')
         self.btnCancel.hide()
-        self.results_tree.hide()
+        self.widgetActions.hide()
+        self.frameResults.hide()
+        self.widgetNoResults.hide()
 
     def _setup_request_aoi_box(self):
         if self._iface:
@@ -1264,13 +1289,7 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             log.debug('No iface object, skipping AOI extent')
             return
 
-        aoi_geom = None
-        if self._request_type == RESOURCE_DAILY:
-            aoi_geom = geometry_from_request(self._request)
-
-        if not aoi_geom:
-            log.debug('No AOI geometry defined, skipping zoom to AOI')
-            return
+        aoi_geom = geometry_from_request(self._request)
 
         qgs_geom: QgsGeometry = qgsgeometry_from_geojson(aoi_geom)
         self._aoi_box.setToGeometry(
@@ -1301,10 +1320,6 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     @pyqtSlot()
     def _set_aoi_from_request(self):
         self.setAOIRequested.emit(self._request)
-
-    @pyqtSlot()
-    def _set_search_params_from_request(self):
-        self.setSearchParamsRequested.emit(self._request, self.sort_order)
 
     @pyqtSlot()
     def clean_up(self):

@@ -30,7 +30,7 @@ from qgis.core import(
 
 from planet_explorer.planet_api import PlanetClient
 
-from planet_explorer.gui.mosaic_layer_widget import PLANET_CURRENT_MOSAIC
+from planet_explorer.gui.basemap_layer_widget import PLANET_CURRENT_MOSAIC
 
 APIKEY_PLACEHOLDER = "{api_key}"
 PLANET_ROOT_URL = "planet.com"

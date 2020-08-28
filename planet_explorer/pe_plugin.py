@@ -34,6 +34,7 @@ import configparser
 import analytics
 import sentry_sdk
 
+
 from qgis.core import (
     Qgis,
     QgsProject
@@ -46,13 +47,18 @@ from qgis.PyQt.QtCore import (
     QTranslator,
     QCoreApplication,
     Qt,
-    QTimer
+    QTimer,
+    QUrl
 )
 from qgis.PyQt.QtGui import (
     QIcon,
+    QDesktopServices
 )
 from qgis.PyQt.QtWidgets import (
     QAction,
+    QToolButton,
+    QMenu,
+    QTextBrowser
 )
 
 from qgiscommons2.settings import (
@@ -79,7 +85,7 @@ from planet_explorer.planet_api.p_thumnails import (
     TEMP_CACHE_DIR,
 )
 
-from planet_explorer.gui.pe_dockwidget import (
+from planet_explorer.gui.pe_explorer_dockwidget import (
     PlanetExplorerDockWidget,
 )
 
@@ -88,21 +94,30 @@ from planet_explorer.pe_utils import (
     sentry_dsn,
     segments_write_key,
     is_sentry_dsn_valid,
-    is_segments_write_key_valid
-)
+    is_segments_write_key_valid,
+    add_menu_section_action,
+    BASE_URL,
+    open_link_with_browser)
 
 from planet_explorer.planet_api import PlanetClient
 
 from planet_explorer.planet_api.apikey_replacer import replace_apikeys
 
-from planet_explorer.gui.mosaic_layer_widget import (
-    MosaicLayerWidgetProvider
+from planet_explorer.gui.basemap_layer_widget import (
+    BasemapLayerWidgetProvider
 )
 
-# from planet_explorer.pe_functions import (
-#     registerFunctions,
-#     unregisterFunctions,
-# )
+from planet_explorer.gui.pe_orders_monitor_dockwidget import (
+    toggle_orders_monitor
+)
+
+PLANET_COM = 'https://planet.com'
+SAT_SPECS_PDF = 'https://assets.planet.com/docs/' \
+                'Planet_Combined_Imagery_Product_Specs_letter_screen.pdf'
+PLANET_SUPPORT_COMMUNITY = 'https://support.planet.com'
+PLANET_EXPLORER = f'{PLANET_COM}/explorer'
+EXT_LINK = ':/plugins/planet_explorer/external-link.svg'
+ACCOUNT_URL = f'{BASE_URL}/account'
 
 plugin_path = os.path.dirname(__file__)
 
@@ -136,22 +151,14 @@ class PlanetExplorer(object):
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # try:
-        #     from .tests import testerplugin
-        #     from qgistester.tests import addTestModule
-        #     addTestModule(testerplugin, P_E)
-        # except:
-        #     pass
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr('&{0}'.format(P_E))
         self.toolbar = None
 
-        self.plugin_is_active = False
         # noinspection PyTypeChecker
-        self.dock_widget = None
-        self.action_toggle_panel = None
+        self.explorer_dock_widget = None
+        self.orders_dock_widget = None
 
         readSettings()
 
@@ -252,13 +259,6 @@ class PlanetExplorer(object):
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
         action.triggered.connect(callback)
-        action.setEnabled(enabled_flag)
-
-        if status_tip is not None:
-            action.setStatusTip(status_tip)
-
-        if whats_this is not None:
-            action.setWhatsThis(whats_this)
 
         if add_to_toolbar:
             self.toolbar.addAction(action)
@@ -275,65 +275,121 @@ class PlanetExplorer(object):
     # noinspection PyPep8Naming
     def initGui(self):
 
-        icon_path = ':/plugins/planet_explorer/planet-logo-p.svg'
+        self.explorer_dock_widget = None
+        
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
 
-        self.add_action(
-            icon_path,
+        self.showexplorer_act = self.add_action(
+            ':/plugins/planet_explorer/planet-logo-p.svg',
             text=self.tr(P_E),
-            callback=self.run,
+            callback=self.toggle_explorer,
             add_to_menu=True,
             add_to_toolbar=True,
             parent=self.iface.mainWindow())
 
+        self.showorders_act = self.add_action(
+            ':/plugins/planet_explorer/download.svg',
+            text=self.tr("Show Orders Monitor..."),
+            callback=toggle_orders_monitor,
+            add_to_menu=False,
+            add_to_toolbar=True,
+            parent=self.iface.mainWindow())        
+
+        self.add_user_button()
+        self.add_info_button()
+
         addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
-        # addHelpMenu(P_E, self.iface.addPluginToWebMenu)
         addAboutMenu(P_E, self.iface.addPluginToWebMenu)
 
-        # Register helper function for dealing with PlanetLabs catalog
-        # metadata
-        # registerFunctions()
-
-        # noinspection PyBroadException
-        # try:
-        #     from lessons import addLessonsFolder, addGroup
-        #     folder = os.path.join(os.path.dirname(__file__), "_lessons")
-        #     addLessonsFolder(folder, "imagediscovery")
-        #     group_description = os.path.join(folder, "group.md")
-        #     addGroup("Planet Explorer plugin", group_description)
-        # except:
-        #     pass
-
-        self.run()
-        last_shown = bool(pluginSetting(DOCK_SHOWN_STATE,
-                                        namespace=SETTINGS_NAMESPACE,
-                                        typ='bool'))
-        if self.dock_widget is not None:
-            self.dock_widget.setVisible(last_shown)
-
-        self.provider = MosaicLayerWidgetProvider()    
+        self.provider = BasemapLayerWidgetProvider()    
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
 
         QgsProject.instance().projectSaved.connect(self.project_saved)
 
         PlanetClient.getInstance().loginChanged.connect(replace_apikeys)
 
-    # -------------------------------------------------------------------------
+        PlanetClient.getInstance().loginChanged.connect(self.enable_buttons)
 
-    def on_close_plugin(self):
-        """Cleanup necessary items here when plugin dock_widget is closed"""
+        self.enable_buttons(False)
 
-        # Disconnects
-        # self.dock_widget.closingPlugin.disconnect(self.on_close_plugin)
+    def add_info_button(self):
+        info_menu = QMenu()
 
-        # Remove this statement if dock_widget is to remain
-        # for reuse if plugin is reopened
-        # Commented next statement since it causes QGIS crashe
-        # when closing the docked window:
-        # self.dock_widget = None
+        p_sec_act = add_menu_section_action('Planet', info_menu)
 
-        self.plugin_is_active = False
+        p_com_act = QAction(QIcon(EXT_LINK),
+                            'planet.com', info_menu)
+        p_com_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_COM)
+        )
+        info_menu.addAction(p_com_act)
+
+        p_explorer_act = QAction(QIcon(EXT_LINK),
+                                 'Planet Explorer web app', info_menu)
+        p_explorer_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_EXPLORER)
+        )
+        info_menu.addAction(p_explorer_act)
+
+        p_sat_act = QAction(QIcon(EXT_LINK),
+                            'Satellite specs PDF', info_menu)
+        p_sat_act.triggered[bool].connect(
+            lambda: open_link_with_browser(SAT_SPECS_PDF)
+        )
+        info_menu.addAction(p_sat_act)
+
+        p_support_act = QAction(QIcon(EXT_LINK),
+                                'Support Community', info_menu)
+        p_support_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_SUPPORT_COMMUNITY)
+        )
+        info_menu.addAction(p_support_act)
+
+        info_act = add_menu_section_action('Documentation', info_menu)
+
+        terms_act = QAction('Terms', info_menu)
+        terms_act.triggered[bool].connect(self.show_terms)
+        info_menu.addAction(terms_act)
+
+        btn = QToolButton()
+        btn.setIcon(QIcon(':/plugins/planet_explorer/info.svg'))
+        btn.setMenu(info_menu)
+
+        # Also show menu on click, to keep disclosure triangle visible
+        btn.clicked.connect(btn.showMenu) 
+
+        self.toolbar.addWidget(btn) 
+
+    def add_user_button(self):    
+        user_menu = QMenu()
+
+        self.user_act = add_menu_section_action('<b>Not Logged in<b/>', user_menu)
+
+        self.acct_act = QAction(QIcon(EXT_LINK),
+                           'Account', user_menu)
+        self.acct_act.triggered[bool].connect(
+            lambda: QDesktopServices.openUrl(QUrl(ACCOUNT_URL))
+        )
+        user_menu.addAction(self.acct_act)
+
+        self.logout_act = QAction('Logout', user_menu)
+        self.logout_act.triggered[bool].connect(self.logout)
+        user_menu.addAction(self.logout_act)
+
+        self.login_act = QAction('Login to Planet', user_menu)
+        self.login_act.triggered[bool].connect(self.login)
+        user_menu.addAction(self.login_act)
+
+        btn = QToolButton()
+        btn.setIcon(QIcon(':/plugins/planet_explorer/planet-user.svg'))
+        btn.setMenu(user_menu)
+
+        # Also show menu on click, to keep disclosure triangle visible
+        btn.clicked.connect(btn.showMenu)
+
+        self.toolbar.addWidget(btn)
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -349,24 +405,6 @@ class PlanetExplorer(object):
                 except OSError:
                     os.remove(f_path)
 
-        # noinspection PyBroadException
-        # try:
-        #     from .tests import testerplugin
-        #     from qgistester.tests import removeTestModule
-        #     removeTestModule(testerplugin, P_E)
-        # except:
-        #     pass
-
-        # noinspection PyBroadException
-        # try:
-        #     from lessons import removeLessonsFolder
-        #     folder = os.path.join(pluginPath, "_lessons")
-        #     removeLessonsFolder(folder)
-        # except:
-        #     pass
-
-        # unregisterFunctions()
-
         removeSettingsMenu(P_E, self.iface.removePluginWebMenu)
         # removeHelpMenu(P_E, self.iface.removePluginWebMenu)
         removeAboutMenu(P_E, self.iface.removePluginWebMenu)
@@ -380,12 +418,9 @@ class PlanetExplorer(object):
         if self.toolbar is not None:
             del self.toolbar
 
-        if self.dock_widget is not None:
-            setPluginSetting(DOCK_SHOWN_STATE,
-                             self.dock_widget.isVisible(),
-                             namespace=SETTINGS_NAMESPACE)
-            self.iface.removeDockWidget(self.dock_widget)
-            del self.dock_widget
+        if self.explorer_dock_widget is not None:
+            self.iface.removeDockWidget(self.explorer_dock_widget)
+            del self.explorer_dock_widget
 
         sys.excepthook = self.qgis_hook
 
@@ -393,36 +428,68 @@ class PlanetExplorer(object):
 
         # self.plugin_is_active = False
 
-    # -------------------------------------------------------------------------
+    #-----------------------------------------------------------        
 
-    def run(self):
-        """Run method that loads and starts the plugin"""
 
-        if not self.plugin_is_active:
-            self.plugin_is_active = True
+    def show_terms(self, _):
+        if self._terms_browser is None:
+            self._terms_browser = QTextBrowser()
+            self._terms_browser.setReadOnly(True)
+            self._terms_browser.setOpenExternalLinks(True)
+            self._terms_browser.setMinimumSize(600, 700)
+            # TODO: Template terms.html first section, per subscription level
+            #       Collect subscription info from self.p_client.user
+            self._terms_browser.setSource(
+                QUrl('qrc:/plugins/planet_explorer/terms.html'))
+            self._terms_browser.setWindowModality(Qt.ApplicationModal)
+        self._terms_browser.show()
 
-            # dock_widget may not exist if:
-            #    first run of plugin
-            #    removed on close (see self.on_close_plugin method)
-            if self.dock_widget is None:
-                # Create the dock_widget (after translation) and keep reference
-                self.dock_widget = PlanetExplorerDockWidget(
-                    parent=self.iface.mainWindow(), iface=self.iface)
-                """:type: QDockWidget"""
+    def login(self):
+        if self.explorer_dock_widget is None:
+            self.create_explorer()
+        self.explorer_dock_widget.show()
 
-                self.dock_widget.setAllowedAreas(
-                    Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+    def logout(self):
+        PlanetClient.getInstance().log_out()
 
-                # Connect to provide cleanup on closing of dock_widget
-                self.dock_widget.closingPlugin.connect(self.on_close_plugin)
+    def enable_buttons(self, loggedin):        
+        self.login_act.setVisible(not loggedin)
+        self.logout_act.setVisible(loggedin)
+        self.acct_act.setVisible(loggedin)
+        if loggedin:
+            self.user_act.defaultWidget().setText(
+                f"<b>{PlanetClient.getInstance().user()['user_name']}<b/>")
+        else:
+            self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
+        self.showexplorer_act.setEnabled(loggedin)
+        if loggedin:
+            self.showexplorer_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
+        else:
+            self.showexplorer_act.setToolTip("Login to access Imagery Search")
+        self.showorders_act.setEnabled(loggedin)
+        if loggedin:
+            self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
+        else:
+            self.showorders_act.setToolTip("Login to access Order Status")
 
-                self.iface.addDockWidget(Qt.RightDockWidgetArea,
-                                         self.dock_widget)
-                return
+    def create_explorer(self):
+        # Create the explorer_dock_widget (after translation) and keep reference
+        self.explorer_dock_widget = PlanetExplorerDockWidget(
+            parent=self.iface.mainWindow(), iface=self.iface)
+        """:type: QDockWidget"""
 
-        if self.dock_widget is not None:
-            self.dock_widget._set_credential_fields()
-            self.dock_widget.setVisible(self.dock_widget.isHidden())
+        self.explorer_dock_widget.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+
+        self.iface.addDockWidget(Qt.RightDockWidgetArea,
+                                 self.explorer_dock_widget)
+
+        self.explorer_dock_widget.hide()
+
+
+    def toggle_explorer(self):
+        self.explorer_dock_widget._set_credential_fields()
+        self.explorer_dock_widget.setVisible(self.explorer_dock_widget.isHidden())
 
     def project_saved(self):        
         if PlanetClient.getInstance().has_api_key():            

@@ -151,8 +151,8 @@ else:
     from ..planet_api.p_specs import (
         ITEM_TYPE_SPECS,
     )
-    from .pe_orders_monitor_dialog import (
-        PlanetOrdersMonitorDialog
+    from .pe_orders_monitor_dockwidget import (
+        show_orders_monitor
     )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
@@ -1162,13 +1162,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     @pyqtSlot()
     def _open_orders_monitor_dialog(self):
-        self.close()
-        dlg = PlanetOrdersMonitorDialog(
-            p_client=self._p_client,
-            parent = self._iface.mainWindow()
-        )
-        dlg.setMinimumHeight(750)
-        dlg.exec_()
+        show_orders_monitor()
 
 
 if __name__ == "__main__":

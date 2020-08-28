@@ -111,6 +111,10 @@ from .pe_aoi_maptools import (
     PlanetPolyMapTool,
 )
 
+from ..planet_api.p_client import (
+    PlanetClient
+)
+
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -121,17 +125,30 @@ MAIN_FILTERS_WIDGET, MAIN_FILTERS_BASE = uic.loadUiType(
     from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
     resource_suffix=''
 )
-MOSAIC_WIDGET, MOSAIC_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_mosaic_filter_base.ui'),
-    from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
-    resource_suffix=''
-)
 DAILY_WIDGET, DAILY_BASE = uic.loadUiType(
     os.path.join(plugin_path, 'ui', 'pe_daily_filter_base.ui'),
     from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
     resource_suffix=''
 )
 
+def filters_from_request(request, field_name=None, filter_type=None):
+    filters = []
+    def _add_filter(filterdict):            
+        if filterdict["type"] in ["AndFilter", "OrFilter"]:
+            for subfilter in filterdict["config"]:
+                _add_filter(subfilter)
+        elif filterdict["type"] == "NotFilter":            
+            _add_filter(filterdict["config"][0])
+        else:
+            if (field_name is not None 
+                and "field_name" in filterdict
+                and filterdict["field_name"] == field_name):
+                    filters.append(filterdict)
+            if filter_type is not None and filterdict["type"] == filter_type:
+                filters.append(filterdict)
+
+    _add_filter(request["filter"])
+    return filters
 
 class PlanetFilterMixin(QObject):
     """
@@ -143,112 +160,16 @@ class PlanetFilterMixin(QObject):
     changing control widget's values (an annoying Qt 'feature').
     """
 
-    # filtersChanged = pyqtSignal()
-    messageSent = pyqtSignal('QString', str, 'PyQt_PyObject', 'PyQt_PyObject')
-
     def __init__(self, parent=None, plugin=None):
         super().__init__(parent=parent)
 
         self._plugin = plugin
 
-    # noinspection PyMethodMayBeStatic
-    def sources(self):
-        """
-        List of sources or types to search for.
-        Not required to be implemented in subclasses.
-        :rtype: list
-        """
-        return []
-
-    # noinspection PyMethodMayBeStatic
-    def sort_order(self):
-        """
-        Tuple of date-field (published|acquired) and sort order (asc|desc)
-        Not required to be implemented in subclasses.
-        :rtype: tuple | None
-        """
-        return None
-
-    def filters(self):
-        """
-        Filter representation as a Python dictionary, generated from
-        control widgets, suitable for use in Planet client filter chaining.
-        :rtype: dict
-        """
-        raise NotImplementedError
-
-    def filters_as_json(self):
-        """
-        Filter representation as a JSON, generated from
-        control widgets, suitable for use in Planet client filter chaining.
-        :rtype: dict
-        """
-        raise NotImplementedError
-
-    def load_filters(self, filter_json):
-        """
-        From a saved search JSON representation, load defined filter values
-        into control widgets
-        :param filter_json: planet.api.models.JSON
-        :rtype: None
-        """
-        raise NotImplementedError
-
-    def _filters_from_request(self, request, field_name=None, filter_type=None):
-        filters = []
-        def _add_filter(filterdict):            
-            if filterdict["type"] == "AndFilter":
-                for subfilter in filterdict["config"]:
-                    _add_filter(subfilter)
-            if filterdict["type"] == "NotFilter":                
-                _add_filter(filterdict["config"][0])
-            else:
-                if (field_name is not None 
-                    and "field_name" in filterdict
-                    and filterdict["field_name"] == field_name):
-                        filters.append(filterdict)
-                if filter_type is not None and filterdict["type"] == filter_type:
-                    filters.append(filterdict)
-
-        _add_filter(request["filter"])
-        return filters
-
-    def set_from_request(self, request):
-        """
-        From a dictionary representing a search query, load defined filter 
-        values into control widgets
-        :param request: dict
-        :rtype: None
-        """
-        pass
-
-    # noinspection PyUnresolvedReferences
-    def filters_changed(self):
-        raise NotImplementedError
-
-    # noinspection PyMethodMayBeStatic
-    def clean_up(self):
-        """
-        Clean up operations should go here
-        Not required to be implemented in subclasses.
-        """
-        return
 
     def _show_message(self, message, level=Qgis.Info,
                       duration=None, show_more=None):
-        if self._plugin is not None and hasattr(self._plugin, 'show_message'):
-            self._plugin.show_message(message, level, duration, show_more)
-        else:
-            if level == Qgis.Warning:
-                level_str = 'Warning'
-            elif level == Qgis.Critical:
-                level_str = 'Critical'
-            elif level == Qgis.Success:
-                level_str = 'Success'
-            else:  # default
-                level_str = 'Info'
+        self._plugin.show_message(message, level, duration, show_more)
 
-            self.messageSent.emit(message, level_str, duration, show_more)
 
 
 class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
@@ -257,28 +178,31 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
     leAOI: QLineEdit
 
     filtersChanged = pyqtSignal()
+    savedSearchSelected = pyqtSignal(object)
     zoomToAOIRequested = pyqtSignal()
 
-    def __init__(self, iface, parent=None, plugin=None):
+    def __init__(self, iface, parent=None, plugin=None,
+                no_saved_search=False, color=MAIN_AOI_COLOR):
         super().__init__(parent=parent)
         self._iface: QgisInterface = iface
         self._plugin = plugin
 
         self.setupUi(self)
 
+        self.emitFiltersChanged = False
+
+        self.color = color
+
         self._aoi_box = QgsRubberBand(self._iface.mapCanvas(),
                                       QgsWkbTypes.PolygonGeometry)
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
-        self._aoi_box.setStrokeColor(MAIN_AOI_COLOR)
+        self._aoi_box.setStrokeColor(color)
         self._aoi_box.setWidth(3)
         self._aoi_box.setLineStyle(Qt.DashLine)
 
         self._canvas: QgsMapCanvas = self._iface.mapCanvas()
         # This may later be a nullptr, if no active tool when queried
         self._cur_maptool = None
-
-        # self._json_exporter = QgsJsonExporter()
-        # self._json_exporter.setIncludeAttributes(False)
 
         # noinspection PyUnresolvedReferences
         self.leAOI.textChanged['QString'].connect(self.filters_changed)
@@ -290,17 +214,48 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         # Extent line edit tools
         self.btnZoomToAOI.clicked.connect(self.zoom_to_aoi)
         self.btnCopyAOI.clicked.connect(self.copy_aoi_to_clipboard)
-        self.btnLoadAOI.clicked.connect(self.load_aoi_from_file)
+
+        self.p_client = PlanetClient.getInstance()
+        self.api_client = self.p_client.api_client()
+        self.p_client.loginChanged.connect(self.populate_saved_searches)
+        
+        self.comboSavedSearch.currentIndexChanged.connect(self.saved_search_selected)
+
+        if no_saved_search:
+            self.comboSavedSearch.setVisible(False)
+
+    def populate_saved_searches(self, is_logged):
+        if is_logged:
+            self.comboSavedSearch.blockSignals(True)        
+            self.comboSavedSearch.addItem("[Select a Saved Search]")
+            res = self.api_client.get_searches().get()
+            for search in res["searches"]:
+                self.comboSavedSearch.addItem(search["name"], search)
+            self.comboSavedSearch.blockSignals(False)
+
+    def add_saved_search(self, request):
+        self.comboSavedSearch.blockSignals(True) 
+        self.comboSavedSearch.addItem(request["name"], request)
+        self.comboSavedSearch.setCurrentIndex(self.comboSavedSearch.count() - 1)
+        self.comboSavedSearch.blockSignals(False) 
+        
+    def saved_search_selected(self, idx):
+        if idx == 0:
+            return
+        request = self.comboSavedSearch.currentData()
+        self.savedSearchSelected.emit(request)
+
+    def null_out_saved_search(self):
+        self.comboSavedSearch.blockSignals(True)         
+        self.comboSavedSearch.setCurrentIndex(0)
+        self.comboSavedSearch.blockSignals(False)
 
     def reset_aoi_box(self):
+        self.leAOI.setText("")
         if self._aoi_box:
             self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
 
     def filters(self):
-
-        # return and_filter(geom_filter(self.leAOI.text),
-        #         date_range('acquired', gte=dateEditStart.text,
-        #         lte=dateEditEnd.text))
         filters = []
         if self.leAOI.text():
             # TODO: Validate GeoJSON; try planet.api.utils.probably_geojson()
@@ -327,23 +282,22 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         return filters
 
-    def load_filters(self, filter_json):
-        pass
-
     def set_from_request(self, request):
-        filters = self._filters_from_request(request, "geometry")
+        self.emitFiltersChanged = False
+        filters = filters_from_request(request, "geometry")
         if filters:
             geom = filters[0]["config"]
             txt = json.dumps(geom)
             self.leAOI.setText(txt)
+        self.emitFiltersChanged = True
 
     @pyqtSlot('QString')
     def filters_changed(self, value):
-        # noinspection PyUnresolvedReferences
-        self.filtersChanged.emit()
+        if self.emitFiltersChanged:# noinspection PyUnresolvedReferences
+            self.filtersChanged.emit()
 
     @pyqtSlot()
-    def clean_up(self):
+    def clean_up(self):        
         self.reset_aoi_box()
 
     def _setup_tool_buttons(self):
@@ -706,12 +660,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     def hide_aoi_if_matches_geom(self, geom):
             color = (QColor(0, 0, 0, 0) if self._aoi_box.asGeometry().equals(geom) 
-                    else MAIN_AOI_COLOR)
+                    else self.color)
             self._aoi_box.setStrokeColor(color)
 
     def show_aoi(self):
         if self._aoi_box is not None:
-            self._aoi_box.setStrokeColor(MAIN_AOI_COLOR)
+            self._aoi_box.setStrokeColor(self.color)
 
     def aoi_geom(self):
         if self._aoi_box is not None:
@@ -752,47 +706,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         # noinspection PyUnresolvedReferences
         self._show_message('AOI copied to clipboard')
-
-    @pyqtSlot()
-    def load_aoi_from_file(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Open GeoJSON AOI file",
-            QDir.homePath(),
-            "JSON (*.json);;All Files (*)")
-        file = QFile(path)
-        if not file.open(QFile.ReadOnly | QFile.Text):
-            return
-
-        inf = QTextStream(file)
-        json_txt = inf.readAll()
-
-        try:
-            json_obj = json.loads(json_txt)
-        except ValueError:
-            # noinspection PyUnresolvedReferences
-            self._show_message('GeoJSON from file invalid',
-                               level=Qgis.Warning,
-                               duration=10)
-            return
-
-        json_geom = geometry_from_json(json_obj)
-
-        if not json_geom:
-            # noinspection PyUnresolvedReferences
-            self._show_message('GeoJSON geometry from file invalid',
-                               level=Qgis.Warning,
-                               duration=10)
-            return
-
-        geom: QgsGeometry = qgsgeometry_from_geojson(json_geom)
-        self._aoi_box.setToGeometry(
-            geom,
-            QgsCoordinateReferenceSystem("EPSG:4326")
-        )
-
-        self.leAOI.setText(json.dumps(json_geom))
-
-        self.zoom_to_aoi()
 
     @pyqtSlot()
     def validate_aoi(self):
@@ -840,52 +753,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         self.zoom_to_aoi()
 
-
-class PlanetMosaicFilter(MOSAIC_BASE, MOSAIC_WIDGET, PlanetFilterMixin):
-
-    cmbBoxMosaicTypes: QComboBox
-    leName: QLineEdit
-
-    filtersChanged = pyqtSignal()
-
-    def __init__(self, parent=None, plugin=None):
-        super().__init__(parent=parent)
-        self.setupUi(self)
-        self._plugin = plugin
-
-        self.cmbBoxMosaicTypes.clear()
-        for i, (a, b) in enumerate(MOSAIC_ITEM_TYPES):
-            self.cmbBoxMosaicTypes.insertItem(i, b, userData=a)
-        # Set a default
-        self.cmbBoxMosaicTypes.setCurrentIndex(0)
-        # noinspection PyUnresolvedReferences
-        self.cmbBoxMosaicTypes.currentIndexChanged[int].connect(
-            self.filters_changed)
-
-        # noinspection PyUnresolvedReferences
-        self.leName.textChanged['QString'].connect(self.filters_changed)
-
-    def sources(self):
-        return [self.cmbBoxMosaicTypes.currentData()]
-
-    def filters(self):
-        pass
-
-    def filters_as_json(self):
-        pass
-
-    def load_filters(self, filter_json):
-        pass
-
-    def set_from_request(self, request):
-        pass
-
-    @pyqtSlot()
-    def filters_changed(self):
-        # noinspection PyUnresolvedReferences
-        self.filtersChanged.emit()
-
-
 class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     """
     """
@@ -894,7 +761,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     leStringIDs: QLineEdit
     endDateEdit: QgsDateTimeEdit
     startDateEdit: QgsDateTimeEdit
-    cmbBoxDateType: QComboBox
     cmbBoxDateSort: QComboBox
     frameRangeSliders: QFrame
     rangeCloudCover: PlanetExplorerRangeSlider
@@ -903,17 +769,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     chkBxCanDownload: QCheckBox
 
     filtersChanged = pyqtSignal()
-
-    SORT_ORDER_DATE_TYPES = [
-        ('acquired', 'Acquired'),
-        ('published', 'Published'),
-        # ('updated', 'Updated'),
-    ]
-
-    SORT_ORDER_TYPES = [
-        ('desc', 'descending'),
-        ('asc', 'ascending'),
-    ]
 
     ID_PATTERN = [
         r'\d{8,8}_\d{6,6}',
@@ -976,24 +831,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         current_day = QDateTime().currentDateTimeUtc()
         self.startDateEdit.setDateTime(current_day.addMonths(-3))
         self.endDateEdit.setDateTime(current_day)
-
-        self.cmbBoxDateType.clear()
-        for i, (a, b) in enumerate(self.SORT_ORDER_DATE_TYPES):
-            self.cmbBoxDateType.insertItem(i, b, userData=a)
-        # Set a default (acquired)
-        self.cmbBoxDateType.setCurrentIndex(0)
-        # noinspection PyUnresolvedReferences
-        self.cmbBoxDateType.currentIndexChanged[int].connect(
-            self.filters_changed)
-
-        self.cmbBoxDateSort.clear()
-        for i, (a, b) in enumerate(self.SORT_ORDER_TYPES):
-            self.cmbBoxDateSort.insertItem(i, b, userData=a)
-        # Set a default
-        self.cmbBoxDateSort.setCurrentIndex(0)
-        # noinspection PyUnresolvedReferences
-        self.cmbBoxDateSort.currentIndexChanged[int].connect(
-            self.filters_changed)
 
         # TODO: (Eventually) Add multi-field searching, with +/- operation
         #       of adding new field/QLineEdit, without duplicates
@@ -1140,20 +977,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 checked_sources.append(source.property('api-name'))
         return checked_sources
 
-    def sort_order(self):
-        return (
-            str(self.cmbBoxDateType.currentData()),
-            str(self.cmbBoxDateSort.currentData())
-        )
-
-    def set_sort_order(self, sort_order):
-        self.cmbBoxDateType.setCurrentIndex(
-            [v[0] for v in self.SORT_ORDER_DATE_TYPES].index(sort_order[0])
-        )
-        self.cmbBoxDateSort.setCurrentIndex(
-            [v[0] for v in self.SORT_ORDER_TYPES].index(sort_order[1])
-        )
-
     def set_min_enddate(self):
         self.endDateEdit.setMinimumDate(self.startDateEdit.date())
 
@@ -1258,23 +1081,18 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         return populated_filters
 
-    def filters_as_json(self):
-        pass
-
-    def load_filters(self, filter_json):
-        pass
-
     def set_from_request(self, request):
         '''
         We assume here that the request has the structure of requests created
         with the plugin. We are not fully parsing the request to analize it, 
         but instead making that assumption to simplify things.
         '''
+        self.emitFiltersChanged = False
         checked_sources = request['item_types']
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
             source.setChecked(source.property('api-name') in checked_sources)
-        filters = self._filters_from_request(request, 'acquired')
+        filters = filters_from_request(request, 'acquired')
         if filters:
             gte = filters[0]['config'].get('gte')
             if gte is not None:
@@ -1285,36 +1103,41 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         sliders = self.frameRangeSliders.findChildren(
             PlanetExplorerRangeSlider)
         for slider in sliders:    
-            filters = self._filters_from_request(request, slider.filter_key)
+            filters = filters_from_request(request, slider.filter_key)
             if filters:
                 gte = filters[0]['config'].get('gte')
-                if gte is not None:
+                if gte is None:
+                    slider.setRangeLow(slider.min)
+                else:
                     if slider.filter_key == 'cloud_cover':
                         gte *= 100.0
                     slider.setRangeLow(gte)
                 lte = filters[0]['config'].get('lte')
-                if lte is not None:
+                if lte is None:
+                    slider.setRangeHigh(slider.max)
+                else:
                     if slider.filter_key == 'cloud_cover':
                         lte *= 100.0
                     slider.setRangeHigh(lte)
             else:
                 slider.setRangeLow(slider.min)
                 slider.setRangeHigh(slider.max)
-        filters = self._filters_from_request(request, filter_type='PermissionFilter')
+        filters = filters_from_request(request, filter_type='PermissionFilter')
         if filters:
             self.chkBxCanDownload.setChecked('assets:download' in filters[0]['config'])
         else:
             self.chkBxCanDownload.setChecked(False)
-        filters = self._filters_from_request(request, 'ground_control')
+        filters = filters_from_request(request, 'ground_control')
         self.chkBxGroundControl.setChecked(bool(filters))
 
-        filters = self._filters_from_request(request, 'id')
+        filters = filters_from_request(request, 'id')
         if filters:
             self.leStringIDs.setText(",".join(filters[0]['config']))
-
+        self.emitFiltersChanged = True
 
 
     @pyqtSlot()
     def filters_changed(self):
         # noinspection PyUnresolvedReferences
-        self.filtersChanged.emit()
+        if self.emitFiltersChanged:
+            self.filtersChanged.emit()

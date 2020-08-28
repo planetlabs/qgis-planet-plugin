@@ -42,6 +42,7 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 import json
+import iso8601
 
 from typing import (
     Optional,
@@ -52,7 +53,8 @@ from typing import (
 
 from qgis.PyQt.QtCore import (
     QVariant,    
-    QUrl,    
+    QUrl,
+    QSettings 
 )
 
 from qgis.PyQt.QtGui import (
@@ -113,6 +115,16 @@ try:
     from .planet_api.p_specs import (
         ITEM_TYPE_SPECS,
     )
+
+    from .gui.basemap_layer_widget import (
+        PLANET_MOSAICS,
+        PLANET_CURRENT_MOSAIC,
+        PLANET_MOSAIC_PROC,
+        PLANET_MOSAIC_RAMP,
+        PLANET_MOSAIC_DATATYPE,
+        PLANET_BASEMAP_LABEL,
+        WIDGET_PROVIDER_NAME
+    )
 except ImportError:
     # noinspection PyUnresolvedReferences
     from planet_api.p_client import (
@@ -160,10 +172,25 @@ QGIS_LOG_SECTION_NAME = "Planet"
 ORDERS_DOWNLOAD_FOLDER = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 
+BASE_URL = 'https://www.planet.com'
+
 PLANET_COLOR = QColor(0, 157, 165)
 ITEM_BACKGROUND_COLOR = QColor(225, 246, 252)
 MAIN_AOI_COLOR = PLANET_COLOR
 SEARCH_AOI_COLOR = QColor(157, 0, 165)
+QUADS_AOI_COLOR = QColor(157, 165, 0)
+QUADS_AOI_BODY_COLOR = QColor(157, 165, 0, 70)
+
+NAME = "name"
+LINKS = "_links"
+TILES = "tiles"
+ONEMONTH = "1 mon"
+THREEMONTHS = "3 mons"
+WEEK = "7 days"
+INTERVAL = "interval"
+FIRST_ACQUIRED = "first_acquired"
+LAST_ACQUIRED = "last_acquired"
+DATATYPE = "datatype"
 
 def sentry_dsn():
     return os.environ.get("SEGMENTS_WRITE_KEY")
@@ -177,6 +204,14 @@ def is_segments_write_key_valid():
 def is_sentry_dsn_valid():
     return sentry_dsn() is not None
 
+def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().crs(),
+            QgsProject.instance())        
+        extent = QgsRectangle(*coords)
+        transform_extent = transform.transformBoundingBox(extent)
+        return transform_extent
 
 def qgsgeometry_from_geojson(json_type):
     """
@@ -671,6 +706,61 @@ def open_orders_download_folder():
         QUrl.fromLocalFile(orders_download_folder())
     )
 
+def mosaic_title(mosaic):
+    date = iso8601.parse_date(mosaic[FIRST_ACQUIRED])
+    if INTERVAL in mosaic:
+        interval = mosaic[INTERVAL]
+        if interval == ONEMONTH:
+            return date.strftime("%B %Y")
+        elif interval == THREEMONTHS:
+            date2 = iso8601.parse_date(mosaic[LAST_ACQUIRED])
+            month = date.strftime("%B")
+            return date2.strftime(f"{month} to %B %Y")
+        elif interval == WEEK:
+            return date.strftime("%B %d %Y")
+    else:
+        return date.strftime("%B %d %Y")
+
+def date_interval_from_mosaics(mosaic):
+    date = iso8601.parse_date(mosaic[0][FIRST_ACQUIRED])
+    date2 = iso8601.parse_date(mosaic[-1][LAST_ACQUIRED])
+    dates = f'{date.strftime("%B %Y")} - {date2.strftime("%B %Y")}'
+    return dates
+
+def add_xyz(name, url, zmin, zmax):
+    s = QSettings()    
+    s.setValue(f'qgis/connections-xyz/{name}/zmin', zmin)
+    s.setValue(f'qgis/connections-xyz/{name}/zmin', zmax)
+    s.setValue(f'qgis/connections-xyz/{name}/username', "")
+    s.setValue(f'qgis/connections-xyz/{name}/password', "")
+    s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
+    s.setValue(f'qgis/connections-xyz/{name}/url', url)
+    uri = f'type=xyz&url={url}&zmin={zmin}&zmax={zmax}'
+    layer = QgsRasterLayer(uri, name, 'wms')
+    QgsProject.instance().addMapLayer(layer)
+
+def add_mosaics_to_qgis_project(mosaics, name):
+    mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
+    if len(mosaics) > 1:
+        label = date_interval_from_mosaics(mosaics)        
+    else:
+        label = mosaics[0][NAME]
+    tile_url = mosaics[0][LINKS][TILES]
+    uri = f'type=xyz&url={tile_url}'
+    layer = QgsRasterLayer(uri, name, 'wms')
+    layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
+    layer.setCustomProperty(PLANET_BASEMAP_LABEL, label)
+    layer.setCustomProperty(PLANET_MOSAIC_PROC, "default")
+    layer.setCustomProperty(PLANET_MOSAIC_RAMP, "")
+    layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, mosaics[0][DATATYPE])
+    layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaic_names))
+    QgsProject.instance().addMapLayer(layer)
+    layer.setCustomProperty("embeddedWidgets/count", 1)
+    layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME) 
+    view = iface.layerTreeView()
+    view.model().refreshLayerLegend(view.currentNode())
+    view.currentNode().setExpanded(True)    
+
 # ******************* Functions from previous plugin below *******************
 
 
@@ -855,3 +945,6 @@ def setup_edit_widgets(layer):
             }
         )
         layer.setEditorWidgetSetup(idx, setup)
+
+def open_link_with_browser(url):
+    QDesktopServices.openUrl(QUrl(url))

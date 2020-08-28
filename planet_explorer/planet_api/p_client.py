@@ -40,6 +40,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
     QObject,
 )
+
 # noinspection PyPackageRequirements
 # from PyQt5.QtGui import QPixmap
 
@@ -52,6 +53,10 @@ from .p_specs import (
     RESOURCE_SINGLE_MOSAICS,
     RESOURCE_MOSAIC_SERIES,
     RESOURCE_DAILY,
+)
+
+from ..gui.pe_gui_utils import(
+    waitcursor
 )
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -149,6 +154,7 @@ class PlanetClient(QObject):
     def api_client(self):
         return self.client
 
+    @waitcursor
     def log_in(self, user, password, api_key=None):
         old_api_key = self.api_key()
 
@@ -168,7 +174,7 @@ class PlanetClient(QObject):
             if 'user_id' in res:
                 self.p_user = res
                 self.client.auth = auth.APIKey(self.p_user['api_key'])
-                # self.update_user_quota()
+                self.update_user_quota()
             else:
                 raise LoginException()
 
@@ -353,6 +359,38 @@ class PlanetClient(QObject):
             )
         )
         return response.get_body()
+
+
+    def get_quads_for_mosaic(self, mosaic, bbox=None):
+        '''List all available mosaics for a given series
+        :returns: :py:Class:`planet.api.models.JSON`
+        '''        
+        url = mosaic['_links']['quads']
+        if bbox is None:        
+            bbox = mosaic['bbox']
+        bbox = (max(-180, bbox[0]), max(-85, bbox[1]),
+                min(180, bbox[2]), min(85, bbox[3]))
+        url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
+        response = self.client.dispatcher.response(
+            api_models.Request(
+                url, self.client.auth,
+                body_type=api_models.MosaicQuads                
+            )
+        )
+        return response.get_body()
+
+    def get_one_quad(self, mosaic):
+        url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
+        response = self.client.dispatcher.response(
+            api_models.Request(
+                url, self.client.auth,
+                params = {"_page_size":1, 
+                        "bbox": ",".join(str(v) for v in mosaic['bbox'])},
+                body_type=api_models.MosaicQuads                
+            )
+        )
+        quad = response.get_body().get().get("items")[0]
+        return quad
 
     def register_area_km_func(self, func):
         self._area_km_func = func

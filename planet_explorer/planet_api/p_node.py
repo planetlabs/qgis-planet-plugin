@@ -95,6 +95,15 @@ DATE_FORMAT = '%b %d, %Y'
 
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
+class PlanetNodeMetadata(enum.Enum):    
+    CLOUD_PERCENTAGE = "cloud_percent"
+    GROUND_SAMPLE_DISTANCE = "gsd"
+    GROUND_CONTROL = "ground_control"
+    OFF_NADIR_ANGLE = "view_angle"
+    QUALITY_CATEGORY = "quality_category"
+    SATELLITE_ID = "satellite_id"
+    SUN_AZIMUTH = "sun_azimuth"
+    SUN_ELEVATION = "sun_elevation"
 
 class PlanetNodeException(Exception):
     """Exceptions raised during population of nodes"""
@@ -130,6 +139,7 @@ class PlanetNode(QObject):
                  index=None,
                  sort_field=None,
                  q_parent: QObject = None,
+                 metadata_to_show = None,
                  **kwargs) -> None:
         super().__init__(parent=q_parent)
 
@@ -159,6 +169,9 @@ class PlanetNode(QObject):
         self._acquired: Optional[datetime] = None
         self._published: Optional[datetime] = None
         self._sort_date = None
+        self._tooltip = None
+        self._metadata_to_show = metadata_to_show or [PlanetNodeMetadata.CLOUD_PERCENTAGE, 
+                                                      PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE]
 
         self._item_type_id_list: list = []
         self._percent_coverage: int = 0
@@ -260,6 +273,13 @@ class PlanetNode(QObject):
     def set_sort_date(self, sort_date):
         self._sort_date = sort_date
         # Sort date is used in all descriptions, regardless of node_type
+        self.update_description()
+
+    def metadata_to_show(self):
+        return self._metadata_to_show
+
+    def set_metadata_to_show(self, metadata_to_show):
+        self._metadata_to_show = metadata_to_show
         self.update_description()
 
     @staticmethod
@@ -418,13 +438,19 @@ class PlanetNode(QObject):
         # self._alt_description = ...
 
         if self._node_type == PlanetNodeType.DAILY_SCENE_IMAGE:
+            metadata = ""
+            for i, value in enumerate(self._metadata_to_show):
+                spacer = "\n" if i == 1 else " "                
+                metadata += f'{value.value}:{self._properties.get(value.value, "--")}{spacer}'          
+
             self._description = f"""
 <span style="{LRG_TEXT_STYLE}">
 {d_date}</span> <span style="{SUBTEXT_STYLE}">{d_time} {d_tz}</span><br>
 <b>{DAILY_ITEM_TYPES_DICT[self._item_type]}</b><br>
-<span style="{SUBTEXT_STYLE}">{self._item_id}</span>
+<span style="{SUBTEXT_STYLE}">{metadata}</span>
 """
-
+            keys = [t.value for t in PlanetNodeMetadata]
+            self._tooltip = "<br>".join([f'{k}:{v}' for k,v in self._properties.items() if k in keys])
         elif self._node_type == PlanetNodeType.DAILY_SAT_GROUP:
             size = locale.format("%d", self.child_count(), grouping=True)
             self._description = f"""
