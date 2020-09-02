@@ -6,8 +6,15 @@ from qgis.core import (
     QgsApplication
 )
 
+from planet.api.models import (
+     MosaicQuads
+)
 from ..pe_utils import (
     orders_download_folder
+)
+
+from .p_client import (
+    PlanetClient
 )
 
 class OrderAlreadyExistsException(Exception):
@@ -26,6 +33,7 @@ DATE = "date"
 QUADS = "quads"
 LOAD_AS_VIRTUAL = "load_as_virtual"
 DESCRIPTION = "description"
+MOSAICS = "mosaics"
 
 ID = "id"
 LINKS = "_links"
@@ -37,20 +45,32 @@ def quad_orders():
             definitions = json.load(f)
         orders = []
         for orderdef in definitions:
-            order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION], 
+            if QUADS in orderdef:
+                order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION], 
                                 orderdef[QUADS], orderdef[LOAD_AS_VIRTUAL],
+                                orderdef[DATE])
+            else:
+                order = QuadCompleteOrder(orderdef[NAME], orderdef[DESCRIPTION], 
+                                orderdef[MOSAICS], orderdef[LOAD_AS_VIRTUAL],
                                 orderdef[DATE])
             orders.append(order)
         return orders
     else:
         return []
 
-def create_quad_order_from_quads(name, description, quads, load_as_virtual):
-    order = QuadOrder(name, description, quads, load_as_virtual)
+def _add_order(order):
     all_orders = [order]
     all_orders.extend(quad_orders())
     with open(_quad_orders_file(), "w") as f:
         json.dump(all_orders, f, default=lambda x: x.__dict__)
+
+def create_quad_order_from_quads(name, description, quads, load_as_virtual):
+    order = QuadOrder(name, description, quads, load_as_virtual)
+    _add_order(order)
+
+def create_quad_order_from_mosaics(name, description, mosaics, load_as_virtual):
+    order = QuadCompleteOrder(name, description, mosaics, load_as_virtual)
+    _add_order(order)
 
 class QuadOrder():
 
@@ -77,3 +97,26 @@ class QuadOrder():
 
     def downloaded(self):        
         return os.path.exists(self.download_folder())
+
+class QuadCompleteOrder(QuadOrder):
+
+    def __init__(self, name, description, mosaics, 
+                load_as_virtual, date=None):
+        self.mosaics = mosaics 
+        self.load_as_virtual = load_as_virtual
+        self.name = name
+        self.description = description
+        self.date = date or (datetime.datetime.now()
+                            .replace(microsecond=0).isoformat())
+
+    def locations(self):
+        p_client = PlanetClient.getInstance()
+        locations = {}
+        for mosaic in self.mosaics:
+            json_quads = []
+            quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)         
+            for page in quads.iter():
+                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
+            locations[mosaic[NAME]] = [(quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads]
+        return locations
+

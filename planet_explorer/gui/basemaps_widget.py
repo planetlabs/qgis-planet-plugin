@@ -19,7 +19,8 @@ from PyQt5.QtWidgets import (
     QFrame,
     QToolButton,
     QAction,
-    QMenu
+    QMenu,
+    QMessageBox
 )
 
 from PyQt5.QtGui import (
@@ -83,7 +84,8 @@ from ..planet_api import (
 )
 
 from ..planet_api.quad_orders import (
-    create_quad_order_from_quads
+    create_quad_order_from_quads,
+    create_quad_order_from_mosaics
 )
 
 from ..planet_api.p_node import (
@@ -123,18 +125,17 @@ from .pe_orders_monitor_dockwidget import (
 )
 
 from .extended_combobox import ExtendedComboBox
+from .quads_treewidget import QuadsTreeWidget
+from .basemaps_list_widget import BasemapsListWidget
 
 ID = "id"
 SERIES = "series"
 THUMB = "thumb"
-THUMBNAIL = "thumbnail"
-PERCENT_COVERED = "percent_covered"
 BBOX = "bbox"
 
 QUADS_PER_PAGE = 50
 
 MAX_QUADS_TO_DOWNLOAD = 100
-
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(
@@ -142,8 +143,6 @@ WIDGET, BASE = uic.loadUiType(
     from_imports=True, import_from=os.path.basename(plugin_path),
     resource_suffix=''
 )
-
-COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
 
 class BasemapsWidget(BASE, WIDGET):
 
@@ -384,10 +383,11 @@ class BasemapsWidget(BASE, WIDGET):
             mosaicarea = self._area_from_bbox_coords(mosaics[0][BBOX])
             numquads = int(mosaicarea / quadarea)
             if numquads > MAX_QUADS_TO_DOWNLOAD:
-                self.parent.show_message('Basemap is too large for complete download.',
-                                          level=Qgis.Warning,
-                                          duration=10)
-                return
+                ret = QMessageBox.question(self, "Complete Download", 
+                                    f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
+                                    "Are your sure you want to proceed?")                
+                if ret != QMessageBox.Yes:
+                    return                                                          
             self.show_order_name_page()
         elif self.radioDownloadAOI.isChecked():
             self.labelWarningQuads.setText("")
@@ -621,20 +621,10 @@ class BasemapsWidget(BASE, WIDGET):
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
 
-        all_quads = {}
-        numquads = 0
-        for mosaic in selected:                                   
-            json_quads = []
-            quads = self.p_client.get_quads_for_mosaic(mosaic)         
-            for page in quads.iter():
-                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
-            all_quads[mosaic[NAME]] = json_quads
-            numquads += len(json_quads)
-
         self.grpBoxOrderConfirmation.setTitle("Order Complete Download")
         dates = date_interval_from_mosaics(selected)        
-        description = f'{numquads} quads | {dates}'
-        create_quad_order_from_quads(name, description, all_quads, load_as_virtual)
+        description = f'{len(selected)} complete mosaics | {dates}'
+        create_quad_order_from_mosaics(name, description, selected, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),
                     "Series Name": self.comboSeriesName.currentText(),
@@ -665,341 +655,6 @@ class BasemapsWidget(BASE, WIDGET):
         self.quadsTree.clear()
         self.stackedWidget.setCurrentWidget(self.searchPage)
 
-        
-class QuadsTreeWidget(QTreeWidget):
-
-    quadsSelectionChanged = pyqtSignal()
-
-    def __init__(self):
-        QTreeWidget.__init__(self, None)
-        self.setColumnCount(1)
-        self.header().hide()        
-        self.setAutoScroll(True)
-        self.setMouseTracking(True)
-        self.setAlternatingRowColors(True)
-        self.setSelectionMode(self.NoSelection)
-        self.widgets = {}
-
-    
-    def quad_widgets(self):
-        all_widgets = []
-        for widgets in self.widgets.values():
-            all_widgets.extend(widgets)
-        return all_widgets
-
-    def clear(self):
-        for w in self.quad_widgets():
-            w.remove_footprint()
-        self.widgets = {}
-        super().clear()
-
-    def show_footprints(self):        
-        for w in self.quad_widgets():
-            w.show_footprint()
-
-    def hide_footprints(self):        
-        for w in self.quad_widgets():
-            w.hide_footprint()    
-
-    def quads_count(self):
-        return len(self.quad_widgets())
-
-    def selected_quads(self):
-        selected = []
-        for widgets in self.widgets.values():
-            selected.extend([w.quad for w in widgets if w.isSelected()])
-        return selected
-
-    def selected_quads_classified(self):
-        selected = {}
-        for mosaic, widgets in self.widgets.items():
-            selected[mosaic] = [w.quad for w in widgets if w.isSelected()]
-        return selected
-
-    def setAllChecked(self, checked):
-        for w in self.quad_widgets():
-            w.setChecked(checked)
-
-    def populate(self, mosaics, quads):
-        self.clear()
-        for mosaic, mosaicquads in zip(mosaics, quads):
-            item = BasemapTreeItem(mosaic)            
-            self.addTopLevelItem(item)
-            widgets = []
-            for quad in mosaicquads:
-                subitem = QuadTreeItem(quad)
-                item.addChild(subitem)
-                widget = QuadItemWidget(quad)
-                self.setItemWidget(subitem, 0, widget)
-                subitem.setSizeHint(0, widget.sizeHint())
-                widget.quadSelected.connect(self._quad_selection_changed)
-                widgets.append(widget)
-            self.widgets[mosaic.get(NAME)] = widgets
-            item.update_name()
-
-    def _quad_selection_changed(self):
-        self.quadsSelectionChanged.emit()
-        for i in range(self.topLevelItemCount()):
-            self.topLevelItem(i).update_name()
-
-class BasemapTreeItem(QTreeWidgetItem):
-
-    def __init__(self, mosaic):
-        QTreeWidgetItem.__init__(self)
-        self.mosaic = mosaic
-        font = self.font(0)
-        font.setBold(True)
-        self.setFont(0, font)
-        self.update_name()
-
-    def update_name(self):
-        selected = 0
-        total = self.childCount()
-        for i in range(total):
-            if self.treeWidget().itemWidget(self.child(i), 0).isSelected():
-                selected += 1
-        self.setText(0, f"{mosaic_title(self.mosaic)} - {selected} of {total} selected")
-
-class QuadTreeItem(QTreeWidgetItem):
-
-    def __init__(self, quad):
-        QTreeWidgetItem.__init__(self)
-        self.quad = quad
-
-class QuadItemWidget(QFrame):
-
-    quadSelected = pyqtSignal()
-
-    def __init__(self, quad):
-        QWidget.__init__(self)
-        self.setMouseTracking(True)
-        self.quad = quad
-        self.nameLabel = QLabel(f'<b>{quad[ID]}</b><br><span style="color:grey;">'
-                            f'{quad[PERCENT_COVERED]} % covered</span>')
-        self.iconLabel = QLabel()
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        self.checkBox = QCheckBox("")
-        self.checkBox.stateChanged.connect(self.checkBoxstateChanged)
-        layout = QHBoxLayout()
-        layout.setMargin(0)
-        layout.addWidget(self.checkBox)
-        vlayout = QVBoxLayout()
-        vlayout.setMargin(0)
-        vlayout.addWidget(self.iconLabel)
-        self.iconWidget = QWidget()
-        self.iconWidget.setFixedSize(48, 48)
-        self.iconWidget.setLayout(vlayout)
-        layout.addWidget(self.iconWidget)        
-        layout.addWidget(self.nameLabel)
-        layout.addStretch()
-        self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
-        self.nam.get(QNetworkRequest(QUrl(quad[LINKS][THUMBNAIL])))
-        self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
-        self.footprint.setFillColor(QUADS_AOI_COLOR)
-        self.footprint.setStrokeColor(QUADS_AOI_COLOR)
-        self.footprint.setWidth(2)
-
-        self.footprintfill = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
-        self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)        
-        self.footprintfill.setWidth(0)
-
-        self.update_footprint_brush()
-        self.hide_solid_interior()
-        self.show_footprint()
-
-        self.setStyleSheet("QuadItemWidget{border: 2px solid transparent;}")
-
-    def checkBoxstateChanged(self):
-        self.update_footprint_brush()
-        self.quadSelected.emit()        
-
-    def show_footprint(self):
-        coords = self.quad[BBOX]
-        extent = qgsrectangle_for_canvas_from_4326_bbox_coords(coords)      
-        self.geom = QgsGeometry.fromRect(extent)        
-        self.footprint.setToGeometry(self.geom)
-        self.footprintfill.setToGeometry(self.geom)
-
-    def hide_footprint(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.footprintfill.reset(QgsWkbTypes.PolygonGeometry)
-
-    def show_solid_interior(self):                        
-        self.footprintfill.setBrushStyle(Qt.SolidPattern)        
-        self.footprintfill.updateCanvas()
-
-    def hide_solid_interior(self):
-        self.footprintfill.setBrushStyle(Qt.NoBrush)
-        self.footprintfill.updateCanvas()
-    
-    def update_footprint_brush(self):
-        self.footprint.setBrushStyle(Qt.CrossPattern if self.checkBox.isChecked() else Qt.NoBrush)
-        self.footprint.updateCanvas()
-
-    def remove_footprint(self):
-        iface.mapCanvas().scene().removeItem(self.footprint)
-        iface.mapCanvas().scene().removeItem(self.footprintfill)
-        
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        self.iconLabel.setStyleSheet("")
-
-    def isSelected(self):
-        return self.checkBox.isChecked()
-
-    def setChecked(self, checked):
-        self.checkBox.setChecked(checked)
-
-    def enterEvent(self, event):
-        self.setStyleSheet("QuadItemWidget{border: 2px solid rgb(157, 165, 0);}")
-        self.show_solid_interior()
-
-    def leaveEvent(self, event):
-        self.setStyleSheet("QuadItemWidget{border: 2px solid transparent;}")
-        self.hide_solid_interior()
-
-class BasemapsListWidget(QListWidget):
-
-    basemapsSelectionChanged = pyqtSignal()
-
-    def __init__(self):
-        QListWidget.__init__(self, None)
-        self.setAutoScroll(True)
-        self.setSortingEnabled(True) 
-        self.setAlternatingRowColors(True)
-        p = self.palette()
-        p.setColor(QPalette.Highlight, ITEM_BACKGROUND_COLOR)
-        self.setPalette(p)
-        self.widgets = []
-
-    def clear(self):
-        self.widgets = []
-        super().clear()
-
-    def populate(self, mosaics):              
-        self.widgets = []
-        for mosaic in mosaics[::-1]:                
-            item = BasemapListItem(mosaic)
-            self.addItem(item)
-            widget = BasemapItemWidget(mosaic)
-            self.setItemWidget(item, widget)
-            widget.setMaximumWidth(self.width())
-            widget.setFixedWidth(self.width())
-            item.setSizeHint(widget.sizeHint())
-            widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
-            self.widgets.append(widget)
-        
-        self.sortItems()
-
-    def resizeEvent(self, evt):
-        super().resizeEvent(evt)
-        for widget in self.widgets:
-            widget.setMaximumWidth(self.width())
-            widget.setFixedWidth(self.width())
-
-    def selected_mosaics(self):
-        return sorted([w.mosaic for w in self.widgets if w.isSelected()], 
-                        key=lambda x: x[FIRST_ACQUIRED])
-
-    def setAllChecked(self, checked):
-        for w in self.widgets:
-            w.setChecked(checked)
-        
-class BasemapListItem(QListWidgetItem):
-
-    def __init__(self, mosaic):
-        QListWidgetItem.__init__(self)
-        self.mosaic = mosaic
-        self.enabled = TILES in mosaic[LINKS]
-
-    def __lt__(self, other):
-        if isinstance(other, BasemapListItem):
-            return self.mosaic[FIRST_ACQUIRED] < other.mosaic[FIRST_ACQUIRED]
-        else:
-            return True        
-
-class BasemapItemWidget(QWidget):
-
-    basemapSelected = pyqtSignal()
-
-    def __init__(self, mosaic):
-        QWidget.__init__(self)
-        self.mosaic = mosaic
-        available = TILES in mosaic[LINKS]
-        color = "black" if available else "grey"        
-        title = mosaic_title(mosaic)
-        self.nameLabel = QLabel(f'<span style="color:{color};"><b>{title}</b></span>'
-                            f'<br><span style="color:grey;">{mosaic[NAME]}</span>')        
-        self.iconLabel = QLabel()
-        self.toolsButton = QLabel()
-        self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
-        self.toolsButton.mousePressEvent = self.showContextMenu
-
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        self.checkBox = QCheckBox("")
-        self.checkBox.setEnabled(available)
-        self.checkBox.stateChanged.connect(self.basemapSelected.emit)
-        layout = QHBoxLayout()
-        layout.setMargin(2)
-        layout.addWidget(self.checkBox)
-        vlayout = QVBoxLayout()
-        vlayout.setMargin(0)
-        vlayout.addWidget(self.iconLabel)
-        self.iconWidget = QWidget()
-        self.iconWidget.setFixedSize(48, 48)
-        self.iconWidget.setLayout(vlayout)
-        layout.addWidget(self.iconWidget)
-        layout.addWidget(self.nameLabel)
-        layout.addStretch()
-        layout.addWidget(self.toolsButton)
-        layout.addSpacing(10)
-        self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
-        self.nam.get(QNetworkRequest(QUrl(mosaic[LINKS][THUMB])))
-        
-    def showContextMenu(self, evt):
-        menu = QMenu()
-        add_menu_section_action('Current item', menu)
-        zoom_act = QAction('Zoom to extent', menu)        
-        zoom_act.triggered.connect(self.zoom_to_extent)
-        menu.addAction(zoom_act)
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
-
-    def zoom_to_extent(self):
-        rect = qgsrectangle_for_canvas_from_4326_bbox_coords(self.mosaic[BBOX])
-        rect.scale(1.05)
-        iface.mapCanvas().setExtent(rect)
-        iface.mapCanvas().refresh()
-
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-
-    def isSelected(self):
-        return self.checkBox.isChecked()
-
-    def setChecked(self, checked):
-        self.checkBox.setChecked(checked)
 
 class QuadFinder(QObject):
 

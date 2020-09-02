@@ -361,7 +361,7 @@ class PlanetClient(QObject):
         return response.get_body()
 
 
-    def get_quads_for_mosaic(self, mosaic, bbox=None):
+    def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
         '''List all available mosaics for a given series
         :returns: :py:Class:`planet.api.models.JSON`
         '''        
@@ -371,6 +371,8 @@ class PlanetClient(QObject):
         bbox = (max(-180, bbox[0]), max(-85, bbox[1]),
                 min(180, bbox[2]), min(85, bbox[3]))
         url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
+        if minimal:
+            url += "&minimal=true"
         response = self.client.dispatcher.response(
             api_models.Request(
                 url, self.client.auth,
