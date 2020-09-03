@@ -39,7 +39,14 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
     QObject,
+    QSettings
 )
+from qgis.core import (QgsAuthMethodConfig,
+                        QgsApplication, 
+                        QgsMessageLog, 
+                        Qgis
+)
+
 # noinspection PyPackageRequirements
 # from PyQt5.QtGui import QPixmap
 
@@ -98,6 +105,8 @@ class PlanetClient(QObject):
     def getInstance():
         if PlanetClient.__instance is None:
             PlanetClient()
+
+        PlanetClient.__instance.set_proxy_values()
         return PlanetClient.__instance
 
     def __init__(self, parent=None,
@@ -138,6 +147,41 @@ class PlanetClient(QObject):
         # if not callable(self._area_km_func):
         #     log.info('No external geometry area calc function registered')
         #     # TODO: Create/register internal func based upon `ogr` module
+
+    def set_proxy_values(self):
+        settings = QSettings()
+        proxyEnabled = settings.value("proxy/proxyEnabled")
+        if proxyEnabled:
+            proxyType = settings.value("proxy/proxyType")
+            if proxyType != "HttpProxy":
+                QgsMessageLog.logMessage("Planet Explorer: Only HttpProxy is supported "
+                                         "for connecting to the Planet API", 
+                                         level=Qgis.Warning)
+                return
+
+            proxyHost = settings.value("proxy/proxyHost")
+            proxyPort = settings.value("proxy/proxyPort")
+            url = f"{proxyHost}:{proxyPort}"
+            authid = settings.value("proxy/authcfg", "")
+            if authid:
+                authConfig = QgsAuthMethodConfig()
+                QgsApplication.authManager().loadAuthenticationConfig(
+                    authid, authConfig, True)
+                username = authConfig.config('username')
+                password = authConfig.config('password')
+            else:
+                username = settings.value("proxy/proxyUser")
+                password = settings.value("proxy/proxyPassword")
+            
+            if username:                
+                tokens = url.split("://")
+                url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"
+
+            self.client.dispatcher.session.proxies["http"] = url
+            self.client.dispatcher.session.proxies["https"] = url
+        else:
+            self.client.dispatcher.session.proxies = {}
+
 
     def _url(self, path):
         if path.startswith('http'):
