@@ -25,5 +25,5 @@ dependencies:
   - shapely=1.6.4
   - sphinx=2.2.0
   - pip:
-    - qgiscommons==2.0.12
-    - sentry-sdk=0.12.3
+      - qgiscommons==2.0.12
+      - sentry-sdk==0.12.3
