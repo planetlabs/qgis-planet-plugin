@@ -22,6 +22,7 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
+import iso8601
 import shutil
 import json
 import logging
@@ -47,8 +48,14 @@ from qgis.core import (
     Qgis,
     QgsMessageLog,
     QgsRasterLayer,
-    QgsProject
+    QgsProject,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsWkbTypes,
+    QgsRectangle
 )
+
+from qgis.gui import QgsRubberBand
 
 # noinspection PyPackageRequirements
 from qgis.utils import (
@@ -62,13 +69,17 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     Qt,
     QCoreApplication,
-    QUrl
+    QUrl,
+    QSize
 )
 
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
     QCursor,
-    QDesktopServices
+    QDesktopServices,
+    QIcon,
+    QPixmap,
+    QImage
 )
 
 # noinspection PyPackageRequirements
@@ -81,7 +92,14 @@ from qgis.PyQt.QtWidgets import (
     QListWidgetItem,
     QApplication,
     QMessageBox,
-    QSizePolicy
+    QSizePolicy,
+    QMenu,
+    QAction
+)
+
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest
 )
 
 from ..pe_utils import (
@@ -98,16 +116,59 @@ from ..planet_api import (
     PlanetClient
 )
 
+from ..planet_api.p_specs import (    
+    DAILY_ITEM_TYPES_DICT
+)
+
+from ..planet_api.p_node import (
+       PLACEHOLDER_THUMB
+)
+
+from planet.api.models import (
+    Mosaics,
+    MosaicQuads
+)
+
 from ..planet_api.quad_orders import (
     quad_orders
 )
+
+from ..planet_api.order_tasks import (
+    QuadsOrderProcessorTask,
+    OrderProcessorTask
+)
+
+from ..pe_utils import (
+    qgsgeometry_from_geojson,
+    PLANET_COLOR,
+    add_menu_section_action
+)
+
+
+from .pointcapturemaptool import PointCaptureMapTool
+
+ID = "id"
+NAME = "name"
+CREATED_ON = "created_on"
+PRODUCTS = "products"
+ITEM_IDS = "item_ids"
+STATE = "state"
+DELIVERY = "delivery"
+ARCHIVE_TYPE = "archive_type"
+PROPERTIES = "properties"
+GEOMETRY = "geometry"
+COORDINATES = "coordinates"
+
+plugin_path = os.path.split(os.path.dirname(__file__))[0]
+
+COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
+INSPECTOR_ICON = QIcon(os.path.join(plugin_path, "resources", "inspector.png"))
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
 
-plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
     os.path.join(plugin_path, 'ui', 'pe_orders_monitor_dockwidget.ui'),
@@ -121,14 +182,93 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                  parent=None,
                  ):
         super().__init__(parent=parent)
-        self._p_client = PlanetClient.getInstance()
+        self.p_client = PlanetClient.getInstance()
 
         self.setupUi(self)
 
+        self.btnMapTool.setIcon(INSPECTOR_ICON)
+
+        self.textBrowser.setHtml("""<center> 
+                Click on a visible pixel within a streamed or previewed Planet Basemap
+                </center>""")
+        self.textBrowser.setVisible(True)
+        self.listScenes.setVisible(False)
+
+        self.listScenes.setAlternatingRowColors(True)
+        self.listScenes.setSelectionMode(self.listScenes.NoSelection)
+
         self.btnRefresh.clicked.connect(self.refresh_list)
-        self.chkOnlyDownloadable.stateChanged.connect(self.check_state_changed)
+        self.chkOnlyDownloadable.toggled.connect(self.check_state_changed)
 
         self.populate_orders_list()
+
+        self.map_tool = PointCaptureMapTool(iface.mapCanvas())
+        self.map_tool.canvasClicked.connect(self.point_captured)
+        self.btnMapTool.toggled.connect(self._set_map_tool)
+        iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
+
+
+    def point_captured(self, point, button):
+        self._populate_scenes_from_point(point)
+
+    @waitcursor
+    def _populate_scenes_from_point(self, point):
+        BUFFER = 0.00001
+
+        self.listScenes.clear()
+        canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
+        transform = QgsCoordinateTransform(canvasCrs, QgsCoordinateReferenceSystem(4326),
+                                           QgsProject.instance())
+        wgspoint = transform.transform(point)
+
+        mosaicids = self._mosaic_ids_from_current_layers()
+        if mosaicids:
+            bbox = [wgspoint.x() - BUFFER, wgspoint.y() - BUFFER,
+                    wgspoint.x() + BUFFER, wgspoint.y() + BUFFER,]
+            mosaicid = mosaicids[0]
+            quads = self.p_client.get_quads_for_mosaic(mosaicid, bbox)
+            json_quads = []
+            for page in quads.iter():
+                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
+            if json_quads:                
+                for quad in json_quads:
+                    scenes = self.p_client.get_items_for_quad(mosaicid, quad[ID])
+                    for scene in scenes:
+                        item = SceneItem(scene)
+                        self.listScenes.addItem(item)
+                        widget = SceneItemWidget(scene)
+                        item.setSizeHint(widget.sizeHint())
+                        self.listScenes.setItemWidget(item, widget)
+                self.textBrowser.setVisible(False)
+                self.listScenes.setVisible(True)
+            else:
+                self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
+                                     ⚠️ The selected pixel is not part of a streamed Planet Basemap.
+                                     </span></center>""")
+                self.textBrowser.setVisible(True)
+                self.listScenes.setVisible(False)
+        else:   
+            self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
+                                     ⚠️ No valid Planet Basemap is found in your project.
+                                     </span></center>""")
+            self.textBrowser.setVisible(True)
+            self.listScenes.setVisible(False)
+
+    def _mosaic_ids_from_current_layers(self):
+        return ["48fff803-4104-49bc-b913-7467b7a5ffb5"]
+
+    def _set_map_tool(self, checked):
+        if checked:
+            self.prev_map_tool = iface.mapCanvas().mapTool()
+            iface.mapCanvas().setMapTool(self.map_tool)
+        else:
+            iface.mapCanvas().setMapTool(self.prev_map_tool)
+
+    def _map_tool_set(self, new, old):
+        if new != self.map_tool:
+           self.btnMapTool.blockSignals(True)
+           self.btnMapTool.setChecked(False)
+           self.btnMapTool.blockSignals(False)
 
     def show_inspector_panel(self):
         self.tabWidget.setCurrentIndex(1)
@@ -147,13 +287,13 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     @waitcursor
     def populate_orders_list(self):
-        orders: Orders = self._p_client.client.get_orders()
+        orders: Orders = self.p_client.client.get_orders()
         ordersArray = []
         for page in orders.iter():
             ordersArray.extend(page.get().get(Orders.ITEM_KEY))
         self.listOrders.clear()
         for order in ordersArray:
-            wrapper = OrderWrapper(order, self._p_client)
+            wrapper = OrderWrapper(order, self.p_client)
             item = OrderItem(wrapper)                
             widget = OrderItemWidget(wrapper, self)
             item.setSizeHint(widget.sizeHint())
@@ -169,14 +309,97 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listOrders.addItem(item)
             self.listOrders.setItemWidget(item, widget)            
 
-ID = "id"
-NAME = "name"
-CREATED_ON = "created_on"
-PRODUCTS = "products"
-ITEM_IDS = "item_ids"
-STATE = "state"
-DELIVERY = "delivery"
-ARCHIVE_TYPE = "archive_type"
+class SceneItem(QListWidgetItem):
+
+    def __init__(self, scene):
+        QListWidgetItem.__init__(self)
+        self.scene = scene        
+
+class SceneItemWidget(QWidget):
+
+    def __init__(self, scene):
+        QWidget.__init__(self)
+        self.scene = scene
+        properties = scene[PROPERTIES]
+        datetime = iso8601.parse_date(properties["published"])
+        date = datetime.strftime('%H:%M:%S')
+        time = datetime.strftime('%b %d, %Y')
+            
+        text = f"""{date}<span style="color: rgb(100,100,100);">{time} UTC</span><br>
+                        <b>{DAILY_ITEM_TYPES_DICT[properties['item_type']]}</b>
+                    """
+
+        self.nameLabel = QLabel(text)        
+        self.iconLabel = QLabel()
+        self.toolsButton = QLabel()
+        self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.toolsButton.mousePressEvent = self.showContextMenu
+
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+        layout = QHBoxLayout()
+        layout.setMargin(2)
+        vlayout = QVBoxLayout()
+        vlayout.setMargin(0)
+        vlayout.addWidget(self.iconLabel)
+        self.iconWidget = QWidget()
+        self.iconWidget.setFixedSize(48, 48)
+        self.iconWidget.setLayout(vlayout)
+        layout.addWidget(self.iconWidget)
+        layout.addWidget(self.nameLabel)
+        layout.addStretch()
+        layout.addWidget(self.toolsButton)
+        layout.addSpacing(10)
+        self.setLayout(layout)
+        self.nam = QNetworkAccessManager()
+        self.nam.finished.connect(self.iconDownloaded)
+        url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        self.nam.get(QNetworkRequest(QUrl(url)))
+
+        self.footprint = QgsRubberBand(iface.mapCanvas(),
+                              QgsWkbTypes.PolygonGeometry)        
+        self.footprint.setStrokeColor(PLANET_COLOR)
+        self.footprint.setWidth(2)
+
+        self.geom = qgsgeometry_from_geojson(scene[GEOMETRY])
+        
+    def showContextMenu(self, evt):
+        menu = QMenu()
+        add_menu_section_action('Current item', menu)
+        zoom_act = QAction('Zoom to extent', menu)        
+        zoom_act.triggered.connect(self.zoom_to_extent)
+        menu.addAction(zoom_act)
+        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+
+    def zoom_to_extent(self):
+        rect = QgsRectangle(self.geom.boundingBox())
+        rect.scale(1.05)
+        iface.mapCanvas().setExtent(rect)
+        iface.mapCanvas().refresh()
+
+    def iconDownloaded(self, reply):
+        img = QImage()
+        img.loadFromData(reply.readAll())
+        pixmap = QPixmap(img)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+
+    def show_footprint(self):                
+        self.footprint.setToGeometry(self.geom)
+
+    def hide_footprint(self):
+        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+
+    def enterEvent(self, event):
+        self.setStyleSheet("SceneItemWidget{border: 2px solid rgb(0, 157, 165);}")
+        self.show_footprint()
+
+    def leaveEvent(self, event):
+        self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
+        self.hide_footprint()
 
 class OrderWrapper():
 
@@ -276,104 +499,6 @@ class OrderItemWidget(QWidget):
                             level=Qgis.Info, duration=5)
 
 
-class OrderProcessorTask(QgsTask):
-    def __init__(self, order):
-        super().__init__(f"Processing order {order.name()}", QgsTask.CanCancel)
-        self.exception = None
-        self.order = order
-        self.filenames = []        
-
-    def run(self):
-        try:
-            chunk_size = 1024
-            locations = self.order.locations()
-            download_folder = self.order.download_folder()
-            if os.path.exists(download_folder):
-                shutil.rmtree(download_folder)
-            os.makedirs(download_folder)
-            zip_locations = [(url,path) for url,path in locations if path.lower().endswith("zip")]
-            for url, path in zip_locations:
-                local_filename = os.path.basename(path)                
-                local_fullpath = os.path.join(download_folder, local_filename)
-                self.filenames.append(local_fullpath)
-                r = requests.get(url, stream=True)
-                file_size = r.headers.get('content-length') or 0
-                file_size = int(file_size)
-                percentage_per_chunk = (100.0 / len(zip_locations)) / (file_size / chunk_size)
-                progress = 0
-                with open(local_fullpath, 'wb') as f:                
-                    for chunk in r.iter_content(chunk_size):
-                        f.write(chunk)
-                        progress += percentage_per_chunk
-                        self.setProgress(progress)
-                        if self.isCanceled():
-                            return False
-            
-            self.process_download()
-
-            return True
-        except Exception as e:
-            self.exception = traceback.format_exc()
-            return False
-
-    def process_download(self):
-        self.msg = []
-        for filename in self.filenames:
-            output_folder = os.path.splitext(filename)[0]
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
-            with zipfile.ZipFile(filename, 'r') as z:
-                z.extractall(output_folder)
-            os.remove(filename)
-            manifest_file = os.path.join(output_folder, "manifest.json")
-            self.images = self.images_from_manifest(manifest_file)
-
-
-    def images_from_manifest(self, manifest_file):
-        base_folder = os.path.dirname(manifest_file)
-        with open(manifest_file) as f:
-            manifest = json.load(f)
-        images = []
-        for img in manifest["files"]:
-            if img["media_type"] == "image/tiff":
-                images.append((os.path.join(base_folder, img["path"]),
-                            img["annotations"]["planet/item_type"]))
-        return images
-
-
-    def finished(self, result):      
-        if result:
-            layers = []
-            for filename, image_type in self.images:
-                layers.append((QgsRasterLayer(filename, os.path.basename(filename)), image_type))
-            validity = [lay.isValid() for lay, _ in layers]
-            if False in validity:
-                widget = iface.messageBar().createMessage("Planet Explorer", 
-                        f"Order '{self.order.name()}' correctly downloaded ")
-                button = QPushButton(widget)
-                button.setText("Open order folder")
-                button.clicked.connect(lambda: QDesktopServices.openUrl(
-                                    QUrl.fromLocalFile(self.order.download_folder()))
-                )
-                widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)                
-            else:
-                for layer, image_type in layers:
-                    QgsProject.instance().addMapLayer(layer)                   
-                iface.messageBar().pushMessage("Planet Explorer", 
-                    f"Order '{self.order.name()}' correctly downloaded and processed",
-                    level=Qgis.Success, duration=5)
-            if is_segments_write_key_valid():
-                analytics.track(self.order.p_client.user()["email"], "Order downloaded", self.order.order)
-        elif self.exception is not None:
-            QgsMessageLog.logMessage(f"Order '{self.order.name()}' could not be downloaded.\n{self.exception}", 
-                QGIS_LOG_SECTION_NAME, Qgis.Warning)
-            iface.messageBar().pushMessage("Planet Explorer", 
-                f"Order '{self.order.name()}' could not be downloaded. See log for details",
-                level=Qgis.Warning, duration=5)
-
-
-
 class QuadsOrderItem(QListWidgetItem):
 
     def __init__(self, order):
@@ -428,86 +553,6 @@ class QuadsOrderItemWidget(QWidget):
         iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",                
                             level=Qgis.Info, duration=5)
 
-class QuadsOrderProcessorTask(QgsTask):
-    def __init__(self, order):
-        super().__init__(f"Processing order {order.name}", QgsTask.CanCancel)
-        self.exception = None
-        self.order = order
-        self.filenames = defaultdict(list)        
-
-    def run(self):
-        try:
-            chunk_size = 1024
-            locations = self.order.locations()
-            download_folder = self.order.download_folder()
-            if os.path.exists(download_folder):
-                shutil.rmtree(download_folder)
-            os.makedirs(download_folder)
-            i = 0
-            total = sum([len(x) for x in locations.values()])
-            for mosaic, files in locations.items():
-                if files:
-                    folder = os.path.join(download_folder, mosaic)
-                    os.makedirs(folder, exist_ok=True)
-                    for url, path in files:
-                        local_filename = os.path.basename(path) + ".tif"                
-                        local_fullpath = os.path.join(download_folder, mosaic, local_filename)
-                        self.filenames[mosaic].append(local_fullpath)
-                        r = requests.get(url, stream=True)
-                        with open(local_fullpath, 'wb') as f:                
-                            for chunk in r.iter_content(chunk_size):
-                                f.write(chunk)
-                        i +=1
-                        self.setProgress(i * 100 / total)
-                        if self.isCanceled():
-                            return False
-
-            return True
-        except Exception as e:
-            self.exception = traceback.format_exc()
-            return False
-
-    def finished(self, result):      
-        if result:
-            layers = {}
-            valid = True
-            for mosaic, files in self.filenames.items():                    
-                mosaiclayers = []
-                for filename in files:
-                    mosaiclayers.append(QgsRasterLayer(filename, os.path.basename(filename), "gdal"))
-                layers[mosaic] = mosaiclayers
-                valid = valid and (False not in [lay.isValid() for lay in mosaiclayers])
-            if not valid:
-                widget = iface.messageBar().createMessage("Planet Explorer", 
-                        f"Order '{self.order.name}' correctly downloaded ")
-                button = QPushButton(widget)
-                button.setText("Open order folder")
-                button.clicked.connect(lambda: QDesktopServices.openUrl(
-                                    QUrl.fromLocalFile(self.order.download_folder()))
-                )
-                widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)                
-            else:
-                if self.order.load_as_virtual:
-                    for mosaic, files in self.filenames.items():
-                        vrtpath = os.path.join(self.order.download_folder(), mosaic, f'{mosaic}.vrt')
-                        gdal.BuildVRT(vrtpath, files)
-                        layer = QgsRasterLayer(vrtpath, mosaic, "gdal")
-                        QgsProject.instance().addMapLayer(layer)
-                else:
-                    for mosaic, mosaiclayers in layers.items():
-                        for layer in mosaiclayers:
-                            QgsProject.instance().addMapLayer(layer)
-                        #TODO create groups                  
-                iface.messageBar().pushMessage("Planet Explorer", 
-                    f"Order '{self.order.name}' correctly downloaded and processed",
-                    level=Qgis.Success, duration=5)
-        elif self.exception is not None:
-            QgsMessageLog.logMessage(f"Order '{self.order.name}' could not be downloaded.\n{self.exception}", 
-                QGIS_LOG_SECTION_NAME, Qgis.Warning)
-            iface.messageBar().pushMessage("Planet Explorer", 
-                f"Order '{self.order.name}' could not be downloaded. See log for details",
-                level=Qgis.Warning, duration=5)
 
 dockwidget_instance = None
 

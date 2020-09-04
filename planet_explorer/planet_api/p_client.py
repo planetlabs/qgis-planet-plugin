@@ -331,7 +331,7 @@ class PlanetClient(QObject):
         return response.get_body()
 
     def get_mosaics(self, name_contains=None):
-        '''List all available mosaic series
+        '''List all available mosaics
         :returns: :py:Class:`planet.api.models.JSON`
         '''
         params = {"v":"1.5"}
@@ -362,12 +362,20 @@ class PlanetClient(QObject):
 
 
     def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
-        '''List all available mosaics for a given series
+        '''List all available quad for a given mosaic
         :returns: :py:Class:`planet.api.models.JSON`
         '''        
-        url = mosaic['_links']['quads']
-        if bbox is None:        
-            bbox = mosaic['bbox']
+        if isinstance(mosaic, str):
+            mosaicid = mosaic
+        else:
+            mosaicid = mosaic["id"]
+
+        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads?bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}')
+        if bbox is None:
+            if isinstance(mosaic, str):
+                bbox = [-180, -85, 180, 85]
+            else:
+                bbox = mosaic['bbox']
         bbox = (max(-180, bbox[0]), max(-85, bbox[1]),
                 min(180, bbox[2]), min(85, bbox[3]))
         url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
@@ -388,11 +396,34 @@ class PlanetClient(QObject):
                 url, self.client.auth,
                 params = {"_page_size":1, 
                         "bbox": ",".join(str(v) for v in mosaic['bbox'])},
-                body_type=api_models.MosaicQuads                
+                body_type=api_models.MosaicQuads
             )
         )
         quad = response.get_body().get().get("items")[0]
         return quad
+
+    def get_items_for_quad(self, mosaicid, quadid):
+        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items')
+        response = self.client.dispatcher.response(
+            api_models.Request(
+                url, self.client.auth,
+                body_type=api_models.JSON              
+            )
+        )
+        item_descriptions = []
+        items = response.get_body().get().get("items")
+        print(items)
+        for item in items:
+            if item['link'].startswith("https://api.planet.com"):
+                response = self.client.dispatcher.response(
+                    api_models.Request(
+                        item["link"], self.client.auth,
+                        body_type=api_models.JSON              
+                    )
+                )
+                item_descriptions.append(response.get_body().get())
+        
+        return item_descriptions
 
     def register_area_km_func(self, func):
         self._area_km_func = func
