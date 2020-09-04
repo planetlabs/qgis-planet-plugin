@@ -68,7 +68,8 @@ from qgis.core import (
     QgsGeometry,
     QgsDistanceArea,
     QgsRectangle,
-    QgsUnitTypes
+    QgsUnitTypes,
+    QgsApplication
 )
 
 from qgis.gui import(
@@ -124,6 +125,7 @@ from .pe_orders_monitor_dockwidget import (
 
 from .extended_combobox import ExtendedComboBox
 
+ID = "id"
 BBOX = "bbox"
 THUMB = "thumb"
 
@@ -244,7 +246,14 @@ class BasemapItemWidget(QWidget):
         zoom_act = QAction('Zoom to extent', menu)        
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
+        copy_id_act = QAction('Copy ID to clipboard', menu)        
+        copy_id_act.triggered.connect(self.copy_id)
+        menu.addAction(copy_id_act)
         menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+
+    def copy_id(self):
+        cb = QgsApplication.clipboard()
+        cb.setText(self.mosaic[ID])        
 
     def zoom_to_extent(self):
         rect = qgsrectangle_for_canvas_from_4326_bbox_coords(self.mosaic[BBOX])
