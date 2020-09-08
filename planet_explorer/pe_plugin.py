@@ -109,7 +109,8 @@ from planet_explorer.gui.basemap_layer_widget import (
 )
 
 from planet_explorer.gui.pe_orders_monitor_dockwidget import (
-    toggle_orders_monitor
+    toggle_orders_monitor,
+    hide_orders_monitor
 )
 
 PLANET_COM = 'https://planet.com'
@@ -308,11 +309,15 @@ class PlanetExplorer(object):
 
         QgsProject.instance().projectSaved.connect(self.project_saved)
 
-        PlanetClient.getInstance().loginChanged.connect(replace_apikeys)
-
-        PlanetClient.getInstance().loginChanged.connect(self.enable_buttons)
+        PlanetClient.getInstance().loginChanged.connect(self.login_changed)
 
         self.enable_buttons(False)
+
+    def login_changed(self, loggedin):
+        replace_apikeys()
+        self.enable_buttons(loggedin)
+        if not loggedin:
+            hide_orders_monitor()
 
     def add_info_button(self):
         info_menu = QMenu()
@@ -484,9 +489,6 @@ class PlanetExplorer(object):
                                  self.explorer_dock_widget)
 
         self.explorer_dock_widget.hide()
-
-
-
 
     def project_saved(self):        
         if PlanetClient.getInstance().has_api_key():            
