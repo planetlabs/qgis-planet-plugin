@@ -22,6 +22,7 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
+import re
 import iso8601
 import shutil
 import json
@@ -260,7 +261,24 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listScenes.setVisible(False)
 
     def _mosaic_id_from_current_layer(self):
-        return "48fff803-4104-49bc-b913-7467b7a5ffb5"
+        layer = iface.activeLayer()
+        source = layer.source()        
+        name = None
+        for prop in source.split("&"):
+            tokens = prop.split("=")
+            if len(tokens) == 2 and tokens[0] == "url":
+                url = tokens[1]
+                print(url)
+                groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
+                                        url, re.IGNORECASE)
+
+                if groups:
+                    name = groups.group(1)
+                    break
+        client = PlanetClient.getInstance().api_client()
+        mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
+        return mosaicid
+        
 
     def _set_map_tool(self, checked):
         if checked:
@@ -590,6 +608,10 @@ def show_orders_monitor(refresh=True):
     wdgt.show_orders_panel()
     wdgt.show()
 
+def hide_orders_monitor():
+    wdgt = _get_widget_instance()    
+    wdgt.hide()
+
 def refresh_orders():
     wdgt = _get_widget_instance()    
     wdgt.refresh_list()
@@ -598,7 +620,6 @@ def toggle_orders_monitor():
     wdgt = _get_widget_instance()
     wdgt.show_orders_panel()
     wdgt.setVisible(not wdgt.isVisible())
-
 
 def show_inspector():
     wdgt = _get_widget_instance()
