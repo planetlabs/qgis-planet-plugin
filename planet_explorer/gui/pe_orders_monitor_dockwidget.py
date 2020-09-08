@@ -53,7 +53,8 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsWkbTypes,
-    QgsRectangle
+    QgsRectangle,
+    QgsGeometry
 )
 
 from qgis.gui import QgsRubberBand
@@ -95,7 +96,8 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QSizePolicy,
     QMenu,
-    QAction
+    QAction,
+    QFrame
 )
 
 from PyQt5.QtNetwork import (
@@ -236,15 +238,18 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             json_quads = []
             for page in quads.iter():
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
-            if json_quads:                
+            if json_quads:
+                pointgeom = QgsGeometry.fromPointXY(wgspoint)
                 for quad in json_quads:
                     scenes = self.p_client.get_items_for_quad(mosaicid, quad[ID])
                     for scene in scenes:
-                        item = SceneItem(scene)
-                        self.listScenes.addItem(item)
-                        widget = SceneItemWidget(scene)
-                        item.setSizeHint(widget.sizeHint())
-                        self.listScenes.setItemWidget(item, widget)
+                        geom = qgsgeometry_from_geojson(scene[GEOMETRY])
+                        if pointgeom.within(geom):
+                            item = SceneItem(scene)
+                            self.listScenes.addItem(item)
+                            widget = SceneItemWidget(scene)
+                            item.setSizeHint(widget.sizeHint())
+                            self.listScenes.setItemWidget(item, widget)
                 self.textBrowser.setVisible(False)
                 self.listScenes.setVisible(True)
             else:
@@ -268,18 +273,18 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             tokens = prop.split("=")
             if len(tokens) == 2 and tokens[0] == "url":
                 url = tokens[1]
-                print(url)
                 groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
                                         url, re.IGNORECASE)
 
                 if groups:
                     name = groups.group(1)
                     break
+        if name is None:
+            return
         client = PlanetClient.getInstance().api_client()
         mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
         return mosaicid
         
-
     def _set_map_tool(self, checked):
         if checked:
             self.prev_map_tool = iface.mapCanvas().mapTool()
@@ -338,12 +343,15 @@ class SceneItem(QListWidgetItem):
         QListWidgetItem.__init__(self)
         self.scene = scene        
 
-class SceneItemWidget(QWidget):
+class SceneItemWidget(QFrame):
 
     def __init__(self, scene):
         QWidget.__init__(self)
         self.scene = scene
         self.properties = scene[PROPERTIES]
+
+        self.setMouseTracking(True)
+
         datetime = iso8601.parse_date(self.properties["published"])
         date = datetime.strftime('%H:%M:%S')
         time = datetime.strftime('%b %d, %Y')
@@ -387,6 +395,8 @@ class SceneItemWidget(QWidget):
         self.footprint.setWidth(2)
 
         self.geom = qgsgeometry_from_geojson(scene[GEOMETRY])
+
+        self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
         
     def showContextMenu(self, evt):
         menu = QMenu()
