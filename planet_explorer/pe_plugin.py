@@ -86,7 +86,8 @@ from planet_explorer.planet_api.p_thumnails import (
 )
 
 from planet_explorer.gui.pe_explorer_dockwidget import (
-    PlanetExplorerDockWidget,
+    show_explorer,
+    toggle_explorer
 )
 
 from planet_explorer.pe_utils import (
@@ -283,7 +284,7 @@ class PlanetExplorer(object):
         self.showexplorer_act = self.add_action(
             ':/plugins/planet_explorer/planet-logo-p.svg',
             text=self.tr(P_E),
-            callback=self.toggle_explorer,
+            callback=toggle_explorer,
             add_to_menu=True,
             add_to_toolbar=True,
             parent=self.iface.mainWindow())
@@ -445,9 +446,7 @@ class PlanetExplorer(object):
         self._terms_browser.show()
 
     def login(self):
-        if self.explorer_dock_widget is None:
-            self.create_explorer()
-        self.explorer_dock_widget.show()
+        show_explorer()
 
     def logout(self):
         PlanetClient.getInstance().log_out()
@@ -487,9 +486,7 @@ class PlanetExplorer(object):
         self.explorer_dock_widget.hide()
 
 
-    def toggle_explorer(self):
-        self.explorer_dock_widget._set_credential_fields()
-        self.explorer_dock_widget.setVisible(self.explorer_dock_widget.isHidden())
+
 
     def project_saved(self):        
         if PlanetClient.getInstance().has_api_key():            

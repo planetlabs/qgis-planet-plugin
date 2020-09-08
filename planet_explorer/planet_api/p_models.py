@@ -794,6 +794,7 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         )
 
     def fetch_job_thumbnail(self, node: PlanetNode):
+        print(self._request)
         self._thumb_cache.fetch_job_thumbnail(
             node.item_type_id_key(),
             self._p_client.api_key(),

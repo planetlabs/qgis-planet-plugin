@@ -30,7 +30,8 @@ import sentry_sdk
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
-    pyqtSlot
+    pyqtSlot,
+    Qt
 )
 
 from qgis.PyQt.QtGui import (
@@ -57,7 +58,7 @@ from qgis.core import (
     QgsMessageLog
 )
 
-# from qgis.utils import iface
+from qgis.utils import iface
 
 from qgiscommons2.settings import (
     pluginSetting,
@@ -373,3 +374,34 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def closeEvent(self, event):
         self.clean_up()
         event.accept()
+
+dockwidget_instance = None
+
+def _get_widget_instance():
+    global dockwidget_instance
+    if dockwidget_instance is None:
+        dockwidget_instance = PlanetExplorerDockWidget(
+            parent=iface.mainWindow(), iface=iface)        
+        dockwidget_instance.setAllowedAreas(
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+
+        iface.addDockWidget(Qt.RightDockWidgetArea, dockwidget_instance)
+
+        dockwidget_instance.hide()
+    return dockwidget_instance
+
+def toggle_explorer():
+    instance = _get_widget_instance()
+    instance._set_credential_fields()
+    instance.setVisible(instance.isHidden())
+
+def show_explorer():
+    instance = _get_widget_instance()
+    instance._set_credential_fields()
+    instance.show()
+
+def show_explorer_and_search_daily_images(request):
+    instance = _get_widget_instance()
+    instance.daily_images_widget.set_filters_from_request(request)
+    instance.show()
+    instance.daily_images_widget.perform_search()

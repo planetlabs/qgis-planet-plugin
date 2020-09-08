@@ -108,12 +108,17 @@ from ..pe_utils import (
     is_segments_write_key_valid
 )
 
-from .pe_gui_utils import(
+from .pe_gui_utils import (
     waitcursor
 )
 
 from ..planet_api import (
     PlanetClient
+)
+
+from planet.api.filters import (
+    string_filter,    
+    build_search_request
 )
 
 from ..planet_api.p_specs import (    
@@ -158,6 +163,7 @@ ARCHIVE_TYPE = "archive_type"
 PROPERTIES = "properties"
 GEOMETRY = "geometry"
 COORDINATES = "coordinates"
+ITEM_TYPE = "item_type"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -221,11 +227,10 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                                            QgsProject.instance())
         wgspoint = transform.transform(point)
 
-        mosaicids = self._mosaic_ids_from_current_layers()
-        if mosaicids:
+        mosaicid = self._mosaic_id_from_current_layer()
+        if mosaicid:
             bbox = [wgspoint.x() - BUFFER, wgspoint.y() - BUFFER,
                     wgspoint.x() + BUFFER, wgspoint.y() + BUFFER,]
-            mosaicid = mosaicids[0]
             quads = self.p_client.get_quads_for_mosaic(mosaicid, bbox)
             json_quads = []
             for page in quads.iter():
@@ -249,13 +254,13 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                 self.listScenes.setVisible(False)
         else:   
             self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
-                                     ⚠️ No valid Planet Basemap is found in your project.
+                                     ⚠️ Current layer is not a Planet Basemap.
                                      </span></center>""")
             self.textBrowser.setVisible(True)
             self.listScenes.setVisible(False)
 
-    def _mosaic_ids_from_current_layers(self):
-        return ["48fff803-4104-49bc-b913-7467b7a5ffb5"]
+    def _mosaic_id_from_current_layer(self):
+        return "48fff803-4104-49bc-b913-7467b7a5ffb5"
 
     def _set_map_tool(self, checked):
         if checked:
@@ -320,13 +325,13 @@ class SceneItemWidget(QWidget):
     def __init__(self, scene):
         QWidget.__init__(self)
         self.scene = scene
-        properties = scene[PROPERTIES]
-        datetime = iso8601.parse_date(properties["published"])
+        self.properties = scene[PROPERTIES]
+        datetime = iso8601.parse_date(self.properties["published"])
         date = datetime.strftime('%H:%M:%S')
         time = datetime.strftime('%b %d, %Y')
             
         text = f"""{date}<span style="color: rgb(100,100,100);">{time} UTC</span><br>
-                        <b>{DAILY_ITEM_TYPES_DICT[properties['item_type']]}</b>
+                        <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b>
                     """
 
         self.nameLabel = QLabel(text)        
@@ -368,10 +373,19 @@ class SceneItemWidget(QWidget):
     def showContextMenu(self, evt):
         menu = QMenu()
         add_menu_section_action('Current item', menu)
-        zoom_act = QAction('Zoom to extent', menu)        
+        zoom_act = QAction('Zoom to extent', menu)
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
+        open_act = QAction('Open in Explorer', menu)
+        open_act.triggered.connect(self.open_in_explorer)
+        menu.addAction(open_act)
         menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+
+    def open_in_explorer(self):
+        from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
+        request = build_search_request(string_filter('id', self.scene[ID]), 
+                                        [self.properties[ITEM_TYPE]])
+        show_explorer_and_search_daily_images(request)
 
     def zoom_to_extent(self):
         rect = QgsRectangle(self.geom.boundingBox())

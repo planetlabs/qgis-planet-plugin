@@ -147,7 +147,8 @@ def filters_from_request(request, field_name=None, filter_type=None):
             if filter_type is not None and filterdict["type"] == filter_type:
                 filters.append(filterdict)
 
-    _add_filter(request["filter"])
+    filter_entry = request["filter"] if "filter" in request else request
+    _add_filter(filter_entry)
     return filters
 
 class PlanetFilterMixin(QObject):
@@ -783,6 +784,8 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         super().__init__(parent=parent)
         self.setupUi(self)
         self._plugin = plugin
+
+        self.emitFiltersChanged = True
 
         # Set up sources (in 2 columns; layout is grid)
         checked = ['PSScene4Band']

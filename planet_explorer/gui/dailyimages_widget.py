@@ -54,6 +54,7 @@ from qgis.utils import iface
 
 from planet.api.filters import (
     and_filter,
+    or_filter,
     build_search_request
 )
 
@@ -71,7 +72,8 @@ from .pe_orders_v2 import (
 
 from .pe_filters import (
     PlanetMainFilters,
-    PlanetDailyFilter
+    PlanetDailyFilter,
+    filters_from_request
 )
 
 from .pe_search_results import PlanetSearchResultsWidget
@@ -205,7 +207,12 @@ class DailyImagesWidget(BASE, WIDGET):
 
         all_filters = main_filters + item_filters
 
-        self._filters = and_filter(*all_filters)
+        id_filters = [f for f in all_filters if f["field_name"] == "id"]
+        
+        if id_filters:
+            self._filters = id_filters[0]
+        else:
+            self._filters = and_filter(*all_filters)
 
         # TODO: Validate filters
 
@@ -220,8 +227,10 @@ class DailyImagesWidget(BASE, WIDGET):
         self._collect_sources_filters()
 
         if not self._main_filters.leAOI.text():
-            self.lblWarning.setText('⚠️ No area of interest (AOI) defined')
-            return
+            id_filters = filters_from_request(self._filters, "id")            
+            if len(id_filters) == 0:
+                self.lblWarning.setText('⚠️ No area of interest (AOI) defined')
+                return
 
         self.lblWarning.setText("")
         # TODO: Also validate GeoJSON prior to performing search
