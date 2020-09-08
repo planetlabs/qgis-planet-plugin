@@ -290,6 +290,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             geom = filters[0]["config"]
             txt = json.dumps(geom)
             self.leAOI.setText(txt)
+        else:
+            self.leAOI.setText("")
         self.emitFiltersChanged = True
 
     @pyqtSlot('QString')
