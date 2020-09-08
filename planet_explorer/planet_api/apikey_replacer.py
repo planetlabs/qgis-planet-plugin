@@ -44,8 +44,6 @@ def is_planet_layer(url):
 
     singleUrl = url.count("&url=") == 1
 
-    print(singleUrl, isloggedInPattern, isloggedOutPattern)
-
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
 
 def replace_apikeys():    
