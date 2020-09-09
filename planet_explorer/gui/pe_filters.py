@@ -1138,6 +1138,8 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         filters = filters_from_request(request, 'id')
         if filters:
             self.leStringIDs.setText(",".join(filters[0]['config']))
+        else:
+            self.leStringIDs.setText("")
         self.emitFiltersChanged = True
 
 
