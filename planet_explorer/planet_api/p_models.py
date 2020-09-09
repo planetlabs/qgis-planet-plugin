@@ -380,12 +380,13 @@ class PlanetSearchResultsModel(QAbstractItemModel):
         # Test for next page
         if self._page_contains_next(self._page_to_add):
             loaded = locale.format("%d", self._item_count, grouping=True)
-            total = locale.format("%d", self._total_count, grouping=True)            
-            node = PlanetNode(LOAD_TEMPLATE.format(
+            total = locale.format("%d", self._total_count, grouping=True)
+            if loaded != total:           
+                node = PlanetNode(LOAD_TEMPLATE.format(
                             name='Load more... '
                             f'(Showing {loaded} of {total} results)'),
                             node_type=NodeT.LOAD_MORE)
-            self.insertRows(self.rowCount(), [node])
+                self.insertRows(self.rowCount(), [node])
 
         self.itemCountChanged.emit()
 

@@ -152,9 +152,6 @@ from ..pe_utils import (
     add_menu_section_action
 )
 
-
-from .pointcapturemaptool import PointCaptureMapTool
-
 ID = "id"
 NAME = "name"
 CREATED_ON = "created_on"
@@ -163,14 +160,9 @@ ITEM_IDS = "item_ids"
 STATE = "state"
 DELIVERY = "delivery"
 ARCHIVE_TYPE = "archive_type"
-PROPERTIES = "properties"
-GEOMETRY = "geometry"
-COORDINATES = "coordinates"
-ITEM_TYPE = "item_type"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
-COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
 INSPECTOR_ICON = QIcon(os.path.join(plugin_path, "resources", "inspector.png"))
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -195,114 +187,10 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
         self.setupUi(self)
 
-        self.btnMapTool.setIcon(INSPECTOR_ICON)
-
-        self.textBrowser.setHtml("""<center> 
-                Click on a visible pixel within a streamed or previewed Planet Basemap
-                </center>""")
-        self.textBrowser.setVisible(True)
-        self.listScenes.setVisible(False)
-
-        self.listScenes.setAlternatingRowColors(True)
-        self.listScenes.setSelectionMode(self.listScenes.NoSelection)
-
         self.btnRefresh.clicked.connect(self.refresh_list)
         self.chkOnlyDownloadable.toggled.connect(self.check_state_changed)
 
         self.populate_orders_list()
-
-        self.map_tool = PointCaptureMapTool(iface.mapCanvas())
-        self.map_tool.canvasClicked.connect(self.point_captured)
-        self.btnMapTool.toggled.connect(self._set_map_tool)
-        iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
-
-
-    def point_captured(self, point, button):
-        self._populate_scenes_from_point(point)
-
-    @waitcursor
-    def _populate_scenes_from_point(self, point):
-        BUFFER = 0.00001
-
-        self.listScenes.clear()
-        canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
-        transform = QgsCoordinateTransform(canvasCrs, QgsCoordinateReferenceSystem(4326),
-                                           QgsProject.instance())
-        wgspoint = transform.transform(point)
-
-        mosaicid = self._mosaic_id_from_current_layer()
-        if mosaicid:
-            bbox = [wgspoint.x() - BUFFER, wgspoint.y() - BUFFER,
-                    wgspoint.x() + BUFFER, wgspoint.y() + BUFFER,]
-            quads = self.p_client.get_quads_for_mosaic(mosaicid, bbox)
-            json_quads = []
-            for page in quads.iter():
-                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
-            if json_quads:
-                pointgeom = QgsGeometry.fromPointXY(wgspoint)
-                for quad in json_quads:
-                    scenes = self.p_client.get_items_for_quad(mosaicid, quad[ID])
-                    for scene in scenes:
-                        geom = qgsgeometry_from_geojson(scene[GEOMETRY])
-                        if pointgeom.within(geom):
-                            item = SceneItem(scene)
-                            self.listScenes.addItem(item)
-                            widget = SceneItemWidget(scene)
-                            item.setSizeHint(widget.sizeHint())
-                            self.listScenes.setItemWidget(item, widget)
-                self.textBrowser.setVisible(False)
-                self.listScenes.setVisible(True)
-            else:
-                self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
-                                     ⚠️ The selected pixel is not part of a streamed Planet Basemap.
-                                     </span></center>""")
-                self.textBrowser.setVisible(True)
-                self.listScenes.setVisible(False)
-        else:   
-            self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
-                                     ⚠️ Current layer is not a Planet Basemap.
-                                     </span></center>""")
-            self.textBrowser.setVisible(True)
-            self.listScenes.setVisible(False)
-
-    def _mosaic_id_from_current_layer(self):
-        layer = iface.activeLayer()
-        source = layer.source()        
-        name = None
-        for prop in source.split("&"):
-            tokens = prop.split("=")
-            if len(tokens) == 2 and tokens[0] == "url":
-                url = tokens[1]
-                groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
-                                        url, re.IGNORECASE)
-
-                if groups:
-                    name = groups.group(1)
-                    break
-        if name is None:
-            return
-        client = PlanetClient.getInstance().api_client()
-        mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
-        return mosaicid
-        
-    def _set_map_tool(self, checked):
-        if checked:
-            self.prev_map_tool = iface.mapCanvas().mapTool()
-            iface.mapCanvas().setMapTool(self.map_tool)
-        else:
-            iface.mapCanvas().setMapTool(self.prev_map_tool)
-
-    def _map_tool_set(self, new, old):
-        if new != self.map_tool:
-           self.btnMapTool.blockSignals(True)
-           self.btnMapTool.setChecked(False)
-           self.btnMapTool.blockSignals(False)
-
-    def show_inspector_panel(self):
-        self.tabWidget.setCurrentIndex(1)
-
-    def show_orders_panel(self):
-        self.tabWidget.setCurrentIndex(0)
 
     def check_state_changed(self, checkstate):
         for i in range(self.listOrders.count()):
@@ -337,111 +225,6 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listOrders.addItem(item)
             self.listOrders.setItemWidget(item, widget)            
 
-class SceneItem(QListWidgetItem):
-
-    def __init__(self, scene):
-        QListWidgetItem.__init__(self)
-        self.scene = scene        
-
-class SceneItemWidget(QFrame):
-
-    def __init__(self, scene):
-        QWidget.__init__(self)
-        self.scene = scene
-        self.properties = scene[PROPERTIES]
-
-        self.setMouseTracking(True)
-
-        datetime = iso8601.parse_date(self.properties["published"])
-        date = datetime.strftime('%H:%M:%S')
-        time = datetime.strftime('%b %d, %Y')
-            
-        text = f"""{date}<span style="color: rgb(100,100,100);">{time} UTC</span><br>
-                        <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b>
-                    """
-
-        self.nameLabel = QLabel(text)        
-        self.iconLabel = QLabel()
-        self.toolsButton = QLabel()
-        self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
-        self.toolsButton.mousePressEvent = self.showContextMenu
-
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
-                            Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        layout = QHBoxLayout()
-        layout.setMargin(2)
-        vlayout = QVBoxLayout()
-        vlayout.setMargin(0)
-        vlayout.addWidget(self.iconLabel)
-        self.iconWidget = QWidget()
-        self.iconWidget.setFixedSize(48, 48)
-        self.iconWidget.setLayout(vlayout)
-        layout.addWidget(self.iconWidget)
-        layout.addWidget(self.nameLabel)
-        layout.addStretch()
-        layout.addWidget(self.toolsButton)
-        layout.addSpacing(10)
-        self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
-        url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
-        self.nam.get(QNetworkRequest(QUrl(url)))
-
-        self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
-        self.footprint.setStrokeColor(PLANET_COLOR)
-        self.footprint.setWidth(2)
-
-        self.geom = qgsgeometry_from_geojson(scene[GEOMETRY])
-
-        self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
-        
-    def showContextMenu(self, evt):
-        menu = QMenu()
-        add_menu_section_action('Current item', menu)
-        zoom_act = QAction('Zoom to extent', menu)
-        zoom_act.triggered.connect(self.zoom_to_extent)
-        menu.addAction(zoom_act)
-        open_act = QAction('Open in Explorer', menu)
-        open_act.triggered.connect(self.open_in_explorer)
-        menu.addAction(open_act)
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
-
-    def open_in_explorer(self):
-        from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
-        request = build_search_request(string_filter('id', self.scene[ID]), 
-                                        [self.properties[ITEM_TYPE]])
-        show_explorer_and_search_daily_images(request)
-
-    def zoom_to_extent(self):
-        rect = QgsRectangle(self.geom.boundingBox())
-        rect.scale(1.05)
-        iface.mapCanvas().setExtent(rect)
-        iface.mapCanvas().refresh()
-
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
-                            Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-
-    def show_footprint(self):                
-        self.footprint.setToGeometry(self.geom)
-
-    def hide_footprint(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-
-    def enterEvent(self, event):
-        self.setStyleSheet("SceneItemWidget{border: 2px solid rgb(0, 157, 165);}")
-        self.show_footprint()
-
-    def leaveEvent(self, event):
-        self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
-        self.hide_footprint()
 
 class OrderWrapper():
 
@@ -615,7 +398,6 @@ def show_orders_monitor(refresh=True):
     wdgt = _get_widget_instance()
     if refresh:
         wdgt.refresh_list()
-    wdgt.show_orders_panel()
     wdgt.show()
 
 def hide_orders_monitor():
@@ -628,17 +410,6 @@ def refresh_orders():
 
 def toggle_orders_monitor():
     wdgt = _get_widget_instance()
-    wdgt.show_orders_panel()
     wdgt.setVisible(not wdgt.isVisible())
 
-def show_inspector():
-    wdgt = _get_widget_instance()
-    wdgt.show_inspector_panel()
-    wdgt.show()
 
-def toggle_inspector():
-    wdgt = _get_widget_instance()
-    wdgt.show_inspector_panel()
-    wdgt.setVisible(not wdgt.isVisible())
-
-    

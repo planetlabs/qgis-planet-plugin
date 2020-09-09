@@ -113,6 +113,11 @@ from planet_explorer.gui.pe_orders_monitor_dockwidget import (
     hide_orders_monitor
 )
 
+from planet_explorer.gui.pe_planet_inspector_dockwidget import (
+    toggle_inspector,
+    hide_inspector
+)
+
 PLANET_COM = 'https://planet.com'
 SAT_SPECS_PDF = 'https://assets.planet.com/docs/' \
                 'Planet_Combined_Imagery_Product_Specs_letter_screen.pdf'
@@ -296,7 +301,15 @@ class PlanetExplorer(object):
             callback=toggle_orders_monitor,
             add_to_menu=False,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())        
+            parent=self.iface.mainWindow())
+
+        self.showinspector_act = self.add_action(
+            os.path.join(plugin_path, "resources", "inspector.png"),
+            text=self.tr("Show Planet Inspector..."),
+            callback=toggle_inspector,
+            add_to_menu=False,
+            add_to_toolbar=True,
+            parent=self.iface.mainWindow())            
 
         self.add_user_button()
         self.add_info_button()
@@ -318,6 +331,7 @@ class PlanetExplorer(object):
         self.enable_buttons(loggedin)
         if not loggedin:
             hide_orders_monitor()
+            hide_inspector()
 
     def add_info_button(self):
         info_menu = QMenu()
@@ -460,21 +474,20 @@ class PlanetExplorer(object):
         self.login_act.setVisible(not loggedin)
         self.logout_act.setVisible(loggedin)
         self.acct_act.setVisible(loggedin)
+        self.showexplorer_act.setEnabled(loggedin)
+        self.showinspector_act.setEnabled(loggedin)
+        self.showorders_act.setEnabled(loggedin)
         if loggedin:
             self.user_act.defaultWidget().setText(
                 f"<b>{PlanetClient.getInstance().user()['user_name']}<b/>")
+            self.showexplorer_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
+            self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
+            self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
         else:
             self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
-        self.showexplorer_act.setEnabled(loggedin)
-        if loggedin:
-            self.showexplorer_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
-        else:
-            self.showexplorer_act.setToolTip("Login to access Imagery Search")
-        self.showorders_act.setEnabled(loggedin)
-        if loggedin:
-            self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
-        else:
+            self.showexplorer_act.setToolTip("Login to access Imagery Search")        
             self.showorders_act.setToolTip("Login to access Order Status")
+            self.showinspector_act.setToolTip("Login to access Planet Inspector")
 
     def create_explorer(self):
         # Create the explorer_dock_widget (after translation) and keep reference
