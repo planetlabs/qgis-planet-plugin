@@ -29,7 +29,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="searchPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -233,7 +233,7 @@ font-weight: bold;
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="chkSelectAll">
+           <widget class="QCheckBox" name="chkSelectAllMosaics">
             <property name="text">
              <string>Select All</string>
             </property>
@@ -787,6 +787,26 @@ Review the quads by basemap instance.</string>
              <widget class="QCheckBox" name="chkSelectAllQuads">
               <property name="text">
                <string>Select All</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="chkGroupByQuad">
+              <property name="text">
+               <string>Group by Quad</string>
               </property>
              </widget>
             </item>

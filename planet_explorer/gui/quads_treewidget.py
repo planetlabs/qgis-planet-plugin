@@ -147,7 +147,6 @@ class QuadsTreeWidget(QTreeWidget):
         self.setSelectionMode(self.NoSelection)
         self.widgets = {}
 
-    
     def quad_widgets(self):
         all_widgets = []
         for widgets in self.widgets.values():
@@ -187,53 +186,93 @@ class QuadsTreeWidget(QTreeWidget):
         for w in self.quad_widgets():
             w.setChecked(checked)
 
-    def populate(self, mosaics, quads):
+    def populate_by_quad(self, mosaics, quads):
         self.clear()
-        for mosaic, mosaicquads in zip(mosaics, quads):
-            item = BasemapTreeItem(mosaic)            
-            self.addTopLevelItem(item)
+        instances_by_quad = defaultdict(list)
+        for mosaic, mosaicquads in zip(mosaics, quads):            
             widgets = []
             for quad in mosaicquads:
-                subitem = QuadTreeItem(quad)
-                item.addChild(subitem)
-                widget = QuadItemWidget(quad)
-                self.setItemWidget(subitem, 0, widget)
-                subitem.setSizeHint(0, widget.sizeHint())
+                item = QuadInstanceTreeItem(quad)
+                widget = QuadInstanceItemWidget(quad)
                 widget.quadSelected.connect(self._quad_selection_changed)
-                widgets.append(widget)
+                widgets.append(widget)                
+                instances_by_quad[quad[ID]].append((item, widget))
             self.widgets[mosaic.get(NAME)] = widgets
-            item.update_name()
+
+        for quadid, values in instances_by_quad.items():
+            item = QTreeWidgetItem()
+            self.addTopLevelItem(item)
+            widget = ParentTreeItemWidget(quadid, item)
+            self.setItemWidget(item, 0, widget)
+            item.setSizeHint(0, widget.sizeHint())          
+            for quaditem, quadwidget in values:
+                item.addChild(quaditem)
+                self.setItemWidget(quaditem, 0, quadwidget)
+                quaditem.setSizeHint(0, quadwidget.sizeHint())
+            widget.update_name()
+
+    def populate_by_basemap(self, mosaics, quads):
+        self.clear()
+        for mosaic, mosaicquads in zip(mosaics, quads):
+            item = QTreeWidgetItem()
+            self.addTopLevelItem(item)
+            widget = ParentTreeItemWidget(mosaic_title(mosaic), item)
+            self.setItemWidget(item, 0, widget)
+            item.setSizeHint(0, widget.sizeHint())
+            widgets = []
+            for quad in mosaicquads:
+                subitem = QuadInstanceTreeItem(quad)
+                item.addChild(subitem)
+                subwidget = QuadInstanceItemWidget(quad)
+                self.setItemWidget(subitem, 0, subwidget)
+                subitem.setSizeHint(0, subwidget.sizeHint())
+                subwidget.quadSelected.connect(self._quad_selection_changed)
+                widgets.append(subwidget)
+            self.widgets[mosaic.get(NAME)] = widgets
+            widget.update_name()
 
     def _quad_selection_changed(self):
         self.quadsSelectionChanged.emit()
         for i in range(self.topLevelItemCount()):
-            self.topLevelItem(i).update_name()
+            w = self.itemWidget(self.topLevelItem(i), 0)
+            if w is not None:
+                w.update_name()
 
-class BasemapTreeItem(QTreeWidgetItem):
+class ParentTreeItemWidget(QFrame):
 
-    def __init__(self, mosaic):
-        QTreeWidgetItem.__init__(self)
-        self.mosaic = mosaic
-        font = self.font(0)
-        font.setBold(True)
-        self.setFont(0, font)
-        self.update_name()
+    def __init__(self, text, item):
+        QWidget.__init__(self)
+        self.setMouseTracking(True)
+        self.text = text
+        self.item = item
+        self.label = QLabel()
+        self.checkBox = QCheckBox("")
+        self.checkBox.stateChanged.connect(self.check_box_state_changed)
+        layout = QHBoxLayout()
+        layout.setMargin(0)
+        layout.addWidget(self.checkBox)
+        layout.addWidget(self.label)
+        layout.addStretch()
+        self.setLayout(layout)
+        
+    def check_box_state_changed(self):
+        pass
 
-    def update_name(self):
+    def update_name(self):        
         selected = 0
-        total = self.childCount()
+        total = self.item.childCount()
         for i in range(total):
-            if self.treeWidget().itemWidget(self.child(i), 0).isSelected():
+            if self.item.treeWidget().itemWidget(self.item.child(i), 0).isSelected():
                 selected += 1
-        self.setText(0, f"{mosaic_title(self.mosaic)} - {selected} of {total} selected")
+        self.label.setText(f"<b>{self.text} - {selected} of {total} selected</b>")
 
-class QuadTreeItem(QTreeWidgetItem):
+class QuadInstanceTreeItem(QTreeWidgetItem):
 
     def __init__(self, quad):
         QTreeWidgetItem.__init__(self)
         self.quad = quad
 
-class QuadItemWidget(QFrame):
+class QuadInstanceItemWidget(QFrame):
 
     quadSelected = pyqtSignal()
 
@@ -249,7 +288,7 @@ class QuadItemWidget(QFrame):
                             QtCore.Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
-        self.checkBox.stateChanged.connect(self.checkBoxstateChanged)
+        self.checkBox.stateChanged.connect(self.check_box_state_changed)
         layout = QHBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
@@ -281,9 +320,9 @@ class QuadItemWidget(QFrame):
         self.hide_solid_interior()
         self.show_footprint()
 
-        self.setStyleSheet("QuadItemWidget{border: 2px solid transparent;}")
+        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid transparent;}")
 
-    def checkBoxstateChanged(self):
+    def check_box_state_changed(self):
         self.update_footprint_brush()
         self.quadSelected.emit()        
 
@@ -330,9 +369,9 @@ class QuadItemWidget(QFrame):
         self.checkBox.setChecked(checked)
 
     def enterEvent(self, event):
-        self.setStyleSheet("QuadItemWidget{border: 2px solid rgb(157, 165, 0);}")
+        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
         self.show_solid_interior()
 
     def leaveEvent(self, event):
-        self.setStyleSheet("QuadItemWidget{border: 2px solid transparent;}")
+        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid transparent;}")
         self.hide_solid_interior()

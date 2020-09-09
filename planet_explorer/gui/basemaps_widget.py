@@ -155,6 +155,7 @@ class BasemapsWidget(BASE, WIDGET):
 
         self._series = None
         self._initialized = False
+        self._quads = None
 
         self.oneoff = None
 
@@ -219,8 +220,9 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.grpBoxFilter.collapsedStateChanged.connect(self.collapse_state_changed)
 
-        self.chkSelectAll.stateChanged.connect(self.select_all)
+        self.chkSelectAllMosaics.stateChanged.connect(self.select_all)
         self.chkSelectAllQuads.stateChanged.connect(self.select_all_quads)
+        self.chkGroupByQuad.stateChanged.connect(self._populate_quads)
 
     def init(self):
         if not self._initialized:
@@ -230,7 +232,7 @@ class BasemapsWidget(BASE, WIDGET):
             self._initialized = True
 
     def select_all(self):
-        self.mosaicsList.setAllChecked(self.chkSelectAll.isChecked())
+        self.mosaicsList.setAllChecked(self.chkSelectAllMosaics.isChecked())
 
     def select_all_quads(self):
         self.quadsTree.setAllChecked(self.chkSelectAllQuads.isChecked())
@@ -266,7 +268,7 @@ class BasemapsWidget(BASE, WIDGET):
         
         self.comboSeriesName.clear()
         self.comboSeriesName.addItem("", None)
-        self.chkSelectAll.setChecked(False)
+        self.chkSelectAllMosaics.setChecked(False)
         self.btnOrder.setText("Order (0 instances)")
         if category_btn == self.btnAll:
             series = self.series()
@@ -423,7 +425,7 @@ class BasemapsWidget(BASE, WIDGET):
         
         #self.finder.moveToThread(self.objThread)
         self.finder.finished.connect(self.objThread.quit)
-        self.finder.finished.connect(self._populate_quads)
+        self.finder.finished.connect(self._update_quads)
         self.finder.mosaicStarted.connect(self._mosaic_started)
         self.finder.pageRead.connect(self._page_read)
         #self.objThread.started.connect(self.finder.find_quads)
@@ -442,9 +444,16 @@ class BasemapsWidget(BASE, WIDGET):
         self.progressBarQuads.setValue(i)
         QApplication.processEvents()
         
-    def _populate_quads(self, quads):
+    def _update_quads(self, quads):
+        self._quads = quads
+        self._populate_quads()
+
+    def _populate_quads(self):
         selected = self.mosaicsList.selected_mosaics()
-        self.quadsTree.populate(selected, quads)
+        if self.chkGroupByQuad.isChecked():
+            self.quadsTree.populate_by_quad(selected, self._quads)
+        else:
+            self.quadsTree.populate_by_basemap(selected, self._quads)
         total_quads = self.quadsTree.quads_count()
         self.labelQuadsSummary.setText(
             f'{total_quads} quads from {len(selected)} basemap instances '
@@ -453,7 +462,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.select_all_quads()
         self.quads_selection_changed()
         self.widgetProgressFindQuads.setVisible(False)
-        self.stackedWidget.setCurrentWidget(self.orderQuadsPage) 
+        self.stackedWidget.setCurrentWidget(self.orderQuadsPage)
 
     def next_quads_page_clicked(self):
         selected = self.quadsTree.selected_quads()
