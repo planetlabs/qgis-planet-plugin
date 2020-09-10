@@ -146,6 +146,7 @@ class QuadsTreeWidget(QTreeWidget):
         self.setAlternatingRowColors(True)
         self.setSelectionMode(self.NoSelection)
         self.widgets = {}
+        self._updating = False
 
     def quad_widgets(self):
         all_widgets = []
@@ -209,7 +210,7 @@ class QuadsTreeWidget(QTreeWidget):
                 item.addChild(quaditem)
                 self.setItemWidget(quaditem, 0, quadwidget)
                 quaditem.setSizeHint(0, quadwidget.sizeHint())
-            widget.update_name()
+            widget.update_name_and_checkbox()
 
     def populate_by_basemap(self, mosaics, quads):
         self.clear()
@@ -229,14 +230,18 @@ class QuadsTreeWidget(QTreeWidget):
                 subwidget.quadSelected.connect(self._quad_selection_changed)
                 widgets.append(subwidget)
             self.widgets[mosaic.get(NAME)] = widgets
-            widget.update_name()
+            widget.update_name_and_checkbox()
 
     def _quad_selection_changed(self):
+        if self._updating:
+            return
+        self._updating = True
         self.quadsSelectionChanged.emit()
         for i in range(self.topLevelItemCount()):
             w = self.itemWidget(self.topLevelItem(i), 0)
             if w is not None:
-                w.update_name()
+                w.update_name_and_checkbox()
+        self._updating = False
 
 class ParentTreeItemWidget(QFrame):
 
@@ -247,6 +252,7 @@ class ParentTreeItemWidget(QFrame):
         self.item = item
         self.label = QLabel()
         self.checkBox = QCheckBox("")
+        self.checkBox.setTristate(True)
         self.checkBox.stateChanged.connect(self.check_box_state_changed)
         layout = QHBoxLayout()
         layout.setMargin(0)
@@ -256,15 +262,35 @@ class ParentTreeItemWidget(QFrame):
         self.setLayout(layout)
         
     def check_box_state_changed(self):
-        pass
+        total = self.item.childCount()
+        if self.checkBox.isTristate():
+            self.checkBox.setTristate(False)            
+            self.checkBox.setChecked(False)
+        else:
+            for i in range(total):
+                w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+                w.setChecked(self.checkBox.isChecked(), False)
+            self.item.treeWidget().quadsSelectionChanged.emit()
 
-    def update_name(self):        
+    def update_name_and_checkbox(self):        
         selected = 0
         total = self.item.childCount()
         for i in range(total):
-            if self.item.treeWidget().itemWidget(self.item.child(i), 0).isSelected():
+            w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+            if w.isSelected():
                 selected += 1
         self.label.setText(f"<b>{self.text} - {selected} of {total} selected</b>")
+        self.checkBox.blockSignals(True)
+        if selected == total:
+            self.checkBox.setTristate(False)
+            self.checkBox.setCheckState(Qt.Checked)
+        elif selected == 0:
+            self.checkBox.setTristate(False)
+            self.checkBox.setCheckState(Qt.Unchecked)
+        else:
+            self.checkBox.setTristate(True)
+            self.checkBox.setCheckState(Qt.PartiallyChecked)
+        self.checkBox.blockSignals(False)
 
 class QuadInstanceTreeItem(QTreeWidgetItem):
 
@@ -365,8 +391,11 @@ class QuadInstanceItemWidget(QFrame):
     def isSelected(self):
         return self.checkBox.isChecked()
 
-    def setChecked(self, checked):
+    def setChecked(self, checked, emit=True):
+        if not emit:
+            self.checkBox.blockSignals(True)
         self.checkBox.setChecked(checked)
+        self.checkBox.blockSignals(False)
 
     def enterEvent(self, event):
         self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
