@@ -395,7 +395,9 @@ class QuadInstanceItemWidget(QFrame):
         if not emit:
             self.checkBox.blockSignals(True)
         self.checkBox.setChecked(checked)
-        self.checkBox.blockSignals(False)
+        if not emit:
+            self.update_footprint_brush()
+            self.checkBox.blockSignals(False)
 
     def enterEvent(self, event):
         self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
