@@ -243,17 +243,19 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             for page in quads.iter():
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
             if json_quads:
+                added = False
                 pointgeom = QgsGeometry.fromPointXY(wgspoint)
                 for quad in json_quads:
                     scenes = self.p_client.get_items_for_quad(mosaicid, quad[ID])
                     for scene in scenes:
                         geom = qgsgeometry_from_geojson(scene[GEOMETRY])
-                        if pointgeom.within(geom):
+                        if pointgeom.within(geom) and not added:
                             item = SceneItem(scene)
                             self.listScenes.addItem(item)
                             widget = SceneItemWidget(scene)
                             item.setSizeHint(widget.sizeHint())
                             self.listScenes.setItemWidget(item, widget)
+                            added = True
                 self.textBrowser.setVisible(False)
                 self.listScenes.setVisible(True)
             else:
@@ -275,11 +277,10 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         name = None
         for prop in source.split("&"):
             tokens = prop.split("=")
-            if len(tokens) == 2 and tokens[0] == "url":
+            if tokens[0] == "url":
                 url = tokens[1]
                 groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
                                         url, re.IGNORECASE)
-
                 if groups:
                     name = groups.group(1)
                     break
