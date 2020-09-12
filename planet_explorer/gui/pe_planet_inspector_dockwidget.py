@@ -137,11 +137,11 @@ from planet.api.models import (
     MosaicQuads
 )
 
-from ..planet_api.quad_orders import (
+from ..planet_api.p_quad_orders import (
     quad_orders
 )
 
-from ..planet_api.order_tasks import (
+from ..planet_api.p_order_tasks import (
     QuadsOrderProcessorTask,
     OrderProcessorTask
 )
@@ -319,10 +319,10 @@ class SceneItemWidget(QFrame):
         self.setMouseTracking(True)
 
         datetime = iso8601.parse_date(self.properties["published"])
-        date = datetime.strftime('%H:%M:%S')
-        time = datetime.strftime('%b %d, %Y')
+        time = datetime.strftime('%H:%M:%S')
+        date = datetime.strftime('%b %d, %Y')
             
-        text = f"""{date}<span style="color: rgb(100,100,100);">{time} UTC</span><br>
+        text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b>
                     """
 

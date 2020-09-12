@@ -26,15 +26,14 @@ import sys
 import logging
 import json
 import re
+import iso8601
 
 from typing import (
     Optional,
-    # Union,
-    List,
-    # Tuple,
+    List
 )
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import partial
 
 import analytics
@@ -59,6 +58,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     QModelIndex,
     QSize,
+    QUrl
 )
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
@@ -77,83 +77,66 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QScrollArea,
-    QListView,
     QSizePolicy,
     QWidget,
     QToolButton,
     QTextBrowser,
+    QListWidget,
+    QListWidgetItem,
+    QHBoxLayout
+)
+
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest
 )
 
 from qgis.core import (
     QgsApplication,
 )
 
+from qgis.utils import iface
+
 from qgis.gui import (
     QgsCollapsibleGroupBox,
 )
 
-if __name__ == "__main__":
-    from planet_explorer.gui.pe_gui_utils import (
-        PlanetClickableLabel,
-    )
-    from planet_explorer.pe_utils import (
-        SETTINGS_NAMESPACE,
-    )
-    from planet_explorer.planet_api.p_client import (
-        PlanetClient,
-    )
-    from planet_explorer.planet_api.p_node import (
-        PlanetNode,
-        # PlanetNodeType,
-    )
-    from planet_explorer.planet_api.p_thumnails import (
-        PlanetThumbnailCache,
-    )
-    from planet_explorer.planet_api.p_network import (
-        PlanetCallbackWatcher,
-        dispatch_callback,
-        RESPONSE_TIMEOUT,
-        # requests_response_metadata,
-    )
-    from planet_explorer.planet_api.p_bundles import (
-        PlanetOrdersV2Bundles,
-    )
-    from planet_explorer.planet_api.p_specs import (
-        ITEM_TYPE_SPECS,
-    )
-else:
-    from .pe_gui_utils import (
-        PlanetClickableLabel,
-    )
-    from ..pe_utils import (
-        SETTINGS_NAMESPACE,
-        is_segments_write_key_valid
-    )
-    from ..planet_api.p_client import (
-        PlanetClient,
-    )
-    from ..planet_api.p_node import (
-        PlanetNode,
-        # PlanetNodeType,
-    )
-    from ..planet_api.p_thumnails import (
-        PlanetThumbnailCache,
-    )
-    from ..planet_api.p_network import (
-        PlanetCallbackWatcher,
-        dispatch_callback,
-        RESPONSE_TIMEOUT,
-        # requests_response_metadata,
-    )
-    from ..planet_api.p_bundles import (
-        PlanetOrdersV2Bundles,
-    )
-    from ..planet_api.p_specs import (
-        ITEM_TYPE_SPECS,
-    )
-    from .pe_orders_monitor_dockwidget import (
-        show_orders_monitor
-    )
+from .pe_gui_utils import (
+    PlanetClickableLabel,
+)
+from ..pe_utils import (
+    SETTINGS_NAMESPACE,
+    is_segments_write_key_valid
+)
+from ..planet_api.p_client import (
+    PlanetClient,
+)
+from ..planet_api.p_node import (
+    PlanetNode,
+    # PlanetNodeType,
+)
+from ..planet_api.p_thumnails import (
+    PlanetThumbnailCache,
+)
+from ..planet_api.p_network import (
+    PlanetCallbackWatcher,
+    dispatch_callback,
+    RESPONSE_TIMEOUT,
+    # requests_response_metadata,
+)
+from ..planet_api.p_bundles import (
+    PlanetOrdersV2Bundles,
+)
+from ..planet_api.p_specs import (
+    ITEM_TYPE_SPECS,
+)
+from .pe_orders_monitor_dockwidget import (
+    show_orders_monitor
+)
+
+from ..planet_api.p_specs import (
+    DAILY_ITEM_TYPES_DICT
+) 
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -174,207 +157,77 @@ ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
-
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
 ITEM_MAX = 100
 
+ID = "id"
+PERMISSIONS = "_permissions"
 
-class PlanetOrderItem(QStandardItem):
-    """
-    """
-    def __init__(self, node: PlanetNode):
+
+class ImageItem(QListWidgetItem):
+
+    def __init__(self, image):
         super().__init__()
+        self.image = image
 
-        self._node = node
+class ImageItemWidget(QFrame):
 
-        self.setCheckable(True)
-        self.setCheckState(Qt.Checked)
-        self.setFlags(
-            Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+    checked_state_changed = pyqtSignal()
 
-        def remove_html_tags(txt):
-            txt.replace('<br>', '\n')
-            reg = re.compile('<.*?>')
-            return re.sub(reg, '', txt)
+    def __init__(self, image, sort_criteria):
+        QFrame.__init__(self)
+        self.image = image        
+        self.properties = image['properties']
 
-        # self.setText(node.formatted_date_time(node.acquired()))
-        self.setText(remove_html_tags(node.description()))
-        self.setIcon(node.icon())
-        # self.setToolTip(node.description())
+        datetime = iso8601.parse_date(self.properties[sort_criteria])
+        self.time = datetime.strftime('%H:%M:%S')
+        self.date = datetime.strftime('%b %d, %Y')
+        
+        text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
+                        <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b><br>
+                    """
+        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        
+        self.checkBox = QCheckBox("")
+        self.checkBox.stateChanged.connect(self.checked_state_changed.emit)
+        self.nameLabel = QLabel(text)        
+        self.iconLabel = QLabel()
 
-    def node(self):
-        return self._node
+        layout = QHBoxLayout()
+        layout.setMargin(0)
+        layout.addWidget(self.checkBox)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+        self.iconLabel.setFixedSize(48, 48)            
+        self.nam = QNetworkAccessManager()
+        self.nam.finished.connect(self.iconDownloaded)            
+        self.nam.get(QNetworkRequest(QUrl(url)))        
+        layout.addWidget(self.iconLabel)
+        layout.addWidget(self.nameLabel)
+        layout.addStretch()
+        self.setLayout(layout)
 
-    def type(self) -> int:
-        return Qt.UserRole + 1
+    def iconDownloaded(self, reply):
+        img = QImage()
+        img.loadFromData(reply.readAll())
+        pixmap = QPixmap(img)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)        
 
+    def set_selected(self, checked):
+        self.checkBox.setChecked(checked)
 
-class PlanetOrderItemModel(QStandardItemModel):
-    """
-    """
-
-    thumbnailFetchShouldCancel = pyqtSignal(str)
-
-    def __init__(self, node_queue: List[PlanetNode],
-                 thumb_cache_dir: str,
-                 api_client,
-                 parent=None):
-        super().__init__(parent=parent)
-
-        self._nodes = node_queue
-
-        self._thumb_cache = PlanetThumbnailCache(
-            thumb_cache_dir, api_client, parent=self)
-        self._thumb_cache.thumbnailFetchStarted[str].connect(
-            self._thumbnail_fetch_started)
-        self._thumb_cache.thumbnailAvailable[str, str].connect(
-            self._thumbnail_available)
-        self._thumb_cache.thumbnailFetchFailed[str].connect(
-            self._thumbnail_fetch_failed)
-        self._thumb_cache.thumbnailFetchTimedOut[str, int].connect(
-            self._thumbnail_fetch_timed_out)
-        self._thumb_cache.thumbnailFetchCancelled[str].connect(
-            self._thumbnail_fetch_cancelled)
-
-        self.thumbnailFetchShouldCancel[str].connect(
-            self._thumb_cache.cancel_fetch, type=Qt.UniqueConnection)
-
-        self._thumb_queue = {}
-        self._thumbs_fetched = False
-
-    def load_nodes(self):
-        for node in self._nodes:
-            item = PlanetOrderItem(node)
-            self.appendRow(item)
-
-    @pyqtSlot()
-    def fetch_missing_thumbnails(self):
-        log.debug(f'rowCount: {self.rowCount()}')
-        for i in range(self.rowCount()):
-            item = self.item(i)
-
-            # noinspection PyUnresolvedReferences
-            node = item.node()
-            if node.has_thumbnail() and not node.thumbnail_loaded():
-                self.add_to_thumb_queue(
-                    node.item_type_id_key(), item.index())
-                self.fetch_thumbnail(node)
-
-        self._thumbs_fetched = True
-
-    def thumbnails_fetched(self) -> bool:
-        return self._thumbs_fetched
-
-    def add_to_thumb_queue(self, item_key, item_indx):
-        if item_key not in self._thumb_queue:
-            self._thumb_queue[item_key] = item_indx
-
-    def _in_thumb_queue(self, item_key):
-        return item_key in self._thumb_queue
-
-    def _thumb_queue_index(self, item_key):
-        if item_key in self._thumb_queue:
-            return self._thumb_queue[item_key]
-        return QModelIndex()
-
-    def _remove_from_thumb_queue(self, item_key):
-        if item_key in self._thumb_queue:
-            del self._thumb_queue[item_key]
-
-    def thumbnail_cache(self):
-        return self._thumb_cache
-
-    def fetch_thumbnail(self, node: PlanetNode):
-        self._thumb_cache.fetch_thumbnail(
-            node.item_type_id_key(),
-            item_id=node.item_id(),
-            item_type=node.item_type(),
-            item_properties=node.item_properties()
-        )
-
-    @pyqtSlot(str)
-    def _thumbnail_fetch_started(self, item_key):
-        log.debug(f'Thumbnail fetch started for {item_key}')
-
-    @pyqtSlot(str)
-    def _thumbnail_fetch_failed(self, item_key):
-        log.debug(f'Thumbnail fetch failed for {item_key}')
-        self._remove_from_thumb_queue(item_key)
-
-    @pyqtSlot(str, int)
-    def _thumbnail_fetch_timed_out(self, item_key, timeout):
-        log.debug(f'Thumbnail fetch timed out for {item_key} '
-                  f'in {timeout} seconds')
-        self._remove_from_thumb_queue(item_key)
-
-    @pyqtSlot(str)
-    def _thumbnail_fetch_cancelled(self, item_key):
-        log.debug(f'Thumbnail fetch cancelled for {item_key}')
-        self._remove_from_thumb_queue(item_key)
-
-    @pyqtSlot(str, str)
-    def _thumbnail_available(self, item_key, thumb_path):
-        log.debug(f'Thumbnail available for {item_key} at {thumb_path}')
-        if not self._in_thumb_queue(item_key):
-            log.debug(f'Thumbnail queue does not contain {item_key}')
-            return
-
-        indx = self._thumb_queue_index(item_key)
-        if not indx.isValid():
-            log.debug(f'Thumbnail queue index invalid for: {item_key}')
-            self._remove_from_thumb_queue(item_key)
-            return
-        item = self.itemFromIndex(indx)
-        # noinspection PyUnresolvedReferences
-        node = item.node()
-        if node.thumbnail_loaded():
-            log.debug(f'Thumbnail already loaded for: {item_key}')
-            self._remove_from_thumb_queue(item_key)
-            return
-
-        # q_file_thumb = QFile(thumb_path)
-        # timeout = 3
-        # while not q_file_thumb.open(QIODevice.ReadOnly):
-        #     log.debug(f'Local PNG not readable ({timeout}):\n{thumb_path}')
-        #     if timeout == 0:
-        #         log.debug(f'Local PNG unreadable:\n{thumb_path}')
-        #         break
-        #     time.sleep(1)
-        #     timeout -= 1
-
-        # DON"T USE THIS: apparently has issues with semaphore locking
-        # png = QPixmap(thumb_path, 'PNG')
-        # Load into QImage instead, then convert to QPixmap
-        png = QImage(thumb_path, 'PNG')
-        if not png.isNull():
-            log.debug(f'Local PNG icon loaded for {item_key}:\n'
-                      f'{thumb_path}')
-            pm = QPixmap.fromImage(png)
-            node.set_thumbnail(pm, local_url=thumb_path)
-            item.setIcon(node.icon())
-            # noinspection PyUnresolvedReferences
-            # self.dataChanged.emit(indx, indx, [Qt.DecorationRole])
-        else:
-            log.debug(
-                f'Local PNG icon could not be loaded for {item_key}:\n'
-                f'{thumb_path}')
-        self._remove_from_thumb_queue(item_key)
-
-    @pyqtSlot(bool)
-    def _cancel_thumbnail_fetch(self, _):
-        items = [i for i in self._thumb_queue]
-        for item in items:
-            self.thumbnailFetchShouldCancel.emit(item)
-        # self._thumb_queue.clear()
-
+    def is_selected(self):
+        return self.checkBox.isChecked()
 
 class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
-    """
-    """
 
     grpBxItemType: QgsCollapsibleGroupBox
-    listViewItems: QListView
+    listWidget: QListWidget
     btnCheckAll: QCheckBox
     btnCheckNone: QCheckBox
 
@@ -407,11 +260,10 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
     def __init__(self,
                  item_type: str,
-                 node_queue: List[PlanetNode],
-                 thumb_cache_dir: str,
-                 api_client,
+                 images: List[dict],
+                 sort_criteria,
                  tool_resources,
-                 parent=None,
+                 parent=None
                  ):
         super().__init__(parent=parent)
 
@@ -419,9 +271,9 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._parent: PlanetOrdersDialog = parent
 
         self._item_type = item_type
-        self._node_queue = node_queue
-        self._api_client = api_client
-        self._thumb_cache_dir = thumb_cache_dir
+        self.images = images
+        self.sort_criteria = sort_criteria
+        self._api_client = PlanetClient.getInstance().api_client()
         self._tool_resources = tool_resources
 
         self._display_name = ITEM_TYPE_SPECS[self._item_type]['name']
@@ -430,32 +282,15 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self.grpBxItemType.setCheckable(True)
         self.grpBxItemType.setChecked(True)
 
-        # log.debug(f'{self._item_type}, node_queue:\n{self._node_queue}')
-
-        self._item_model: PlanetOrderItemModel = \
-            PlanetOrderItemModel(
-                self._node_queue, self._thumb_cache_dir,
-                self._api_client, parent=self)
-
-        self._item_model.load_nodes()
-
-        self.listViewItems.setModel(self._item_model)
-
-        # noinspection PyUnresolvedReferences
-        self._item_model.itemChanged['QStandardItem*'].connect(
-            self._item_changed)
-
-        # noinspection PyUnresolvedReferences
-        self.listViewItems.doubleClicked['QModelIndex']\
-            .connect(self._item_clicked)
+        self.populate_list()
 
         self.btnCheckAll.clicked.connect(
             lambda: self._batch_check_items(check_all=True))
         self.btnCheckNone.clicked.connect(
             lambda: self._batch_check_items(check_all=False))
 
-        # Get smaple permissions from first node
-        self._permissions = self._node_queue[0].permissions()
+        # Get sample permissions from first node
+        self._permissions = images[0][PERMISSIONS]
 
         self._order_bundles = self._parent.order_bundles()
         self._item_bundles: OrderedDict = \
@@ -468,27 +303,21 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._bundle_keyed_filters = \
             self._order_bundles.bundle_keyed_filters(self._item_bundles)
         self._order_valid = True
-        self._checked_items = []
         self._order_bundle = None
         self._order_bundle_name = None
 
-        self._update_checked_items()
-        self._update_groupbox_title()
-        # noinspection PyUnresolvedReferences
+        self._update_groupbox_title()        
         self.grpBxItemType.collapsedStateChanged[bool].connect(
-            self._group_box_collapsed_changed)
-        # noinspection PyUnresolvedReferences
+            self._group_box_collapsed_changed)        
         self.grpBxItemType.clicked.connect(self._groupbox_clicked)
-
-        # noinspection PyUnresolvedReferences
+        
         self.chkBxSelectAllAssets.stateChanged.connect(
             self._update_bundle_options)
         self._filter_opts_cmbboxes = [
             self.cmbBoxBands, self.cmbBoxRadiometry,
             self.cmbBoxRectification, self.cmbBoxOutput
         ]
-        for cmbox in self._filter_opts_cmbboxes:
-            # noinspection PyUnresolvedReferences
+        for cmbox in self._filter_opts_cmbboxes:            
             cmbox.currentTextChanged.connect(self._update_bundle_options)
 
         self._filter_info_labels = []
@@ -499,6 +328,16 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._set_up_tools()
 
         self._update_bundle_options()
+
+
+    def populate_list(self):
+        for img in self.images:
+            item = ImageItem(img)
+            widget = ImageItemWidget(img, self.sort_criteria)
+            widget.checked_state_changed.connect(self.selection_changed)
+            item.setSizeHint(widget.sizeHint())
+            self.listWidget.addItem(item)
+            self.listWidget.setItemWidget(item, widget)
 
     @pyqtSlot(str)
     def _update_order_bundle(self, bundle_name) -> None:
@@ -598,18 +437,19 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
     @pyqtSlot()
     def _update_groupbox_title(self):
-        chkd_cnt = len(self._checked_items)
+        chkd_cnt = len(self.selected_images())
         title = f'{self._display_name}   |   ' \
                 f'{chkd_cnt}/{ITEM_MAX} images selected'
         self.grpBxItemType.setTitle(title)
-
-    @pyqtSlot()
-    def _update_checked_items(self) -> None:
-        self._checked_items = []
-        for indx in range(self._item_model.rowCount()):
-            item = self._item_model.item(indx)
-            if item.checkState() == Qt.Checked:
-                self._checked_items.append(item)
+    
+    def selected_images(self) -> List:  
+        selected_images = []
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            w = self.listWidget.itemWidget(item)
+            if w.is_selected():
+                selected_images.append(item.image)
+        return selected_images
 
     # noinspection PyUnusedLocal
     @pyqtSlot(bool)
@@ -672,13 +512,11 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
         self._tools_set_up = True
 
-    def checked_item_ids(self) -> list:
-        if not self._checked_items:
-            return []
-        return [i.node().item_id() for i in self._checked_items]
+    def selected_images_ids(self) -> list:
+        return [img[ID] for img in self.selected_images()]
 
     def validate(self) -> bool:
-        chkd_cnt = len(self._checked_items)
+        chkd_cnt = len(self.selected_images())
         val = True
 
         # TODO: Add more checks?
@@ -711,8 +549,9 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         order_details = {}
         valid = self.validate()
 
+        ids = self.selected_images_ids()
         order_details['valid'] = valid
-        order_details['item_ids'] = self.checked_item_ids()
+        order_details['item_ids'] = ids
         order_details['bundle_name'] = self._order_bundle_name
         order_details['bundle'] = self._order_bundle
 
@@ -727,40 +566,28 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         log.debug(
             f'Ordering {self._item_type}...\n'
             f'  valid: {valid}\n'
-            f'  item count: {len(self._checked_items)}\n'
-            f'  type_ids: {self.checked_item_ids()}\n'
+            f'  item count: {len(ids)}\n'
+            f'  type_ids: {ids}\n'
             f'  bundle_name: {self._order_bundle_name}\n'
             f'  tools: {tools}'
         )
 
         return order_details
 
-    # noinspection PyUnusedLocal
-    @pyqtSlot('QStandardItem*')
-    def _item_changed(self, item):
-        self._update_checked_items()
+    def selection_changed(self):
         self._update_groupbox_title()
         self.validate()
 
-    @pyqtSlot('QModelIndex')
-    def _item_clicked(self, indx):
-        item = self._item_model.itemFromIndex(indx)
-
-        # Toggle checked status
-        if item.checkState() == Qt.Checked:
-            item.setCheckState(Qt.Unchecked)
-        else:
-            item.setCheckState(Qt.Checked)
-
     @pyqtSlot(bool)
     def _batch_check_items(self, check_all: bool = True):
-        for indx in range(self._item_model.rowCount()):
-            item = self._item_model.item(indx)
-            if check_all:
-                item.setCheckState(Qt.Checked)
-            else:
-                item.setCheckState(Qt.Unchecked)
-        self.listViewItems.setFocus()
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            widget = self.listWidget.itemWidget(item)
+            widget.blockSignals(True)
+            widget.set_selected(check_all)
+            widget.blockSignals(False)
+        self.selection_changed()
+        self.listWidget.setFocus()
 
     @pyqtSlot(bool)
     def _group_box_collapsed_changed(self, collapsed):
@@ -770,16 +597,11 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         if sender.__class__.__name__ == 'QgsCollapsibleGroupBox':
             if sender.isChecked():
                 # noinspection PyTypeChecker
-                listwdgt: QListView = sender.findChild(QListView)
+                listwdgt: QListWidget = sender.findChild(QListWidget)
                 if listwdgt:
                     listwdgt.setFocus()
-        if not collapsed and not self._item_model.thumbnails_fetched():
-            self._item_model.fetch_missing_thumbnails()
-
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
-    """
-    """
 
     orderShouldCancel = pyqtSignal(str)
 
@@ -798,11 +620,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     NAME_HIGHLIGHT = 'QLabel { color: rgb(175, 0, 0); }'
 
-    def __init__(self, item_node_queue: dict,
-                 p_client: Optional[PlanetClient] = None,
-                 tool_resources: Optional[dict] = None,
-                 parent=None,
-                 iface=None,
+    def __init__(self, images: list,
+                 sort_criteria,
+                 tool_resources: Optional[dict] = None,                 
+                 parent=None
                  ):
         super().__init__(parent=parent)
 
@@ -811,7 +632,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._parent = parent
         self._iface = iface
 
-        self._p_client = p_client
+        self._p_client = PlanetClient.getInstance()
         self._api_client = self._p_client.api_client()
         self._api_key = self._p_client.api_key()
         # TODO: Grab responseTimeOut from plugin settings and override default
@@ -826,8 +647,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.setMinimumWidth(640)
         self.setMinimumHeight(720)
 
-        self.lblName.setStyleSheet(self.NAME_HIGHLIGHT)
-        # noinspection PyUnresolvedReferences
+        self.lblName.setStyleSheet(self.NAME_HIGHLIGHT)        
         self.leName.textChanged.connect(self.validate)
 
         self._watchers = {}
@@ -842,33 +662,33 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._orders = OrderedDict()
         self.btnPlaceOrder = self.buttonBox.button(QDialogButtonBox.Ok)
         self.btnPlaceOrder.setText(
-            f'Place Order{"s" if len(item_node_queue) > 1 else ""}')
-        # noinspection PyUnresolvedReferences
-        self.buttonBox.accepted.connect(self.place_orders)
-        # noinspection PyUnresolvedReferences
+            f'Place Order{"s" if len(images) > 1 else ""}')        
+        self.buttonBox.accepted.connect(self.place_orders)        
         self.buttonBox.rejected.connect(self.reject)
 
         self._thumb_cache_dir: str = pluginSetting(
             'thumbCachePath', namespace=SETTINGS_NAMESPACE)
 
         first = None
+        images_dict = defaultdict(list)
+        for img in images:
+            images_dict[img['properties']['item_type']].append(img)
         self._item_type_widgets = {}
-        for it_nq in sorted(item_node_queue.keys()):
+        for item_type, images in images_dict.items():
             oi_w = PlanetOrderItemTypeWidget(
-                it_nq,
-                item_node_queue[it_nq],
-                self._thumb_cache_dir,
-                self._api_client,
+                item_type,
+                images,
+                sort_criteria,
                 self._tool_resources,
-                parent=self,
+                parent=self
             )
             oi_w.grpBxItemType.setCollapsed(True)
             if not first:
                 first = oi_w
             oi_w.validationPerformed.connect(self.validate)
-            self._item_type_widgets[it_nq] = oi_w
+            self._item_type_widgets[item_type] = oi_w
             self.scrollAreaItemTypesContents.layout().addWidget(
-                self._item_type_widgets[it_nq])
+                self._item_type_widgets[item_type])
 
         self.scrollAreaItemTypesContents.layout().addStretch(3)
 
@@ -879,9 +699,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     def order_bundles(self):
         return self._order_bundles
-
-    def thumb_cache(self):
-        return self._thumb_cache
 
     @pyqtSlot()
     def validate(self):
@@ -1164,79 +981,4 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     def _open_orders_monitor_dialog(self):
         show_orders_monitor()
 
-
-if __name__ == "__main__":
-    sys.path.insert(0, plugin_path)
-
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from resources import qgis_resources
-
-    from planet_explorer.planet_api.p_specs import RESOURCE_DAILY
-
-    apikey = os.getenv('PL_API_KEY', None)
-    if not apikey:
-        log.debug('No API key in environ')
-        sys.exit(1)
-
-    # Supply path to qgis install location
-    # QgsApplication.setPrefixPath(os.environ.get('QGIS_PREFIX_PATH'), True)
-
-    # In python3 we need to convert to a bytes object (or should
-    # QgsApplication accept a QString instead of const char* ?)
-    try:
-        argvb = list(map(os.fsencode, sys.argv))
-    except AttributeError:
-        argvb = sys.argv
-
-    # Create a reference to the QgsApplication.  Setting the
-    # second argument to False disables the GUI.
-    qgs = QgsApplication(argvb, True)
-
-    # Load providers
-    qgs.initQgis()
-
-    readSettings(settings_path=os.path.join(plugin_path, 'settings.json'))
-    SETTINGS_NAMESPACE = None
-
-    item_json_file = os.path.join(
-        plugin_path, 'gui', 'resources', 'item-types.json')
-    with open(item_json_file, 'r') as fp:
-        json_of_items = json.load(fp)
-
-    # log.debug(f'features in collection:\n{json_of_items}')
-
-    nodes = []
-    # for item_json in json_of_items:
-    for item_json in json_of_items['features']:
-        p_node = PlanetNode(
-            resource=item_json,
-            resource_type=RESOURCE_DAILY,
-        )
-        nodes.append(p_node)
-
-    item_type_node_queue = {}
-    for p_node in nodes:
-        n_type = p_node.item_type()
-        if n_type not in item_type_node_queue:
-            item_type_node_queue[n_type] = []
-        item_type_node_queue[n_type].append(p_node)
-
-    # log.debug(f'item_type_node_queue:\n{item_type_node_queue}')
-
-    pclient = PlanetClient(api_key=apikey)
-
-    dlg = PlanetOrdersDialog(
-        item_type_node_queue,
-        p_client=pclient,
-        parent=None,
-        iface=None,
-    )
-
-    dlg.setMinimumHeight(400)
-
-    dlg.exec_()
-
-    qgs.exitQgis()
-
-    sys.exit(0)
 

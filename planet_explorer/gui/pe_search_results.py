@@ -25,6 +25,7 @@ import os
 import json
 import sys
 import logging
+import iso8601
 
 # noinspection PyPackageRequirements
 from typing import (
@@ -34,43 +35,29 @@ from typing import (
     Set,
 )
 
-from qgiscommons2.settings import (
-    pluginSetting,
-)
-
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
     Qt,
-    # QObject,
-    QModelIndex,
-    QAbstractItemModel,
-    QItemSelectionModel,
-    # QItemSelection,
     QRect,
     QSize,
-    QMargins,
-    QTextCodec,
-    QEvent
+    QEvent,
+    QUrl
 )
-# noinspection PyPackageRequirements
+
 from qgis.PyQt.QtGui import (
     QIcon,
     QCursor,
     QColor,
     QPen,
     QBrush,
-    QMouseEvent,
-    QKeyEvent,
-    QTextDocument,
-    QAbstractTextDocumentLayout,
     QPalette,
+    QPixmap,
+    QImage
 )
-# noinspection PyPackageRequirements
+
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QAction,
@@ -78,144 +65,90 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QMenu,
     QToolButton,
-    QAbstractItemView,
-    QTreeView,
-    QHeaderView,
-    QStyle,
-    QStyledItemDelegate,
-    QStyleOptionButton,
-    QStyleOptionViewItem
+    QListWidgetItem,
+    QCheckBox,
+    QHBoxLayout,
+    QVBoxLayout,
+    QTreeWidgetItem,
+    QWidget,
+    QTreeWidgetItemIterator
+)
+
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest
 )
 
 from qgis.core import (
     QgsApplication,
     QgsGeometry,
-    # QgsGeometryCollection,
-    # QgsFeature,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,
     QgsWkbTypes,
-    QgsJsonUtils,
     QgsFields,
     QgsRectangle,
-    # QgsLayerTreeNode,
 )
 
 from qgis.gui import (
     QgsRubberBand
 )
 
-from planet_explorer.pe_utils import(
-    ITEM_BACKGROUND_COLOR
+from qgis.utils import(
+    iface
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
-if __name__ == "__main__":
-    print(plugin_path)
-    sys.path.insert(0, plugin_path)
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_explorer.resources import resources
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from pe_thumbnails import (
-        PlanetQgisRenderJob,
-    )
-    # noinspection PyUnresolvedReferences
-    from planet_explorer.pe_utils import (
-        qgsgeometry_from_geojson,
-        # qgsmultipolygon_from_geojsons,
-        add_menu_section_action,
-        remove_maplayers_by_name,
-        zoom_canvas_to_aoi,
-        preview_local_item_raster,
-        # clear_local_item_raster_preview,
-        create_preview_group,
-        temp_preview_group,
-        PE_PREVIEW,
-        SETTINGS_NAMESPACE,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from gui.waiting_spinner.waitingspinnerwidget import QtWaitingSpinner
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_client import (
-        ITEM_GROUPS,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_node import (
-        PlanetNode,
-        PlanetNodeType as NodeT,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_models import (
-        PlanetSearchResultsModel,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_thumnails import (
-        THUMB_EXT,
-        THUMB_GEO,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_utils import (
-        geometry_from_request,
-    )
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_api.p_specs import (
-        # RESOURCE_MOSAICS,
-        RESOURCE_DAILY,
-        # DAILY_ITEM_TYPES_DICT,
-    )
-else:
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from ..resources import resources
-    from ..gui.waiting_spinner.waitingspinnerwidget import QtWaitingSpinner
-    from ..gui.save_search_dialog import SaveSearchDialog
-    from ..gui.results_configuration_dialog import ResultsConfigurationDialog
-    from .pe_thumbnails import (
-        PlanetQgisRenderJob,
-    )
-    from ..pe_utils import (
-        qgsgeometry_from_geojson,
-        # qgsmultipolygon_from_geojsons,
-        add_menu_section_action,
-        remove_maplayers_by_name,
-        zoom_canvas_to_aoi,
-        preview_local_item_raster,
-        # clear_local_item_raster_preview,
-        create_preview_group,
-        temp_preview_group,
-        PE_PREVIEW,
-        SETTINGS_NAMESPACE,
-        SEARCH_AOI_COLOR,
-        PLANET_COLOR
-    )
-    # noinspection PyUnresolvedReferences
-    from ..planet_api.p_client import (
-        ITEM_GROUPS,
-        PlanetClient
-    )
-    from ..planet_api.p_node import (
-        PlanetNode,
-        PlanetNodeType as NodeT,
-    )
-    from ..planet_api.p_models import (
-        PlanetSearchResultsModel,
-    )
-    from ..planet_api.p_thumnails import (
-        THUMB_EXT,
-        THUMB_GEO,
-    )
-    from ..planet_api.p_utils import (
-        geometry_from_request,
-    )
-    from ..planet_api.p_specs import (
-        # RESOURCE_MOSAICS,
-        RESOURCE_DAILY,
-        # DAILY_ITEM_TYPES_DICT,
-    )    
+from ..gui.pe_save_search_dialog import SaveSearchDialog
 
+from ..gui.pe_results_configuration_dialog import (
+    ResultsConfigurationDialog,
+    PlanetNodeMetadata
+)
 
+from ..pe_utils import (
+    qgsgeometry_from_geojson,
+    add_menu_section_action,
+    remove_maplayers_by_name,
+    zoom_canvas_to_aoi,
+    create_preview_group,
+    SEARCH_AOI_COLOR,
+    PLANET_COLOR
+)
+
+from ..planet_api.p_client import (
+    PlanetClient
+)
+
+from ..planet_api.p_utils import (
+    geometry_from_request,
+)
+from ..planet_api.p_specs import (
+    RESOURCE_DAILY,
+    DAILY_ITEM_TYPES_DICT,
+    ITEM_ASSET_DL_REGEX
+) 
+
+from .pe_gui_utils import (
+    waitcursor
+)
+
+TOP_ITEMS_BATCH = 250
 CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 500
+
+SATELLITE_ID = "satellite_id"
+PROPERTIES = "properties"
+GEOMETRY = "geometry"
+ITEM_TYPE = "item_type"
+PERMISSIONS = "_permissions"
+
+SUBTEXT_STYLE = 'color: rgb(100,100,100);'
+SUBTEXT_STYLE_WITH_NEW_CHILDREN = 'color: rgb(157,0,165);'
+
+COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
+LOCK_ICON = QIcon(':/plugins/planet_explorer/lock-light.svg')
+PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -228,856 +161,7 @@ RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
-
-COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
-
-LOCK_ICON = QIcon(':/plugins/planet_explorer/lock-light.svg')
-
-RESPONSE_TIMEOUT = 60
-
-
-class PlanetNodeItemDelegate(QStyledItemDelegate):
-
-    previewFootprint = pyqtSignal('PyQt_PyObject')
-    clearFootprint = pyqtSignal()
-
-    def __init__(self, parent):
-        super().__init__(parent)
-
-    # noinspection DuplicatedCode
-    def paint(self, painter, option, index):
-        if index.column() != 0:
-            QStyledItemDelegate.paint(self, painter, option, index)
-            return
-        model: Any[PlanetSearchResultsModel | QAbstractItemModel] = \
-            index.model()
-        node: PlanetNode = model.get_node(index)
-
-        # TODO: Style these, too?
-        # if node.node_type() in [NodeT.LOADING, NodeT.LOAD_MORE]:
-        #     QStyledItemDelegate.paint(self, painter, option, index)
-        #     return
-
-        option_vi = QStyleOptionViewItem(option)
-        self.initStyleOption(option_vi, index)
-
-        # noinspection PyUnusedLocal
-        style = QApplication.style() \
-            if option_vi.widget is None else option_vi.widget.style()
-        # style = self.parent().style()
-
-        opt_rect = option_vi.rect
-
-        doc = QTextDocument()
-        doc.setHtml(option_vi.text)
-        #print(option_vi.text)
-
-        option_vi.text = ''
-        style.drawControl(QStyle.CE_ItemViewItem, option_vi, painter)
-
-        ctx = QAbstractTextDocumentLayout.PaintContext()
-
-        # Highlighting text if item is selected
-        # if option_vi.state & QStyle.State_Selected:
-        #     ctx.palette.setColor(
-        #         QPalette.Text,
-        #         option_vi.palette.color(
-        #             QPalette.Active, QPalette.HighlightedText))
-
-        text_rect = style.subElementRect(QStyle.SE_ItemViewItemText, option_vi)
-        painter.save()
-
-        painter.translate(text_rect.topLeft())
-        painter.setClipRect(text_rect.translated(-text_rect.topLeft()))
-        doc.documentLayout().draw(painter, ctx)
-
-        painter.restore()
-
-        if option.state & QStyle.State_MouseOver:
-            if node.has_footprint() or node.has_group_footprint():
-                painter.save()
-
-                painter.setPen(
-                    QPen(QBrush(QColor.fromRgb(0, 157, 165, 245)), 1.5))
-                painter.setBrush(Qt.NoBrush)
-                painter.drawRect(opt_rect.marginsRemoved(QMargins(1, 1, 1, 1)))
-
-                painter.restore()
-
-            if node.has_footprint() or node.has_group_footprint():
-                # noinspection PyUnresolvedReferences
-                self.previewFootprint.emit(node)
-            else:
-                # noinspection PyUnresolvedReferences
-                self.clearFootprint.emit()
-
-        if not node.can_be_downloaded():
-            # Note: Needs to come last, so it covers checkbox control
-            # TODO: Figure out way of having checkbox not drawn, but still
-            #       set Node's unchecked state
-
-            # opt_btn = QStyleOptionButton()
-            # opt_btn.operator = option
-            ci_rect: QRect = style.subElementRect(
-                QStyle.SE_ViewItemCheckIndicator, option_vi)
-
-            # opt_btn.rect = ci_rect
-            # but_opt = QStyleOptionButton(option)
-            # opt_btn.state = QStyle.State_Off
-            # style.drawControl(QStyle.CE_CheckBox, opt_btn, painter)
-
-            painter.save()
-
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QBrush(QColor.fromRgb(250, 250, 250, 255)))
-            painter.drawRoundedRect(ci_rect,
-                                    ci_rect.height() / 6,
-                                    ci_rect.height() / 6)
-
-            LOCK_ICON.paint(painter, ci_rect, Qt.AlignCenter, QIcon.Normal)
-
-            painter.restore()
-
-    def sizeHint(self, option, index):
-        # node: PlanetNode = index.model().get_node(index)
-        option_vi = QStyleOptionViewItem(option)
-        self.initStyleOption(option_vi, index)
-
-        doc = QTextDocument()
-        doc.setHtml(option_vi.text)
-        doc.setTextWidth(option_vi.rect.width())
-        return QSize(int(doc.idealWidth()), int(doc.size().height()))
-
-
-class PlanetNodeActionDelegate(QStyledItemDelegate):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    # noinspection DuplicatedCode
-    def paint(self, painter, option, index):
-        if index.column() != 1:
-            QStyledItemDelegate.paint(self, painter, option, index)
-            return
-        model: Any[PlanetSearchResultsModel | QAbstractItemModel] = \
-            index.model()
-        node = model.get_node(index)
-        if node.node_type() in [NodeT.LOADING, NodeT.LOAD_MORE]:
-            QStyledItemDelegate.paint(self, painter, option, index)
-            return
-        rect = option.rect
-
-        painter.save()
-
-        btn = QStyleOptionButton()
-        btn.icon = COG_ICON
-        btn.iconSize = QSize(18, 18)
-        btn.features = QStyleOptionButton.Flat
-        # btn.features |= QStyleOptionButton.HasMenu
-
-        if option.state & QStyle.State_Selected:
-            painter.fillRect(option.rect, option.palette.highlight())
-
-        btn.state = QStyle.State_Enabled
-
-        btn.rect = QRect(rect.left() + rect.width() - 26,
-                         rect.top(), 26, rect.height())
-
-        QApplication.style().drawControl(
-            QStyle.CE_PushButton, btn, painter)
-
-        painter.restore()
-
-    # def editorEvent(self,
-    #                 event: QEvent,
-    #                 model: QAbstractItemModel,
-    #                 option: 'QStyleOptionViewItem',
-    #                 index: QModelIndex) -> bool:
-    #     if (event.type() in
-    #             [QEvent.MouseButtonPress, QEvent.MouseButtonRelease]):
-    #         event: QMouseEvent
-    #         if event.button() == Qt.LeftButton:
-    #             log.debug('Swapping left button for right')
-    #             event = QMouseEvent(
-    #                 event.type(),
-    #                 event.localPos(), event.windowPos(), event.screenPos(),
-    #                 Qt.RightButton, Qt.RightButton, Qt.NoModifier)
-    #     return QStyledItemDelegate.editorEvent(
-    #         self, event, model, option, index)
-
-
-class PlanetSearchResultsView(QTreeView):
-    """
-    """
-
-    checkedCountChanged = pyqtSignal(int)
-
-    def __init__(self, parent, iface=None, api_key=None,
-                 response_timeout=RESPONSE_TIMEOUT,
-                 sort_order=None):
-        super().__init__(parent=parent)
-
-        # noinspection PyTypeChecker
-        self._parent: PlanetSearchResultsWidget = parent
-
-        self._iface = iface
-        self._api_key = api_key
-        self._request = None
-        self._response_timeout = response_timeout
-        self._sort_order = sort_order
-
-        self._footprint = None
-        self._setup_footprint()
-
-        self._thumb_cache_dir: str = pluginSetting(
-            'thumbCachePath', namespace=SETTINGS_NAMESPACE)
-
-        self._checked_count = 0
-        self._checked_queue = {}
-
-        self._search_model = PlanetSearchResultsModel(
-            parent=self,
-            api_key=api_key,
-            thumb_cache_dir=self._thumb_cache_dir,
-            sort_order=self._sort_order
-        )
-
-        # Generic model, as background, until results come in
-        # self._search_model = QStandardItemModel(0, 2, self)
-
-        self._search_model.thumbnail_cache().set_job_subclass(
-            PlanetQgisRenderJob
-        )
-
-        p = self.palette()
-        p.setColor(QPalette.Highlight, ITEM_BACKGROUND_COLOR)
-        self.setPalette(p)
-
-        self.setModel(self._search_model)
-
-        self.setIconSize(QSize(48, 48))
-        self.setAlternatingRowColors(True)
-        self.setHeaderHidden(False)
-
-        # self.setColumnWidth(0, 250)
-        self.setColumnWidth(1, 26)
-
-        self.setIndentation(int(self.indentation() * 0.75))
-
-        hv = self.header()
-        hv.setStretchLastSection(False)
-        hv.setSectionResizeMode(0, QHeaderView.Stretch)
-        hv.setSectionResizeMode(1, QHeaderView.Fixed)
-        if len(sort_order) > 1:
-            if sort_order[1] == 'asc':
-                sort_indicator = Qt.AscendingOrder
-            else:
-                sort_indicator = Qt.DescendingOrder
-            hv.setSortIndicator(0, sort_indicator)
-            hv.setSortIndicatorShown(True)
-
-        self.viewport().setAttribute(Qt.WA_Hover)
-        self.setMouseTracking(True)
-        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
-
-        # self.setWordWrap(True)
-        # self.setTextElideMode(Qt.ElideNone)
-        self.item_delegate = PlanetNodeItemDelegate(parent=self)
-        # noinspection PyUnresolvedReferences
-        self.item_delegate.previewFootprint['PyQt_PyObject'].connect(
-            self.preview_footprint)
-        # noinspection PyUnresolvedReferences
-        self.item_delegate.clearFootprint.connect(self.clear_footprint)
-        self.setItemDelegateForColumn(0, self.item_delegate)
-        self.act_delegate = PlanetNodeActionDelegate(parent=self)
-        self.setItemDelegateForColumn(1, self.act_delegate)
-
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        # noinspection PyUnresolvedReferences
-        self.customContextMenuRequested['QPoint'].connect(self.open_menu)
-
-        # noinspection PyUnresolvedReferences
-        self.clicked['QModelIndex'].connect(self.item_clicked)
-
-        # noinspection PyUnresolvedReferences
-        self.expanded['QModelIndex'].connect(self.item_expanded)
-
-    def search_model(self):
-        return self._search_model
-
-    def checked_count(self):
-        return self._checked_count
-
-    def checked_queue(self):
-        return self._checked_queue
-
-    def _setup_footprint(self):
-        if self._iface:
-            log.debug('iface is available, adding footprint support')
-            self._footprint = QgsRubberBand(
-                self._iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
-            self._footprint.setFillColor(QColor(255, 255, 255, 10))
-            self._footprint.setStrokeColor(PLANET_COLOR)
-            self._footprint.setWidth(2)
-        else:
-            log.debug('iface is None, skipping footprint support')
-            self._footprint = None
-
-    # noinspection PyMethodMayBeStatic
-    def qgsfeature_feature_from_node(self, node: PlanetNode):
-
-        # TODO: Resolve geometry by node_type or do that under node.geometry()?
-        # geom = None
-        # if node.node_type() == NodeT.DAILY_SCENE_IMAGE:
-        #     geom = node.geometry()
-
-        # TODO: Add node
-        # feature_collect = {
-        #     'type': 'FeatureCollection',
-        #     'features': [
-        #         {
-        #             'type': 'Feature',
-        #             'geometry': node.geometry(),
-        #             'properties': {
-        #                 'id': node.item_id()
-        #             }
-        #         }
-        #     ]
-        # }
-
-        feature_collect = {
-            'type': 'FeatureCollection',
-            'features': [
-                node.resource()
-            ]
-        }
-
-        feature_collect_json = json.dumps(feature_collect)
-
-        # noinspection PyUnusedLocal
-        features = []
-        # noinspection PyBroadException
-        try:
-            utf8 = QTextCodec.codecForName('UTF-8')
-            # TODO: Add node id, properties as fields?
-            fields = QgsFields()
-            features = QgsJsonUtils().stringToFeatureList(
-                string=feature_collect_json, fields=fields, encoding=utf8)
-        except Exception:
-            log.debug('Footprint GeoJSON could not be parsed')
-            return
-
-        if not len(features) > 0:
-            log.debug('GeoJSON parsing created no features')
-            return
-
-        return features[0]
-
-    @pyqtSlot()
-    def clear_footprint(self):
-        if self._footprint:
-            self._footprint.reset(QgsWkbTypes.PolygonGeometry)
-
-    @pyqtSlot('PyQt_PyObject')
-    def preview_footprint(self, node: PlanetNode):
-        if not self._footprint:
-            if LOG_VERBOSE:
-                log.debug('Footprint is None, skipping footprint preview')
-            return
-
-        if node.has_group_footprint():
-            geoms = node.geometries()
-        else:
-            geoms = [node.geometry()]
-
-        self.clear_footprint()
-
-        qgs_geoms = [qgsgeometry_from_geojson(g) for g in geoms]
-
-        for qgs_geom in qgs_geoms:
-            self._footprint.addGeometry(
-                qgs_geom,
-                QgsCoordinateReferenceSystem("EPSG:4326")
-            )
-
-        if LOG_VERBOSE:
-            log.debug('Footprint sent to canvas')
-
-    @pyqtSlot(list)
-    def zoom_to_footprint(self, nodes: [PlanetNode]):
-        skip = 'skipping zoom to footprint'
-        if not self._footprint:
-            log.debug(f'Footprint is None, {skip}')
-            return
-
-        if len(nodes) < 1:
-            log.debug('No nodes available, skipping zoom to footprint')
-            return
-
-        first_node = nodes[0]
-        if first_node.has_group_footprint():
-            json_geoms = first_node.geometries()
-        else:
-            json_geoms = [node.geometry() for node in nodes]
-
-        qgs_geoms: [QgsGeometry] = \
-            [qgsgeometry_from_geojson(j) for j in json_geoms]
-
-        if len(qgs_geoms) < 1:
-            log.debug(f'Geometry collection empty, {skip}')
-            return
-
-        rect_geoms: QgsRectangle = qgs_geoms[0].boundingBox()
-        for i in range(len(qgs_geoms)):
-            if i == 0:
-                continue
-            r: QgsRectangle = qgs_geoms[i].boundingBox()
-            rect_geoms.combineExtentWith(r)
-
-        if rect_geoms.isNull():
-            log.debug(f'Footprint geometry is null, {skip}')
-            return
-
-        # noinspection PyArgumentList
-        transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance().crs(),
-            QgsProject.instance()
-        )
-        rect_footprint: QgsRectangle = \
-            transform.transformBoundingBox(rect_geoms)
-
-        if not rect_footprint.isEmpty():
-            rect_footprint.scale(1.05)
-            self._iface.mapCanvas().setExtent(rect_footprint)
-            self._iface.mapCanvas().refresh()
-
-    @pyqtSlot('PyQt_PyObject')
-    def preview_thumbnail(
-            self, node, name=PE_PREVIEW, remove_existing=True):
-        item_name_geo = f'{node.item_type_id_key()}{THUMB_GEO}'
-        item_geo_path = os.path.join(
-            self.search_model().thumbnail_cache().cache_dir(),
-            f'{item_name_geo}{THUMB_EXT}')
-        if not preview_local_item_raster(
-                item_geo_path, name, remove_existing=remove_existing):
-            log.warning(f'Item preview {item_name_geo} failed to load')
-
-    @pyqtSlot(dict)
-    def update_preview_thumbnails(self, selected_nodes):
-        group = temp_preview_group()
-
-        tree_node_names: List[str] = \
-            [t_node.name() for t_node in group.children()]
-        for name in tree_node_names:
-            if name.endswith('_thumb'):
-                name_sans = name.replace('_thumb', '')
-                if name_sans not in selected_nodes:
-                    remove_maplayers_by_name(name, only_first=True)
-                if name_sans in selected_nodes:
-                    # Keep already loaded layer, skip reloading it
-                    selected_nodes[name_sans] = None
-
-        for _, node in selected_nodes.items():
-            if node is not None:
-                self.preview_thumbnail(node)
-
-        # for node in deselected_nodes:
-        #     if f'{node.item_type_id_key()}_thumb'.lower() in node_names:
-        #         remove_maplayers_by_name(
-        #             f'{node.item_type_id_key()}_thumb'.lower(),
-        #             only_first=True)
-        #
-        # node_names = [t_node.name() for t_node in group.children()]
-        # for node in selected_nodes:
-        #     if f'{node.item_type_id_key()}_thumb'.lower() not in node_names:
-        #         self.preview_thumbnail(node)
-
-    @pyqtSlot(list)
-    def add_preview_groups(self, nodes: List[PlanetNode]):
-        if len(nodes) < 1 or not isinstance(nodes[0], PlanetNode):
-            log.debug('No nodes found to add to preview group')
-            return
-
-        if nodes[0].is_group_node():
-            log.debug('Adding preview group for group')
-            # Grouping tree items are only singularly passed
-            self.add_preview_group_for_group(nodes[0])
-        else:
-            log.debug('Adding preview group for items')
-            self.add_preview_groups_for_items(nodes)
-
-    @pyqtSlot(list)
-    def add_preview_group_for_group(self, node: PlanetNode):
-        name = None
-        child_node_type = None
-        if node.node_type() == NodeT.DAILY_SCENE:
-            child_node_type = NodeT.DAILY_SCENE_IMAGE
-            item_type = node.name() or ''
-            title = ['Daily', item_type, 'Scene']
-            name = f'{" ".join(title)} ' \
-                   f'{node.formatted_date_time(node.sort_date())}'
-        elif node.node_type() == NodeT.DAILY_SAT_GROUP:
-            child_node_type = NodeT.DAILY_SCENE_IMAGE
-            item_type = node.parent().name() or ''
-            title = ['Daily', item_type, f'Satellite {node.name()} Group']
-            name = f'{" ".join(title)} ' \
-                   f'{node.formatted_date_time(node.sort_date())}'
-
-        if child_node_type is None:
-            log.debug('No node type found for tree group searching')
-            return
-
-        item_nodes = node.children_of_node_type(child_node_type)
-        if item_nodes:
-            create_preview_group(
-                name, item_nodes,
-                self._search_model.p_client().api_key(),
-                tile_service='xyz',
-                search_query=self._request,
-                sort_order=self._sort_order
-            )
-        else:
-            log.debug(f"No items found for node type '{child_node_type.name}' "
-                      f"in tree group '{name}'")
-
-    @pyqtSlot(list)
-    def add_preview_groups_for_items(self, nodes: List[PlanetNode]) -> None:
-        prev_types = []  # maintain some sort order
-        prev_type_nodes = {}
-        for node in nodes:
-            item_type = node.item_type()
-            if item_type not in prev_types:
-                prev_types.append(item_type)
-                prev_type_nodes[item_type] = []
-            prev_type_nodes[item_type].append(node)
-
-        for prev_type in sorted(prev_types):
-            prev_nodes: List[PlanetNode] = prev_type_nodes[prev_type]
-            # if prev_type in DAILY_ITEM_TYPES_DICT:
-            #     # Group imagery by type
-            #     item_keys = [n.item_type_id() for n in prev_nodes]
-            #     tile_url = self._search_model.p_client().get_tile_url(
-            #         item_keys)
-            #     create_preview_group(prev_type, prev_nodes, tile_url)
-            # else:
-            #     # For groups, use any item type listing
-            #     for prev_node in prev_nodes:
-            #         item_keys = prev_node.item_type_id_list()
-            #         if item_keys:
-            #             tile_url = \
-            #                 self._search_model.p_client().get_tile_url(
-            #                     item_keys)
-            #             create_preview_group(prev_type, [], tile_url)
-
-            create_preview_group(
-                prev_type, prev_nodes,
-                self._search_model.p_client().api_key(),
-                tile_service='xyz',
-                search_query=self._request,
-                sort_order=self._sort_order
-            )
-
-    @pyqtSlot(list)
-    def copy_ids_to_clipboard(self, nodes):
-        node_ids = [n.item_type_id() for n in nodes if n.item_id()]
-        if node_ids:
-            cb = QgsApplication.clipboard()
-            cb.setText(','.join(node_ids))
-
-    @pyqtSlot('QPoint')
-    def open_menu(self, pos):
-        """
-        :type pos: QPoint
-        :return:
-        """
-        index = self.indexAt(pos)
-        node: PlanetNode = self.model().get_node(index)
-        if (node.node_type() == NodeT.LOAD_MORE
-                and node.parent() == self.model().root):
-            return
-        menu = QMenu()
-
-        # Single, current Item's index
-        add_menu_section_action('Current item', menu)
-
-        if node.has_footprint() or node.has_group_footprint():
-            zoom_fp_act = QAction('Zoom to footprint', menu)
-            # noinspection PyUnresolvedReferences
-            zoom_fp_act.triggered[bool].connect(
-                lambda: self.zoom_to_footprint([node]))
-            menu.addAction(zoom_fp_act)
-
-        if node.can_load_preview_layer():
-            prev_layer_act = QAction('Add preview layer to map', menu)
-            # noinspection PyUnresolvedReferences
-            prev_layer_act.triggered[bool].connect(
-                lambda: self.add_preview_groups([node]))
-            if node.child_images_count() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
-                prev_layer_act.setEnabled(False)
-                prev_layer_act.setToolTip("The node contains too many images to preview")
-                menu.setToolTipsVisible(True)
-
-            menu.addAction(prev_layer_act)
-
-        if node.item_id() and node.has_resource():
-            copy_id_act = QAction('Copy ID to clipboard', menu)
-            # noinspection PyUnresolvedReferences
-            copy_id_act.triggered[bool].connect(
-                lambda: self.copy_ids_to_clipboard([node]))
-            menu.addAction(copy_id_act)
-
-        # Selected Items
-        sel_model = self.selectionModel()
-        model = self.model()
-        # Ensure to grab only first column of indexes (or will get duplicates)
-        all_nodes = [model.get_node(i) for i in sel_model.selectedIndexes()
-                     if i.column() == 0]
-        log.debug(f'Selected items: {len(all_nodes)}')
-
-        if len(all_nodes) == 1 and all_nodes[0] == node:
-            menu.exec_(self.viewport().mapToGlobal(pos))
-            return
-
-        nodes_have_footprints = \
-            [node for node in all_nodes if node.has_footprint()]
-        nodes_w_ids = \
-            [node for node in all_nodes
-             if node.item_id() and node.has_resource()]
-        nodes_can_prev = \
-            [node for node in all_nodes
-             if node.can_load_preview_layer() and node.has_resource()]
-
-        if any([nodes_have_footprints, nodes_w_ids, nodes_can_prev]):
-            add_menu_section_action(f'Selected images', menu)
-
-        if nodes_have_footprints:
-            zoom_fps_act = QAction(
-                f'Zoom to total footprint '
-                f'({len(nodes_have_footprints)} items)', menu)
-            # noinspection PyUnresolvedReferences
-            zoom_fps_act.triggered[bool].connect(
-                lambda: self.zoom_to_footprint(nodes_have_footprints))
-            menu.addAction(zoom_fps_act)
-
-        if nodes_can_prev:
-            prev_layers_act = QAction(
-                f'Add preview layer to map '
-                f'({len(nodes_can_prev)} items)', menu)
-            # noinspection PyUnresolvedReferences
-            prev_layers_act.triggered[bool].connect(
-                lambda: self.add_preview_groups(nodes_can_prev))
-            menu.addAction(prev_layers_act)
-
-        if nodes_w_ids:
-            copy_ids_act = QAction(
-                f'Copy IDs to clipboard ({len(nodes_w_ids)} items)', menu)
-            # noinspection PyUnresolvedReferences
-            copy_ids_act.triggered[bool].connect(
-                lambda: self.copy_ids_to_clipboard(nodes_w_ids))
-            menu.addAction(copy_ids_act)
-
-        menu.exec_(self.viewport().mapToGlobal(pos))
-
-    @pyqtSlot('QModelIndex')
-    def item_clicked(self, index):
-        node: PlanetNode = self.model().get_node(index)
-        log.debug(f'Index clicked: row {index.row()}, col {index.column()}, '
-                  f'{node.item_type_id()}')
-        if index.column() == 0:
-            if (node.node_type() == NodeT.LOAD_MORE
-                    and node.parent() == self.model().root):
-                self.model().fetch_more_top_items(index)
-        elif index.column() == 1:
-            self.open_menu(self.viewport().mapFromGlobal(QCursor.pos()))
-
-    @pyqtSlot('QModelIndex')
-    def item_expanded(self, index: QModelIndex):
-        node: PlanetNode = self.model().get_node(index)
-        log.debug(f'Index expanded: row {index.row()}, col {index.column()}, '
-                  f'{node.item_type_id()}')
-        # log.debug(
-        #     f'Node traversed: {node.is_traversed()} {node.item_type_id()}')
-        # if index.column() == 0:
-        #     if (node.node_type() == NodeT.DAILY_SCENE
-        #             and not node.is_traversed()):
-        #         log.debug(
-        #             f'Traversing node: {node.item_type_id()}')
-        #         for sat_grp in node.children():
-        #             sat_grp: PlanetNode
-        #             self.expand(sat_grp.index())
-        #
-        #             for image in sat_grp.children():
-        #                 if image.has_thumbnail():
-        #                     self.search_model().add_to_thumb_queue(
-        #                         image.item_type_id_key(), image.index())
-        #                     self.search_model().fetch_thumbnail(image)
-        #
-        #         node.set_is_traversed(True)
-
-    def _update_checked_queue(self,
-                              checked_nodes: Set[PlanetNode],
-                              unchecked_nodes: Set[PlanetNode]):
-        for c_node in checked_nodes:
-            it_id = c_node.item_type_id()
-            self._checked_queue[it_id] = c_node
-
-        for u_node in unchecked_nodes:
-            it_id = u_node.item_type_id()
-            if it_id in self._checked_queue:
-                del self._checked_queue[it_id]
-
-        self._checked_count = len(self._checked_queue)
-        log.debug(f'checked_count: {self._checked_count}')
-
-        if LOG_VERBOSE:
-            sorted_item_ids = sorted(self._checked_queue.keys())
-            nl = '\n'
-            log.debug(f'checked_queue:\n'
-                      f'  {"{0}  ".format(nl).join(sorted_item_ids)}')
-
-            # When using with {'item_type': set(nodes)}
-            # for it_id in self._checked_queue:
-            #     log.debug(f'\n  - {it_id}: '
-            #               f'{len(self._checked_queue[it_id])}\n')
-            #
-            #     # Super verbose output...
-            #     nl = '\n'
-            #     i_types = \
-            #         [n.item_id() for n in self._checked_queue[it_id]]
-            #     log.debug(f'\n  - {it_id}: '
-            #               f'{len(self._checked_queue[it_id])}\n'
-            #               f'    - {"{0}    - ".format(nl).join(i_types)}')
-
-        self.checkedCountChanged.emit(self._checked_count)
-
-    def event(self, event: QEvent) -> bool:
-        if event.type() == QEvent.Leave:
-            if self._iface:
-                self.clear_footprint()
-                event.accept()
-
-        return QTreeView.event(self, event)
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        index = self.indexAt(event.pos())
-        sel_model: QItemSelectionModel = self.selectionModel()
-        if (index.column() == 1
-                and event.button() == Qt.LeftButton
-                and sel_model.isSelected(index)):
-            log.debug('Ignoring mouse press')
-            return
-
-        return QTreeView.mousePressEvent(self, event)
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        index = self.indexAt(event.pos())
-        sel_model: QItemSelectionModel = self.selectionModel()
-        if (index.column() == 1
-                and event.button() == Qt.LeftButton
-                and sel_model.isSelected(index)):
-            log.debug('Swapping left button for right, on release')
-            self.open_menu(event.pos())
-            return
-
-        return QTreeView.mouseReleaseEvent(self, event)
-
-    def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        index = self.currentIndex()
-        if (index.column() == 0
-                and event.key() in [Qt.Key_Enter, Qt.Key_Return]):
-            node: PlanetNode = self.model().get_node(index)
-            if (node.node_type() == NodeT.LOAD_MORE
-                    and node.parent() == self.model().root):
-                self.model().fetch_more_top_items(index)
-
-        return QTreeView.keyReleaseEvent(self, event)
-
-    def dataChanged(self, t_l: QModelIndex, b_r: QModelIndex,
-                    roles: Optional[List[int]] = None) -> None:
-
-        # This may need to go at end of slot
-        super().dataChanged(t_l, b_r, roles=roles)
-
-        # Note: empty roles indicates *everything* has changed, not nothing
-        if roles is not None and (roles == [] or Qt.CheckStateRole in roles):
-            if LOG_VERBOSE:
-                log.debug('Node (un)checked')
-            checked = set()
-            unchecked = set()
-
-            def update_queues(indx):
-                node: PlanetNode = self._search_model.get_node(indx)
-                if node.is_base_image() and node.can_be_downloaded():
-                    if node.checked_state() == Qt.Checked:
-                        checked.add(node)
-                    elif node.checked_state() == Qt.Unchecked:
-                        unchecked.add(node)
-
-            # Note: if parent of t_l and b_r differ, we ignore undefined input
-            if t_l == b_r:
-                if LOG_VERBOSE:
-                    log.debug('Nodes (un)checked is single')
-                update_queues(t_l)
-            elif t_l.parent() == b_r.parent():
-                if LOG_VERBOSE:
-                    log.debug('Nodes (un)checked have same parent')
-                parent = t_l.parent()
-                col = t_l.column()
-                for row in range(b_r.row(), t_l.row() + 1):
-                    m_indx = self._search_model.index(row, col, parent=parent)
-                    update_queues(m_indx)
-
-            if checked or unchecked:
-                if LOG_VERBOSE:
-                    log.debug(f'Nodes checked: {checked}')
-                    log.debug(f'Nodes unchecked: {unchecked}')
-                self._update_checked_queue(checked, unchecked)
-
-    # This works, but is disabled until thumbnail georeferencing works OK
-    # def currentChanged(self, current: QModelIndex,
-    #                    previous: QModelIndex) -> None:
-    #     node: PlanetNode = self.model().get_node(current)
-    #     log.debug(f'Current item: row {current.row()}, '
-    #               f'col {current.column()},'
-    #               f' {node.item_id()}')
-    #     if current.column() == 0:
-    #         if node.has_thumbnail() and node.thumbnail_loaded():
-    #             self.preview_thumbnail(node)
-    #         else:
-    #             clear_local_item_raster_preview()
-    #
-    #     return QTreeView.currentChanged(self, current, previous)
-
-    # def selectionChanged(self, selected: QItemSelection,
-    #                      deselected: QItemSelection) -> None:
-    #     selected_nodes = {}
-    #     for si in selected.indexes():
-    #         if si.column() == 0:
-    #             si_node = self._search_model.get_node(si)
-    #             selected_nodes[si_node.item_type_id_key()] = si_node
-    #
-    #     deselected_nodes = {}
-    #     for di in deselected.indexes():
-    #         if di.column() == 0:
-    #             di_node = self._search_model.get_node(di)
-    #             deselected_nodes[di_node.item_type_id_key()] = di_node
-    #
-    #     self.update_preview_thumbnails(selected_nodes)
-    #
-    #     return QTreeView.selectionChanged(self, selected, deselected)
-
-    @pyqtSlot()
-    def clean_up(self):
-        self.clear_footprint()
-
-        # TODO: Clean up model?
-
-
 class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
-    """
-    """
 
     zoomToAOIRequested = pyqtSignal()
     setAOIRequested = pyqtSignal(dict)
@@ -1095,31 +179,30 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         ('asc', 'ascending'),
     ]
 
-    frameSearching: QFrame
-    btnCancel: QToolButton
-    btnZoomToAOI: QToolButton
-    lblSearching: QLabel
-    frameResults: QFrame
-
-    def __init__(self, parent=None, iface=None, api_key=None,
-                 response_timeout=RESPONSE_TIMEOUT):
-        super().__init__(parent=parent)
+    def __init__(self):
+        super().__init__()
 
         self.setupUi(self)
 
         self._p_client = PlanetClient.getInstance()
         self._api_client = self._p_client.api_client()
 
-        self._parent = parent
+        self._has_more = True
 
-        self._iface = iface
-        # TODO: Grab responseTimeOut from plugin settings and override default
-        self._response_timeout = response_timeout
+        self._metadata_to_show = [PlanetNodeMetadata.CLOUD_PERCENTAGE, 
+                                  PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE]
+
+        self._image_count = 0
+        self._total_count = 0
+
         self._request = None
+        self._response_iterator = None
 
         self.btnZoomToAOI.clicked.connect(self._zoom_to_request_aoi)
         self.btnSaveSearch.clicked.connect(self._save_search)
         self.btnSettings.clicked.connect(self._open_settings)
+        self.lblImageCount.setOpenExternalLinks(False)
+        self.lblImageCount.linkActivated.connect(self.load_more_link_clicked)
 
         self._aoi_box = None
         self._setup_request_aoi_box()
@@ -1136,57 +219,31 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.cmbBoxDateSort.setCurrentIndex(0)
         self.cmbBoxDateSort.currentIndexChanged.connect(self._sort_order_changed)
 
-        self.results_tree = PlanetSearchResultsView(
-            parent=self, iface=iface, api_key=api_key,
-            response_timeout=self._response_timeout,
-            sort_order=self.sort_order()
-        )
+        self._set_widgets_visibility(False)
 
-        self.results_tree.checkedCountChanged[int].connect(
-            self.checked_count_changed)
-
-        self.frameResults.layout().addWidget(self.results_tree)
-        self.results_tree.setHidden(True)
-
-        search_model = self.results_tree.search_model()
-        if self.results_tree.search_model():
-            search_model.searchFinished.connect(self._search_finished)
-            #search_model.searchNoResults.connect(self._search_no_results)
-            search_model.searchCancelled.connect(self._search_cancelled)
-            search_model.searchTimedOut[int].connect(self._search_timed_out)
-            search_model.itemCountChanged.connect(self.item_count_changed)
-            self.btnCancel.clicked.connect(search_model.cancel_search)
-
-        self.waiting_spinner = QtWaitingSpinner(
-            self.frameResults,
-            centerOnParent=True,
-            disableParentWhenSpinning=False,
-            modality=Qt.NonModal
-        )
-
-        self.waiting_spinner.setRoundness(80.0)
-        self.waiting_spinner.setMinimumTrailOpacity(15.0)
-        self.waiting_spinner.setTrailFadePercentage(75.0)
-        self.waiting_spinner.setNumberOfLines(15)
-        self.waiting_spinner.setLineLength(14.0)
-        self.waiting_spinner.setLineWidth(3.0)
-        self.waiting_spinner.setInnerRadius(8.0)
-        self.waiting_spinner.setRevolutionsPerSecond(1.0)
-        self.waiting_spinner.setColor(PLANET_COLOR)
-
-        self.widgetActions.hide()
-        self.frameResults.hide()
-        self.widgetNoResults.show()
-        self.frameSearching.hide()
+    def _set_widgets_visibility(self, search_ok):
+        self.tree.setVisible(search_ok)
+        self.widgetActions.setVisible(search_ok)
+        self.widgetNoResults.setVisible(not search_ok)
 
     def search_has_been_performed(self):
         return self._request is not None
 
     def _open_settings(self):
-        settings = self.results_tree.search_model().metadata_to_show()
-        dlg = ResultsConfigurationDialog(settings)
+        settings = self._metadata_to_show
+        dlg = ResultsConfigurationDialog(self._metadata_to_show)
         if dlg.exec_():
-            self.results_tree.search_model().set_metadata_to_show(dlg.selection)
+            self._metadata_to_show = dlg.selection
+            self.update_image_items()
+
+    def update_image_items(self):
+        it = QTreeWidgetItemIterator(self.tree)
+        while it.value():
+            item = it.value()            
+            if isinstance(item, SceneItem):
+                w = self.tree.itemWidget(item, 0)
+                w.set_metadata_to_show(self._metadata_to_show)                
+            it += 1
 
     def _save_search(self):
         dlg = SaveSearchDialog(self._request)
@@ -1201,82 +258,143 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         )
 
     def _sort_order_changed(self, idx):  
-        self.waiting_spinner.start()
-        self.waiting_spinner.show()
-        self.results_tree.hide()
-        self.results_tree.search_model().update_sort_order(self.sort_order())
+        self.update_request(self._request)
 
-    def update_request(self, request):        
-        if self.widgetNoResults.isVisible():
-            self.lblSearching.setText('Searching...')
-            self.frameSearching.show()
-            self.widgetNoResults.hide()
-        self.frameResults.show()
-        self.results_tree.hide()
-        self.waiting_spinner.start()
-        self.waiting_spinner.show()
+    def load_more_link_clicked(self):
+        self.load_more()
+
+    @waitcursor
+    def update_request(self, request):
+        self._image_count = 0
         self._request = request
-        self.results_tree.search_model().update_request(request)
+        self.tree.clear()   
+        stats_request = {"interval": "year"}
+        stats_request.update(self._request)
+        resp = self._api_client.stats(stats_request).get()
+        self._total_count = sum([b["count"] for b in resp["buckets"]])
+        if self._total_count:
+            response = self._p_client.quick_search(
+                self._request,
+                page_size=TOP_ITEMS_BATCH,
+                sort=' '.join(self.sort_order())                
+            )
+            self._response_iterator = response.iter()            
+            self.load_more()
+            self._set_widgets_visibility(True)
+        else:
+            self._set_widgets_visibility(False)
     
-    def _nix_waiting_spinner(self):
-        self.waiting_spinner.stop()
-        self.waiting_spinner.hide()
+    @waitcursor
+    def load_more(self):
+        page = next(self._response_iterator, None)        
+        if page is not None:
 
-    def checked_count(self):
-        return self.results_tree.checked_count()
+            for i in range(self.tree.topLevelItemCount()):
+                date_item = self.tree.topLevelItem(i)
+                date_widget = self.tree.itemWidget(date_item, 0)
+                date_widget.has_new = False
+                for j in range(date_item.childCount()):
+                    satellite_item = date_item.child(j)
+                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                    satellite_widget.has_new = False
 
-    def checked_queue(self):
-        return self.results_tree.checked_queue()
+            links = page.get()[page.LINKS_KEY]
+            next_ = links.get(page.NEXT_KEY, None)
+            self._has_more = next_ is not None            
+            images = page.get().get(page.ITEM_KEY)
+            self._image_count += len(images)
+            for image in images:
+                sort_criteria = self.cmbBoxDateType.currentData()                
+                date_item, satellite_item = self._find_items_for_satellite(image)
+                date_widget = self.tree.itemWidget(date_item, 0)
+                satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                item = SceneItem(image, sort_criteria)
+                widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item)
+                widget.checkedStateChanged.connect(self.checked_count_changed)
+                widget.checkedStateChanged.connect(satellite_widget.update_checkbox)                
+                item.setSizeHint(0, widget.sizeHint())
+                satellite_item.addChild(item)
+                self.tree.setItemWidget(item, 0, widget)
+                date_widget.update_for_children()
 
-    @pyqtSlot(int)
-    def checked_count_changed(self, count):
-        self.checkedCountChanged.emit(count)
+            for i in range(self.tree.topLevelItemCount()):
+                date_item = self.tree.topLevelItem(i)
+                date_widget = self.tree.itemWidget(date_item, 0)
+                for j in range(date_item.childCount()):
+                    satellite_item = date_item.child(j)
+                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                    satellite_widget.update_for_children()
+                    satellite_item.sortChildren(0, Qt.AscendingOrder)
+                date_widget.update_for_children()
+            self.item_count_changed()
+        else:
+            self._has_more = False
+            self.item_count_changed()
 
-    @pyqtSlot()
-    def _search_finished(self):
-        self._nix_waiting_spinner()
-        self.results_tree.show()
+    def _find_item_for_date(self, image):
+        sort_criteria = self.cmbBoxDateType.currentData()
+        date = iso8601.parse_date(image[PROPERTIES][sort_criteria]).date() 
+        itemtype = image[PROPERTIES][ITEM_TYPE]
+        count = self.tree.topLevelItemCount()
+        for i in range(count):
+            child = self.tree.topLevelItem(i)
+            if child.date == date and child.itemtype == itemtype:
+                return child
+        date_item = DateItem(image, sort_criteria)
+        widget = DateItemWidget(image, sort_criteria, date_item)
+        date_item.setSizeHint(0, widget.sizeHint())
+        self.tree.addTopLevelItem(date_item)
+        self.tree.setItemWidget(date_item, 0, widget)
+        return date_item        
 
-    @pyqtSlot()
+    def _find_items_for_satellite(self, image):
+        date_item = self._find_item_for_date(image)
+        date_widget = self.tree.itemWidget(date_item, 0)
+        satellite = image[PROPERTIES][SATELLITE_ID]
+        count = date_item.childCount()
+        for i in range(count):
+            child = date_item.child(i)
+            if child.satellite == satellite:
+                return date_item, child
+        satellite_item = SatelliteItem(satellite)
+        widget = SatelliteItemWidget(satellite, satellite_item)
+        widget.checkedStateChanged.connect(date_widget.update_checkbox)
+        satellite_item.setSizeHint(0, widget.sizeHint())
+        date_item.addChild(satellite_item)
+        self.tree.setItemWidget(satellite_item, 0, widget)
+        return date_item, satellite_item
+
+    def selected_images(self):
+        selected = []
+        it = QTreeWidgetItemIterator(self.tree)
+        while it.value():
+            item = it.value()            
+            if isinstance(item, SceneItem):
+                w = self.tree.itemWidget(item, 0)
+                w.set_metadata_to_show(self._metadata_to_show)                
+                if w.is_selected():
+                    selected.append(w.image)
+            it += 1
+        return selected
+    
+    def checked_count_changed(self):
+        self.checkedCountChanged.emit(len(self.selected_images()))
+
     def item_count_changed(self):
-        _, total = self.results_tree.search_model().item_counts()
-        self.widgetActions.setVisible(bool(total))
-        self.frameResults.setVisible(bool(total))        
-        self.widgetNoResults.setVisible(not bool(total))
-        self.frameSearching.hide()       
-        self.lblImageCount.setText("%i of %i images" % 
-                self.results_tree.search_model().item_counts())
-
-    @pyqtSlot()
-    def _search_cancelled(self):
-        self._nix_waiting_spinner()
-        self.lblSearching.setText('Search cancelled')
-        self.btnCancel.hide()
-        self.widgetActions.hide()
-        self.frameResults.hide()        
-        self.widgetNoResults.hide()
-
-    @pyqtSlot(int)
-    def _search_timed_out(self, timeout):
-        self._nix_waiting_spinner()
-        self.lblSearching.setText(f'Search timed out ({timeout} seconds)')
-        self.btnCancel.hide()
-        self.widgetActions.hide()
-        self.frameResults.hide()
-        self.widgetNoResults.hide()
+        if self._has_more:
+            self.lblImageCount.setText(
+                f"{self._image_count} of {self._total_count} images. <a href='#'>Load more</a>")
+        else:
+            self.lblImageCount.setText(
+                f"{self._image_count} of {self._total_count} images")
 
     def _setup_request_aoi_box(self):
-        if self._iface:
-            log.debug('iface is available, adding aoi box support')
-            self._aoi_box = QgsRubberBand(
-                self._iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
-            self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
-            self._aoi_box.setStrokeColor(SEARCH_AOI_COLOR)
-            self._aoi_box.setWidth(2)
-            self._aoi_box.setLineStyle(Qt.DashLine)
-        else:
-            log.debug('iface is None, skipping footprint support')
-            self._aoi_box = None
+        self._aoi_box = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
+        self._aoi_box.setStrokeColor(SEARCH_AOI_COLOR)
+        self._aoi_box.setWidth(2)
+        self._aoi_box.setLineStyle(Qt.DashLine)
 
     @pyqtSlot()
     def clear_aoi_box(self):
@@ -1285,48 +403,19 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     @pyqtSlot()
     def _zoom_to_request_aoi(self):
-        if not self._iface:
-            log.debug('No iface object, skipping AOI extent')
-            return
-
         aoi_geom = geometry_from_request(self._request)
 
-        qgs_geom: QgsGeometry = qgsgeometry_from_geojson(aoi_geom)
+        geom: QgsGeometry = qgsgeometry_from_geojson(aoi_geom)
         self._aoi_box.setToGeometry(
-            qgs_geom,
+            geom,
             QgsCoordinateReferenceSystem("EPSG:4326")
         )        
 
-        self.show_aoi()
+        zoom_canvas_to_geometry(geom, iface_obj=iface)
 
-        zoom_canvas_to_aoi(aoi_geom, iface_obj=self._iface)
-
-        self.zoomToAOIRequested.emit()
-
-    def hide_aoi_if_matches_geom(self,geom):       
-        if self._aoi_box is not None:
-            color = (QColor(0, 0, 0, 0) if self._aoi_box.asGeometry().equals(geom) 
-                    else SEARCH_AOI_COLOR)
-            self._aoi_box.setStrokeColor(color)
-
-    def show_aoi(self):
-        if self._aoi_box is not None:
-            self._aoi_box.setStrokeColor(SEARCH_AOI_COLOR)
-
-    def aoi_geom(self):
-        if self._aoi_box is not None:
-            return self._aoi_box.asGeometry()
-
-    @pyqtSlot()
-    def _set_aoi_from_request(self):
-        self.setAOIRequested.emit(self._request)
-
-    @pyqtSlot()
     def clean_up(self):
-        self.results_tree.clean_up()
         self.clear_aoi_box()
 
-    # noinspection PyPep8Naming
     def closeEvent(self, event):
         self.clean_up()
         super().closeEvent(self, event)
@@ -1335,73 +424,324 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return self._request
 
 
-if __name__ == "__main__":
-    from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout
-    from qgiscommons2.settings import (
-        readSettings,
-    )
+class ItemWidgetBase(QFrame):
 
-    sys.path.insert(0, plugin_path)
+    checkedStateChanged = pyqtSignal()
 
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    from planet_explorer.gui.resources import qgis_resources
+    def __init__(self, item):
+        QFrame.__init__(self)
+        self.item = item
+        self.is_updating_checkbox = False
+        self.setMouseTracking(True)
+        self.setStyleSheet("ItemWidgetBase{border: 2px solid transparent;}")
 
-    apikey = os.getenv('PL_API_KEY', None)
-    if not apikey:
-        log.debug('No API key in environ')
-        sys.exit(1)
+    def _setup_ui(self, text, thumbnailurl):
+        self.checkBox = QCheckBox("")
+        self.checkBox.stateChanged.connect(self.check_box_state_changed)
+        self.nameLabel = QLabel(text)        
+        self.iconLabel = QLabel()
+        self.toolsButton = QLabel()
+        self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.toolsButton.mousePressEvent = self.show_context_menu
 
-    # Supply path to qgis install location
-    # QgsApplication.setPrefixPath(os.environ.get('QGIS_PREFIX_PATH'), True)
+        layout = QHBoxLayout()
+        layout.setMargin(0)
+        layout.addWidget(self.checkBox)
+        if thumbnailurl is not None:
+            pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                                Qt.SmoothTransformation)
+            self.iconLabel.setPixmap(thumb)
+            self.iconLabel.setFixedSize(48, 48)            
+            self.nam = QNetworkAccessManager()
+            self.nam.finished.connect(self.iconDownloaded)            
+            self.nam.get(QNetworkRequest(QUrl(thumbnailurl)))        
+            layout.addWidget(self.iconLabel)
+        layout.addWidget(self.nameLabel)
+        layout.addStretch()
+        layout.addWidget(self.toolsButton)
+        layout.addSpacing(10)
+        self.setLayout(layout)
 
-    # In python3 we need to convert to a bytes object (or should
-    # QgsApplication accept a QString instead of const char* ?)
-    try:
-        argvb = list(map(os.fsencode, sys.argv))
-    except AttributeError:
-        argvb = sys.argv
+        self.footprint = QgsRubberBand(iface.mapCanvas(),
+                              QgsWkbTypes.PolygonGeometry)        
+        self.footprint.setStrokeColor(PLANET_COLOR)
+        self.footprint.setWidth(2)
 
-    # Create a reference to the QgsApplication.  Setting the
-    # second argument to False disables the GUI.
-    qgs = QgsApplication(argvb, True)
+        self.transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().crs(),
+            QgsProject.instance()
+        )
 
-    # Load providers
-    qgs.initQgis()
+    def is_selected(self):
+        return self.checkBox.isChecked()
 
-    search_request = json.loads('''{"item_types": 
-    ["PSScene4Band", "PSScene3Band"], 
-    "filter": {"type": "AndFilter", "config": [{"field_name": "geometry", 
-    "type": "GeometryFilter", "config": {"type": "Polygon", "coordinates": [
-    [[-124.60010884388858, 36.207866384307614], [-119.61878664869495, 
-    36.207866384307614], [-119.61878664869495, 39.705780131667844], 
-    [-124.60010884388858, 39.705780131667844], [-124.60010884388858, 
-    36.207866384307614]]]}}, {"field_name": "cloud_cover", "type": 
-    "RangeFilter", "config": {"gte": 0, "lte": 100}}]}}''')
+    def _geom_bbox_in_project_crs(self):
+        return self.transform.transformBoundingBox(self.geom.boundingBox())
 
-    readSettings(settings_path=os.path.join(plugin_path, 'settings.json'))
-    SETTINGS_NAMESPACE = None
+    def _geom_in_project_crs(self):
+        geom = QgsGeometry(self.geom)
+        geom.transform(self.transform)
+        return geom
 
-    # tree = PlanetSearchResultsView(
-    #     parent=None, iface=None, api_key=apikey,
-    #     request_type=RESOURCE_DAILY, request=search_request)
-    # tree.show()
+    def show_footprint(self):                
+        self.footprint.setToGeometry(self._geom_in_project_crs())
 
-    wdgt = PlanetSearchResultsWidget(
-        parent=None, iface=None, api_key=apikey,
-        request_type=RESOURCE_DAILY, request=search_request,
-        sort_order=('acquired', 'desc'))
+    def hide_footprint(self):
+        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
 
-    # wrap in dialog
-    dlg = QDialog()
-    layout = QVBoxLayout(dlg)
-    image_lbl = QLabel(dlg)
-    layout.addWidget(wdgt)
-    # layout.setMargin(0)
+    def enterEvent(self, event):
+        self.setStyleSheet("ItemWidgetBase{border: 2px solid rgb(0, 157, 165);}")
+        self.show_footprint()
 
-    dlg.setMinimumHeight(700)
+    def leaveEvent(self, event):
+        self.setStyleSheet("ItemWidgetBase{border: 2px solid transparent;}")
+        self.hide_footprint()
+    
+    def zoom_to_extent(self):
+        rect = QgsRectangle(self._geom_bbox_in_project_crs())
+        rect.scale(1.05)
+        iface.mapCanvas().setExtent(rect)
+        iface.mapCanvas().refresh()
 
-    dlg.exec_()
+    def show_context_menu(self, evt):
+        menu = self._context_menu()
+        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
 
-    qgs.exitQgis()
+    def _context_menu(self):
+        menu = QMenu()
+        add_menu_section_action('Current item', menu)
+        zoom_act = QAction('Zoom to extent', menu)
+        zoom_act.triggered.connect(self.zoom_to_extent)
+        menu.addAction(zoom_act)
+        prev_layer_act = QAction('Add preview layer to map', menu)        
+        prev_layer_act.triggered.connect(self._add_preview_clicked)
+        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+            prev_layer_act.setEnabled(False)
+            prev_layer_act.setToolTip("The node contains too many images to preview")
+            menu.setToolTipsVisible(True)
+        menu.addAction(prev_layer_act)
+        return menu
 
-    sys.exit(0)
+    def _add_preview_clicked(self):
+        self.add_preview()
+
+    @waitcursor
+    def add_preview(self):
+        create_preview_group(
+            self.name(), 
+            self.item.images(),
+            tile_service='xyz'
+        )
+
+    def iconDownloaded(self, reply):
+        img = QImage()
+        img.loadFromData(reply.readAll())
+        pixmap = QPixmap(img)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+
+
+    def check_box_state_changed(self):
+        self.checkedStateChanged.emit()        
+        self.is_updating_checkbox = True
+        total = self.item.childCount()
+        if self.checkBox.isTristate():
+            self.checkBox.setTristate(False)            
+            self.checkBox.setChecked(False)
+        else:
+            for i in range(total):
+                w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+                w.set_checked(self.checkBox.isChecked())
+        self.is_updating_checkbox = False            
+
+    def update_checkbox(self):
+        if self.is_updating_checkbox:
+            return
+        selected = 0
+        total = self.item.childCount()
+        for i in range(total):
+            w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+            if w.is_selected():
+                selected += 1
+        self.checkBox.blockSignals(True)
+        if selected == total:
+            self.checkBox.setTristate(False)
+            self.checkBox.setCheckState(Qt.Checked)
+        elif selected == 0:
+            self.checkBox.setTristate(False)
+            self.checkBox.setCheckState(Qt.Unchecked)
+        else:
+            self.checkBox.setTristate(True)
+            self.checkBox.setCheckState(Qt.PartiallyChecked)
+        self.checkBox.blockSignals(False)
+        self.checkedStateChanged.emit()
+
+    def set_checked(self, checked):                
+        self.checkBox.setChecked(checked)
+
+        
+
+class DateItem(QTreeWidgetItem):
+
+    def __init__(self, image, sort_criteria):
+        QListWidgetItem.__init__(self)
+        properties = image[PROPERTIES]
+        self.date = iso8601.parse_date(properties[sort_criteria]).date()        
+        self.itemtype = properties[ITEM_TYPE]
+
+    def images(self):
+        images = []
+        for i in range(self.childCount()):
+            item = self.child(i)
+            images.extend(item.images())
+        return images
+
+class DateItemWidget(ItemWidgetBase):
+
+    def __init__(self, image, sort_criteria, item):
+        ItemWidgetBase.__init__(self, item)
+        self.has_new = True
+        self.image = image
+        self.properties = image[PROPERTIES]        
+        datetime = iso8601.parse_date(self.properties[sort_criteria])        
+        self.date = datetime.strftime('%b %d, %Y')
+
+        self._setup_ui("", None)
+        self.update_for_children()
+
+    def update_for_children(self):
+        size = 0
+        for i in range(self.item.childCount()):
+            child = self.item.child(i)
+            size += child.childCount()
+        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        self.children_count = size   
+        text = f"""{self.date}<br>
+                    <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>                    
+                    <span style="{count_style}">{size} images</span>"""
+        self.nameLabel.setText(text)
+
+        geoms = []
+        for i in range(self.item.childCount()):
+            child = self.item.child(i)
+            geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
+        self.geom = QgsGeometry.collectGeometry(geoms) 
+
+    def name(self):
+        return f"{self.date} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+
+class SatelliteItem(QTreeWidgetItem):
+
+    def __init__(self, satellite):
+        QListWidgetItem.__init__(self)
+        self.satellite = satellite
+
+    def images(self):
+        images = []
+        for i in range(self.childCount()):
+            item = self.child(i)
+            images.extend(item.images())
+        return images
+
+class SatelliteItemWidget(ItemWidgetBase):
+
+    def __init__(self, satellite, item):
+        ItemWidgetBase.__init__(self, item)
+        self.has_new = True
+        self.satellite = satellite        
+        self._setup_ui("", None)
+        self.update_for_children()
+
+    def update_for_children(self):
+        size = self.item.childCount()
+        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        self.children_count = size
+        text = f'''<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite}</span>
+                    <span style="{count_style}">({size} images)</span>'''
+        self.nameLabel.setText(text)
+
+        geoms = []
+        for i in range(size):
+            child = self.item.child(i)
+            geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
+        self.geom = QgsGeometry.collectGeometry(geoms)       
+
+    def name(self):
+        return f"Satellite {self.satellite}"
+
+class SceneItem(QTreeWidgetItem):
+
+    def __init__(self, image, sort_criteria):
+        QListWidgetItem.__init__(self)
+        self.image = image
+        self.date = iso8601.parse_date(image[PROPERTIES][sort_criteria])
+
+    def __lt__( self, other ):
+        if (not isinstance(other, SceneItem)):
+            return super(SceneItem, self).__lt__(other)
+
+        return self.date < other.date
+
+    def images(self):
+        return [self.image]
+
+class SceneItemWidget(ItemWidgetBase):
+
+    def __init__(self, image, sort_criteria, metadata_to_show, item):
+        ItemWidgetBase.__init__(self, item)
+        self.image = image        
+        self.metadata_to_show = metadata_to_show
+        self.properties = image[PROPERTIES]
+
+        datetime = iso8601.parse_date(self.properties[sort_criteria])
+        self.time = datetime.strftime('%H:%M:%S')
+        self.date = datetime.strftime('%b %d, %Y')
+        
+        text = self._get_text()
+        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        
+        self._setup_ui(text, url)
+
+        permissions = image[PERMISSIONS]
+        if len(permissions) == 0:
+            self.downloadable = False
+        else:
+            matches = [ITEM_ASSET_DL_REGEX.match(s) is not None
+                       for s in permissions]
+            self.downloadable = any(matches)
+
+        self.checkBox.setEnabled(self.downloadable)
+        self.geom = qgsgeometry_from_geojson(image[GEOMETRY])
+
+    def set_metadata_to_show(self, metadata_to_show):
+        self.metadata_to_show = metadata_to_show
+        self.update_text()
+
+    def update_text(self):
+        self.nameLabel.setText(self._get_text())
+
+    def _get_text(self):
+        metadata = ""
+        for i, value in enumerate(self.metadata_to_show):
+            spacer = "\n" if i == 1 else " "                
+            metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'          
+            
+        text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
+                        <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
+                        <span style="{SUBTEXT_STYLE}">{metadata}</span>
+                    """
+
+        return text
+
+    def _context_menu(self):
+        menu = super()._context_menu()
+
+        #TODO
+        return menu
+
+    def name(self):
+        return f"{self.date} {self.time} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+

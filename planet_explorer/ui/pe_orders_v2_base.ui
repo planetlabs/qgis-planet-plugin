@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string/>
+   <string>Orders</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
@@ -83,7 +83,7 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <property name="spacing">
-       <number>-1</number>
+       <number>6</number>
       </property>
       <property name="leftMargin">
        <number>0</number>
@@ -134,7 +134,7 @@
         <x>0</x>
         <y>0</y>
         <width>629</width>
-        <height>230</height>
+        <height>240</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">

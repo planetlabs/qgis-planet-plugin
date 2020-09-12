@@ -1,6 +1,7 @@
 import os
 import json
 import copy
+import enum
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
@@ -9,7 +10,15 @@ from qgis.PyQt.QtWidgets import (
     QSizePolicy
 )
 
-from ..planet_api.p_node import PlanetNodeMetadata
+class PlanetNodeMetadata(enum.Enum):    
+    CLOUD_PERCENTAGE = "cloud_percent"
+    GROUND_SAMPLE_DISTANCE = "gsd"
+    GROUND_CONTROL = "ground_control"
+    OFF_NADIR_ANGLE = "view_angle"
+    QUALITY_CATEGORY = "quality_category"
+    SATELLITE_ID = "satellite_id"
+    SUN_AZIMUTH = "sun_azimuth"
+    SUN_ELEVATION = "sun_elevation"
 
 WIDGET, BASE = uic.loadUiType(os.path.join(
         os.path.dirname(os.path.dirname(__file__)), 
@@ -20,7 +29,6 @@ class ResultsConfigurationDialog(BASE, WIDGET):
     def __init__(self, selection, parent=None):
         super(ResultsConfigurationDialog, self).__init__(parent)
         self.selection = selection
-        print(selection)
         
         self.setupUi(self)
 

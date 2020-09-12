@@ -61,12 +61,9 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsProject,
     QgsGeometry,
-    # QgsJsonExporter,
-    # QgsJsonUtils,
     QgsWkbTypes,
     QgsRectangle,
     QgsFeature,
-    # QgsFeatureIterator,
     QgsVectorLayer,
 )
 from qgis.gui import (
@@ -77,14 +74,11 @@ from qgis.gui import (
     QgsMapCanvas,
 )
 
-# from planet.api.models import Searches, JSON
+
 from planet.api.filters import (
-    # and_filter,
-    # build_search_request,
     date_range,
     geom_filter,
     not_filter,
-    # or_filter,
     range_filter,
     string_filter,
     permission_filter,
@@ -92,10 +86,8 @@ from planet.api.filters import (
 
 from planet.api.utils import geometry_from_json
 
-
 from ..planet_api.p_specs import (
-    DAILY_ITEM_TYPES,
-    MOSAIC_ITEM_TYPES,
+    DAILY_ITEM_TYPES
 )
 
 from ..pe_utils import (
@@ -403,7 +395,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         transform_extent = transform.transformBoundingBox(canvas_extent)
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
-        extent_json = geom_extent.asJson()
+        extent_json = geom_extent.asJson(precision=6)
 
         # noinspection PyArgumentList
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas.extent()))
@@ -442,7 +434,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         transform_extent = transform.transformBoundingBox(ml_extent)
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
-        extent_json = geom_extent.asJson()
+        extent_json = geom_extent.asJson(precision=6)
 
         # noinspection PyArgumentList,PyCallByClass
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
@@ -474,7 +466,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         transform_extent = transform.transformBoundingBox(canvas_extent)
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
-        extent_json = geom_extent.asJson()
+        extent_json = geom_extent.asJson(precision=6)
 
         # noinspection PyArgumentList,PyCallByClass
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas_extent))
@@ -523,13 +515,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             aoi_geom = QgsGeometry().fromRect(aoi)
             self._aoi_box.setToGeometry(aoi_geom)
             aoi_geom.transform(transform)
-            aoi_json = aoi_geom.asJson()
+            aoi_json = aoi_geom.asJson(precision=6)
 
         if isinstance(aoi, QgsGeometry):
             self._aoi_box.setToGeometry(aoi)
             # TODO: validate geom is less than 500 vertices
             aoi.transform(transform)
-            aoi_json = aoi.asJson()
+            aoi_json = aoi.asJson(precision=6)
 
         if aoi_json:
             self.leAOI.setText(aoi_json)
@@ -612,7 +604,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         # geom.transform(transform)
         geom.transform(trans_layer)
-        geom_json = geom.asJson()
+        geom_json = geom.asJson(precision=6)
         self.leAOI.setText(geom_json)
 
         geom.transform(trans_canvas)
@@ -651,7 +643,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         transform_bbox = trans_layer.transformBoundingBox(bbox)
         # noinspection PyArgumentList
         geom_bbox = QgsGeometry.fromRect(transform_bbox)
-        bbox_json = geom_bbox.asJson()
+        bbox_json = geom_bbox.asJson(precision=6)
 
         self.leAOI.setText(bbox_json)
 
@@ -692,7 +684,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         self.show_aoi()
 
-        zoom_canvas_to_aoi(self.leAOI.text(), iface_obj=self._iface)
+        zoom_canvas_to_aoi(self.leAOI.text())
 
         self.zoomToAOIRequested.emit()
 

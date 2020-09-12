@@ -73,12 +73,8 @@ from qgis.PyQt.QtXml import (
 )
 
 from qgis.core import (
-    # QgsPoint,
     QgsPointXY,
-    # QgsAbstractGeometry,
     QgsGeometry,
-    # QgsGeometryCollection,
-    # QgsMultiPolygon,
     QgsFeature,
     QgsField,
     QgsFields,
@@ -103,44 +99,28 @@ from qgis.gui import QgisInterface
 
 from qgis.utils import iface
 
-try:
-    from .planet_api.p_client import (
-        tile_service_url,
-    )
+from .planet_api.p_client import (
+    tile_service_url,
+)
 
-    from .planet_api.p_node import PlanetNode
+from .planet_api.p_node import PlanetNode
 
-    from .planet_api.p_utils import geometry_from_json_str_or_obj
+from .planet_api.p_utils import geometry_from_json_str_or_obj
 
-    from .planet_api.p_specs import (
-        ITEM_TYPE_SPECS,
-    )
+from .planet_api.p_specs import (
+    ITEM_TYPE_SPECS,
+)
 
-    from .gui.basemap_layer_widget import (
-        PLANET_MOSAICS,
-        PLANET_CURRENT_MOSAIC,
-        PLANET_MOSAIC_PROC,
-        PLANET_MOSAIC_RAMP,
-        PLANET_MOSAIC_DATATYPE,
-        PLANET_BASEMAP_LABEL,
-        WIDGET_PROVIDER_NAME
-    )
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    from planet_api.p_client import (
-        tile_service_url,
-    )
+from .gui.pe_basemap_layer_widget import (
+    PLANET_MOSAICS,
+    PLANET_CURRENT_MOSAIC,
+    PLANET_MOSAIC_PROC,
+    PLANET_MOSAIC_RAMP,
+    PLANET_MOSAIC_DATATYPE,
+    PLANET_BASEMAP_LABEL,
+    WIDGET_PROVIDER_NAME
+)
 
-    # noinspection PyUnresolvedReferences
-    from planet_api.p_node import PlanetNode
-
-    # noinspection PyUnresolvedReferences
-    from planet_api.p_utils import geometry_from_json_str_or_obj
-
-    # noinspection PyUnresolvedReferences
-    from planet_api.p_specs import (
-        ITEM_TYPE_SPECS,
-    )
 
 from qgiscommons2 import(
     settings
@@ -191,6 +171,8 @@ INTERVAL = "interval"
 FIRST_ACQUIRED = "first_acquired"
 LAST_ACQUIRED = "last_acquired"
 DATATYPE = "datatype"
+ID = "id"
+ITEM_TYPE = "item_type"
 
 def sentry_dsn():
     return os.environ.get("SEGMENTS_WRITE_KEY")
@@ -401,7 +383,6 @@ def add_menu_section_action(text, menu, tag='b', pad=0.5):
 
 def tile_service_data_src_uri(
         item_type_ids: List[str],
-        api_key: str,
         tile_hash: Optional[str] = None,
         service: str = 'xyz') -> Optional[str]:
     """
@@ -413,7 +394,7 @@ def tile_service_data_src_uri(
     """
 
     tile_url = tile_service_url(
-        item_type_ids, api_key, tile_hash=tile_hash, service=service)
+        item_type_ids, tile_hash=tile_hash, service=service)
 
     if tile_url:
         if service.lower() == 'wmts':
@@ -547,7 +528,7 @@ def py_to_qvariant_type(py_type: str) -> QVariant.Type:
     return type_map.get(py_type, QVariant.Invalid)
 
 
-def create_preview_vector_layer(node: PlanetNode = None):
+def create_preview_vector_layer(image):
     # noinspection PyArgumentList
     marker_line = QgsSimpleLineSymbolLayer(
         color=QColor(110, 88, 232, 100), width=1)
@@ -565,22 +546,20 @@ def create_preview_vector_layer(node: PlanetNode = None):
         QgsField('sort_order', QVariant.String),
     ]
 
-    if node:
-        i_specs: dict = ITEM_TYPE_SPECS.get(node.item_type(), None)
-        if i_specs:
-            i_props: dict = i_specs.get('properties', None)
-            if i_props:
-                for k, v in i_props.items():
-                    qgs_fields.append(QgsField(str(k), py_to_qvariant_type(v)))
+
+    i_specs: dict = ITEM_TYPE_SPECS.get(image['properties']['item_type'], None)
+    if i_specs:
+        i_props: dict = i_specs.get('properties', None)
+        if i_props:
+            for k, v in i_props.items():
+                qgs_fields.append(QgsField(str(k), py_to_qvariant_type(v)))
 
     dp.addAttributes(qgs_fields)
     return vlayer
 
-
 def create_preview_group(
         group_name: str,
-        nodes: List[PlanetNode],
-        api_key: str,
+        images: List[dict],
         tile_service: str = 'xyz',
         search_query: str = None,
         sort_order: Tuple[str, str] = None) -> None:
@@ -590,9 +569,9 @@ def create_preview_group(
                   f'{tile_service} (must be wmts or xyz)')
         return
 
-    item_type_ids = [n.item_type_id() for n in nodes]
+    item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}" for img in images]
     uri = tile_service_data_src_uri(
-        item_type_ids, api_key, service=tile_service)
+        item_ids, service=tile_service)
 
     if uri:
         log.debug(f'Tile datasource URI:\n{uri}')
@@ -603,41 +582,34 @@ def create_preview_group(
         return
 
     vlayer = None
-    if nodes:
-        first_node = nodes[0]
-        vlayer = create_preview_vector_layer(first_node)
-        i_specs: dict = ITEM_TYPE_SPECS.get(first_node.item_type(), None)
+    if images:
+        vlayer = create_preview_vector_layer(images[0])
 
         vlayer.startEditing()
         dp = vlayer.dataProvider()
         fields: List[QgsField] = vlayer.fields()
 
-        for node in nodes:
-            node: PlanetNode
+        for img in images:
             feat = QgsFeature()
             feat.setFields(fields)
-            qgs_geom = qgsgeometry_from_geojson(node.geometry())
+            qgs_geom = qgsgeometry_from_geojson(img['geometry'])
             feat.setGeometry(qgs_geom)
 
             f_names = [f.name() for f in fields]
 
             if 'item_id' in f_names:
-                feat['item_id'] = node.item_id()
-            if 'item_type' in f_names:
-                feat['item_type'] = node.item_type()
+                feat['item_id'] = img[ID]
+        
             if search_query and 'search_query' in f_names:
                 feat['search_query'] = json.dumps(search_query)
             if (sort_order and 'sort_order' in f_names
                     and len(sort_order) > 1):
                 feat['sort_order'] = ' '.join(sort_order)
 
-            if i_specs:
-                node_props: dict = node.item_properties()
-                if node_props:
-                    for k, v in node_props.items():
-                        # vlayer should have same attribute fields, but...
-                        if str(k) in f_names:
-                            feat[str(k)] = v
+            props: dict = img['properties']
+            for k, v in props.items():
+                if k in f_names:
+                    feat[k] = v
 
             dp.addFeature(feat)
 
@@ -659,31 +631,27 @@ def create_preview_group(
         iface.setActiveLayer(vlayer)
 
 
-def zoom_canvas_to_aoi(json_type, iface_obj: QgisInterface = None):
-    iface_obj = iface_obj or iface
-    if not iface_obj:
-        log.debug('No iface object, skipping AOI extent')
-        return
-
-    if not json_type:
-        log.debug('No AOI defined, skipping zoom to AOI')
-        return
-
-    qgs_geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
-
-    # noinspection PyArgumentList
+def zoom_canvas_to_geometry(geom):
     transform = QgsCoordinateTransform(
         QgsCoordinateReferenceSystem("EPSG:4326"),
         QgsProject.instance().crs(),
         QgsProject.instance()
     )
     rect: QgsRectangle = transform.transformBoundingBox(
-        qgs_geom.boundingBox())
+        geom.boundingBox())
 
     if not rect.isEmpty():
         rect.scale(1.05)
-        iface_obj.mapCanvas().setExtent(rect)
-        iface_obj.mapCanvas().refresh()
+        iface.mapCanvas().setExtent(rect)
+        iface.mapCanvas().refresh()
+
+def zoom_canvas_to_aoi(json_type):
+    if not json_type:
+        log.debug('No AOI defined, skipping zoom to AOI')
+        return
+
+    geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
+    zoom_canvas_to_geometry(geom)
 
 
 def resource_file(f):

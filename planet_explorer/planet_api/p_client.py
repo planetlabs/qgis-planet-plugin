@@ -207,40 +207,6 @@ class PlanetClient(QObject):
             return self.client.auth.value not in [None, '', API_KEY_DEFAULT]
         return False
 
-    # def thumbnail_image(self, thumb_url=None, item_type=None, item_id=None):
-    #     url = thumb_url
-    #
-    #     if item_type is not None and item_id is not None:
-    #         if not self.has_api_key():
-    #             log.warning('No API key for thumbnail image download')
-    #             return QPixmap()
-    #         url = f'https://tiles.planet.com/data/v1/item-types/' \
-    #               f'{item_type}/items/{item_id}/thumb' \
-    #               f'?api_key={self.api_key()}'
-    #
-    #     if url is None:
-    #         log.warning('No valid URL for thumbnail image download')
-    #         return QPixmap()
-    #
-    #     dispatcher = self.client.dispatcher
-    #
-    #     # TODO: This should download the thumb instead, to cache on disk
-    #     #       and to allow generation of thumb.pgw world files
-    #     # TODO: Try/catch requests errors
-    #     result = dispatcher.dispatch_request(method="GET", url=url)
-    #     # TODO: This blocks, needs ...
-    #     #       result.get_body_async(callback)
-    #     #       and the callback func/method
-    #     # TODO: This *should* use QgsNetworkContentFetcherRegistry, but this
-    #     #       class should not include qgis modules. Maybe test to see if
-    #     #       qgis.core has been imported globally, then conditionally use?
-    #     image_data = result.content
-    #
-    #     qp = QPixmap()
-    #     qp.loadFromData(image_data)
-    #
-    #     # Previously returned QImage, but QPixmap is a better base UI image
-    #     return qp
 
     def quick_search(self, request, callback=None, **kwargs):
         """
@@ -288,7 +254,7 @@ class PlanetClient(QObject):
         if callback:
             response.get_body_async(callback)
 
-        return response
+        return response.get_body()
 
     # noinspection PyUnusedLocal
     def create_order(self, request, callback=None, **kwargs):
@@ -412,7 +378,6 @@ class PlanetClient(QObject):
         )
         item_descriptions = []
         items = response.get_body().get().get("items")
-        print(items)
         for item in items:
             if item['link'].startswith("https://api.planet.com"):
                 response = self.client.dispatcher.response(
@@ -571,15 +536,14 @@ class PlanetClient(QObject):
         return area_total >= quota_remaining
 
 
-def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
+def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
     """
     :param item_type_ids: List of item Type:IDs
     :param api_key: API key string
     :return: Tile service hash that can be used in tile URLs
     """
-    if not api_key:
-        log.debug('No API key, skipping tile hash')
-        return None
+
+    api_key = PlanetClient.getInstance().api_key()
 
     if not item_type_ids:
         log.debug('No item type:ids passed, skipping tile hash')
@@ -611,7 +575,7 @@ def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
     #             return res_json['name']
 
     # Via requests
-    # FIXME: Should be using the above code, not direct call to requests
+    # FIXME: Should be using the above code, not direct call to requests    
     res = post(tile_url, auth=(api_key, ''), data=data)
     if res.ok:
         res_json = res.json()
@@ -627,7 +591,6 @@ def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
 
 def tile_service_url(
         item_type_ids: List[str],
-        api_key: str,
         tile_hash: Optional[str] = None,
         service: str = 'xyz') -> Optional[str]:
     """
@@ -637,15 +600,13 @@ def tile_service_url(
     :param service: Either 'xyz' or 'wmts'
     :return: Tile service URL
     """
-    if not api_key:
-        log.debug('No API key, skipping tile URL')
-        return None
+    api_key = PlanetClient.getInstance().api_key()
 
     if not tile_hash:
         if not item_type_ids:
             log.debug('No item type:ids passed, skipping tile URL')
             return None
-        tile_hash = tile_service_hash(item_type_ids, api_key)
+        tile_hash = tile_service_hash(item_type_ids)
 
     if not tile_hash:
         log.debug('No tile URL hash passed, skipping tile URL')

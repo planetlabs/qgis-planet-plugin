@@ -83,7 +83,7 @@ from ..planet_api import (
     PlanetClient
 )
 
-from ..planet_api.quad_orders import (
+from ..planet_api.p_quad_orders import (
     create_quad_order_from_quads,
     create_quad_order_from_mosaics
 )
@@ -125,8 +125,8 @@ from .pe_orders_monitor_dockwidget import (
 )
 
 from .extended_combobox import ExtendedComboBox
-from .quads_treewidget import QuadsTreeWidget
-from .basemaps_list_widget import BasemapsListWidget
+from .pe_quads_treewidget import QuadsTreeWidget
+from .pe_basemaps_list_widget import BasemapsListWidget
 
 ID = "id"
 SERIES = "series"

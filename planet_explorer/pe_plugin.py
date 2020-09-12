@@ -72,9 +72,7 @@ from qgiscommons2.gui.settings import (
 )
 from qgiscommons2.gui import (
     addAboutMenu,
-    removeAboutMenu,
-    # addHelpMenu,
-    # removeHelpMenu,
+    removeAboutMenu
 )
 
 # Initialize Qt resources from file resources.py
@@ -102,9 +100,9 @@ from planet_explorer.pe_utils import (
 
 from planet_explorer.planet_api import PlanetClient
 
-from planet_explorer.planet_api.apikey_replacer import replace_apikeys
+from planet_explorer.planet_api.p_apikey_replacer import replace_apikeys
 
-from planet_explorer.gui.basemap_layer_widget import (
+from planet_explorer.gui.pe_basemap_layer_widget import (
     BasemapLayerWidgetProvider
 )
 

@@ -65,11 +65,11 @@ from qgiscommons2.settings import (
     setPluginSetting
 )
 
-from .basemaps_widget import  (
+from .pe_basemaps_widget import  (
     BasemapsWidget
 )
 
-from .dailyimages_widget import  (
+from .pe_dailyimages_widget import  (
     DailyImagesWidget
 )
 

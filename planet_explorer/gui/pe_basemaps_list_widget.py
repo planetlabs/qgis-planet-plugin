@@ -83,7 +83,7 @@ from ..planet_api import (
     PlanetClient
 )
 
-from ..planet_api.quad_orders import (
+from ..planet_api.p_quad_orders import (
     create_quad_order_from_quads
 )
 

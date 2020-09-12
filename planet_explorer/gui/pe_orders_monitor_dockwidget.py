@@ -137,11 +137,11 @@ from planet.api.models import (
     MosaicQuads
 )
 
-from ..planet_api.quad_orders import (
+from ..planet_api.p_quad_orders import (
     quad_orders
 )
 
-from ..planet_api.order_tasks import (
+from ..planet_api.p_order_tasks import (
     QuadsOrderProcessorTask,
     OrderProcessorTask
 )

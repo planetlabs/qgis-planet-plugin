@@ -58,7 +58,7 @@ from planet.api.filters import (
     build_search_request
 )
 
-from .show_curl_dialog import (
+from .pe_show_curl_dialog import (
     ShowCurlDialog
 )
 
@@ -117,17 +117,13 @@ class DailyImagesWidget(BASE, WIDGET):
         self.btnBackFromFilters.clicked.connect(self.hide_filters)
         self.btnClearFilters.clicked.connect(self.clear_filters)
 
-        self.searchResultsWidget = PlanetSearchResultsWidget(
-                iface=iface,
-                api_key=self.p_client.api_key()
-            )
+        self.searchResultsWidget = PlanetSearchResultsWidget()
         layout = QVBoxLayout()
         layout.setMargin(0)        
         self.grpBoxResults.setLayout(layout)
         self.grpBoxResults.layout().addWidget(self.searchResultsWidget)
-        self.searchResultsWidget.checkedCountChanged.connect(self._update_checked_queue_set)
+        self.searchResultsWidget.checkedCountChanged.connect(self._update_orders_button)
         self.searchResultsWidget.setAOIRequested.connect(self.set_aoi_from_request)
-        #self.searchResultsWidget.zoomToAOIRequested.connect(self._prepare_for_zoom_to_search_aoi)
         self.searchResultsWidget.searchSaved.connect(self._search_saved)
 
         self._toggle_search_highlight(True)
@@ -151,7 +147,6 @@ class DailyImagesWidget(BASE, WIDGET):
         self._default_filter_values = build_search_request(
                                 self._filters, self._sources)
 
-        
     def show_filters(self):
         self.stackedWidgetDailyImagery.setCurrentIndex(1)
 
@@ -172,25 +167,9 @@ class DailyImagesWidget(BASE, WIDGET):
             self.btnSearch.setIcon(
                 QIcon(':/plugins/planet_explorer/search.svg'))
 
-    @pyqtSlot()
-    def _update_checked_queue_set(self):
-        tab_queues = []
-        if self.searchResultsWidget.search_has_been_performed():            
-            tab_queues.append(self.searchResultsWidget.checked_queue())
-
-        # unique item_type:item_id key grouping set
-        new_queue_set = set().union(*tab_queues)
-
-        self._checked_queue_set = new_queue_set
-
-        self._update_checked_queue_set_count()
-
-    @pyqtSlot()
-    def _update_checked_queue_set_count(self):
-        self._checked_queue_set_count = len(self._checked_queue_set)
-
+    def _update_orders_button(self, count):
         self.btnOrder.setText(
-            f'Order ({self._checked_queue_set_count} items)')
+            f'Order ({count} items)')
 
     # noinspection PyUnusedLocal
     @pyqtSlot()
@@ -314,68 +293,14 @@ class DailyImagesWidget(BASE, WIDGET):
 
     def _search_saved(self, request):
         self._main_filters.add_saved_search(request)
-        
-    def _collect_checked_nodes(self):
-        tab_queues = []
-        
-        tab_queues.append(self.searchResultsWidget.checked_queue())
-
-        # Per-tab checked_queue() are a 1-to-1 dict of {'item_type:id': node}
-
-        # An item_type:id may be checked in trees across multiple tabs.
-        # Use a ChainMap view to resolve dupes and for faster iteration;
-        # because, although the nodes in each tree's model may be different
-        # (e.g. index), the actual metadata and thumbnail are the same.
-        # This means the earliest found item_type:id will be used regardless
-        # of the which tabs it is checked in.
-        tab_queue_chainmap = ChainMap(*tab_queues)
-
-        # _checked_queue_set is a set of unique, checked item_type:item_id keys
-
-        # A dict of {'item_type': [nodes]}
-        self._checked_item_type_nodes.clear()
-
-        for chkd_it_id in sorted(self._checked_queue_set, reverse=True):
-            if ':' not in chkd_it_id:
-                log.debug(f'Item type:id is not valid')
-                continue
-            it_type = chkd_it_id.split(':')[0]
-
-            if it_type not in self._checked_item_type_nodes:
-                self._checked_item_type_nodes[it_type] = []
-            if chkd_it_id in tab_queue_chainmap:
-                self._checked_item_type_nodes[it_type].append(
-                    tab_queue_chainmap[chkd_it_id]
-                )
-            else:
-                # This should not happen
-                log.debug('Item type:id in checked queue, but NOT in any tab')
-
-        # Now sort each item_type's node list by date acquired, descending,
-        # even though tabs may have been sorted acquired|published, asc|desc
-        for item_type in self._checked_item_type_nodes:
-            self._checked_item_type_nodes[item_type].sort(
-                key=attrgetter('_acquired'), reverse=True)
-
-        # When using with {'item_type': set(nodes)}
-        if LOG_VERBOSE:
-            for it_id in self._checked_item_type_nodes:
-                # Possibly super verbose output...
-                nl = '\n'
-                i_types = \
-                    [n.item_id() for n in self._checked_item_type_nodes[it_id]]
-                log.debug(f'\n  - {it_id}: '
-                          f'{len(self._checked_item_type_nodes[it_id])}\n'
-                          f'    - {"{0}    - ".format(nl).join(i_types)}')
-
 
     @pyqtSlot()
     def order_checked(self):
         log.debug('Order initiated')
 
-        self._collect_checked_nodes()
+        selected = self.searchResultsWidget.selected_images()
 
-        if not self._checked_item_type_nodes:
+        if not selected:
             self.parent.show_message(f'No checked items to order',
                               level=Qgis.Warning,
                               duration=10)
@@ -388,11 +313,10 @@ class DailyImagesWidget(BASE, WIDGET):
             tool_resources['aoi'] = None
 
         dlg = PlanetOrdersDialog(
-            self._checked_item_type_nodes,
-            p_client=self.p_client,
+            selected,
+            self.searchResultsWidget.sort_order()[0],
             tool_resources=tool_resources,
-            parent=self,
-            iface=iface,
+            parent=self
         )
 
         dlg.setMinimumWidth(700)
@@ -427,7 +351,6 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(self.p_client.api_key())
         self.parent.show_message('API key copied to clipboard')
-
 
     def clean_up(self):
         self._main_filters.clean_up()
