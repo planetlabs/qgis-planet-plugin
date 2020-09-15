@@ -111,13 +111,7 @@ from ..pe_utils import (
 from ..planet_api.p_client import (
     PlanetClient,
 )
-from ..planet_api.p_node import (
-    PlanetNode,
-    # PlanetNodeType,
-)
-from ..planet_api.p_thumnails import (
-    PlanetThumbnailCache,
-)
+
 from ..planet_api.p_network import (
     PlanetCallbackWatcher,
     dispatch_callback,
@@ -665,9 +659,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             f'Place Order{"s" if len(images) > 1 else ""}')        
         self.buttonBox.accepted.connect(self.place_orders)        
         self.buttonBox.rejected.connect(self.reject)
-
-        self._thumb_cache_dir: str = pluginSetting(
-            'thumbCachePath', namespace=SETTINGS_NAMESPACE)
 
         first = None
         images_dict = defaultdict(list)

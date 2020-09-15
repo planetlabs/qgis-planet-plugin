@@ -88,10 +88,6 @@ from ..planet_api.p_quad_orders import (
     create_quad_order_from_mosaics
 )
 
-from ..planet_api.p_node import (
-    PLACEHOLDER_THUMB
-)
-
 from .pe_filters import (
     PlanetMainFilters
 )
@@ -134,7 +130,6 @@ THUMB = "thumb"
 BBOX = "bbox"
 
 QUADS_PER_PAGE = 50
-
 MAX_QUADS_TO_DOWNLOAD = 100
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]

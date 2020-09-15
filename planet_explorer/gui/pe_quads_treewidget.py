@@ -86,10 +86,6 @@ from ..planet_api.p_quad_orders import (
     create_quad_order_from_quads
 )
 
-from ..planet_api.p_node import (
-    PLACEHOLDER_THUMB
-)
-
 from .pe_filters import (
     PlanetMainFilters
 )
@@ -129,9 +125,7 @@ THUMBNAIL = "thumbnail"
 PERCENT_COVERED = "percent_covered"
 BBOX = "bbox"
 
-QUADS_PER_PAGE = 50
-
-MAX_QUADS_TO_DOWNLOAD = 100
+PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
 class QuadsTreeWidget(QTreeWidget):
 

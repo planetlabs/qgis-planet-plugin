@@ -79,10 +79,6 @@ from qgiscommons2.gui import (
 # noinspection PyUnresolvedReferences
 from planet_explorer.resources import resources
 
-from planet_explorer.planet_api.p_thumnails import (
-    TEMP_CACHE_DIR,
-)
-
 from planet_explorer.gui.pe_explorer_dockwidget import (
     show_explorer,
     toggle_explorer
@@ -413,15 +409,6 @@ class PlanetExplorer(object):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
         self.provider.logoutLayerWidgets()
-        
-        # Delete the contents of the thumbnail temp directory
-        if os.path.exists(TEMP_CACHE_DIR) and 'p_thumbcache' in TEMP_CACHE_DIR:
-            for f_name in os.listdir(TEMP_CACHE_DIR):
-                f_path = os.path.join(TEMP_CACHE_DIR, f_name)
-                try:
-                    shutil.rmtree(f_path)
-                except OSError:
-                    os.remove(f_path)
 
         removeSettingsMenu(P_E, self.iface.removePluginWebMenu)
         # removeHelpMenu(P_E, self.iface.removePluginWebMenu)

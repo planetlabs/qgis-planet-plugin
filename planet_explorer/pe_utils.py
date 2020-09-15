@@ -103,8 +103,6 @@ from .planet_api.p_client import (
     tile_service_url,
 )
 
-from .planet_api.p_node import PlanetNode
-
 from .planet_api.p_utils import geometry_from_json_str_or_obj
 
 from .planet_api.p_specs import (

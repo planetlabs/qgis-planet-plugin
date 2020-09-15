@@ -128,10 +128,6 @@ from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT
 )
 
-from ..planet_api.p_node import (
-       PLACEHOLDER_THUMB
-)
-
 from planet.api.models import (
     Mosaics,
     MosaicQuads
@@ -181,12 +177,12 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
 INSPECTOR_ICON = QIcon(os.path.join(plugin_path, "resources", "inspector.png"))
+PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
-
 
 ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
     os.path.join(plugin_path, 'ui', 'pe_planet_inspector_dockwidget.ui'),

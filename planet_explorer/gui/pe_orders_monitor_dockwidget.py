@@ -128,10 +128,6 @@ from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT
 )
 
-from ..planet_api.p_node import (
-       PLACEHOLDER_THUMB
-)
-
 from planet.api.models import (
     Mosaics,
     MosaicQuads

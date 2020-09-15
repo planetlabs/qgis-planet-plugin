@@ -111,7 +111,7 @@ from ..pe_utils import (
     qgsgeometry_from_geojson,
     add_menu_section_action,
     remove_maplayers_by_name,
-    zoom_canvas_to_aoi,
+    zoom_canvas_to_geometry,
     create_preview_group,
     SEARCH_AOI_COLOR,
     PLANET_COLOR
@@ -411,7 +411,7 @@ class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             QgsCoordinateReferenceSystem("EPSG:4326")
         )        
 
-        zoom_canvas_to_geometry(geom, iface_obj=iface)
+        zoom_canvas_to_geometry(geom)
 
     def clean_up(self):
         self.clear_aoi_box()
@@ -726,7 +726,7 @@ class SceneItemWidget(ItemWidgetBase):
     def _get_text(self):
         metadata = ""
         for i, value in enumerate(self.metadata_to_show):
-            spacer = "\n" if i == 1 else " "                
+            spacer = "<br>" if i == 1 else " "                
             metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'          
             
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>

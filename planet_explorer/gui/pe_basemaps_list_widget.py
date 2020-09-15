@@ -87,10 +87,6 @@ from ..planet_api.p_quad_orders import (
     create_quad_order_from_quads
 )
 
-from ..planet_api.p_node import (
-    PLACEHOLDER_THUMB
-)
-
 from .pe_filters import (
     PlanetMainFilters
 )
@@ -130,6 +126,7 @@ BBOX = "bbox"
 THUMB = "thumb"
 
 COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
+PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
 class BasemapsListWidget(QListWidget):
 
