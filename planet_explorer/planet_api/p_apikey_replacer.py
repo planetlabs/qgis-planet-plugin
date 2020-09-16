@@ -22,6 +22,7 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import re
+import urllib.parse
 
 from qgis.core import(
     QgsProject,
@@ -46,19 +47,22 @@ def is_planet_layer(url):
 
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
 
-def replace_apikeys():    
+def replace_apikeys():
     for layerid, layer in QgsProject.instance().mapLayers().items():
         replace_apikey_for_layer(layer)
 
 def replace_apikey_for_layer(layer):
-    source = layer.source()
-    if is_planet_layer(source) and not PLANET_CURRENT_MOSAIC in layer.customPropertyKeys():
-        client = PlanetClient.getInstance()     
+    source = urllib.parse.unquote(layer.source())
+    if is_planet_layer(source):# and not PLANET_CURRENT_MOSAIC in layer.customPropertyKeys():
+        client = PlanetClient.getInstance()
+        tokens = [t for t in source.split("&") if not t.startswith("api_key=")]
         if client.has_api_key():
-            newsource = source.split("api_key=")[0] + "api_key=" + client.api_key()
+            tokens.append("api_key=" + client.api_key())
+            newsource = "&".join(tokens)
             newsource = newsource.replace(PLANET_ROOT_URL_PLACEHOLDER, PLANET_ROOT_URL)
         else:
-            newsource = source.split("api_key=")[0] + "api_key="
+            tokens.append("api_key=")
+            newsource = "&".join(tokens)
             newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
         layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), QgsDataProvider.ProviderOptions())
         layer.triggerRepaint()

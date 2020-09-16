@@ -232,7 +232,9 @@ class BasemapLayerWidget(QWidget):
         procparam = quote(f'&proc={proc}') if proc != "default" else ""
         rampparam = quote(f'&color={ramp}') if self.can_use_indices() else ""
         uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"        
-        self.layer.dataProvider().setDataSourceUri(uri)
+        provider = self.layer.dataProvider()
+        if provider is not None:            
+            provider.setDataSourceUri(uri)
         self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
         self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
         self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
@@ -286,6 +288,7 @@ class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
         widget = BasemapLayerWidget(layer)
         self.widgets[layer.id()] = widget
         return widget
+            
 
     def supportsLayer(self, layer):    
         return PLANET_CURRENT_MOSAIC in layer.customPropertyKeys()
