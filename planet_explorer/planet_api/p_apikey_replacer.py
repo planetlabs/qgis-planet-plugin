@@ -55,14 +55,20 @@ def replace_apikey_for_layer(layer):
     source = urllib.parse.unquote(layer.source())
     if is_planet_layer(source):# and not PLANET_CURRENT_MOSAIC in layer.customPropertyKeys():
         client = PlanetClient.getInstance()
-        tokens = [t for t in source.split("&") if not t.startswith("api_key=")]
-        if client.has_api_key():
-            tokens.append("api_key=" + client.api_key())
-            newsource = "&".join(tokens)
+        tokens = source.split("api_key=")
+        if len(tokens) == 1:
+            tokens.append("")
+        else:
+            try:
+                idx = tokens[1].index("&")
+                tokens[1] = tokens[1][idx:]
+            except ValueError:
+                tokens[1] = ""            
+        if client.has_api_key():             
+            newsource = f"{tokens[0]}api_key={client.api_key()}{tokens[1]}"
             newsource = newsource.replace(PLANET_ROOT_URL_PLACEHOLDER, PLANET_ROOT_URL)
         else:
-            tokens.append("api_key=")
-            newsource = "&".join(tokens)
+            newsource = f"{tokens[0]}api_key={tokens[1]}"
             newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
         layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), QgsDataProvider.ProviderOptions())
         layer.triggerRepaint()

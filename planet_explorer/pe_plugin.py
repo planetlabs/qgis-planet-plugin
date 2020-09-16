@@ -315,10 +315,15 @@ class PlanetExplorer(object):
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
 
         QgsProject.instance().projectSaved.connect(self.project_saved)
+        QgsProject.instance().layerLoaded.connect(self.project_layer_loaded)
 
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
 
         self.enable_buttons(False)
+
+    def project_layer_loaded(self, i, n):
+        if i == n:
+            replace_apikeys()
 
     def login_changed(self, loggedin):
         replace_apikeys()
@@ -430,8 +435,7 @@ class PlanetExplorer(object):
         sys.excepthook = self.qgis_hook
 
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
-
-        # self.plugin_is_active = False
+        QgsProject.instance().layerLoaded.disconnect(self.project_layer_loaded)
 
     #-----------------------------------------------------------        
 
