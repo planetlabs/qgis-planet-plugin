@@ -76,7 +76,7 @@ from .pe_filters import (
     filters_from_request
 )
 
-from .pe_search_results import PlanetSearchResultsWidget
+from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
 
 from ..pe_utils import (
     area_from_geojsons,
@@ -117,7 +117,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self.btnBackFromFilters.clicked.connect(self.hide_filters)
         self.btnClearFilters.clicked.connect(self.clear_filters)
 
-        self.searchResultsWidget = PlanetSearchResultsWidget()
+        self.searchResultsWidget = DailyImagesSearchResultsWidget()
         layout = QVBoxLayout()
         layout.setMargin(0)        
         self.grpBoxResults.setLayout(layout)

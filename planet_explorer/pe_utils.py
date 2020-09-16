@@ -92,7 +92,8 @@ from qgis.core import (
     QgsLayerTree,
     QgsLayerTreeGroup,
     QgsReadWriteContext,
-    QgsApplication
+    QgsApplication,
+    QgsVectorFileWriter
 )
 
 from qgis.gui import QgisInterface
@@ -558,6 +559,7 @@ def create_preview_vector_layer(image):
 def create_preview_group(
         group_name: str,
         images: List[dict],
+        footprints_filename,
         tile_service: str = 'xyz',
         search_query: str = None,
         sort_order: Tuple[str, str] = None) -> None:
@@ -613,7 +615,11 @@ def create_preview_group(
 
         vlayer.commitChanges()
 
-        # noinspection PyArgumentList
+        if footprints_filename:
+            QgsVectorFileWriter.writeAsVectorFormat(vlayer, footprints_filename, "UTF-8")
+            gpkglayer = QgsVectorLayer(footprints_filename, 'Footprints')
+            gpkglayer.setRenderer(vlayer.renderer().clone())
+            vlayer = gpkglayer
         QgsProject.instance().addMapLayer(vlayer, False)
 
     # noinspection PyArgumentList

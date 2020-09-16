@@ -71,7 +71,8 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QTreeWidgetItem,
     QWidget,
-    QTreeWidgetItemIterator
+    QTreeWidgetItemIterator,
+    QFileDialog
 )
 
 from PyQt5.QtNetwork import (
@@ -161,7 +162,7 @@ RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
-class PlanetSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
+class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     zoomToAOIRequested = pyqtSignal()
     setAOIRequested = pyqtSignal(dict)
@@ -468,21 +469,25 @@ class ItemWidgetBase(QFrame):
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
-        self.transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance().crs(),
-            QgsProject.instance()
-        )
-
     def is_selected(self):
         return self.checkBox.isChecked()
 
     def _geom_bbox_in_project_crs(self):
-        return self.transform.transformBoundingBox(self.geom.boundingBox())
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().crs(),
+            QgsProject.instance()
+        )        
+        return transform.transformBoundingBox(self.geom.boundingBox())
 
     def _geom_in_project_crs(self):
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().crs(),
+            QgsProject.instance()
+        )
         geom = QgsGeometry(self.geom)
-        geom.transform(self.transform)
+        geom.transform(transform)
         return geom
 
     def show_footprint(self):                
@@ -515,23 +520,32 @@ class ItemWidgetBase(QFrame):
         zoom_act = QAction('Zoom to extent', menu)
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
-        prev_layer_act = QAction('Add preview layer to map', menu)        
-        prev_layer_act.triggered.connect(self._add_preview_clicked)
+        prev_layer_act = QAction('Add preview layers to map (footprints as memory layer)', menu)
+        prev_layer_act.triggered.connect(self._add_preview_memory_clicked)
+        menu.addAction(prev_layer_act)
+        prev_layer_act = QAction('Add preview layer to map(footprints as gpkg layer)', menu)        
+        prev_layer_act.triggered.connect(self._add_preview_gpkg_clicked)
+        menu.addAction(prev_layer_act)        
         if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             prev_layer_act.setEnabled(False)
             prev_layer_act.setToolTip("The node contains too many images to preview")
             menu.setToolTipsVisible(True)
-        menu.addAction(prev_layer_act)
         return menu
 
-    def _add_preview_clicked(self):
-        self.add_preview()
+    def _add_preview_gpkg_clicked(self):
+        filename, _ = QFileDialog.getSaveFileName(self, "Footprints layer filename", "", '*.gpkg')        
+        if filename is not None:
+            self.add_preview(filename)
+
+    def _add_preview_memory_clicked(self):
+        self.add_preview(None)
 
     @waitcursor
-    def add_preview(self):
+    def add_preview(self, footprints_filename):
         create_preview_group(
             self.name(), 
             self.item.images(),
+            footprints_filename,
             tile_service='xyz'
         )
 
