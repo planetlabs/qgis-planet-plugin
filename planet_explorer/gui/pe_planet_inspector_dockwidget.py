@@ -410,6 +410,8 @@ dockwidget_instance = None
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
+        if not PlanetClient.getInstance().has_api_key():
+            return None
         dockwidget_instance = PlanetInspectorDockWidget(
             parent=iface.mainWindow())        
         dockwidget_instance.setAllowedAreas(
@@ -422,11 +424,13 @@ def _get_widget_instance():
 
 def show_inspector():
     wdgt = _get_widget_instance()
-    wdgt.show()
+    if wdgt is not None:
+        wdgt.show()
 
 def hide_inspector():
     wdgt = _get_widget_instance()    
-    wdgt.hide()
+    if wdgt is not None:
+        wdgt.hide()
 
 def toggle_inspector():
     wdgt = _get_widget_instance()

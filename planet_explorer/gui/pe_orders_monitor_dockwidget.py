@@ -380,6 +380,8 @@ dockwidget_instance = None
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
+        if not PlanetClient.getInstance().has_api_key():
+            return None
         dockwidget_instance = PlanetOrdersMonitorDockWidget(
             parent=iface.mainWindow())        
         dockwidget_instance.setAllowedAreas(
@@ -392,13 +394,15 @@ def _get_widget_instance():
 
 def show_orders_monitor(refresh=True):
     wdgt = _get_widget_instance()
-    if refresh:
-        wdgt.refresh_list()
-    wdgt.show()
+    if wdgt is not None:
+        if refresh:
+            wdgt.refresh_list()
+        wdgt.show()
 
-def hide_orders_monitor():
-    wdgt = _get_widget_instance()    
-    wdgt.hide()
+def hide_orders_monitor():    
+    wdgt = _get_widget_instance()
+    if wdgt is not None:
+        wdgt.hide()
 
 def refresh_orders():
     wdgt = _get_widget_instance()    
