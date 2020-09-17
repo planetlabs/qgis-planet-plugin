@@ -29,7 +29,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="searchPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -226,16 +226,16 @@ font-weight: bold;
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="lblCheckInstances">
             <property name="text">
              <string>Check  instances of the selected basemap to Order</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="chkSelectAllMosaics">
+           <widget class="QLabel" name="lblSelectAllMosaics">
             <property name="text">
-             <string>Select All</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select: &lt;a href=&quot;all&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;All   &lt;/span&gt;&lt;/a&gt;&amp;nbsp;&amp;nbsp;&lt;a href=&quot;none&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;None&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>
@@ -784,9 +784,9 @@ Review the quads by basemap instance.</string>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_8">
             <item>
-             <widget class="QCheckBox" name="chkSelectAllQuads">
+             <widget class="QLabel" name="lblSelectAllQuads">
               <property name="text">
-               <string>Select All</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select: &lt;a href=&quot;all&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;All   &lt;/span&gt;&lt;/a&gt;&amp;nbsp;&amp;nbsp;&lt;a href=&quot;none&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;None&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
              </widget>
             </item>

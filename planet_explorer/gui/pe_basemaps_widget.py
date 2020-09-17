@@ -215,8 +215,8 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.grpBoxFilter.collapsedStateChanged.connect(self.collapse_state_changed)
 
-        self.chkSelectAllMosaics.stateChanged.connect(self.select_all)
-        self.chkSelectAllQuads.stateChanged.connect(self.select_all_quads)
+        self.lblSelectAllMosaics.linkActivated.connect(self.batch_select_mosaics_clicked)
+        self.lblSelectAllQuads.linkActivated.connect(self.batch_select_quads_clicked)
         self.chkGroupByQuad.stateChanged.connect(self._populate_quads)
 
     def init(self):
@@ -226,11 +226,13 @@ class BasemapsWidget(BASE, WIDGET):
             self.btn_filter_clicked(self.btnAll)
             self._initialized = True
 
-    def select_all(self):
-        self.mosaicsList.setAllChecked(self.chkSelectAllMosaics.isChecked())
+    def batch_select_mosaics_clicked(self, url="all"):
+        checked = url == "all"
+        self.mosaicsList.setAllChecked(checked)
 
-    def select_all_quads(self):
-        self.quadsTree.setAllChecked(self.chkSelectAllQuads.isChecked())
+    def batch_select_quads_clicked(self, url="all"):
+        checked = url == "all"
+        self.quadsTree.setAllChecked(checked)
 
     def collapse_state_changed(self, collapsed):
         if not collapsed:
@@ -263,7 +265,7 @@ class BasemapsWidget(BASE, WIDGET):
         
         self.comboSeriesName.clear()
         self.comboSeriesName.addItem("", None)
-        self.chkSelectAllMosaics.setChecked(False)
+        self.batch_select_mosaics_clicked("none")
         self.btnOrder.setText("Order (0 instances)")
         if category_btn == self.btnAll:
             series = self.series()
@@ -275,12 +277,18 @@ class BasemapsWidget(BASE, WIDGET):
             series = self.series_for_interval(WEEK)
         elif category_btn == self.btnOneOff:
             mosaics = self.one_off_mosaics()             
-            self.mosaicsList.populate(mosaics)
-            self.lblSelectBasemapName.setVisible(False)
+            self.mosaicsList.populate(mosaics)            
             self.mosaicsList.setVisible(True)
+            self.toggle_select_basemap_panel(False)
         if category_btn != self.btnOneOff:            
             for s in series:
-                self.comboSeriesName.addItem(s[NAME], s)                
+                self.comboSeriesName.addItem(s[NAME], s)
+
+
+    def toggle_select_basemap_panel(self, show):
+        self.lblSelectBasemapName.setVisible(show)
+        self.lblSelectAllMosaics.setVisible(not show)
+        self.lblCheckInstances.setVisible(not show)
 
     def min_zoom_level_checked(self):
         self.comboMinZoomLevel.setEnabled(self.chkMinZoomLevel.isChecked())
@@ -330,7 +338,7 @@ class BasemapsWidget(BASE, WIDGET):
     def serie_selected(self):
         self.mosaicsList.clear()
         series = self.comboSeriesName.currentData()
-        self.lblSelectBasemapName.setVisible(series is None)
+        self.toggle_select_basemap_panel(series is None)
         self.mosaicsList.setVisible(series is not None)
         if series:
             mosaics = self.mosaics_for_serie(series)
@@ -404,7 +412,7 @@ class BasemapsWidget(BASE, WIDGET):
             return
         self.labelWarningQuads.setText("")
         self.widgetProgressFindQuads.setVisible(True)        
-        geom = self.aoi_filter.aoi_geom()
+        geom = self.aoi_filter.aoi_as_4326_geom()
         quad = self.p_client.get_one_quad(selected[0])
         quadarea = self._area_from_bbox_coords(quad[BBOX])
         qgsarea = QgsDistanceArea()
@@ -453,8 +461,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.labelQuadsSummary.setText(
             f'{total_quads} quads from {len(selected)} basemap instances '
             'intersect your AOI for this basemap')
-        self.chkSelectAllQuads.setChecked(True)
-        self.select_all_quads()
+        self.batch_select_quads_clicked("all")
         self.quads_selection_changed()
         self.widgetProgressFindQuads.setVisible(False)
         self.stackedWidget.setCurrentWidget(self.orderQuadsPage)

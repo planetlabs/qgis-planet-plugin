@@ -266,7 +266,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
                                    level=Qgis.Warning,
                                    duration=10)
             finally:
-                return filters
+                return filters    
 
     def filters_as_json(self):
         filters = []
@@ -665,6 +665,18 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
     def aoi_geom(self):
         if self._aoi_box is not None:
             return self._aoi_box.asGeometry()
+
+    def aoi_as_4326_geom(self):
+        transform = QgsCoordinateTransform(
+            QgsProject.instance().crs(),
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance()
+        )
+        geom = self.aoi_geom()
+        if geom is not None:
+            geom.transform(transform)
+        return geom
+
 
     @pyqtSlot()
     def zoom_to_aoi(self):

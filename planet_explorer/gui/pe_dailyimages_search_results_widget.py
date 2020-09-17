@@ -533,8 +533,8 @@ class ItemWidgetBase(QFrame):
         return menu
 
     def _add_preview_gpkg_clicked(self):
-        filename, _ = QFileDialog.getSaveFileName(self, "Footprints layer filename", "", '*.gpkg')        
-        if filename is not None:
+        filename, _ = QFileDialog.getSaveFileName(self, "Footprints layer filename", "", '*.gpkg')
+        if filename:
             self.add_preview(filename)
 
     def _add_preview_memory_clicked(self):

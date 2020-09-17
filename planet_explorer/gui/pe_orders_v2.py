@@ -278,10 +278,7 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
         self.populate_list()
 
-        self.btnCheckAll.clicked.connect(
-            lambda: self._batch_check_items(check_all=True))
-        self.btnCheckNone.clicked.connect(
-            lambda: self._batch_check_items(check_all=False))
+        self.lblSelectAll.linkActivated.connect(self._batch_check_items)        
 
         # Get sample permissions from first node
         self._permissions = images[0][PERMISSIONS]
@@ -572,13 +569,14 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._update_groupbox_title()
         self.validate()
 
-    @pyqtSlot(bool)
-    def _batch_check_items(self, check_all: bool = True):
+    @pyqtSlot(str)
+    def _batch_check_items(self, url):
+        checked = url == "all"
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
             widget = self.listWidget.itemWidget(item)
             widget.blockSignals(True)
-            widget.set_selected(check_all)
+            widget.set_selected(checked)
             widget.blockSignals(False)
         self.selection_changed()
         self.listWidget.setFocus()
