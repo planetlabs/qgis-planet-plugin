@@ -81,7 +81,8 @@ from planet_explorer.resources import resources
 
 from planet_explorer.gui.pe_explorer_dockwidget import (
     show_explorer,
-    toggle_explorer
+    toggle_explorer,
+    remove_explorer
 )
 
 from planet_explorer.pe_utils import (
@@ -104,12 +105,20 @@ from planet_explorer.gui.pe_basemap_layer_widget import (
 
 from planet_explorer.gui.pe_orders_monitor_dockwidget import (
     toggle_orders_monitor,
-    hide_orders_monitor
+    hide_orders_monitor,
+    remove_orders_monitor
 )
 
 from planet_explorer.gui.pe_planet_inspector_dockwidget import (
     toggle_inspector,
-    hide_inspector
+    hide_inspector,
+    remove_inspector
+)
+
+from planet_explorer.gui.pe_tasking_dockwidget import (
+    toggle_tasking_widget,
+    hide_tasking_widget,
+    remove_tasking_widget
 )
 
 PLANET_COM = 'https://planet.com'
@@ -159,7 +168,6 @@ class PlanetExplorer(object):
 
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
-        self.orders_dock_widget = None
 
         readSettings()
 
@@ -275,8 +283,6 @@ class PlanetExplorer(object):
 
     # noinspection PyPep8Naming
     def initGui(self):
-
-        self.explorer_dock_widget = None
         
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
@@ -303,7 +309,15 @@ class PlanetExplorer(object):
             callback=toggle_inspector,
             add_to_menu=False,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())            
+            parent=self.iface.mainWindow())
+
+        self.showtasking_act = self.add_action(
+            os.path.join(plugin_path, "resources", "tasking.png"),
+            text=self.tr("Show Tasking..."),
+            callback=toggle_tasking_widget,
+            add_to_menu=False,
+            add_to_toolbar=True,
+            parent=self.iface.mainWindow())                    
 
         self.add_user_button()
         self.add_info_button()
@@ -428,9 +442,10 @@ class PlanetExplorer(object):
         if self.toolbar is not None:
             del self.toolbar
 
-        if self.explorer_dock_widget is not None:
-            self.iface.removeDockWidget(self.explorer_dock_widget)
-            del self.explorer_dock_widget
+        remove_inspector()
+        remove_explorer()
+        remove_orders_monitor()
+        remove_tasking_widget()
 
         sys.excepthook = self.qgis_hook
 
@@ -466,31 +481,20 @@ class PlanetExplorer(object):
         self.showexplorer_act.setEnabled(loggedin)
         self.showinspector_act.setEnabled(loggedin)
         self.showorders_act.setEnabled(loggedin)
+        self.showtasking_act.setEnabled(loggedin)
         if loggedin:
             self.user_act.defaultWidget().setText(
                 f"<b>{PlanetClient.getInstance().user()['user_name']}<b/>")
             self.showexplorer_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
             self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
             self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
+            self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
         else:
             self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
             self.showexplorer_act.setToolTip("Login to access Imagery Search")        
             self.showorders_act.setToolTip("Login to access Order Status")
             self.showinspector_act.setToolTip("Login to access Planet Inspector")
-
-    def create_explorer(self):
-        # Create the explorer_dock_widget (after translation) and keep reference
-        self.explorer_dock_widget = PlanetExplorerDockWidget(
-            parent=self.iface.mainWindow(), iface=self.iface)
-        """:type: QDockWidget"""
-
-        self.explorer_dock_widget.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-
-        self.iface.addDockWidget(Qt.RightDockWidgetArea,
-                                 self.explorer_dock_widget)
-
-        self.explorer_dock_widget.hide()
+            self.showtasking_act.setToolTip("Login to access Tasking Panel")
 
     def project_saved(self):        
         if PlanetClient.getInstance().has_api_key():            

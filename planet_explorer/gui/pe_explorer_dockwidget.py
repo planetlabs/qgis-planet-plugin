@@ -405,3 +405,7 @@ def show_explorer_and_search_daily_images(request):
     instance.daily_images_widget.set_filters_from_request(request)
     instance.show()
     instance.daily_images_widget.perform_search()
+
+def remove_explorer():
+    if dockwidget_instance is not None:
+        iface.removeDockWidget(dockwidget_instance)

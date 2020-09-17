@@ -436,4 +436,6 @@ def toggle_inspector():
     wdgt = _get_widget_instance()
     wdgt.setVisible(not wdgt.isVisible())
 
-    
+def remove_inspector():
+    if dockwidget_instance is not None:
+        iface.removeDockWidget(dockwidget_instance)

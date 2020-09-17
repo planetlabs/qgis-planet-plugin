@@ -72,7 +72,8 @@ from qgis.PyQt.QtCore import (
     Qt,
     QCoreApplication,
     QUrl,
-    QSize
+    QSize,
+    QObject
 )
 
 # noinspection PyPackageRequirements
@@ -412,4 +413,6 @@ def toggle_orders_monitor():
     wdgt = _get_widget_instance()
     wdgt.setVisible(not wdgt.isVisible())
 
-
+def remove_orders_monitor():
+    if dockwidget_instance is not None:
+        iface.removeDockWidget(dockwidget_instance)
