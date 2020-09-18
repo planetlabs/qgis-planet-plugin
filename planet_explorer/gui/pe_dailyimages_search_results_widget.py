@@ -22,18 +22,8 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
-import json
-import sys
 import logging
 import iso8601
-
-# noinspection PyPackageRequirements
-from typing import (
-    Optional,
-    Any,
-    List,
-    Set,
-)
 
 from qgis.PyQt import uic
 
@@ -41,36 +31,26 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
     Qt,
-    QRect,
     QSize,
-    QEvent,
     QUrl
 )
 
 from qgis.PyQt.QtGui import (
     QIcon,
-    QCursor,
     QColor,
-    QPen,
-    QBrush,
-    QPalette,
     QPixmap,
     QImage
 )
 
 from qgis.PyQt.QtWidgets import (
-    QApplication,
     QAction,
     QLabel,
     QFrame,
     QMenu,
-    QToolButton,
     QListWidgetItem,
     QCheckBox,
     QHBoxLayout,
-    QVBoxLayout,
     QTreeWidgetItem,
-    QWidget,
     QTreeWidgetItemIterator,
     QFileDialog
 )
@@ -81,13 +61,11 @@ from PyQt5.QtNetwork import (
 )
 
 from qgis.core import (
-    QgsApplication,
     QgsGeometry,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProject,
     QgsWkbTypes,
-    QgsFields,
     QgsRectangle,
 )
 
@@ -111,7 +89,6 @@ from ..gui.pe_results_configuration_dialog import (
 from ..pe_utils import (
     qgsgeometry_from_geojson,
     add_menu_section_action,
-    remove_maplayers_by_name,
     zoom_canvas_to_geometry,
     create_preview_group,
     SEARCH_AOI_COLOR,
@@ -126,7 +103,6 @@ from ..planet_api.p_utils import (
     geometry_from_request,
 )
 from ..planet_api.p_specs import (
-    RESOURCE_DAILY,
     DAILY_ITEM_TYPES_DICT,
     ITEM_ASSET_DL_REGEX
 ) 

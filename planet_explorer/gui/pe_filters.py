@@ -33,10 +33,7 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
     QDateTime,
-    Qt,
-    QFile,
-    QDir,
-    QTextStream,
+    Qt
 )
 from qgis.PyQt.QtGui import (
     QColor,
@@ -48,7 +45,6 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
     QComboBox,
-    QFileDialog,
     QMenu,
     QAction,
 )

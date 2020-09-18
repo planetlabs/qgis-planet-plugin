@@ -22,10 +22,8 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
-import sys
 import logging
 import json
-import re
 import iso8601
 
 from typing import (
@@ -40,11 +38,6 @@ import analytics
 
 # noinspection PyPackageRequirements
 from requests.models import Response as ReqResponse
-
-from qgiscommons2.settings import (
-    pluginSetting,
-    readSettings,
-)
 
 from planet.api import models
 
@@ -63,9 +56,7 @@ from qgis.PyQt.QtCore import (
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
     QImage,
-    QPixmap,
-    QStandardItem,
-    QStandardItemModel,
+    QPixmap
 )
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtWidgets import (
@@ -105,7 +96,6 @@ from .pe_gui_utils import (
     PlanetClickableLabel,
 )
 from ..pe_utils import (
-    SETTINGS_NAMESPACE,
     is_segments_write_key_valid
 )
 from ..planet_api.p_client import (

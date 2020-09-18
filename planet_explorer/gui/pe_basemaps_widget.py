@@ -1,35 +1,39 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_basemaps_widget.py
+    ---------------------
+    Date                 : August 2020
+    Author               : Planet Federal
+    Copyright            : (C) 2017 Boundless, http://boundlessgeo.com
+                         : (C) 2019 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+__author__ = 'Planet Federal'
+__date__ = 'August 2020'
+__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = '$Format:%H$'
+
 import os
 import math
-import json
-import iso8601
-
-from collections import defaultdict
 
 from PyQt5.QtWidgets import (
-    QListWidget,
-    QListWidgetItem,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QLabel,
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
     QApplication,
-    QCheckBox,
-    QFrame,
-    QToolButton,
-    QAction,
-    QMenu,
     QMessageBox
 )
 
 from PyQt5.QtGui import (
     QPixmap,
-    QIcon,
     QImage,
-    QCursor,
-    QPalette,
-    QColor,
 )
 
 from PyQt5.QtNetwork import (
@@ -41,13 +45,9 @@ from PyQt5 import QtCore
 
 from PyQt5.QtCore import (
     QUrl,
-    Qt,
     pyqtSignal,
-    QCoreApplication,
     QThread,
-    QObject,
-    QSize,
-    QEvent
+    QObject
 )
 
 from planet.api.models import (
@@ -55,25 +55,13 @@ from planet.api.models import (
     MosaicQuads
 )
 
-from planet_explorer.pe_utils import (
-    ITEM_BACKGROUND_COLOR
-)
 
 from qgis.core import (
-    QgsRasterLayer,
-    QgsProject,
     Qgis,
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
-    QgsWkbTypes,
     QgsGeometry,
     QgsDistanceArea,
     QgsRectangle,
     QgsUnitTypes
-)
-
-from qgis.gui import(
-    QgsRubberBand
 )
 
 from qgis.utils import iface
@@ -94,21 +82,17 @@ from .pe_filters import (
 
 from ..pe_utils import (
     QUADS_AOI_COLOR,
-    QUADS_AOI_BODY_COLOR,
     NAME,
     LINKS,
-    TILES,
-    FIRST_ACQUIRED,    
+    TILES,   
     ONEMONTH,
     THREEMONTHS,
     WEEK,
     INTERVAL,
-    qgsrectangle_for_canvas_from_4326_bbox_coords,
     add_xyz,
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,
-    add_menu_section_action
 )
 
 from .pe_gui_utils import (

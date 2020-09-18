@@ -1,34 +1,42 @@
-import os
-import math
-import json
-import iso8601
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_quads_treewidget.py
+    ---------------------
+    Date                 : September 2020
+    Copyright            : (C) 2019 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+__author__ = 'Planet Federal'
+__date__ = 'September 2020'
+__copyright__ = '(C) 2020 Planet Inc, https://planet.com'
+
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = '$Format:%H$'
 
 from collections import defaultdict
 
 from PyQt5.QtWidgets import (
-    QListWidget,
-    QListWidgetItem,
     QTreeWidget,
     QTreeWidgetItem,
     QLabel,
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
-    QApplication,
     QCheckBox,
     QFrame,
-    QToolButton,
-    QAction,
-    QMenu
 )
 
 from PyQt5.QtGui import (
     QPixmap,
-    QIcon,
-    QImage,
-    QCursor,
-    QPalette,
-    QColor,
+    QImage
 )
 
 from PyQt5.QtNetwork import (
@@ -41,34 +49,12 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import (
     QUrl,
     Qt,
-    pyqtSignal,
-    QCoreApplication,
-    QThread,
-    QObject,
-    QSize,
-    QEvent
-)
-
-from planet.api.models import (
-    Mosaics,
-    MosaicQuads
-)
-
-from planet_explorer.pe_utils import (
-    ITEM_BACKGROUND_COLOR
+    pyqtSignal
 )
 
 from qgis.core import (
-    QgsRasterLayer,
-    QgsProject,
-    Qgis,
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
     QgsWkbTypes,
-    QgsGeometry,
-    QgsDistanceArea,
-    QgsRectangle,
-    QgsUnitTypes
+    QgsGeometry
 )
 
 from qgis.gui import(
@@ -76,46 +62,14 @@ from qgis.gui import(
 )
 
 from qgis.utils import iface
-from qgis.PyQt import uic
-
-from ..planet_api import (
-    PlanetClient
-)
-
-from ..planet_api.p_quad_orders import (
-    create_quad_order_from_quads
-)
-
-from .pe_filters import (
-    PlanetMainFilters
-)
 
 from ..pe_utils import (
     QUADS_AOI_COLOR,
     QUADS_AOI_BODY_COLOR,
     NAME,
     LINKS,
-    TILES,
-    FIRST_ACQUIRED,    
-    ONEMONTH,
-    THREEMONTHS,
-    WEEK,
-    INTERVAL,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
-    add_xyz,
-    add_mosaics_to_qgis_project,
-    mosaic_title,
-    date_interval_from_mosaics,
-    add_menu_section_action
-)
-
-from .pe_gui_utils import (
-    waitcursor
-)
-
-from .pe_orders_monitor_dockwidget import (
-    show_orders_monitor,
-    refresh_orders
+    mosaic_title
 )
 
 from .extended_combobox import ExtendedComboBox

@@ -22,29 +22,10 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
-import re
-import iso8601
-import shutil
-import json
 import logging
-import requests
-import zipfile
-import traceback
-from functools import partial
-from collections import defaultdict
-
-from planet.api.models import (
-    Orders,
-    Order
-)
 
 # noinspection PyPackageRequirements
 from qgis.core import (
-    QgsApplication,
-    QgsTask, 
-    Qgis,
-    QgsMessageLog,
-    QgsRasterLayer,
     QgsProject,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -69,84 +50,20 @@ from qgis.PyQt import uic
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import (
     Qt,
-    QCoreApplication,
-    QUrl,
-    QSize,
     pyqtSignal,
-    QObject
 )
 
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
-    QCursor,
-    QDesktopServices,
-    QIcon,
-    QPixmap,
-    QImage
-)
-
-# noinspection PyPackageRequirements
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QPushButton,
-    QHBoxLayout,
-    QVBoxLayout,
-    QWidget,
-    QListWidgetItem,
-    QApplication,
-    QMessageBox,
-    QSizePolicy,
-    QMenu,
-    QAction,
-    QFrame
-)
-
-from PyQt5.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest
-)
-
-from ..pe_utils import (
-    QGIS_LOG_SECTION_NAME,
-    orders_download_folder,
-    is_segments_write_key_valid
-)
-
-from .pe_gui_utils import (
-    waitcursor
+    QIcon
 )
 
 from ..planet_api import (
     PlanetClient
 )
 
-from planet.api.filters import (
-    string_filter,    
-    build_search_request
-)
-
-from ..planet_api.p_specs import (    
-    DAILY_ITEM_TYPES_DICT
-)
-
-from planet.api.models import (
-    Mosaics,
-    MosaicQuads
-)
-
-from ..planet_api.p_quad_orders import (
-    quad_orders
-)
-
-from ..planet_api.p_order_tasks import (
-    QuadsOrderProcessorTask,
-    OrderProcessorTask
-)
-
 from ..pe_utils import (
-    qgsgeometry_from_geojson,
     PLANET_COLOR,
-    add_menu_section_action
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]

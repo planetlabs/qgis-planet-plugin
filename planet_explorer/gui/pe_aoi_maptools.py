@@ -112,8 +112,6 @@ class PlanetExtentMapTool(QgsMapTool):
         if self.rubber_band:
             self._set_rubber_band()
 
-            # noinspection PyUnusedLocal
-            selectgeom = self.rubber_band.asGeometry()
             self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
             del self.rubber_band
             self.rubber_band = None
@@ -184,8 +182,6 @@ class PlanetCircleMapTool(QgsMapTool):
         if self.rubber_band:
             self._set_rubber_band()
 
-            # noinspection PyUnusedLocal
-            selectgeom = self.rubber_band.asGeometry()
             self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
             del self.rubber_band
             self.rubber_band = None

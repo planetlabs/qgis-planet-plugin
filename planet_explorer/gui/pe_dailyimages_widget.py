@@ -25,11 +25,7 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 
-from collections import ChainMap
-from operator import attrgetter
-
 import analytics
-import sentry_sdk
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
@@ -79,9 +75,7 @@ from .pe_filters import (
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
 
 from ..pe_utils import (
-    area_from_geojsons,
     add_menu_section_action,
-    SETTINGS_NAMESPACE,
     is_segments_write_key_valid
 )
 

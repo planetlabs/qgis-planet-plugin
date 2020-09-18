@@ -1,13 +1,10 @@
 import os
-import json
-import copy
 import enum
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
-    QDialogButtonBox,
-    QSizePolicy
+    QDialogButtonBox
 )
 
 class PlanetNodeMetadata(enum.Enum):    
