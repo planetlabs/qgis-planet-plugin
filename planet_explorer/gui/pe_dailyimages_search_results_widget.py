@@ -162,7 +162,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.setupUi(self)
 
         self._p_client = PlanetClient.getInstance()
-        self._api_client = self._p_client.api_client()
 
         self._has_more = True
 
@@ -225,7 +224,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def _save_search(self):
         dlg = SaveSearchDialog(self._request)
         if dlg.exec_():           
-            self._api_client.create_search(dlg.request_to_save)
+            self._p_client.create_search(dlg.request_to_save)
             self.searchSaved.emit(dlg.request_to_save)
 
     def sort_order(self):
@@ -247,7 +246,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.tree.clear()   
         stats_request = {"interval": "year"}
         stats_request.update(self._request)
-        resp = self._api_client.stats(stats_request).get()
+        resp = self._p_client.stats(stats_request).get()
         self._total_count = sum([b["count"] for b in resp["buckets"]])
         if self._total_count:
             response = self._p_client.quick_search(

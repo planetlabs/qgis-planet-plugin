@@ -116,6 +116,8 @@ BBOX = "bbox"
 QUADS_PER_PAGE = 50
 MAX_QUADS_TO_DOWNLOAD = 100
 
+PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
+
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(
     os.path.join(plugin_path, 'ui', 'basemaps_widget.ui'),
@@ -357,8 +359,9 @@ class BasemapsWidget(BASE, WIDGET):
 
     def explore(self):
         if self._check_has_items_checked():
-            selected = self.mosaicsList.selected_mosaics()        
-            add_mosaics_to_qgis_project(selected, self.comboSeriesName.currentText())
+            selected = self.mosaicsList.selected_mosaics()       
+            add_mosaics_to_qgis_project(selected, 
+                    self.comboSeriesName.currentText() or selected[0][NAME])
 
     def order(self):
         if self._check_has_items_checked():
@@ -470,8 +473,12 @@ class BasemapsWidget(BASE, WIDGET):
         description = (f'<span style="color:black;"><b>{name}</b></span><br>'
                             f'<span style="color:grey;">{len(selected)} instances | {dates}</span>')
         self.labelStreamingOrderDescription.setText(description)
-        iconurl = selected[0][LINKS][THUMB]
-        self.set_summary_icon(iconurl)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+                        QtCore.Qt.SmoothTransformation)
+        self.labelStreamingOrderIcon.setPixmap(thumb)
+        if THUMB in selected[0][LINKS]: 
+            self.set_summary_icon(selected[0][LINKS][THUMB])
         self.chkMinZoomLevel.setChecked(False)
         self.chkMaxZoomLevel.setChecked(False)
         self.comboMinZoomLevel.setEnabled(False)
@@ -525,8 +532,12 @@ class BasemapsWidget(BASE, WIDGET):
                             f'<span style="color:grey;">{self._quads_summary()}</span>')            
             total_area = self._quads_quota()
             
-        iconurl = selected[0][LINKS][THUMB]
-        self.set_summary_icon(iconurl)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+                        QtCore.Qt.SmoothTransformation)
+        self.labelOrderIcon.setPixmap(thumb)
+        if THUMB in selected[0][LINKS]: 
+            self.set_summary_icon(selected[0][LINKS][THUMB])
         self.labelOrderDescription.setText(description)
         self.grpBoxNamePage.setTitle(title)
         self.stackedWidget.setCurrentWidget(self.orderNamePage)
@@ -575,16 +586,17 @@ class BasemapsWidget(BASE, WIDGET):
         selected = self.mosaicsList.selected_mosaics()        
         zmin = self.comboMinZoomLevel.currentText() if self.chkMinZoomLevel.isChecked() else 0
         zmax = self.comboMaxZoomLevel.currentText() if self.chkMaxZoomLevel.isChecked() else 18
+        mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
         for mosaic in selected:
-            name = f"{self.comboSeriesName.currentText()} - {mosaic_title(mosaic)}"
+            name = f"{mosaicname} - {mosaic_title(mosaic)}"
             add_xyz(name, mosaic[LINKS][TILES], zmin, zmax)
         selected = self.mosaicsList.selected_mosaics()
         base_html= ("<p>Your Connection(s) have been established</p>")        
         self.grpBoxOrderConfirmation.setTitle("Order Streaming Download")
         dates = date_interval_from_mosaics(selected)       
         description = f'{len(selected)} | {dates}'
-        values = {"Series Name": self.comboSeriesName.currentText(),
-                    "Series Instances": description}
+        values = {"Series Name": mosaicname,
+                  "Series Instances": description}
         self.set_order_confirmation_summary(values, base_html)
         self.stackedWidget.setCurrentWidget(self.orderConfirmationPage)
 
@@ -622,7 +634,7 @@ class BasemapsWidget(BASE, WIDGET):
         create_quad_order_from_mosaics(name, description, selected, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),
-                    "Series Name": self.comboSeriesName.currentText(),
+                    "Series Name": self.comboSeriesName.currentText() or selected[0][NAME],
                     "Series Instances": description}
         self.set_order_confirmation_summary(values)
         self.stackedWidget.setCurrentWidget(self.orderConfirmationPage)

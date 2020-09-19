@@ -193,7 +193,9 @@ class BasemapItemWidget(QWidget):
         self.setLayout(layout)
         self.nam = QNetworkAccessManager()
         self.nam.finished.connect(self.iconDownloaded)
-        self.nam.get(QNetworkRequest(QUrl(mosaic[LINKS][THUMB])))
+
+        if THUMB in mosaic[LINKS]:
+            self.nam.get(QNetworkRequest(QUrl(mosaic[LINKS][THUMB])))        
         
     def showContextMenu(self, evt):
         menu = QMenu()

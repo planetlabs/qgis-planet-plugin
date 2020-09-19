@@ -80,7 +80,6 @@ from ..planet_api import (
 )
 
 from ..pe_utils import (
-    area_from_geojsons,
     SETTINGS_NAMESPACE,
     is_sentry_dsn_valid,
     is_segments_write_key_valid,
@@ -197,7 +196,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def _setup_client(self):
         # Init api client
         self.p_client = PlanetClient.getInstance()
-        self.p_client.register_area_km_func(area_from_geojsons)
         self.p_client.loginChanged[bool].connect(self.login_changed)        
 
         # Retrieve any login/key settings
@@ -205,7 +203,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if not self.logged_in():
             self.api_key = API_KEY_DEFAULT
             self._set_credential_fields()
-                # self.btn_api_key.setEnabled(bool(self.api_key))
             self.chkBxSaveCreds.stateChanged.connect(
                 self.save_credentials_changed)
 

@@ -102,12 +102,6 @@ from ..planet_api.p_client import (
     PlanetClient,
 )
 
-from ..planet_api.p_network import (
-    PlanetCallbackWatcher,
-    dispatch_callback,
-    RESPONSE_TIMEOUT,
-    # requests_response_metadata,
-)
 from ..planet_api.p_bundles import (
     PlanetOrdersV2Bundles,
 )
@@ -121,6 +115,10 @@ from .pe_orders_monitor_dockwidget import (
 from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT
 ) 
+
+from .pe_gui_utils import (
+    waitcursor
+)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -257,7 +255,6 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._item_type = item_type
         self.images = images
         self.sort_criteria = sort_criteria
-        self._api_client = PlanetClient.getInstance().api_client()
         self._tool_resources = tool_resources
 
         self._display_name = ITEM_TYPE_SPECS[self._item_type]['name']
@@ -615,24 +612,18 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._iface = iface
 
         self._p_client = PlanetClient.getInstance()
-        self._api_client = self._p_client.api_client()
-        self._api_key = self._p_client.api_key()
-        # TODO: Grab responseTimeOut from plugin settings and override default
-        self._response_timeout = RESPONSE_TIMEOUT
+
         self._tool_resources = tool_resources
 
         bundles_file = os.path.join(
             plugin_path, 'planet_api', 'resources', 'bundles.json')
         self._order_bundles = PlanetOrdersV2Bundles(bundles_file)
-        self._item_orders = OrderedDict()
 
         self.setMinimumWidth(640)
         self.setMinimumHeight(720)
 
         self.lblName.setStyleSheet(self.NAME_HIGHLIGHT)        
         self.leName.textChanged.connect(self.validate)
-
-        self._watchers = {}
 
         self.frameOrderLog.hide()
         self.btnOrderLogClose.clicked.connect(self._close_order_log)
@@ -641,7 +632,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.tbOrderLog.setOpenExternalLinks(False)
         self.tbOrderLog.anchorClicked.connect(self._open_orders_monitor_dialog)
 
-        self._orders = OrderedDict()
         self.btnPlaceOrder = self.buttonBox.button(QDialogButtonBox.Ok)
         self.btnPlaceOrder.setText(
             f'Place Order{"s" if len(images) > 1 else ""}')        
@@ -708,13 +698,13 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     @pyqtSlot()
     def place_orders(self):
         log.debug('Placing orders...')
-        self._item_orders.clear()
+        orders = OrderedDict()
         for i_type in ITEM_TYPE_SPECS:
             if i_type not in self._item_type_widgets:
                 continue
             it_wgdt: PlanetOrderItemTypeWidget = \
                 self._item_type_widgets[i_type]
-            self._item_orders[i_type] = it_wgdt.get_order()
+            orders[i_type] = it_wgdt.get_order()
 
         self.frameName.setEnabled(False)
         self.scrollAreaItemTypes.setEnabled(False)
@@ -729,9 +719,13 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         # ['bundle_name'] = self._order_bundle_name
         # ['bundle'] = self._order_bundle
 
-        name = str(self.leName.text())
+        self._process_orders(orders)
 
-        for io_k, io_v in self._item_orders.items():
+    @waitcursor
+    def _process_orders(self, item_orders):
+        name = str(self.leName.text())
+        orders = OrderedDict()
+        for io_k, io_v in item_orders.items():
             if not bool(io_v['valid']):
                 self._log(f'Skipping item order {io_k} (not valid)')
                 continue
@@ -773,34 +767,17 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                         }
                     )
 
-            self._orders[io_k] = order
+            orders[io_k] = order
 
             log.debug(f'{io_k} order...\n{json.dumps(order, indent=2)}')
 
         # return
 
-        # Submit orders asynchronously
-        self._log('Submitting orders...')
-        for item_type, order in self._orders.items():
+        for item_type, order in orders.items():
 
-            if item_type in self._watchers:
-                self._log(
-                    f'Order for {item_type} already registered, skipping')
-                continue
+            resp = self._p_client.create_order(order)
+            self._order_response(item_type, resp)
 
-            watcher = self._add_watcher(item_type)
-
-            # Set up async order request
-            self._watchers[item_type]['response'] = \
-                self._p_client.create_order(
-                    order,
-                    callback=partial(dispatch_callback, watcher=watcher)
-                )
-
-            resp: models.Response = self._watchers[item_type]['response']
-            watcher.register_response(resp)
-
-            self._log(f'Order for {item_type} submitted')
             if is_segments_write_key_valid():
                 analytics.track(self._p_client.user()["email"], "Order placed", 
                                 {
@@ -809,11 +786,14 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                                 }
             )
 
-        self._log('----------------------- '
-                  'LEAVE THIS WINDOW OPEN FOR RESPONSE'
-                  ' -----------------------')
+        self._log(f'<br><br>'
+            f'<b>IMPORTANT:</b> Open the <a href="opendlg">Orders monitor'
+            f'dialog</a> to monitor your order status and download it when '
+            f'possible.<br>'
+            f'You also should receive an email when your order is ready to '
+            f'download.<br>')
 
-    @pyqtSlot(str, 'PyQt_PyObject')
+
     def _order_response(self, item_type: str, body: models.Order):
 
         if not item_type:
@@ -824,7 +804,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         if body is None or not hasattr(body, 'response'):
             self._log(f'Requesting {item_type} order failed: '
                       f'no body or response')
-            self._remove_watcher(item_type)
             return
 
         resp: ReqResponse = body.response
@@ -833,7 +812,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         if not resp.ok:
             # TODO: Add the error reason
             self._log(f'Requesting {item_type} order failed: response error')
-            self._remove_watcher(item_type)
             return
 
         # Process JSON response
@@ -869,9 +847,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                       f'response data contains no Order ID')
             return
 
-        # Queued
-        self._remove_watcher(item_type)
-
         bundle = 'unknown'
         itemtype = 'Unknown type'
         itemids = []
@@ -896,49 +871,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             f' -- Bundle: {bundle}<br>'
             f' -- State: {resp_data.get("state")}<br>'
             f' -- Service message: {resp_data.get("last_message")}<br><br>'
-            f'<b>IMPORTANT:</b> Open the <a href="opendlg">Orders monitor'
-            f'dialog</a> to monitor your order status and download it when '
-            f'possible.<br>'
-            f'You also should receive an email when your order is ready to '
-            f'download.<br>'
         )
 
-    def _add_watcher(self, item_type: str) -> PlanetCallbackWatcher:
-
-        self._watchers[item_type] = {
-            'watcher': PlanetCallbackWatcher(
-                parent=self, watcher_id=item_type),
-        }
-        w: PlanetCallbackWatcher = self._watchers[item_type]['watcher']
-        w.responseFinishedWithId[str, 'PyQt_PyObject']. \
-            connect(self._order_response)
-        w.responseCancelledWithId[str].connect(self._order_cancelled)
-        w.responseTimedOutWithId[str, int].connect(self._order_timed_out)
-
-        self.orderShouldCancel[str].connect(w.cancel_response)
-        return w
-
-    def _remove_watcher(self, item_type) -> None:
-        if item_type in self._watchers:
-            w: PlanetCallbackWatcher = self._watchers[item_type]['watcher']
-            w.disconnect()
-            del self._watchers[item_type]
-
-    @pyqtSlot(str, int)
-    def _order_timed_out(self, item_type, timeout: int = RESPONSE_TIMEOUT):
-        self._log(f'Requesting {item_type} order failed: '
-                  f'timed out ({timeout} seconds)')
-        self._remove_watcher(item_type)
-
-    @pyqtSlot(str)
-    def _order_cancelled(self, item_type):
-        self._log(f'Requesting {item_type} order cancelled')
-        self._remove_watcher(item_type)
-
-    @pyqtSlot(str)
-    def cancel_order(self, item_type):
-        self._log(f'Attempting to cancel {item_type} order...')
-        self.orderShouldCancel.emit(item_type)
 
     @pyqtSlot()
     def _copy_log_to_clipboard(self):

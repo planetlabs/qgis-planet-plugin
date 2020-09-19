@@ -205,7 +205,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.btnCopyAOI.clicked.connect(self.copy_aoi_to_clipboard)
 
         self.p_client = PlanetClient.getInstance()
-        self.api_client = self.p_client.api_client()
         self.p_client.loginChanged.connect(self.populate_saved_searches)
         
         self.comboSavedSearch.currentIndexChanged.connect(self.saved_search_selected)
@@ -217,7 +216,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         if is_logged:
             self.comboSavedSearch.blockSignals(True)        
             self.comboSavedSearch.addItem("[Select a Saved Search]")
-            res = self.api_client.get_searches().get()
+            res = self.p_client.get_searches().get()
             for search in res["searches"]:
                 self.comboSavedSearch.addItem(search["name"], search)
             self.comboSavedSearch.blockSignals(False)

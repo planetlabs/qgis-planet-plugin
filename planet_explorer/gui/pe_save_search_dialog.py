@@ -70,7 +70,7 @@ class SaveSearchDialog(BASE, WIDGET):
         if self._folder_names is None:
             self._folder_names = [""]
             client = PlanetClient.getInstance()
-            res = client.api_client().get_searches().get()
+            res = client.get_searches().get()
             for search in res["searches"]:
                 tokens = search["name"].split("/")
                 if len(tokens) > 1 and tokens[0] not in self._folder_names:

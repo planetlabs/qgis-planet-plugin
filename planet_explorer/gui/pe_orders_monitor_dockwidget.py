@@ -132,7 +132,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         for i in range(self.listOrders.count()):
             item = self.listOrders.item(i)
             if isinstance(item, OrderItem):
-                item.setHidden(item.order.state() != "success" and checkstate == Qt.Checked)
+                item.setHidden(item.order.state() != "success" and checkstate)
 
     def refresh_list(self):
         self.populate_orders_list()

@@ -248,7 +248,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                     break
         if name is None:
             return
-        client = PlanetClient.getInstance().api_client()
+        client = PlanetClient.getInstance()
         mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
         return mosaicid
         
