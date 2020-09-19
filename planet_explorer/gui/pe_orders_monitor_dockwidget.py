@@ -139,7 +139,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     @waitcursor
     def populate_orders_list(self):
-        orders: Orders = self.p_client.client.get_orders()
+        orders: Orders = self.p_client.get_orders()
         ordersArray = []
         for page in orders.iter():
             ordersArray.extend(page.get().get(Orders.ITEM_KEY))
@@ -197,7 +197,7 @@ class OrderWrapper():
         return os.path.exists(self.download_folder())
 
     def locations(self):
-        order_detail = self.p_client.client._get(self.order[Order.LINKS_KEY]["_self"]).get_body()        
+        order_detail = self.p_client._get(self.order[Order.LINKS_KEY]["_self"]).get_body()
         links = order_detail.get()[Order.LINKS_KEY]
         results = links[Order.RESULTS_KEY]
         locations = [(r[Order.LOCATION_KEY], r[NAME]) for r in results]

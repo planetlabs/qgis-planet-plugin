@@ -650,7 +650,7 @@ class BasemapsWidget(BASE, WIDGET):
         create_quad_order_from_quads(name, description, quads, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),
-                    "Series Name": self.comboSeriesName.currentText(),
+                    "Series Name": self.comboSeriesName.currentText() or selected[0][NAME],
                     "Quads": self._quads_summary(),
                     "Quota": self._quads_quota()}
         self.set_order_confirmation_summary(values)
