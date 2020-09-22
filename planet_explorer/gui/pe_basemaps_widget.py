@@ -409,12 +409,12 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.progressBarInstances.setMaximum(len(selected))
         self.progressBarQuads.setMaximum(numpages)
-        self.objThread = QThread()
         self.finder = QuadFinder()
         self.finder.setup(self.p_client, selected, geom)
         
+        #self.objThread = QThread()
         #self.finder.moveToThread(self.objThread)
-        self.finder.finished.connect(self.objThread.quit)
+        #self.finder.finished.connect(self.objThread.quit)
         self.finder.finished.connect(self._update_quads)
         self.finder.mosaicStarted.connect(self._mosaic_started)
         self.finder.pageRead.connect(self._page_read)

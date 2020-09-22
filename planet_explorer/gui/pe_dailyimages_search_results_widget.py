@@ -32,7 +32,8 @@ from qgis.PyQt.QtCore import (
     pyqtSlot,
     Qt,
     QSize,
-    QUrl
+    QUrl,
+    QThread
 )
 
 from qgis.PyQt.QtGui import (
@@ -66,7 +67,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsProject,
     QgsWkbTypes,
-    QgsRectangle,
+    QgsRectangle
 )
 
 from qgis.gui import (
@@ -111,9 +112,14 @@ from .pe_gui_utils import (
     waitcursor
 )
 
+from .pe_thumbnails import(
+    createCompoundThumbnail
+)
+
 TOP_ITEMS_BATCH = 250
 CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 500
 
+ID = "id"
 SATELLITE_ID = "satellite_id"
 PROPERTIES = "properties"
 GEOMETRY = "geometry"
@@ -287,7 +293,8 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                 item = SceneItem(image, sort_criteria)
                 widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item)
                 widget.checkedStateChanged.connect(self.checked_count_changed)
-                widget.checkedStateChanged.connect(satellite_widget.update_checkbox)                
+                widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
+                widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
                 item.setSizeHint(0, widget.sizeHint())
                 satellite_item.addChild(item)
                 self.tree.setItemWidget(item, 0, widget)
@@ -335,6 +342,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         satellite_item = SatelliteItem(satellite)
         widget = SatelliteItemWidget(satellite, satellite_item)
         widget.checkedStateChanged.connect(date_widget.update_checkbox)
+        widget.thumbnailChanged.connect(date_widget.update_thumbnail)
         satellite_item.setSizeHint(0, widget.sizeHint())
         date_item.addChild(satellite_item)
         self.tree.setItemWidget(satellite_item, 0, widget)
@@ -403,6 +411,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 class ItemWidgetBase(QFrame):
 
     checkedStateChanged = pyqtSignal()
+    thumbnailChanged = pyqtSignal()
 
     def __init__(self, item):
         QFrame.__init__(self)
@@ -423,16 +432,17 @@ class ItemWidgetBase(QFrame):
         layout = QHBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        self.thumbnail = None
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+        self.iconLabel.setFixedSize(48, 48)         
+        layout.addWidget(self.iconLabel)
         if thumbnailurl is not None:
-            pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
-                                Qt.SmoothTransformation)
-            self.iconLabel.setPixmap(thumb)
-            self.iconLabel.setFixedSize(48, 48)            
             self.nam = QNetworkAccessManager()
             self.nam.finished.connect(self.iconDownloaded)            
             self.nam.get(QNetworkRequest(QUrl(thumbnailurl)))        
-            layout.addWidget(self.iconLabel)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
         layout.addWidget(self.toolsButton)
@@ -527,11 +537,11 @@ class ItemWidgetBase(QFrame):
     def iconDownloaded(self, reply):
         img = QImage()
         img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        self.thumbnail = QPixmap(img)
+        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio, 
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
-
+        self.thumbnailChanged.emit()
 
     def check_box_state_changed(self):
         self.checkedStateChanged.emit()        
@@ -571,7 +581,30 @@ class ItemWidgetBase(QFrame):
     def set_checked(self, checked):                
         self.checkBox.setChecked(checked)
 
-        
+    def update_thumbnail(self):
+        bbox = self.geom.boundingBox()
+
+        item_ids = [f"{img[PROPERTIES][ITEM_TYPE]}:{img[ID]}" for img in self.item.images()]
+
+        thumbnails =self.scene_thumbnails()
+        bboxes = [img[GEOMETRY] for img in self.item.images()]
+
+        if thumbnails and None not in thumbnails:
+            pixmap = createCompoundThumbnail(bboxes, thumbnails)
+            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+            self.iconLabel.setPixmap(thumb)
+            self.thumbnailChanged.emit()
+
+
+    def scene_thumbnails(self):                
+        thumbnails = []
+        for i in range(self.item.childCount()):
+            w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+            thumbnails.extend(w.scene_thumbnails())
+        return thumbnails
+
+
 
 class DateItem(QTreeWidgetItem):
 
@@ -603,9 +636,10 @@ class DateItemWidget(ItemWidgetBase):
 
     def update_for_children(self):
         size = 0
+        ids = []
         for i in range(self.item.childCount()):
             child = self.item.child(i)
-            size += child.childCount()
+            size += child.childCount()            
         count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
         self.children_count = size   
         text = f"""{self.date}<br>
@@ -617,7 +651,8 @@ class DateItemWidget(ItemWidgetBase):
         for i in range(self.item.childCount()):
             child = self.item.child(i)
             geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
-        self.geom = QgsGeometry.collectGeometry(geoms) 
+        self.geom = QgsGeometry.collectGeometry(geoms)
+        #self._update_thumbnail()
 
     def name(self):
         return f"{self.date} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
@@ -653,10 +688,13 @@ class SatelliteItemWidget(ItemWidgetBase):
         self.nameLabel.setText(text)
 
         geoms = []
+        self.ids = []
         for i in range(size):
             child = self.item.child(i)
             geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
-        self.geom = QgsGeometry.collectGeometry(geoms)       
+            self.ids.append(child.image[ID])
+        self.geom = QgsGeometry.collectGeometry(geoms) 
+        #self._update_thumbnail()      
 
     def name(self):
         return f"Satellite {self.satellite}"
@@ -733,4 +771,7 @@ class SceneItemWidget(ItemWidgetBase):
 
     def name(self):
         return f"{self.date} {self.time} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+
+    def scene_thumbnails(self):  
+        return [self.thumbnail]
 
