@@ -159,6 +159,8 @@ SEARCH_AOI_COLOR = QColor(157, 0, 165)
 QUADS_AOI_COLOR = QColor(157, 165, 0)
 QUADS_AOI_BODY_COLOR = QColor(157, 165, 0, 70)
 
+PLANET_PREVIEW_ITEM_IDS = "planet/previewItemIds"
+
 NAME = "name"
 LINKS = "_links"
 TILES = "tiles"
@@ -405,7 +407,6 @@ def create_preview_vector_layer(image):
         QgsField('sort_order', QVariant.String),
     ]
 
-
     i_specs: dict = ITEM_TYPE_SPECS.get(image['properties']['item_type'], None)
     if i_specs:
         i_props: dict = i_specs.get('properties', None)
@@ -415,6 +416,7 @@ def create_preview_vector_layer(image):
 
     dp.addAttributes(qgs_fields)
     return vlayer
+
 
 def create_preview_group(
         group_name: str,
@@ -437,6 +439,7 @@ def create_preview_group(
         log.debug(f'Tile datasource URI:\n{uri}')
 
         rlayer = QgsRasterLayer(uri, 'Image previews', 'wms')
+        rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
     else:
         log.debug('No tile URI for preview group')
         return

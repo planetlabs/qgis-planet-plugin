@@ -22,6 +22,7 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import re
+import json
 import urllib.parse
 
 from qgis.core import(
@@ -29,9 +30,18 @@ from qgis.core import(
     QgsDataProvider
 )
 
-from planet_explorer.planet_api import PlanetClient
+from planet_explorer.planet_api import (
+    PlanetClient
+)
 
-from planet_explorer.gui.pe_basemap_layer_widget import PLANET_CURRENT_MOSAIC
+from planet_explorer.gui.pe_basemap_layer_widget import (
+    PLANET_CURRENT_MOSAIC
+)
+
+from planet_explorer.pe_utils import (
+    PLANET_PREVIEW_ITEM_IDS,
+    tile_service_data_src_uri
+)
 
 APIKEY_PLACEHOLDER = "{api_key}"
 PLANET_ROOT_URL = "planet.com"
@@ -53,23 +63,30 @@ def replace_apikeys():
 
 def replace_apikey_for_layer(layer):
     source = urllib.parse.unquote(layer.source())
-    if is_planet_layer(source):# and not PLANET_CURRENT_MOSAIC in layer.customPropertyKeys():
+    if is_planet_layer(source):
         client = PlanetClient.getInstance()
-        tokens = source.split("api_key=")
-        if len(tokens) == 1:
-            tokens.append("")
+        if PLANET_PREVIEW_ITEM_IDS in layer.customPropertyKeys() and client.has_api_key():
+            #In case of a preview layer, we get a new url to avoid link expiration
+                newsource = tile_service_data_src_uri(json.loads(
+                                    layer.customProperty(PLANET_PREVIEW_ITEM_IDS)))
         else:
-            try:
-                idx = tokens[1].index("&")
-                tokens[1] = tokens[1][idx:]
-            except ValueError:
-                tokens[1] = ""            
-        if client.has_api_key():             
-            newsource = f"{tokens[0]}api_key={client.api_key()}{tokens[1]}"
-            newsource = newsource.replace(PLANET_ROOT_URL_PLACEHOLDER, PLANET_ROOT_URL)
-        else:
-            newsource = f"{tokens[0]}api_key={tokens[1]}"
-            newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
-        layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), QgsDataProvider.ProviderOptions())
-        layer.triggerRepaint()
+            tokens = source.split("api_key=")
+            if len(tokens) == 1:
+                tokens.append("")
+            else:
+                try:
+                    idx = tokens[1].index("&")
+                    tokens[1] = tokens[1][idx:]
+                except ValueError:
+                    tokens[1] = ""            
+            if client.has_api_key():
+                newsource = f"{tokens[0]}api_key={client.api_key()}{tokens[1]}"
+                newsource = newsource.replace(PLANET_ROOT_URL_PLACEHOLDER, PLANET_ROOT_URL)
+            else:
+                newsource = f"{tokens[0]}api_key={tokens[1]}"
+                newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
+        if newsource is not None:
+            layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), 
+                                QgsDataProvider.ProviderOptions())
+            layer.triggerRepaint()
 
