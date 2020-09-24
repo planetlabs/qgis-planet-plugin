@@ -123,13 +123,21 @@ class TaskingDockWidget(BASE, WIDGET):
         self.setupUi(self)
 
         self.rect = None
+        self.prev_map_tool = None
 
         self.btnMapTool.setIcon(TASKING_ICON)
+
+        self.movingFootprint = QgsRubberBand(iface.mapCanvas(),
+                              QgsWkbTypes.PolygonGeometry)        
+        self.movingFootprint.setStrokeColor(PLANET_COLOR)
+        self.movingFootprint.setWidth(2)
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
                               QgsWkbTypes.PolygonGeometry)        
         self.footprint.setStrokeColor(PLANET_COLOR)
+        self.footprint.setFillColor(PLANET_COLOR)
         self.footprint.setWidth(2)
+        self.footprint.setBrushStyle(Qt.CrossPattern)
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
         self.map_tool.aoi_captured.connect(self.aoi_captured)
@@ -137,12 +145,15 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnMapTool.toggled.connect(self._set_map_tool)
         iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
 
+        self.visibilityChanged.connect(self.clear)
+
     def aoi_moved(self, rect):
         self.rect = rect
         geom = QgsGeometry.fromRect(rect)
-        self.footprint.setToGeometry(geom)
+        self.movingFootprint.setToGeometry(geom)
 
     def aoi_captured(self):
+        self.footprint.setToGeometry(self.movingFootprint.asGeometry())
         self._set_map_tool(False)
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
@@ -162,14 +173,19 @@ class TaskingDockWidget(BASE, WIDGET):
             self.prev_map_tool = iface.mapCanvas().mapTool()
             iface.mapCanvas().setMapTool(self.map_tool)
         else:
-            iface.mapCanvas().setMapTool(self.prev_map_tool)
+            if self.prev_map_tool is not None:
+                iface.mapCanvas().setMapTool(self.prev_map_tool)
 
     def _map_tool_set(self, new, old):
         if new != self.map_tool:
             self.btnMapTool.blockSignals(True)
             self.btnMapTool.setChecked(False)
             self.btnMapTool.blockSignals(False)
-            self.footprint.reset(QgsWkbTypes.PolygonGeometry)          
+            self.movingFootprint.reset(QgsWkbTypes.PolygonGeometry)
+
+    def clear(self):
+        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+        self._set_map_tool(False)
 
 dockwidget_instance = None
 
