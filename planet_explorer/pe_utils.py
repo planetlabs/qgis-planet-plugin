@@ -574,19 +574,15 @@ def add_xyz(name, url, zmin, zmax):
     layer = QgsRasterLayer(uri, name, 'wms')
     QgsProject.instance().addMapLayer(layer)
 
-def add_mosaics_to_qgis_project(mosaics, name):
+def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="", 
+                                zmin=0, zmax=22, add_xyz_server=False):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
-    if len(mosaics) > 1:
-        label = date_interval_from_mosaics(mosaics)        
-    else:
-        label = mosaics[0][NAME]
     tile_url = mosaics[0][LINKS][TILES]
-    uri = f'type=xyz&url={tile_url}'
+    uri = f'type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}'
     layer = QgsRasterLayer(uri, name, 'wms')
     layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
-    layer.setCustomProperty(PLANET_BASEMAP_LABEL, label)
-    layer.setCustomProperty(PLANET_MOSAIC_PROC, "default")
-    layer.setCustomProperty(PLANET_MOSAIC_RAMP, "")
+    layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
+    layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
     layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, mosaics[0][DATATYPE])
     layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaic_names))
     QgsProject.instance().addMapLayer(layer)
@@ -594,7 +590,15 @@ def add_mosaics_to_qgis_project(mosaics, name):
     layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME) 
     view = iface.layerTreeView()
     view.model().refreshLayerLegend(view.currentNode())
-    view.currentNode().setExpanded(True)    
+    view.currentNode().setExpanded(True)
+    if add_xyz_server:
+        s = QSettings()    
+        s.setValue(f'qgis/connections-xyz/{name}/zmin', zmin)
+        s.setValue(f'qgis/connections-xyz/{name}/zmax', zmax)
+        s.setValue(f'qgis/connections-xyz/{name}/username', "")
+        s.setValue(f'qgis/connections-xyz/{name}/password', "")
+        s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
+        s.setValue(f'qgis/connections-xyz/{name}/url', tile_url)
 
 def open_link_with_browser(url):
     QDesktopServices.openUrl(QUrl(url))

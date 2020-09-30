@@ -18,12 +18,20 @@ import os
 import json
 from urllib.parse import quote
 
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import (
+    Qt, 
+    QRectF,
+    pyqtSignal,
+    QByteArray,
+    QSize
+)
 
 from PyQt5.QtGui import (
     QPainter,
     QBrush,
-    QColor
+    QColor,
+    QImage,
+    QPixmap
 )
 
 from PyQt5.QtWidgets import (
@@ -31,10 +39,12 @@ from PyQt5.QtWidgets import (
     QSlider,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QComboBox,
     QLabel,
     QStyle, 
-    QStyleOptionSlider
+    QStyleOptionSlider,
+    QFrame
 )
 
 from qgis.core import (
@@ -132,6 +142,96 @@ class CustomSlider(QSlider):
         style.drawComplexControl(
             QStyle.CC_Slider, opt, painter, self)
 
+
+class BasemapRenderingOptionsWidget(QFrame):
+
+    values_changed = pyqtSignal()
+    
+    def __init__(self, datatype=None):
+        super().__init__()
+        self.layout = QGridLayout()
+        self.layout.setMargin(0)
+                
+        self.labelProc = QLabel("Processing:")
+        self.comboProc = QComboBox()
+        self.layout.addWidget(self.labelProc, 0, 0)
+        self.layout.addWidget(self.comboProc, 0, 1)
+
+        self.load_ramps()        
+        self.labelRamp = QLabel("Color ramp:")        
+        self.comboRamp = QComboBox()                   
+        
+        self.layout.addWidget(self.labelRamp, 1, 0)
+        self.layout.addWidget(self.comboRamp, 1, 1)
+        
+        self.setLayout(self.layout)
+        self.comboProc.currentIndexChanged.connect(self._proc_changed)
+        self.comboRamp.currentIndexChanged.connect(self.values_changed.emit)
+
+        self.set_datatype(datatype)
+
+        self.setStyleSheet("QFrame {border: 0px;}")
+
+    def set_datatype(self, datatype):
+        self.datatype = datatype
+        self.comboRamp.blockSignals(True)
+        self.comboProc.clear()
+        self.comboProc.addItems(self.processes_for_datatype())
+        self.comboRamp.blockSignals(False)
+        self.comboRamp.setVisible(self.can_use_indices())
+        self.labelRamp.setVisible(self.can_use_indices())
+    
+    def _proc_changed(self):
+        self.comboRamp.clear()
+        self.comboRamp.setIconSize(QSize(100, 20))
+        ramps = self.ramps_for_process()
+        for name, icon in ramps.items():
+            self.comboRamp.addItem(name)            
+            self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+
+    def ramps_for_process(self):
+        return self.ramps
+
+    def load_ramps(self):
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                        "resources", "mosaics_caps.json")
+        with open(path) as f:
+            caps = json.load(f)
+
+        self.ramps = {}
+        for k, v in caps["colors"].items():
+            base64 = v["icon"][len("data:image/png;base64,"):].encode()
+            byte_array = QByteArray.fromBase64(base64)
+            image = QImage.fromData(byte_array, "PNG")
+            scaled = image.scaled(100, 20)           
+            pixmap = QPixmap.fromImage(scaled)
+            self.ramps[k] = pixmap
+
+    def processes_for_datatype(self):
+        if self.datatype == "uint16":
+            return  ["default", "rgb", "cir", "ndvi", "mtvi2", "ndwi",
+                        "msavi2", "tgi", "vari"]
+        elif self.datatype == "byte":
+            return ["default", "tgi", "vari"]
+        else:
+            return ["default"]
+
+    def can_use_indices(self):
+        return self.datatype == "uint16"
+
+    def process(self):
+        return self.comboProc.currentText()
+
+    def set_process(self, proc):
+        self.comboProc.setCurrentText(proc)
+
+    def set_ramp(self, ramp):
+        self.comboRamp.setCurrentText(ramp)        
+
+    def ramp(self):
+        ramp = self.comboRamp.currentText() if self.can_use_indices() else ""
+        return ramp
+
 class BasemapLayerWidget(QWidget):
 
     def __init__(self, layer):
@@ -139,19 +239,19 @@ class BasemapLayerWidget(QWidget):
         self.current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
         proc = layer.customProperty(PLANET_MOSAIC_PROC)
         ramp = layer.customProperty(PLANET_MOSAIC_RAMP)
-        label = layer.customProperty(PLANET_BASEMAP_LABEL)
+        #label = layer.customProperty(PLANET_BASEMAP_LABEL)
         self.datatype = layer.customProperty(PLANET_MOSAIC_DATATYPE)
         self.layer = layer
         self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
         self.mosaicnames = [m[0] for m in self.mosaics]
         self.mosaicids = [m[1] for m in self.mosaics]
         self.layout = QVBoxLayout()
-        self.labelId = QLabel()
-        self.labelId.setText(label)
-        self.layout.addWidget(self.labelId)
         if len(self.mosaics) > 1:
             idx = self.mosaicnames.index(self.current_mosaic_name)            
-            self.labelName = QLabel(f"{self.current_mosaic_name}")
+            self.labelId = QLabel()        
+            self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
+            self.layout.addWidget(self.labelId)
+            self.labelName = QLabel(self.current_mosaic_name)
             self.slider = CustomSlider(Qt.Horizontal)
             self.slider.setRange(0, len(self.mosaics) - 1)
             self.slider.setTickInterval(1)
@@ -164,45 +264,18 @@ class BasemapLayerWidget(QWidget):
             self.slider.sliderReleased.connect(self.change_source)            
             self.layout.addWidget(self.labelName)
             self.layout.addWidget(self.slider)
-        self.hlayoutProc = QHBoxLayout()
-        self.labelProc = QLabel("Processing:")
-        self.comboProc = QComboBox()
-        self.comboProc.addItems(self.processes_for_datatype())
-        self.comboProc.setCurrentText(proc)
-        self.hlayoutProc.addWidget(self.labelProc)
-        self.hlayoutProc.addWidget(self.comboProc)
-
-        self.load_ramps()
-        self.hlayoutRamp = QHBoxLayout()
-        self.labelRamp = QLabel("Color ramp:")        
-        self.comboRamp = QComboBox()                
-        for r in self.ramps:
-            self.comboRamp.addItem(r)
-        self.comboRamp.setCurrentText(ramp)        
-        self.comboRamp.setVisible(self.can_use_indices())
-        self.labelRamp.setVisible(self.can_use_indices())
-        self.hlayoutRamp.addWidget(self.labelRamp)
-        self.hlayoutRamp.addWidget(self.comboRamp)
-        self.layout.addLayout(self.hlayoutProc)
-        self.layout.addLayout(self.hlayoutRamp)
+        self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
+        self.layout.addWidget(self.renderingOptionsWidget)
+        self.renderingOptionsWidget.set_process(proc)
+        self.renderingOptionsWidget.set_ramp(ramp)
+        self.renderingOptionsWidget.values_changed.connect(self.change_source)        
         self.labelWarning = QLabel('<span style="color:red;"><b>No API key available</b></span>')
         self.layout.addWidget(self.labelWarning)
         self.setLayout(self.layout)
 
-        self.comboProc.currentIndexChanged.connect(self.change_source)
-        self.comboRamp.currentIndexChanged.connect(self.change_source)
-
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
         
         self.change_source()
-
-    def load_ramps(self):
-        path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                        "resources", "mosaics_caps.json")
-        with open(path) as f:
-            caps = json.load(f)
-
-        self.ramps = list(caps["colors"].keys())
 
     def on_value_changed(self, value):
         self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[value]}</span>')
@@ -210,27 +283,21 @@ class BasemapLayerWidget(QWidget):
         if not self.slider.isSliderDown():
             self.change_source()
 
-    def can_use_indices(self):
-        return self.datatype == "uint16"
-
     def change_source(self):
         has_api_key = PlanetClient.getInstance().has_api_key()
         self.labelWarning.setVisible(not has_api_key)
-        self.labelId.setVisible(has_api_key)
-        self.labelProc.setVisible(has_api_key)
-        self.labelRamp.setVisible(has_api_key and self.can_use_indices())
+        self.renderingOptionsWidget.setVisible(has_api_key)        
         if len(self.mosaics) > 1:
+            self.labelId.setVisible(has_api_key)
             self.labelName.setVisible(has_api_key)
-            self.slider.setVisible(has_api_key)
-        self.comboProc.setVisible(has_api_key)
-        self.comboRamp.setVisible(has_api_key and self.can_use_indices())
+            self.slider.setVisible(has_api_key)        
         value = self.slider.value() if len(self.mosaics) > 1 else 0
-        proc = self.comboProc.currentText()
-        ramp = self.comboRamp.currentText()
+        proc = self.renderingOptionsWidget.process()
+        ramp = self.renderingOptionsWidget.ramp()
         name, mosaicid = self.mosaics[value]
         tile_url = TILE_URL_TEMPLATE % (mosaicid, str(PlanetClient.getInstance().api_key()))
         procparam = quote(f'&proc={proc}') if proc != "default" else ""
-        rampparam = quote(f'&color={ramp}') if self.can_use_indices() else ""
+        rampparam = quote(f'&color={ramp}')
         uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"        
         provider = self.layer.dataProvider()
         if provider is not None:            

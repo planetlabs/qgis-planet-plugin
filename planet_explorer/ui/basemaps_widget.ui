@@ -29,7 +29,7 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>3</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="searchPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -914,7 +914,7 @@ Review the quads by basemap instance.</string>
           <item>
            <widget class="QLabel" name="label_9">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;Submitting this order will create an XYZ Tile connection for each of the map instances selected.  The default connection names will be:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-family:'Helvetica-Bold,Helvetica Bold,Helvetica'; font-size:12px; font-weight:696; color:#000000;&quot;&gt;[Basemap name + Instance name]&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;Specify any zoom level constraints.  Setting this can save streaming tile quota when navigating at zoom levels that aren’t useful.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;Submitting this order will create an XYZ Tile connection for each of the map instances selected.  The default connection names will be:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-family:'Helvetica-Bold,Helvetica Bold,Helvetica'; font-size:12px; font-weight:696; color:#000000;&quot;&gt;[Basemap name + Instance name]&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;Specify any zoom level constraints.  Setting this can save streaming tile quota when navigating at zoom levels that aren’t useful.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
@@ -929,30 +929,23 @@ Review the quads by basemap instance.</string>
             <property name="bottomMargin">
              <number>10</number>
             </property>
-            <item row="0" column="0">
-             <spacer name="horizontalSpacer_9">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="0" column="1">
-             <widget class="QCheckBox" name="chkMinZoomLevel">
-              <property name="text">
-               <string>Min Zoom Level</string>
-              </property>
-             </widget>
+            <item row="1" column="2">
+             <widget class="QComboBox" name="comboMaxZoomLevel"/>
             </item>
             <item row="1" column="1">
              <widget class="QCheckBox" name="chkMaxZoomLevel">
               <property name="text">
                <string>Max Zoom Level</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QComboBox" name="comboMinZoomLevel">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
               </property>
              </widget>
             </item>
@@ -969,18 +962,48 @@ Review the quads by basemap instance.</string>
               </property>
              </spacer>
             </item>
-            <item row="1" column="2">
-             <widget class="QComboBox" name="comboMaxZoomLevel"/>
+            <item row="0" column="0">
+             <spacer name="horizontalSpacer_9">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
-            <item row="0" column="2">
-             <widget class="QComboBox" name="comboMinZoomLevel"/>
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="chkMinZoomLevel">
+              <property name="minimumSize">
+               <size>
+                <width>150</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Min Zoom Level</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="2">
+             <widget class="QFrame" name="frameRenderingOptions">
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
           <item>
            <widget class="QLabel" name="label_10">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;To edit the name, zoom levels, or other connection attributes use the QGIS Browser panel.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;This Order will use utilize your streaming tile quota to the extent that it is used to serve imagery.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;To edit the name, zoom levels, or other connection attributes use the QGIS Browser panel.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'ArialMT,Arial'; font-size:12px; color:#333333;&quot;&gt;This Order will use utilize your streaming tile quota to the extent that it is used to serve imagery.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>

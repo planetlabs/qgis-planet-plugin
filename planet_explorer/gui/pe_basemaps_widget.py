@@ -28,7 +28,8 @@ import math
 
 from PyQt5.QtWidgets import (
     QApplication,
-    QMessageBox
+    QMessageBox,
+    QVBoxLayout
 )
 
 from PyQt5.QtGui import (
@@ -107,11 +108,13 @@ from .pe_orders_monitor_dockwidget import (
 from .extended_combobox import ExtendedComboBox
 from .pe_quads_treewidget import QuadsTreeWidget
 from .pe_basemaps_list_widget import BasemapsListWidget
+from .pe_basemap_layer_widget import BasemapRenderingOptionsWidget
 
 ID = "id"
 SERIES = "series"
 THUMB = "thumb"
 BBOX = "bbox"
+DATATYPE = "datatype"
 
 QUADS_PER_PAGE = 50
 MAX_QUADS_TO_DOWNLOAD = 100
@@ -154,6 +157,12 @@ class BasemapsWidget(BASE, WIDGET):
         self.quadsTree = QuadsTreeWidget()
         self.quadsTree.quadsSelectionChanged.connect(self.quads_selection_changed)
         self.grpBoxQuads.layout().addWidget(self.quadsTree)
+
+        self.renderingOptions = BasemapRenderingOptionsWidget()
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        layout.addWidget(self.renderingOptions)
+        self.frameRenderingOptions.setLayout(layout)
 
         self.aoi_filter = PlanetMainFilters(iface, self, self.parent, 
                                             True, QUADS_AOI_COLOR)        
@@ -270,7 +279,6 @@ class BasemapsWidget(BASE, WIDGET):
             for s in series:
                 self.comboSeriesName.addItem(s[NAME], s)
 
-
     def toggle_select_basemap_panel(self, show):
         self.lblSelectBasemapName.setVisible(show)
         self.lblSelectAllMosaics.setVisible(not show)
@@ -303,7 +311,6 @@ class BasemapsWidget(BASE, WIDGET):
             self.oneoff = [m for m in all_mosaics if m[ID] not in series_mosaic_ids]
 
         return self.oneoff
-        
 
     def series_for_interval(self, interval):
         series = []
@@ -483,6 +490,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.chkMaxZoomLevel.setChecked(False)
         self.comboMinZoomLevel.setEnabled(False)
         self.comboMaxZoomLevel.setEnabled(False)
+        self.renderingOptions.set_datatype(selected[0][DATATYPE])
         self.stackedWidget.setCurrentWidget(self.orderStreamingPage)
 
     def _quads_summary(self):
@@ -587,9 +595,12 @@ class BasemapsWidget(BASE, WIDGET):
         zmin = self.comboMinZoomLevel.currentText() if self.chkMinZoomLevel.isChecked() else 0
         zmax = self.comboMaxZoomLevel.currentText() if self.chkMaxZoomLevel.isChecked() else 18
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
+        proc = self.renderingOptions.process()
+        ramp = self.renderingOptions.ramp()
         for mosaic in selected:
             name = f"{mosaicname} - {mosaic_title(mosaic)}"
-            add_xyz(name, mosaic[LINKS][TILES], zmin, zmax)
+            add_mosaics_to_qgis_project([mosaic], name, proc=proc, ramp=ramp,
+                                        zmin=zmin, zmax=zmax, add_xyz_server=True)
         selected = self.mosaicsList.selected_mosaics()
         base_html= ("<p>Your Connection(s) have been established</p>")        
         self.grpBoxOrderConfirmation.setTitle("Order Streaming Download")
