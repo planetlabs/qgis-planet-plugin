@@ -58,7 +58,8 @@ from qgis.PyQt.QtWidgets import (
 
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
-    QNetworkRequest
+    QNetworkRequest,
+    QNetworkReply
 )
 
 from qgis.core import (
@@ -307,8 +308,10 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                     satellite_item = date_item.child(j)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
                     satellite_widget.update_for_children()
+                    satellite_widget.update_thumbnail()
                     satellite_item.sortChildren(0, Qt.AscendingOrder)
                 date_widget.update_for_children()
+                date_widget.update_thumbnail()
             self.item_count_changed()
         else:
             self._has_more = False
@@ -408,6 +411,35 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return self._request
 
 
+class ThumbnailManager():
+
+    def __init__(self):
+        self.nam = QNetworkAccessManager()
+        self.nam.finished.connect(self.thumbnail_downloaded)
+        self.thumbnails = {}
+        self.widgets = {}
+
+    def download_thumbnail(self, url, widget):
+        if url in self.thumbnails:
+            widget.set_thumbnail(self.thumbnails[url])
+        else:
+            self.widgets[url] = widget
+            self.nam.get(QNetworkRequest(QUrl(url))) 
+
+    def thumbnail_downloaded(self, reply):
+        if reply.error() == QNetworkReply.NoError:
+            url = reply.url().toString()
+            img = QImage()
+            img.loadFromData(reply.readAll())
+            self.thumbnails[url] = img
+            self.widgets[url].set_thumbnail(img)
+            del self.widgets[url]
+    
+_thumbnailManager = ThumbnailManager()
+
+def download_thumbnail(url, widget):
+    _thumbnailManager.download_thumbnail(url, widget)
+
 class ItemWidgetBase(QFrame):
 
     checkedStateChanged = pyqtSignal()
@@ -439,10 +471,8 @@ class ItemWidgetBase(QFrame):
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setFixedSize(48, 48)         
         layout.addWidget(self.iconLabel)
-        if thumbnailurl is not None:
-            self.nam = QNetworkAccessManager()
-            self.nam.finished.connect(self.iconDownloaded)            
-            self.nam.get(QNetworkRequest(QUrl(thumbnailurl)))        
+        if thumbnailurl is not None:           
+            download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
         layout.addWidget(self.toolsButton)
@@ -453,6 +483,13 @@ class ItemWidgetBase(QFrame):
                               QgsWkbTypes.PolygonGeometry)        
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
+
+    def set_thumbnail(self, img):
+        self.thumbnail = QPixmap(img)
+        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+        self.thumbnailChanged.emit()
 
     def is_selected(self):
         return self.checkBox.isChecked()
@@ -534,15 +571,6 @@ class ItemWidgetBase(QFrame):
             tile_service='xyz'
         )
 
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        self.thumbnail = QPixmap(img)
-        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio, 
-                            Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        self.thumbnailChanged.emit()
-
     def check_box_state_changed(self):
         self.checkedStateChanged.emit()        
         self.is_updating_checkbox = True
@@ -596,15 +624,12 @@ class ItemWidgetBase(QFrame):
             self.iconLabel.setPixmap(thumb)
             self.thumbnailChanged.emit()
 
-
     def scene_thumbnails(self):                
         thumbnails = []
         for i in range(self.item.childCount()):
             w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
             thumbnails.extend(w.scene_thumbnails())
         return thumbnails
-
-
 
 class DateItem(QTreeWidgetItem):
 
