@@ -93,11 +93,16 @@ from planet_explorer.pe_utils import (
     is_segments_write_key_valid,
     add_menu_section_action,
     BASE_URL,
-    open_link_with_browser)
+    open_link_with_browser,
+    add_widget_to_layer
+)
 
 from planet_explorer.planet_api import PlanetClient
 
-from planet_explorer.planet_api.p_apikey_replacer import replace_apikeys
+from planet_explorer.planet_api.p_apikey_replacer import (
+    replace_apikeys,
+    replace_apikey_for_layer
+)
 
 from planet_explorer.gui.pe_basemap_layer_widget import (
     BasemapLayerWidgetProvider
@@ -329,18 +334,24 @@ class PlanetExplorer(object):
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
 
         QgsProject.instance().projectSaved.connect(self.project_saved)
-        QgsProject.instance().layerLoaded.connect(self.project_layer_loaded)
+        QgsProject.instance().layersAdded.connect(self.layers_added)
+        QgsProject.instance().layerRemoved.connect(self.layer_removed)
 
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
 
         self.enable_buttons(False)
 
-    def project_layer_loaded(self, i, n):
-        if i == n:
-            replace_apikeys()
+    def layer_removed(self, layer):
+        self.provider.layerWasRemoved(layer)
+
+    def layers_added(self, layers):                
+        for layer in layers:
+            add_widget_to_layer(layer)
+            replace_apikey_for_layer(layer)        
 
     def login_changed(self, loggedin):
         replace_apikeys()
+        self.provider.updateLayerWidgets()
         self.enable_buttons(loggedin)
         if not loggedin:
             hide_orders_monitor()
@@ -427,7 +438,8 @@ class PlanetExplorer(object):
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
-        self.provider.logoutLayerWidgets()
+        PlanetClient.getInstance().log_out()
+        self.provider.updateLayerWidgets()
 
         removeSettingsMenu(P_E, self.iface.removePluginWebMenu)
         # removeHelpMenu(P_E, self.iface.removePluginWebMenu)

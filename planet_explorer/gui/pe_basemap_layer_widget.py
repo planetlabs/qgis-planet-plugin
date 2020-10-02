@@ -50,7 +50,8 @@ from PyQt5.QtWidgets import (
 from qgis.core import (
     QgsLayerTreeLayer,
     QgsLayerTreeGroup,
-    QgsProject
+    QgsProject,
+    QgsDataProvider
 )
 
 from qgis.gui import (
@@ -59,12 +60,17 @@ from qgis.gui import (
 
 from ..planet_api import PlanetClient
 
-PLANET_CURRENT_MOSAIC = "planet/currentMosaic"
-PLANET_MOSAICS = "planet/mosaics"
-PLANET_MOSAIC_PROC = "planet/mosaicProc"
-PLANET_MOSAIC_RAMP = "planet/mosaicRamp"
-PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
-PLANET_BASEMAP_LABEL = "planet/basemapLabel"
+from ..pe_utils import (
+    PLANET_MOSAICS,
+    PLANET_CURRENT_MOSAIC,
+    PLANET_MOSAIC_PROC,
+    PLANET_MOSAIC_RAMP,
+    PLANET_MOSAIC_DATATYPE,
+    PLANET_BASEMAP_LABEL,
+    WIDGET_PROVIDER_NAME,
+    mosaic_name_from_url,
+    datatype_from_mosaic_name
+)
 
 TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
 
@@ -180,17 +186,31 @@ class BasemapRenderingOptionsWidget(QFrame):
         self.comboRamp.blockSignals(False)
         self.comboRamp.setVisible(self.can_use_indices())
         self.labelRamp.setVisible(self.can_use_indices())
+        self._proc_changed()
     
     def _proc_changed(self):
-        self.comboRamp.clear()
-        self.comboRamp.setIconSize(QSize(100, 20))
-        ramps = self.ramps_for_process()
-        for name, icon in ramps.items():
-            self.comboRamp.addItem(name)            
-            self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+        if self.can_use_indices():
+            self.comboRamp.clear()
+            self.comboRamp.setIconSize(QSize(100, 20))
+            ramps = self.ramps_for_process()
+            if ramps:
+                self.comboRamp.setVisible(True)
+                self.labelRamp.setVisible(True)
+                for name, icon in ramps.items():
+                    self.comboRamp.addItem(name)            
+                    self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+            else:
+                self.comboRamp.setVisible(False)
+                self.labelRamp.setVisible(False)
+        else:
+            self.values_changed.emit()
 
     def ramps_for_process(self):
-        return self.ramps
+        process = self.comboProc.currentText()
+        if process in ["rgb", "default"]:
+            return {}
+        else:
+            return self.ramps
 
     def load_ramps(self):
         path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -236,10 +256,8 @@ class BasemapLayerWidget(QWidget):
 
     def __init__(self, layer):
         super().__init__()
-        self.current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
         proc = layer.customProperty(PLANET_MOSAIC_PROC)
         ramp = layer.customProperty(PLANET_MOSAIC_RAMP)
-        #label = layer.customProperty(PLANET_BASEMAP_LABEL)
         self.datatype = layer.customProperty(PLANET_MOSAIC_DATATYPE)
         self.layer = layer
         self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
@@ -247,11 +265,14 @@ class BasemapLayerWidget(QWidget):
         self.mosaicids = [m[1] for m in self.mosaics]
         self.layout = QVBoxLayout()
         if len(self.mosaics) > 1:
-            idx = self.mosaicnames.index(self.current_mosaic_name)            
+            # we don't use the layer source url when there are multiple 
+            # it will be composed on-the-file based on the mosaic parameters
+            current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
+            idx = self.mosaicnames.index(current_mosaic_name)
             self.labelId = QLabel()        
             self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
             self.layout.addWidget(self.labelId)
-            self.labelName = QLabel(self.current_mosaic_name)
+            self.labelName = QLabel(current_mosaic_name)
             self.slider = CustomSlider(Qt.Horizontal)
             self.slider.setRange(0, len(self.mosaics) - 1)
             self.slider.setTickInterval(1)
@@ -264,6 +285,12 @@ class BasemapLayerWidget(QWidget):
             self.slider.sliderReleased.connect(self.change_source)            
             self.layout.addWidget(self.labelName)
             self.layout.addWidget(self.slider)
+        else:
+            # if there are no multiple mosaics, we use the original url,
+            # and just add 'proc' and 'color' modifiers to it
+            layerurl = layer.source().split("&url=")[-1]
+            tokens = layerurl.split("?")
+            self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
         self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
         self.layout.addWidget(self.renderingOptionsWidget)
         self.renderingOptionsWidget.set_process(proc)
@@ -283,7 +310,7 @@ class BasemapLayerWidget(QWidget):
         if not self.slider.isSliderDown():
             self.change_source()
 
-    def change_source(self):
+    def change_source(self):        
         has_api_key = PlanetClient.getInstance().has_api_key()
         self.labelWarning.setVisible(not has_api_key)
         self.renderingOptionsWidget.setVisible(has_api_key)        
@@ -291,25 +318,36 @@ class BasemapLayerWidget(QWidget):
             self.labelId.setVisible(has_api_key)
             self.labelName.setVisible(has_api_key)
             self.slider.setVisible(has_api_key)        
-        value = self.slider.value() if len(self.mosaics) > 1 else 0
+            value = self.slider.value() if len(self.mosaics) > 1 else 0
+            name, mosaicid = self.mosaics[value]
+            tile_url = TILE_URL_TEMPLATE % (mosaicid, str(PlanetClient.getInstance().api_key()))
+            self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
+        else:
+            tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"        
         proc = self.renderingOptionsWidget.process()
         ramp = self.renderingOptionsWidget.ramp()
-        name, mosaicid = self.mosaics[value]
-        tile_url = TILE_URL_TEMPLATE % (mosaicid, str(PlanetClient.getInstance().api_key()))
         procparam = quote(f'&proc={proc}') if proc != "default" else ""
-        rampparam = quote(f'&color={ramp}')
-        uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"        
+        rampparam = quote(f'&color={ramp}') if ramp else ""
+        uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"
         provider = self.layer.dataProvider()
-        if provider is not None:            
+        if provider is not None:
             provider.setDataSourceUri(uri)
-        self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
+            self.layer.triggerRepaint()
         self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
         self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
-        self.layer.triggerRepaint()
+        self.ensure_correct_size()
 
     def login_changed(self):
-        self.change_source()
+        client = PlanetClient.getInstance()
+        if not bool(self.datatype):
+            mosaic = mosaic_name_from_url(self.layer.source())
+            datatype = datatype_from_mosaic_name(mosaic)
+            if datatype is not None:                
+                self.datatype = datatype
+                self.layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, datatype)
+                self.renderingOptionsWidget.set_datatype(datatype)
         self.ensure_correct_size()
+        self.change_source()
 
     def ensure_correct_size(self):
         def findLayerItem(root=None):
@@ -328,17 +366,6 @@ class BasemapLayerWidget(QWidget):
             item.setExpanded(not isExpanded)
             item.setExpanded(isExpanded)
 
-    def processes_for_datatype(self):
-        if self.datatype == "uint16":
-            return  ["default", "rgb", "cir", "ndvi", "mtvi2", "ndwi",
-                        "msavi2", "tgi", "vari"]
-        elif self.datatype == "byte":
-            return ["default", "tgi", "vari"]
-        else:
-            return ["default"]
-
-WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
-
 class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
 
     def __init__(self):
@@ -352,18 +379,18 @@ class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
         return "Planet Basemap Layer Widget"
 
     def createWidget(self, layer, widgetIndex):
-        widget = BasemapLayerWidget(layer)
-        self.widgets[layer.id()] = widget
-        return widget
-            
+        if layer.id() not in self.widgets:
+            widget = BasemapLayerWidget(layer)
+            self.widgets[layer.id()] = widget
+        return self.widgets[layer.id()]        
 
     def supportsLayer(self, layer):    
         return PLANET_CURRENT_MOSAIC in layer.customPropertyKeys()
 
-    def logoutLayerWidgets(self):
-        PlanetClient.getInstance().log_out()
+    def updateLayerWidgets(self):        
         for widget in self.widgets.values():
             widget.login_changed()
 
-
-
+    def layerWasRemoved(self, layerid):
+        if layerid in self.widgets:
+            del self.widgets[layerid]

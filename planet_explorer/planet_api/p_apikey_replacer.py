@@ -40,22 +40,14 @@ from planet_explorer.gui.pe_basemap_layer_widget import (
 
 from planet_explorer.pe_utils import (
     PLANET_PREVIEW_ITEM_IDS,
-    tile_service_data_src_uri
+    tile_service_data_src_uri,
+    is_planet_url,
+    mosaic_name_from_url
 )
 
 APIKEY_PLACEHOLDER = "{api_key}"
 PLANET_ROOT_URL = "planet.com"
 PLANET_ROOT_URL_PLACEHOLDER = "{planet_url}"
-
-def is_planet_layer(url):
-    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*")
-    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*")
-    isloggedInPattern = loggedInPattern.search(url) is not None
-    isloggedOutPattern = loggedOutPattern.search(url) is not None
-
-    singleUrl = url.count("&url=") == 1
-
-    return singleUrl and (isloggedOutPattern or isloggedInPattern)
 
 def replace_apikeys():
     for layerid, layer in QgsProject.instance().mapLayers().items():
@@ -63,13 +55,11 @@ def replace_apikeys():
 
 def replace_apikey_for_layer(layer):
     source = urllib.parse.unquote(layer.source())
-    if is_planet_layer(source):
-        client = PlanetClient.getInstance()
-        if PLANET_PREVIEW_ITEM_IDS in layer.customPropertyKeys() and client.has_api_key():
-            #In case of a preview layer, we get a new url to avoid link expiration
-                newsource = tile_service_data_src_uri(json.loads(
-                                    layer.customProperty(PLANET_PREVIEW_ITEM_IDS)))
-        else:
+    if is_planet_url(source):
+        mosaic = mosaic_name_from_url(source)
+        if mosaic is None:
+            # only for preview layers. Mosaic layers are handled by their custom legend widget
+            client = PlanetClient.getInstance()
             tokens = source.split("api_key=")
             if len(tokens) == 1:
                 tokens.append("")
@@ -85,8 +75,10 @@ def replace_apikey_for_layer(layer):
             else:
                 newsource = f"{tokens[0]}api_key={tokens[1]}"
                 newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
-        if newsource is not None:
+
+            layer.dataProvider().setDataSourceUri(newsource)
+            '''
             layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), 
                                 QgsDataProvider.ProviderOptions())
+            '''
             layer.triggerRepaint()
-

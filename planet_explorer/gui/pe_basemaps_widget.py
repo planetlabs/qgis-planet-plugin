@@ -90,7 +90,6 @@ from ..pe_utils import (
     THREEMONTHS,
     WEEK,
     INTERVAL,
-    add_xyz,
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,

@@ -40,7 +40,9 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
+import re
 import logging
+import urllib
 import json
 import iso8601
 
@@ -93,7 +95,9 @@ from qgis.core import (
     QgsLayerTreeGroup,
     QgsReadWriteContext,
     QgsApplication,
-    QgsVectorFileWriter
+    QgsVectorFileWriter,
+    QgsLayerTreeLayer,
+    QgsLayerTreeGroup
 )
 
 from qgis.gui import QgisInterface
@@ -104,20 +108,20 @@ from .planet_api.p_client import (
     tile_service_url,
 )
 
-from .planet_api.p_utils import geometry_from_json_str_or_obj
+from .planet_api import PlanetClient
+
+from .planet_api.p_utils import (
+    geometry_from_json_str_or_obj
+)
 
 from .planet_api.p_specs import (
     ITEM_TYPE_SPECS,
 )
 
-from .gui.pe_basemap_layer_widget import (
-    PLANET_MOSAICS,
-    PLANET_CURRENT_MOSAIC,
-    PLANET_MOSAIC_PROC,
-    PLANET_MOSAIC_RAMP,
-    PLANET_MOSAIC_DATATYPE,
-    PLANET_BASEMAP_LABEL,
-    WIDGET_PROVIDER_NAME
+from planet.api.models import Mosaics
+
+from planet.api.exceptions import (
+    APIException
 )
 
 from qgiscommons2 import(
@@ -174,6 +178,14 @@ DATATYPE = "datatype"
 ID = "id"
 ITEM_TYPE = "item_type"
 
+PLANET_CURRENT_MOSAIC = "planet/currentMosaic"
+PLANET_MOSAICS = "planet/mosaics"
+PLANET_MOSAIC_PROC = "planet/mosaicProc"
+PLANET_MOSAIC_RAMP = "planet/mosaicRamp"
+PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
+PLANET_BASEMAP_LABEL = "planet/basemapLabel"
+WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
+
 def sentry_dsn():
     return os.environ.get("SEGMENTS_WRITE_KEY")
 
@@ -223,96 +235,6 @@ def qgsgeometry_from_geojson(json_type):
     geom = QgsGeometry.fromPolygonXY(polygon)
 
     return geom
-
-
-# QgsGeometryCollection calls segault on macOS (untested on other OS) - 8/2019
-# For now, just keep QgsGeometry objs in list, and recreate ops for
-#   QgsGeometryCollection, e.g. calculateBoundingBox(), when possible.
-#
-# def qgsgeometrycollection_from_geojsons(json_types):
-#     """
-#     :param json_types: List of GeoJSON features, feature collections or
-#     geometries as string or `json` object
-#     :type json_types: [str | dict]
-#     :rtype: QgsGeometryCollection
-#     """
-#     geom_coll = QgsGeometryCollection()
-#     qgs_geoms = [qgsgeometry_from_geojson(j) for j in json_types]
-#
-#     for qgs_geom in qgs_geoms:
-#         qgs_geom: QgsGeometry
-#         if qgs_geom.isEmpty():
-#             continue
-#         # QgsGeometry.get() returns underlying QgsAbstractGeometry
-#         geom_coll.addGeometry(qgs_geom.get())
-#
-#     return geom_coll
-
-
-def qgsfeature_from_geojson(json_type):
-    """
-    :param json_type: GeoJSON feature, feature collection or geometry as
-    string or `json` object
-    :type json_type: str | dict
-    :rtype: QgsFeature
-    """
-    # TODO: Extend to include ALL GeoJSON properties
-    # Possibly with underlying OGR interface call...
-    # try:
-    #     utf8 = QTextCodec.codecForName('UTF-8')
-    #     # TODO: Add node id, properties as fields?
-    #     fields = QgsFields()
-    #     features = QgsJsonUtils().stringToFeatureList(
-    #         string=feature_collect_json, fields=fields, encoding=utf8)
-    # except Exception:
-    #     log.debug('Footprint GeoJSON could not be parsed')
-    #     return
-    #
-    # Or, just add feature fields manually, using...
-
-    geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
-
-    feat = QgsFeature()
-    feat.setFields(QgsFields())
-
-    if not geom.isEmpty():
-        feat.setGeometry(geom)
-
-    return feat
-
-# QgsGeometryCollection calls segault on macOS (untested on other OS) - 9/2019
-# def qgsmultipolygon_from_geojsons(
-#         json_types: Union[str, dict]) -> QgsMultiPolygon:
-#     """
-#     :param json_types: List of GeoJSON features, feature collections or
-#     geometries as string or `json` object
-#     :type json_types: [str | dict]
-#     :rtype: QgsMultiPolygon
-#     """
-#     skip = 'skipping'
-#     multi_p = QgsMultiPolygon()
-#
-#     qgs_geoms = [qgsgeometry_from_geojson(j) for j in json_types]
-#
-#     if len(qgs_geoms) < 1:
-#         log.debug(f'GeoJSON geometry collection empty, {skip}')
-#         return multi_p
-#
-#     for qgs_geom in qgs_geoms:
-#         multi_p.addGeometry(qgs_geom.constGet())
-#
-#     return multi_p
-#
-#
-# def multipolygon_geojson_from_geojsons(json_types):
-#     """
-#     :param json_types: List of GeoJSON features, feature collections or
-#     geometries as string or `json` object
-#     :type json_types: [str | dict]
-#     :rtype: str
-#     """
-#     multi_p: QgsMultiPolygon = qgsmultipolygon_from_geojsons(json_types)
-#     return multi_p.asJson()
 
 def add_menu_section_action(text, menu, tag='b', pad=0.5):
     """Because QMenu.addSection() fails to render with some UI styles, and
@@ -520,7 +442,6 @@ def zoom_canvas_to_aoi(json_type):
     geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
     zoom_canvas_to_geometry(geom)
 
-
 def resource_file(f):
     return os.path.join(os.path.dirname(__file__), "resources", f)
 
@@ -562,18 +483,6 @@ def date_interval_from_mosaics(mosaic):
     dates = f'{date.strftime("%B %Y")} - {date2.strftime("%B %Y")}'
     return dates
 
-def add_xyz(name, url, zmin, zmax):
-    s = QSettings()    
-    s.setValue(f'qgis/connections-xyz/{name}/zmin', zmin)
-    s.setValue(f'qgis/connections-xyz/{name}/zmin', zmax)
-    s.setValue(f'qgis/connections-xyz/{name}/username', "")
-    s.setValue(f'qgis/connections-xyz/{name}/password', "")
-    s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
-    s.setValue(f'qgis/connections-xyz/{name}/url', url)
-    uri = f'type=xyz&url={url}&zmin={zmin}&zmax={zmax}'
-    layer = QgsRasterLayer(uri, name, 'wms')
-    QgsProject.instance().addMapLayer(layer)
-
 def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="", 
                                 zmin=0, zmax=22, add_xyz_server=False):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
@@ -598,7 +507,73 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
         s.setValue(f'qgis/connections-xyz/{name}/username', "")
         s.setValue(f'qgis/connections-xyz/{name}/password', "")
         s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
-        s.setValue(f'qgis/connections-xyz/{name}/url', tile_url)
+        s.setValue(f'qgis/connections-xyz/{name}/url',
+            tile_url.replace(PlanetClient.getInstance().api_key(), ""))
+
+def layer_tree_node_for_layer(layer):
+    def _nodes_from_tree(layerTreeGroup):
+        _nodes = {}
+        for child in layerTreeGroup.children():                    
+            if isinstance(child, QgsLayerTreeLayer):
+                _nodes[child.layer()] = child
+            elif isinstance(child, QgsLayerTreeGroup):
+                _nodes.update(_nodes_from_tree(child))
+        return _nodes
+    root = QgsProject.instance().layerTreeRoot()                
+    nodes = _nodes_from_tree(root)
+    return nodes.get(layer, None)    
 
 def open_link_with_browser(url):
     QDesktopServices.openUrl(QUrl(url))
+
+def datatype_from_mosaic_name(name):
+    client = PlanetClient.getInstance()
+    if client.has_api_key():
+        try:
+            resp = client.get_mosaic_by_name(name)
+            return resp.get()[Mosaics.ITEM_KEY][0][DATATYPE]
+        except APIException:
+            raise
+            return ""
+    else:
+        return ""
+
+def mosaic_name_from_url(url):
+    url = urllib.parse.unquote(url)
+    pattern = re.compile(r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*")        
+    result = pattern.search(url)
+    if result is not None:
+        mosaic = result.group(1)
+        return mosaic
+    else:
+        return None
+
+def add_widget_to_layer(layer):
+    if is_planet_url(layer.source()) and PLANET_MOSAICS not in layer.customPropertyKeys():
+        proc = "default"
+        ramp = ""
+        mosaic = mosaic_name_from_url(layer.source())
+        if mosaic is not None:
+            datatype = datatype_from_mosaic_name(mosaic)
+            mosaics = [(mosaic, mosaic)]
+            layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
+            layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
+            layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, datatype)
+            layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaics))        
+            layer.setCustomProperty("embeddedWidgets/count", 1)
+            layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME) 
+            view = iface.layerTreeView()
+            node = layer_tree_node_for_layer(layer)
+            #view.model().refreshLayerLegend(node)
+            view.currentNode().setExpanded(True)
+
+def is_planet_url(url):
+    url = urllib.parse.unquote(url)
+    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*")
+    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*")
+    isloggedInPattern = loggedInPattern.search(url) is not None
+    isloggedOutPattern = loggedOutPattern.search(url) is not None
+
+    singleUrl = url.count("&url=") == 1
+
+    return singleUrl and (isloggedOutPattern or isloggedInPattern)
