@@ -342,7 +342,7 @@ class BasemapLayerWidget(QWidget):
         if not bool(self.datatype):
             mosaic = mosaic_name_from_url(self.layer.source())
             datatype = datatype_from_mosaic_name(mosaic)
-            if datatype is not None:                
+            if datatype is not None:
                 self.datatype = datatype
                 self.layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, datatype)
                 self.renderingOptionsWidget.set_datatype(datatype)

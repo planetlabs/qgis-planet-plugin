@@ -76,9 +76,7 @@ def replace_apikey_for_layer(layer):
                 newsource = f"{tokens[0]}api_key={tokens[1]}"
                 newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
 
-            layer.dataProvider().setDataSourceUri(newsource)
-            '''
+            #layer.dataProvider().setDataSourceUri(newsource)
             layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), 
                                 QgsDataProvider.ProviderOptions())
-            '''
             layer.triggerRepaint()
