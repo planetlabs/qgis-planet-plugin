@@ -56,11 +56,6 @@ from qgis.PyQt.QtWidgets import (
     QFileDialog
 )
 
-from PyQt5.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest,
-    QNetworkReply
-)
 
 from qgis.core import (
     QgsGeometry,
@@ -114,7 +109,8 @@ from .pe_gui_utils import (
 )
 
 from .pe_thumbnails import(
-    createCompoundThumbnail
+    createCompoundThumbnail,
+    download_thumbnail
 )
 
 TOP_ITEMS_BATCH = 250
@@ -402,6 +398,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     def clean_up(self):
         self.clear_aoi_box()
+        self.tree.clear()
 
     def closeEvent(self, event):
         self.clean_up()
@@ -410,35 +407,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def request_query(self):
         return self._request
 
-
-class ThumbnailManager():
-
-    def __init__(self):
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.thumbnail_downloaded)
-        self.thumbnails = {}
-        self.widgets = {}
-
-    def download_thumbnail(self, url, widget):
-        if url in self.thumbnails:
-            widget.set_thumbnail(self.thumbnails[url])
-        else:
-            self.widgets[url] = widget
-            self.nam.get(QNetworkRequest(QUrl(url))) 
-
-    def thumbnail_downloaded(self, reply):
-        if reply.error() == QNetworkReply.NoError:
-            url = reply.url().toString()
-            img = QImage()
-            img.loadFromData(reply.readAll())
-            self.thumbnails[url] = img
-            self.widgets[url].set_thumbnail(img)
-            del self.widgets[url]
-    
-_thumbnailManager = ThumbnailManager()
-
-def download_thumbnail(url, widget):
-    _thumbnailManager.download_thumbnail(url, widget)
 
 class ItemWidgetBase(QFrame):
 

@@ -220,6 +220,9 @@ class BasemapsWidget(BASE, WIDGET):
             self.btn_filter_clicked(self.btnAll)
             self._initialized = True
 
+    def reset(self):
+        self._initialized = False
+
     def batch_select_mosaics_clicked(self, url="all"):
         checked = url == "all"
         self.mosaicsList.setAllChecked(checked)

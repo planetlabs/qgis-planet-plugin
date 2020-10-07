@@ -272,6 +272,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if self.logged_in():
             self.lePass.setText("")
             self.leUser.setText("")
+            self.clean_up()
             self.switch_to_browse_panel()
         else:
             self._set_credential_fields()
@@ -283,7 +284,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
     @pyqtSlot()
     def switch_to_browse_panel(self):
-        self.stckdWidgetViews.setCurrentIndex(1)      
+        self.stckdWidgetViews.setCurrentIndex(1)
+        self.tabWidgetResourceType.setCurrentWidget(self.tabWidgetResourceTypePage1)    
 
     @pyqtSlot(int)
     def _item_group_changed(self, indx):
@@ -367,6 +369,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
     def clean_up(self):
         self.daily_images_widget.clean_up()
+        self.basemaps_widget.reset()
 
     def closeEvent(self, event):
         self.clean_up()
