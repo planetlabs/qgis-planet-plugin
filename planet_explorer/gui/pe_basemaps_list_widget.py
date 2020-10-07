@@ -54,7 +54,8 @@ from PyQt5.QtCore import (
     QUrl,
     pyqtSignal,
     QSize,
-    QEvent
+    QEvent,
+    Qt
 )
 
 from planet_explorer.pe_utils import (
@@ -75,6 +76,10 @@ from ..pe_utils import (
     qgsrectangle_for_canvas_from_4326_bbox_coords,
     mosaic_title,
     add_menu_section_action
+)
+
+from .pe_thumbnails import(
+    download_thumbnail
 )
 
 from .extended_combobox import ExtendedComboBox
@@ -104,8 +109,8 @@ class BasemapsListWidget(QListWidget):
         self.widgets = []
         super().clear()
 
-    def populate(self, mosaics):              
-        self.widgets = []
+    def populate(self, mosaics):
+        self.widgets = []        
         for mosaic in mosaics[::-1]:                
             item = BasemapListItem(mosaic)
             self.addItem(item)
@@ -170,8 +175,8 @@ class BasemapItemWidget(QWidget):
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
         self.checkBox.setEnabled(available)
@@ -191,11 +196,15 @@ class BasemapItemWidget(QWidget):
         layout.addWidget(self.toolsButton)
         layout.addSpacing(10)
         self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
 
         if THUMB in mosaic[LINKS]:
-            self.nam.get(QNetworkRequest(QUrl(mosaic[LINKS][THUMB])))        
+            download_thumbnail(mosaic[LINKS][THUMB], self)
+
+    def set_thumbnail(self, img):
+        pixmap = QPixmap(img)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)   
         
     def showContextMenu(self, evt):
         menu = QMenu()

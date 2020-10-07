@@ -72,6 +72,8 @@ from ..pe_utils import (
     mosaic_title
 )
 
+from .pe_thumbnails import download_thumbnail
+
 from .extended_combobox import ExtendedComboBox
 
 ID = "id"
@@ -276,9 +278,9 @@ class QuadInstanceItemWidget(QFrame):
         layout.addWidget(self.nameLabel)
         layout.addStretch()
         self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
-        self.nam.get(QNetworkRequest(QUrl(quad[LINKS][THUMBNAIL])))
+
+        download_thumbnail(quad[LINKS][THUMBNAIL], self)
+
         self.footprint = QgsRubberBand(iface.mapCanvas(),
                               QgsWkbTypes.PolygonGeometry)        
         self.footprint.setFillColor(QUADS_AOI_COLOR)
@@ -295,6 +297,13 @@ class QuadInstanceItemWidget(QFrame):
         self.show_footprint()
 
         self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid transparent;}")
+
+    def set_thumbnail(self, img):
+        pixmap = QPixmap(img)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+                            Qt.SmoothTransformation)
+        self.iconLabel.setPixmap(thumb)
+        self.iconLabel.setStyleSheet("")
 
     def check_box_state_changed(self):
         self.update_footprint_brush()
@@ -325,16 +334,7 @@ class QuadInstanceItemWidget(QFrame):
 
     def remove_footprint(self):
         iface.mapCanvas().scene().removeItem(self.footprint)
-        iface.mapCanvas().scene().removeItem(self.footprintfill)
-        
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
-                            QtCore.Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)
-        self.iconLabel.setStyleSheet("")
+        iface.mapCanvas().scene().removeItem(self.footprintfill)    
 
     def isSelected(self):
         return self.checkBox.isChecked()

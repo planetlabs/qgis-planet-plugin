@@ -24,6 +24,11 @@ __revision__ = '$Format:%H$'
 
 import os
 
+from PyQt5.QtNetwork import (
+    QNetworkAccessManager,
+    QNetworkRequest,
+    QNetworkReply
+)
 
 from qgis.PyQt.QtCore import (
     pyqtSignal,
@@ -31,7 +36,8 @@ from qgis.PyQt.QtCore import (
     QObject,
     QSize,
     QThread,
-    Qt
+    Qt,
+    QUrl
 )
 
 from qgis.PyQt.QtGui import (
@@ -53,11 +59,43 @@ from ..planet_api.p_client import (
     PlanetClient
 )
 
-
 from ..pe_utils import (
     tile_service_data_src_uri,    
     qgsgeometry_from_geojson
 )
+
+class ThumbnailManager():
+
+    def __init__(self):
+        self.nam = QNetworkAccessManager()
+        self.nam.finished.connect(self.thumbnail_downloaded)
+        self.thumbnails = {}
+        self.widgets = {}
+
+    def download_thumbnail(self, url, widget):
+        if url in self.thumbnails:
+            widget.set_thumbnail(self.thumbnails[url])
+        else:
+            self.widgets[url] = widget
+            self.nam.get(QNetworkRequest(QUrl(url))) 
+
+    def thumbnail_downloaded(self, reply):
+        if reply.error() == QNetworkReply.NoError:
+            url = reply.url().toString()
+            img = QImage()
+            img.loadFromData(reply.readAll())
+            self.thumbnails[url] = img
+            try:
+                self.widgets[url].set_thumbnail(img)
+            except:
+                #the widget might have been deleted
+                pass
+            del self.widgets[url]
+    
+_thumbnailManager = ThumbnailManager()
+
+def download_thumbnail(url, widget):
+    _thumbnailManager.download_thumbnail(url, widget)
 
 
 def createCompoundThumbnail(_bboxes, thumbnails):
