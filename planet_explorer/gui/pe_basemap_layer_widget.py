@@ -192,49 +192,52 @@ class BasemapRenderingOptionsWidget(QFrame):
         if self.can_use_indices():
             self.comboRamp.clear()
             self.comboRamp.setIconSize(QSize(100, 20))
-            ramps = self.ramps_for_process()
+            default, ramps = self.ramps_for_current_process()
             if ramps:
                 self.comboRamp.setVisible(True)
                 self.labelRamp.setVisible(True)
-                for name, icon in ramps.items():
+                for name in ramps:
+                    icon = self.ramp_pixmaps[name]
                     self.comboRamp.addItem(name)            
                     self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+                self.comboRamp.setCurrentText(default)
             else:
                 self.comboRamp.setVisible(False)
                 self.labelRamp.setVisible(False)
         else:
             self.values_changed.emit()
 
-    def ramps_for_process(self):
+    def ramps_for_current_process(self):
         process = self.comboProc.currentText()
-        if process in ["rgb", "default"]:
-            return {}
+        if process in self.ramps["indices"]:
+            pref_colors = self.ramps["indices"][process]["pref-colors"] or list(self.ramps["colors"].keys())
+            return self.ramps["indices"][process]["color"], pref_colors
         else:
-            return self.ramps
+            return None, []
 
     def load_ramps(self):
         path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                         "resources", "mosaics_caps.json")
         with open(path) as f:
-            caps = json.load(f)
+            self.ramps = json.load(f)
 
-        self.ramps = {}
-        for k, v in caps["colors"].items():
+        self.ramp_pixmaps = {}
+        for k, v in self.ramps["colors"].items():
             base64 = v["icon"][len("data:image/png;base64,"):].encode()
             byte_array = QByteArray.fromBase64(base64)
             image = QImage.fromData(byte_array, "PNG")
             scaled = image.scaled(100, 20)           
             pixmap = QPixmap.fromImage(scaled)
-            self.ramps[k] = pixmap
+            self.ramp_pixmaps[k] = pixmap
 
     def processes_for_datatype(self):
         if self.datatype == "uint16":
-            return  ["default", "rgb", "cir", "ndvi", "mtvi2", "ndwi",
+            return  ["rgb", "cir", "ndvi", "mtvi2", "ndwi",
                         "msavi2", "tgi", "vari"]
         elif self.datatype == "byte":
-            return ["default", "tgi", "vari"]
+            return ["rgb", "tgi", "vari"]
         else:
-            return ["default"]
+            return ["rgb"]
 
     def can_use_indices(self):
         return self.datatype == "uint16"
@@ -264,9 +267,11 @@ class BasemapLayerWidget(QWidget):
         self.mosaicnames = [m[0] for m in self.mosaics]
         self.mosaicids = [m[1] for m in self.mosaics]
         self.layout = QVBoxLayout()
+        self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
+        self.layout.addWidget(self.renderingOptionsWidget)
         if len(self.mosaics) > 1:
-            # we don't use the layer source url when there are multiple 
-            # it will be composed on-the-file based on the mosaic parameters
+            # We don't use the layer source url when there are multiple mosaics.
+            # It will be composed on-the-fly based on the mosaic parameters
             current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
             idx = self.mosaicnames.index(current_mosaic_name)
             self.labelId = QLabel()        
@@ -291,8 +296,6 @@ class BasemapLayerWidget(QWidget):
             layerurl = layer.source().split("&url=")[-1]
             tokens = layerurl.split("?")
             self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
-        self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
-        self.layout.addWidget(self.renderingOptionsWidget)
         self.renderingOptionsWidget.set_process(proc)
         self.renderingOptionsWidget.set_ramp(ramp)
         self.renderingOptionsWidget.values_changed.connect(self.change_source)        
