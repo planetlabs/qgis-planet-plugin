@@ -403,13 +403,19 @@ class BasemapsWidget(BASE, WIDGET):
 
     @waitcursor
     def find_quads(self):
+        self.labelWarningQuads.setText("")
         selected = self.mosaicsList.selected_mosaics()
         if not self.aoi_filter.leAOI.text():
             self.labelWarningQuads.setText('⚠️ No area of interest (AOI) defined')
             return
-        self.labelWarningQuads.setText("")
-        self.widgetProgressFindQuads.setVisible(True)        
         geom = self.aoi_filter.aoi_as_4326_geom()
+        mosaic_extent = QgsRectangle(*selected[0][BBOX])
+        if not geom.intersects(mosaic_extent):
+            self.parent.show_message(f'No mosaics in the selected area',
+                              level=Qgis.Warning,
+                              duration=10) 
+            return
+        
         quad = self.p_client.get_one_quad(selected[0])
         quadarea = self._area_from_bbox_coords(quad[BBOX])
         qgsarea = QgsDistanceArea()
@@ -417,6 +423,7 @@ class BasemapsWidget(BASE, WIDGET):
                                         QgsUnitTypes.AreaSquareKilometers)
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
 
+        self.widgetProgressFindQuads.setVisible(True)
         self.progressBarInstances.setMaximum(len(selected))
         self.progressBarQuads.setMaximum(numpages)
         self.finder = QuadFinder()
