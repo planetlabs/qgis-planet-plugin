@@ -181,6 +181,7 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.btnOrder.clicked.connect(self.order)
         self.btnExplore.clicked.connect(self.explore)
+        self.btnCancelQuadSearch.clicked.connect(self.cancel_quad_search)
 
         self.btnNextOrderMethodPage.clicked.connect(self.next_order_method_page_clicked)
         self.btnBackOrderMethodPage.clicked.connect(
@@ -421,16 +422,21 @@ class BasemapsWidget(BASE, WIDGET):
         self.finder = QuadFinder()
         self.finder.setup(self.p_client, selected, geom)
         
-        #self.objThread = QThread()
-        #self.finder.moveToThread(self.objThread)
-        #self.finder.finished.connect(self.objThread.quit)
+        self.objThread = QThread()
+        self.finder.moveToThread(self.objThread)
+        self.finder.finished.connect(self.objThread.quit)
         self.finder.finished.connect(self._update_quads)
         self.finder.mosaicStarted.connect(self._mosaic_started)
         self.finder.pageRead.connect(self._page_read)
-        #self.objThread.started.connect(self.finder.find_quads)
-        #self.objThread.start()
-        self.finder.find_quads()
-        
+        self.objThread.started.connect(self.finder.find_quads)
+        self.objThread.start()
+        #self.finder.find_quads()
+
+    def cancel_quad_search(self):
+        self.finder.cancel()
+        self.objThread.quit()
+        self.widgetProgressFindQuads.setVisible(False)
+
     def _mosaic_started(self, i, name):
         self.labelProgressInstances.setText(f"Processing basemap '{name}' " 
                             f"({i}/{self.progressBarInstances.maximum()})")
@@ -688,6 +694,7 @@ class QuadFinder(QObject):
         self.geom = geom
 
     def find_quads(self):
+        self.canceled = False
         all_quads = []
         bbox_rect = self.geom.boundingBox()
         bbox = [bbox_rect.xMinimum(), bbox_rect.yMinimum(),
@@ -700,5 +707,10 @@ class QuadFinder(QObject):
             for j, page in enumerate(quads.iter()):
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
                 self.pageRead.emit(j + 2)
+                if self.canceled:
+                    return
             all_quads.append(json_quads)
         self.finished.emit(all_quads)
+
+    def cancel(self):
+        self.canceled = True

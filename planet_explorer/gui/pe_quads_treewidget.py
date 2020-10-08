@@ -135,7 +135,10 @@ class QuadsTreeWidget(QTreeWidget):
 
     def setAllChecked(self, checked):
         for w in self.quad_widgets():
+            w.blockSignals(True)
             w.setChecked(checked)
+            w.blockSignals(True)
+        self._quad_selection_changed()
 
     def populate_by_quad(self, mosaics, quads):
         self.clear()
