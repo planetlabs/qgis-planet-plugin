@@ -329,7 +329,7 @@ class BasemapLayerWidget(QWidget):
             tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"        
         proc = self.renderingOptionsWidget.process()
         ramp = self.renderingOptionsWidget.ramp()
-        procparam = quote(f'&proc={proc}') if proc != "default" else ""
+        procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
         rampparam = quote(f'&color={ramp}') if ramp else ""
         uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"
         provider = self.layer.dataProvider()

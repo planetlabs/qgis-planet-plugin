@@ -87,16 +87,15 @@ class ThumbnailManager():
             self.thumbnails[url] = img
             try:
                 self.widgets[url].set_thumbnail(img)
+                #del self.widgets[url]
             except:
                 #the widget might have been deleted
                 pass
-            del self.widgets[url]
     
 _thumbnailManager = ThumbnailManager()
 
 def download_thumbnail(url, widget):
     _thumbnailManager.download_thumbnail(url, widget)
-
 
 def createCompoundThumbnail(_bboxes, thumbnails):
     bboxes = []

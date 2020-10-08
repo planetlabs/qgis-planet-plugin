@@ -111,19 +111,21 @@ class BasemapsListWidget(QListWidget):
 
     def populate(self, mosaics):
         self.widgets = []        
-        for mosaic in mosaics[::-1]:                
-            item = BasemapListItem(mosaic)
-            self.addItem(item)
-            widget = BasemapItemWidget(mosaic)
-            self.setItemWidget(item, widget)
-            width = self.width()
-            if self.verticalScrollBar().isVisible():
-                width -= self.verticalScrollBar().width()
-            widget.setMaximumWidth(width)
-            widget.setFixedWidth(width)
-            item.setSizeHint(widget.sizeHint())
-            widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
-            self.widgets.append(widget)
+        for mosaic in mosaics:
+            available = TILES in mosaic[LINKS]
+            if available:
+                item = BasemapListItem(mosaic)
+                self.addItem(item)
+                widget = BasemapItemWidget(mosaic)
+                self.setItemWidget(item, widget)
+                width = self.width()
+                if self.verticalScrollBar().isVisible():
+                    width -= self.verticalScrollBar().width()
+                widget.setMaximumWidth(width)
+                widget.setFixedWidth(width)
+                item.setSizeHint(widget.sizeHint())
+                widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
+                self.widgets.append(widget)
         
         self.sortItems()
 
@@ -163,11 +165,9 @@ class BasemapItemWidget(QWidget):
 
     def __init__(self, mosaic):
         QWidget.__init__(self)
-        self.mosaic = mosaic
-        available = TILES in mosaic[LINKS]
-        color = "black" if available else "grey"        
+        self.mosaic = mosaic      
         title = mosaic_title(mosaic)
-        self.nameLabel = QLabel(f'<span style="color:{color};"><b>{title}</b></span>'
+        self.nameLabel = QLabel(f'<span style="color:black;"><b>{title}</b></span>'
                             f'<br><span style="color:grey;">{mosaic[NAME]}</span>')        
         self.iconLabel = QLabel()
         self.toolsButton = QLabel()
@@ -179,7 +179,6 @@ class BasemapItemWidget(QWidget):
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
-        self.checkBox.setEnabled(available)
         self.checkBox.stateChanged.connect(self.basemapSelected.emit)
         layout = QHBoxLayout()
         layout.setMargin(2)
