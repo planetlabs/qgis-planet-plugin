@@ -44,7 +44,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QStyle, 
     QStyleOptionSlider,
-    QFrame
+    QFrame,
+    QListWidget,
+    QListWidgetItem
 )
 
 from qgis.core import (
@@ -172,6 +174,9 @@ class BasemapRenderingOptionsWidget(QFrame):
         
         self.setLayout(self.layout)
         self.comboProc.currentIndexChanged.connect(self._proc_changed)
+        self.listWidget = QListWidget()
+        self.comboRamp.setView(self.listWidget)
+        self.comboRamp.setModel(self.listWidget.model())
         self.comboRamp.currentIndexChanged.connect(self.values_changed.emit)
 
         self.set_datatype(datatype)
@@ -201,11 +206,28 @@ class BasemapRenderingOptionsWidget(QFrame):
                     self.comboRamp.addItem(name)            
                     self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
                 self.comboRamp.setCurrentText(default)
+                if len(ramps) != len(list(self.ramps["colors"].keys())):
+                    item = QListWidgetItem()
+                    self.listWidget.addItem(item)
+                    label = QLabel("<a href='#' style='color: grey;'>Show all ramps</a>")
+                    label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    label.linkActivated.connect(self._show_all_ramps)
+                    self.listWidget.setItemWidget(item, label)
             else:
                 self.comboRamp.setVisible(False)
                 self.labelRamp.setVisible(False)
         else:
             self.values_changed.emit()
+
+    def _show_all_ramps(self):
+        self.comboRamp.clear()
+        self.comboRamp.setIconSize(QSize(100, 20))
+        ramps = list(self.ramps["colors"].keys())
+        for name in ramps:
+            icon = self.ramp_pixmaps[name]
+            self.comboRamp.addItem(name)            
+            self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+        self.comboRamp.showPopup()
 
     def ramps_for_current_process(self):
         process = self.comboProc.currentText()
