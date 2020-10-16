@@ -22,6 +22,7 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 __revision__ = '$Format:%H$'
 
 import os
+import iso8601
 import logging
 
 from planet.api.models import (
@@ -159,8 +160,9 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             widget = QuadsOrderItemWidget(order, self)
             item.setSizeHint(widget.sizeHint())
             self.listOrders.addItem(item)
-            self.listOrders.setItemWidget(item, widget)            
+            self.listOrders.setItemWidget(item, widget)
 
+        self.listOrders.sortItems(Qt.DescendingOrder)
 
 class OrderWrapper():
 
@@ -175,7 +177,8 @@ class OrderWrapper():
         return self.order.get(NAME)
 
     def date(self):
-        return self.order.get(CREATED_ON)
+        datestring = self.order.get(CREATED_ON)
+        return (iso8601.parse_date(datestring).date().isoformat())
 
     def is_zipped(self):
         delivery = self.order.get(DELIVERY)
@@ -203,18 +206,29 @@ class OrderWrapper():
         locations = [(r[Order.LOCATION_KEY], r[NAME]) for r in results]
         return locations
 
-class OrderItem(QListWidgetItem):
+class BaseWidgetItem(QListWidgetItem):
+
+    def __lt__(self, other):
+        try:
+            return self.date() < other.date()
+        except Exception as e:
+            return QListWidgetItem.__lt__(self, other)
+
+class OrderItem(BaseWidgetItem):
 
     def __init__(self, order):
         super().__init__()
-        self.order = order       
+        self.order = order
+
+    def date(self):
+        return self.order.date()       
 
 class OrderItemWidget(QWidget):
 
     def __init__(self, order, dialog):
         super().__init__()
         self.dialog = dialog
-        self.order = order        
+        self.order = order
         txt = (f'<b>Order {order.name()}<br>({order.date()})</b><br>'
               f'{order.assets_count()} assets - state: {order.state()}')
 
@@ -259,12 +273,14 @@ class OrderItemWidget(QWidget):
         iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",                
                             level=Qgis.Info, duration=5)
 
-
-class QuadsOrderItem(QListWidgetItem):
+class QuadsOrderItem(BaseWidgetItem):
 
     def __init__(self, order):
         super().__init__()
-        self.order = order       
+        self.order = order
+
+    def date(self):
+        return self.order.date
 
 class QuadsOrderItemWidget(QWidget):
 
@@ -273,7 +289,8 @@ class QuadsOrderItemWidget(QWidget):
         self.dialog = dialog
         self.order = order        
 
-        txt = (f'<b>Order {self.order.name}<br>({self.order.date})</b><br>'
+        datestring = iso8601.parse_date(self.order.date).date().isoformat()
+        txt = (f'<b>Order {self.order.name}<br>({datestring})</b><br>'
               f'{self.order.description}')
         label = QLabel(txt)
 

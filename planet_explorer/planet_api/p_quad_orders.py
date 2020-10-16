@@ -80,8 +80,7 @@ class QuadOrder():
         self.load_as_virtual = load_as_virtual
         self.name = name
         self.description = description
-        self.date = date or (datetime.datetime.now()
-                            .replace(microsecond=0).isoformat())
+        self.date = date or (datetime.date.today().isoformat())
 
     def locations(self):
         locations = {}
