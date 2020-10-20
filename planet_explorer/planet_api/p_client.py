@@ -151,7 +151,11 @@ class PlanetClient(QObject):
     def set_proxy_values(self):
         settings = QSettings()
         proxyEnabled = settings.value("proxy/proxyEnabled")
-        if proxyEnabled:
+        base_url = self.client.base_url.lower()
+        excluded = False
+        noProxyUrls = settings.value("proxy/noProxyUrls")
+        excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
+        if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
             if proxyType != "HttpProxy":
                 QgsMessageLog.logMessage("Planet Explorer: Only HttpProxy is supported "
