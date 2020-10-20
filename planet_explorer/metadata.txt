@@ -37,7 +37,7 @@ changelog=
 # Tags are comma separated with spaces allowed
 tags=landsat, raster, analytics, remote sensing
 
-homepage=https://www.planet.com
+homepage=https://developers.planet.com/docs/integrations/qgis/
 icon=resources/planet-logo-p.png
 # experimental flag
 experimental=False
