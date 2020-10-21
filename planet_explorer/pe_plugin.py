@@ -82,7 +82,9 @@ from planet_explorer.resources import resources
 from planet_explorer.gui.pe_explorer_dockwidget import (
     show_explorer,
     toggle_explorer,
-    remove_explorer
+    remove_explorer,
+    toggle_mosaics_search,
+    toggle_images_search
 )
 
 from planet_explorer.pe_utils import (
@@ -292,13 +294,21 @@ class PlanetExplorer(object):
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
 
-        self.showexplorer_act = self.add_action(
+        self.showdailyimages_act = self.add_action(
             ':/plugins/planet_explorer/planet-logo-p.svg',
             text=self.tr(P_E),
-            callback=toggle_explorer,
+            callback=toggle_images_search,
             add_to_menu=True,
             add_to_toolbar=True,
             parent=self.iface.mainWindow())
+
+        self.showbasemaps_act = self.add_action(
+            ':/plugins/planet_explorer/planet-logo-p.svg',
+            text=self.tr("Show Basemaps Search"),
+            callback=toggle_mosaics_search,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            parent=self.iface.mainWindow())        
 
         self.showorders_act = self.add_action(
             ':/plugins/planet_explorer/download.svg',
@@ -490,20 +500,23 @@ class PlanetExplorer(object):
         self.login_act.setVisible(not loggedin)
         self.logout_act.setVisible(loggedin)
         self.acct_act.setVisible(loggedin)
-        self.showexplorer_act.setEnabled(loggedin)
+        self.showdailyimages_act.setEnabled(loggedin)
+        self.showbasemaps_act.setEnabled(loggedin)
         self.showinspector_act.setEnabled(loggedin)
         self.showorders_act.setEnabled(loggedin)
         self.showtasking_act.setEnabled(loggedin)
         if loggedin:
             self.user_act.defaultWidget().setText(
                 f"<b>{PlanetClient.getInstance().user()['user_name']}<b/>")
-            self.showexplorer_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
+            self.showdailyimages_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
+            self.showbasemaps_act.setToolTip("Show / Hide the Planet Basemaps Search Panel")
             self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
             self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
             self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
         else:
             self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
-            self.showexplorer_act.setToolTip("Login to access Imagery Search")        
+            self.showdailyimages_act.setToolTip("Login to access Imagery Search")        
+            self.showbasemaps_act.setToolTip("Login to access Basemaps Search")
             self.showorders_act.setToolTip("Login to access Order Status")
             self.showinspector_act.setToolTip("Login to access Planet Inspector")
             self.showtasking_act.setToolTip("Login to access Tasking Panel")

@@ -298,8 +298,13 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
     def _setup_mosaics_panel(self):
         self.basemaps_widget = BasemapsWidget(self)
-        self.tabWidgetResourceTypePage2.layout().addWidget(self.basemaps_widget)        
+        self.tabWidgetResourceTypePage2.layout().addWidget(self.basemaps_widget)
 
+    def show_daily_images_panel(self):
+        self.tabWidgetResourceType.setCurrentIndex(0)
+
+    def show_mosaics_panel(self):
+        self.tabWidgetResourceType.setCurrentIndex(1)
 
     def show_message(self, message, level=Qgis.Info,
                      duration=None, show_more=None):
@@ -409,3 +414,13 @@ def show_explorer_and_search_daily_images(request):
 def remove_explorer():
     if dockwidget_instance is not None:
         iface.removeDockWidget(dockwidget_instance)
+
+def toggle_images_search():
+    instance = _get_widget_instance()
+    instance.show_daily_images_panel()
+    toggle_explorer()
+
+def toggle_mosaics_search():
+    instance = _get_widget_instance()
+    instance.show_mosaics_panel()
+    toggle_explorer()    
