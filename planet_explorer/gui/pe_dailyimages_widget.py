@@ -180,7 +180,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         all_filters = main_filters + item_filters
 
-        id_filters = [f for f in all_filters if f["field_name"] == "id"]
+        id_filters = [f for f in all_filters if "field_name" in f and f["field_name"] == "id"]
         
         if id_filters:
             self._filters = id_filters[0]
