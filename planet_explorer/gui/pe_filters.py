@@ -139,6 +139,51 @@ def filters_from_request(request, field_name=None, filter_type=None):
     _add_filter(filter_entry)
     return filters
 
+def filters_as_text_from_request(request):
+    slider_filters = {
+            'cloud_cover': 'Cloud cover',
+            'sun_azimuth': 'Sun Azimuth',
+            'sun_elevation': 'Sun Elevation',
+            'view_angle': 'View Angle',
+            'gsd': 'Ground Sample Distance',
+            'anomalous_pixels': 'Anomalous Pixels',
+            'usable_data': 'Usable Pixels',
+    }
+    s = ""
+    for k, v in slider_filters.items():
+        filters = filters_from_request(request, k)
+        if filters:
+            minvalue = filters[0]['config'].get('gte')
+            if minvalue is None:
+                minvalue = "---"
+            elif k == 'cloud_cover':
+                minvalue *= 100.0
+            maxvalue = filters[0]['config'].get('lte')
+            if maxvalue is None:
+                maxvalue = "---"
+            elif k == 'cloud_cover':
+                maxvalue *= 100.0
+        else:
+            minvalue = mavalue = "---"
+        s += f"{k}: {minvalue}, {maxvalue}\n"
+
+    filters = filters_from_request(request, filter_type='PermissionFilter')
+    if filters:
+        s += f"Only show images you can download: {'assets:download' in filters[0]['config']}\n"
+    else:
+        s += "Only show images you can download: False\n"
+    filters = filters_from_request(request, 'ground_control')
+    if filters:    
+        s += f"Only show images with ground control: {'assets:download' in filters[0]['config']}\n"
+    else:
+        s += "Only show images with ground control: False\n"
+
+    filters = filters_from_request(request, 'id')
+    if filters:
+        s += f'IDs: {",".join(filters[0]["config"])}'   
+
+    return s 
+
 class PlanetFilterMixin(QObject):
     """
     Base mixin for Planet API filter control widget groupings.
@@ -795,8 +840,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         gl = QGridLayout(self.frameSources)
         gl.setContentsMargins(0, 0, 0, 0)
         for a, b in DAILY_ITEM_TYPES:
-            # Strip ' Scene' to reduce horizontal width of 2-column layout
-            cb = QCheckBox(b.replace(' Scene', ''), parent=self.frameSources)
+            # Strip ' Scene' to reduce horizontal width of 2-column layout, except for SkySat
+            name = b.replace(' Scene', '') if b != "SkySat Scene" else b
+            cb = QCheckBox(name, parent=self.frameSources)
             cb.setChecked(a in checked)
             cb.setProperty('api-name', a)
             cb.setToolTip(b)

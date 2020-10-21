@@ -15,6 +15,8 @@ from qgis.PyQt.QtWidgets import (
 
 from qgis.gui import QgsMapCanvas, QgsMessageBar
 
+from qgis.core import QgsCoordinateReferenceSystem
+
 from qgis.utils import iface
 
 from ..pe_utils import (
@@ -25,7 +27,7 @@ from ..planet_api.p_client import (
         PlanetClient
 )
 
-from .pe_filters import filters_from_request
+from .pe_filters import filters_from_request, filters_as_text_from_request
 
 WIDGET, BASE = uic.loadUiType(os.path.join(
         os.path.dirname(os.path.dirname(__file__)), 
@@ -86,7 +88,7 @@ class SaveSearchDialog(BASE, WIDGET):
         layout.setMargin(0)
         self.canvas = QgsMapCanvas()
         layers = iface.mapCanvas().mapSettings().layers()
-        crs = iface.mapCanvas().mapSettings().destinationCrs()
+        crs = QgsCoordinateReferenceSystem("EPSG:4326")
         self.canvas.setLayers(layers)
         extent = qgsgeometry_from_geojson(aoi_txt).boundingBox()
         self.canvas.setDestinationCrs(crs)
@@ -108,6 +110,7 @@ class SaveSearchDialog(BASE, WIDGET):
             else:
                 self.lblEndDate.setText("---")
                 self.chkExcludeEnd.setEnabled(False)
+        self.txtFilters.setPlainText(filters_as_text_from_request(self.request))
 
     def save(self):
         name = self.txtName.text()
