@@ -217,7 +217,6 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
     grpBxAssets: QgsCollapsibleGroupBox
     grpBoxTools: QgsCollapsibleGroupBox
 
-    chkBxSelectAllAssets: QCheckBox
     frameBundleOptions: QFrame
     frameBands: QFrame
     frameRadiometry: QFrame
@@ -288,9 +287,7 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self.grpBxItemType.collapsedStateChanged[bool].connect(
             self._group_box_collapsed_changed)        
         self.grpBxItemType.clicked.connect(self._groupbox_clicked)
-        
-        self.chkBxSelectAllAssets.stateChanged.connect(
-            self._update_bundle_options)
+
         self._filter_opts_cmbboxes = [
             self.cmbBoxBands, self.cmbBoxRadiometry,
             self.cmbBoxRectification, self.cmbBoxOutput
@@ -348,13 +345,6 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
     @pyqtSlot()
     def _update_bundle_options(self) -> None:
-        if self.chkBxSelectAllAssets.isChecked():
-            self.frameBundleOptions.setDisabled(True)
-            self._update_order_bundle('all')
-            return
-        else:
-            self.frameBundleOptions.setEnabled(True)
-
         c_s = self._filter_opts_cmbboxes
         l_s = self._filter_info_labels
         t_s = [c.currentText() for c in c_s]  # type: List[str]

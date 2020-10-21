@@ -164,13 +164,6 @@
              <number>6</number>
             </property>
             <item>
-             <widget class="QCheckBox" name="chkBxSelectAllAssets">
-              <property name="text">
-               <string>Select all assets</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QFrame" name="frameBundleOptions">
               <property name="frameShape">
                <enum>QFrame::StyledPanel</enum>
