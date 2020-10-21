@@ -421,6 +421,10 @@ class ItemWidgetBase(QFrame):
         self.setStyleSheet("ItemWidgetBase{border: 2px solid transparent;}")
 
     def _setup_ui(self, text, thumbnailurl):
+
+        self.lockLabel = QLabel()
+        iconSize = QSize(16, 16)
+        self.lockLabel.setPixmap(LOCK_ICON.pixmap(iconSize))
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.check_box_state_changed)
         self.nameLabel = QLabel(text)        
@@ -432,6 +436,8 @@ class ItemWidgetBase(QFrame):
         layout = QHBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
+        layout.addWidget(self.lockLabel)
+        self.lockLabel.setVisible(False)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         self.thumbnail = None
         thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
@@ -733,6 +739,7 @@ class SceneItemWidget(ItemWidgetBase):
                        for s in permissions]
             self.downloadable = any(matches)
 
+        self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
         self.geom = qgsgeometry_from_geojson(image[GEOMETRY])
 
@@ -767,4 +774,8 @@ class SceneItemWidget(ItemWidgetBase):
 
     def scene_thumbnails(self):  
         return [self.thumbnail]
+
+    def set_checked(self, checked):
+        if self.downloadable:
+            self.checkBox.setChecked(checked)
 
