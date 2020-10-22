@@ -31,7 +31,8 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsWkbTypes,
     QgsRectangle,
-    QgsGeometry
+    QgsGeometry,
+    QgsPointXY
 )
 
 from qgis.gui import (
@@ -64,6 +65,7 @@ from ..planet_api import (
 
 from ..pe_utils import (
     PLANET_COLOR,
+    open_link_with_browser
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
@@ -83,8 +85,7 @@ WIDGET, BASE = uic.loadUiType(
 
 class AOICaptureMapTool(QgsMapTool):
     
-    aoi_captured = pyqtSignal()
-    aoi_moved = pyqtSignal(QgsRectangle)
+    aoi_captured = pyqtSignal(QgsRectangle, QgsPointXY)    
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
@@ -92,25 +93,28 @@ class AOICaptureMapTool(QgsMapTool):
         self.canvas = canvas
         self.cursor = Qt.CrossCursor
 
-    def activate(self):
+    def activate(self):        
         self.canvas.setCursor(self.cursor)
 
     def canvasReleaseEvent(self, event):
-        self.aoi_captured.emit()
-
-    def canvasMoveEvent(self, event):
         pt = event.mapPoint()
-        transform = QgsCoordinateTransform(
+        transform3857 = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:3857"),
             QgsProject.instance()
         )
-        pt3857 = transform.transform(pt)        
+        transform4326 = QgsCoordinateTransform(
+            QgsProject.instance().crs(),
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance()
+        )
+        pt4326 = transform4326.transform(pt)
+        pt3857 = transform3857.transform(pt) 
         SIZE = 5000
         rect3857 = QgsRectangle(pt3857.x() - SIZE / 2, pt3857.y() - SIZE / 2,
                             pt3857.x() + SIZE / 2, pt3857.y() + SIZE / 2)
-        rect = transform.transform(rect3857, QgsCoordinateTransform.ReverseTransform)
-        self.aoi_moved.emit(rect)
+        rect = transform3857.transform(rect3857, QgsCoordinateTransform.ReverseTransform)
+        self.aoi_captured.emit(rect, pt4326)
 
 
 class TaskingDockWidget(BASE, WIDGET):
@@ -127,11 +131,6 @@ class TaskingDockWidget(BASE, WIDGET):
 
         self.btnMapTool.setIcon(TASKING_ICON)
 
-        self.movingFootprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
-        self.movingFootprint.setStrokeColor(PLANET_COLOR)
-        self.movingFootprint.setWidth(2)
-
         self.footprint = QgsRubberBand(iface.mapCanvas(),
                               QgsWkbTypes.PolygonGeometry)        
         self.footprint.setStrokeColor(PLANET_COLOR)
@@ -141,32 +140,32 @@ class TaskingDockWidget(BASE, WIDGET):
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
         self.map_tool.aoi_captured.connect(self.aoi_captured)
-        self.map_tool.aoi_moved.connect(self.aoi_moved)
         self.btnMapTool.toggled.connect(self._set_map_tool)
         iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
 
-        self.visibilityChanged.connect(self.clear)
+        self.textBrowserInfo.anchorClicked.connect(self._link_clicked)
 
-    def aoi_moved(self, rect):
+        self.textBrowserPoint.setHtml("No point selected")
+        self.btnOpenDashboard.setEnabled(False)
+
+        self.btnOpenDashboard.clicked.connect(self._open_tasking_dashboard)
+
+        self.visibilityChanged.connect(self.visibility_changed)
+
+    def aoi_captured(self, rect, pt):
+        self.pt = pt
         self.rect = rect
-        geom = QgsGeometry.fromRect(rect)
-        self.movingFootprint.setToGeometry(geom)
-
-    def aoi_captured(self):
-        self.footprint.setToGeometry(self.movingFootprint.asGeometry())
+        self.footprint.setToGeometry(QgsGeometry.fromRect(rect))
         self._set_map_tool(False)
-        transform = QgsCoordinateTransform(
-            QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance()
-        )
-        rect4326 = transform.transform(self.rect)
-        self.textBrowser.setHtml(f"""<ul>
-                                    <li>xmin: {rect4326.xMinimum()}</li>
-                                    <li>xmax: {rect4326.xMaximum()}</li>
-                                    <li>ymin: {rect4326.yMinimum()}</li>
-                                    <li>ymax: {rect4326.yMaximum()}</li>
-                                    </ul>""")
+        self.textBrowserPoint.setHtml(f"Selected point: {pt.x():.6g},{pt.y():.6g}")
+        self.btnOpenDashboard.setEnabled(True)
+
+    def _link_clicked(self, url):
+        open_link_with_browser(url)
+
+    def _open_tasking_dashboard(self):
+        url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
+        open_link_with_browser(url)
 
     def _set_map_tool(self, checked):
         if checked:
@@ -181,11 +180,13 @@ class TaskingDockWidget(BASE, WIDGET):
             self.btnMapTool.blockSignals(True)
             self.btnMapTool.setChecked(False)
             self.btnMapTool.blockSignals(False)
-            self.movingFootprint.reset(QgsWkbTypes.PolygonGeometry)
 
-    def clear(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self._set_map_tool(False)
+    def visibility_changed(self, visible):
+        if not visible:        
+            self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+            self.textBrowserPoint.setText("No point selected")
+            self.btnOpenDashboard.setEnabled(False)
+            self._set_map_tool(False)
 
 dockwidget_instance = None
 
