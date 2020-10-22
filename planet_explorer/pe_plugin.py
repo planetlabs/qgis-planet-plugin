@@ -133,6 +133,7 @@ SAT_SPECS_PDF = 'https://assets.planet.com/docs/' \
                 'Planet_Combined_Imagery_Product_Specs_letter_screen.pdf'
 PLANET_SUPPORT_COMMUNITY = 'https://support.planet.com'
 PLANET_EXPLORER = f'{PLANET_COM}/explorer'
+PLANET_INTEGRATIONS = "https://developers.planet.com/tag/integrations.html"
 EXT_LINK = ':/plugins/planet_explorer/external-link.svg'
 ACCOUNT_URL = f'{BASE_URL}/account'
 
@@ -399,6 +400,13 @@ class PlanetExplorer(object):
             lambda: open_link_with_browser(PLANET_SUPPORT_COMMUNITY)
         )
         info_menu.addAction(p_support_act)
+
+        p_whatsnew_act = QAction(QIcon(EXT_LINK),
+                                "What's new", info_menu)
+        p_whatsnew_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_INTEGRATIONS)
+        )
+        info_menu.addAction(p_whatsnew_act)        
 
         info_act = add_menu_section_action('Documentation', info_menu)
 
