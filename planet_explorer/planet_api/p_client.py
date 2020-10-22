@@ -116,15 +116,10 @@ class PlanetClient(QObject, ClientV1):
             'used': 0.0,
         }
 
-
-        # if not callable(self._area_km_func):
-        #     log.info('No external geometry area calc function registered')
-        #     # TODO: Create/register internal func based upon `ogr` module
-
     def set_proxy_values(self):
         settings = QSettings()
         proxyEnabled = settings.value("proxy/proxyEnabled")
-        base_url = self.client.base_url.lower()
+        base_url = self.base_url.lower()
         excluded = False
         noProxyUrls = settings.value("proxy/noProxyUrls")
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
@@ -164,11 +159,8 @@ class PlanetClient(QObject, ClientV1):
         if path.startswith('http'):
             url = path
         else:
-            url = self.client.base_url + path
+            url = self.base_url + path
         return url
-
-    def api_client(self):
-        return self.client
 
     @waitcursor
     def log_in(self, user, password, api_key=None):
