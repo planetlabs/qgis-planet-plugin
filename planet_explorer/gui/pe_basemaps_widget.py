@@ -452,7 +452,7 @@ class BasemapsWidget(BASE, WIDGET):
 
     def _page_read(self, i):
         total = self.progressBarQuads.maximum()
-        self.labelProgressQuads.setText(f"Downloading quads (page {i} of an estimated total of {total})")
+        self.labelProgressQuads.setText(f"Downloading quad footprints (page {i} of (estimated) {total})")
         self.progressBarQuads.setValue(i)
         QApplication.processEvents()
         
