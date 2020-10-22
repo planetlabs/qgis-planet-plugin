@@ -7,7 +7,7 @@
 name=Planet_Explorer
 qgisMinimumVersion=3.6
 description=The Planet Plugin enables QGIS users to quickly discover, stream, and download Planet imagery and Planet Basemaps. The plug-in provides an imagery discovery interface that allows users to search for, stream, and download Planet imagery within QGIS.<br><br>Full documentation for the Plugin is available <a href="https://developers.planet.com/docs/integrations/qgis/">here</a>.
-version=1.2
+version=1.3
 author=Planet Inc
 
 about=Planet Explorer accesses the Planet imagery catalog archive. PYTHON 3.6 MINIMUM REQUIRED
@@ -36,7 +36,7 @@ changelog=
 # Tags are comma separated with spaces allowed
 tags=landsat, raster, analytics, remote sensing
 
-homepage=https://www.planet.com
+homepage=https://developers.planet.com/docs/integrations/qgis/
 icon=resources/planet-logo-p.png
 # experimental flag
 experimental=False
