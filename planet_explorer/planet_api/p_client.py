@@ -153,7 +153,7 @@ class PlanetClient(QObject):
         proxyEnabled = settings.value("proxy/proxyEnabled")
         base_url = self.client.base_url.lower()
         excluded = False
-        noProxyUrls = settings.value("proxy/noProxyUrls", [])
+        noProxyUrls = settings.value("proxy/noProxyUrls") or []
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
         if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
@@ -176,8 +176,8 @@ class PlanetClient(QObject):
             else:
                 username = settings.value("proxy/proxyUser")
                 password = settings.value("proxy/proxyPassword")
-            
-            if username:                
+
+            if username:
                 tokens = url.split("://")
                 url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"
 
@@ -185,7 +185,6 @@ class PlanetClient(QObject):
             self.client.dispatcher.session.proxies["https"] = url
         else:
             self.client.dispatcher.session.proxies = {}
-
 
     def _url(self, path):
         if path.startswith('http'):
