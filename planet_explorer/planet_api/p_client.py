@@ -153,7 +153,7 @@ class PlanetClient(QObject):
         proxyEnabled = settings.value("proxy/proxyEnabled")
         base_url = self.client.base_url.lower()
         excluded = False
-        noProxyUrls = settings.value("proxy/noProxyUrls")
+        noProxyUrls = settings.value("proxy/noProxyUrls", [])
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
         if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
