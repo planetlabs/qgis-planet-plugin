@@ -85,7 +85,6 @@ from ..pe_utils import (
     QUADS_AOI_COLOR,
     NAME,
     LINKS,
-    TILES,   
     ONEMONTH,
     THREEMONTHS,
     WEEK,
@@ -114,6 +113,8 @@ SERIES = "series"
 THUMB = "thumb"
 BBOX = "bbox"
 DATATYPE = "datatype"
+PRODUCT_TYPE = "product_type"
+TIMELAPSE = "timelapse"
 
 QUADS_PER_PAGE = 50
 MAX_QUADS_TO_DOWNLOAD = 100
@@ -163,20 +164,20 @@ class BasemapsWidget(BASE, WIDGET):
         layout.addWidget(self.renderingOptions)
         self.frameRenderingOptions.setLayout(layout)
 
-        self.aoi_filter = PlanetMainFilters(iface, self, self.parent, 
-                                            True, QUADS_AOI_COLOR)        
+        self.aoi_filter = PlanetMainFilters(iface, self, self.parent,
+                                            True, QUADS_AOI_COLOR)
         self.grpBoxAOI.layout().addWidget(self.aoi_filter)
 
         self.radioDownloadComplete.setChecked(True)
 
-        self.buttons = [self.btnOneOff, self.btnQuaterly, 
-                        self.btnMonthly, self.btnWeekly, 
+        self.buttons = [self.btnOneOff, self.btnQuaterly,
+                        self.btnMonthly, self.btnWeekly,
                         self.btnAll]
 
         self.btnOneOff.clicked.connect(lambda: self.btn_filter_clicked(self.btnOneOff))
         self.btnQuaterly.clicked.connect(lambda: self.btn_filter_clicked(self.btnQuaterly))
         self.btnMonthly.clicked.connect(lambda: self.btn_filter_clicked(self.btnMonthly))
-        self.btnWeekly.clicked.connect(lambda: self.btn_filter_clicked(self.btnWeekly))        
+        self.btnWeekly.clicked.connect(lambda: self.btn_filter_clicked(self.btnWeekly))
         self.btnAll.clicked.connect(lambda: self.btn_filter_clicked(self.btnAll))
 
         self.btnOrder.clicked.connect(self.order)
@@ -253,14 +254,14 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def series(self):
         if self._series is None:
-            self._series = self.p_client.list_mosaic_series().get()[SERIES]          
+            self._series = self.p_client.list_mosaic_series().get()[SERIES]
         return self._series
-    
+
     def populate(self, category_btn = None):
         category_btn = category_btn or self.btnAll
-        
+
         self.set_filter_visibility()
-        
+
         self.comboSeriesName.clear()
         self.comboSeriesName.addItem("", None)
         self.batch_select_mosaics_clicked("none")
@@ -274,11 +275,11 @@ class BasemapsWidget(BASE, WIDGET):
         elif category_btn == self.btnWeekly:
             series = self.series_for_interval(WEEK)
         elif category_btn == self.btnOneOff:
-            mosaics = self.one_off_mosaics()             
-            self.mosaicsList.populate(mosaics)            
+            mosaics = self.one_off_mosaics()
+            self.mosaicsList.populate(mosaics)
             self.mosaicsList.setVisible(True)
             self.toggle_select_basemap_panel(False)
-        if category_btn != self.btnOneOff:            
+        if category_btn != self.btnOneOff:
             for s in series:
                 self.comboSeriesName.addItem(s[NAME], s)
 
@@ -296,22 +297,11 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def one_off_mosaics(self):
         if self.oneoff is None:
-            series_mosaics = {}
-            series_mosaic_ids = []
-            series = self.p_client.list_mosaic_series().get()[SERIES]
-            mosaics = []
-            for serie in series:
-                response = self.p_client.get_mosaics_for_series(serie[ID])
-                for page in response.iter():
-                    mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
-                series_mosaics[serie[ID]] = mosaics
-                series_mosaic_ids.extend([m[ID] for m in mosaics])
-            all_mosaics = []            
+            all_mosaics = []
             response = self.p_client.get_mosaics()
             for page in response.iter():
                 all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
-            
-            self.oneoff = [m for m in all_mosaics if m[ID] not in series_mosaic_ids]
+            self.oneoff = [m for m in all_mosaics if m[PRODUCT_TYPE] != "e"][:5]#TIMELAPSE]
 
         return self.oneoff
 
@@ -324,11 +314,11 @@ class BasemapsWidget(BASE, WIDGET):
         return series
 
     @waitcursor
-    def mosaics_for_serie(self, serie):        
+    def mosaics_for_serie(self, serie):
         mosaics = self.p_client.get_mosaics_for_series(serie[ID])
         all_mosaics = []
         for page in mosaics.iter():
-            all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))        
+            all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
         return all_mosaics
 
     def serie_selected(self):
@@ -338,7 +328,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.mosaicsList.setVisible(series is not None)
         if series:
             mosaics = self.mosaics_for_serie(series)
-            self.mosaicsList.populate(mosaics)            
+            self.mosaicsList.populate(mosaics)
 
     def selection_changed(self):
         selected = self.mosaicsList.selected_mosaics()
@@ -369,8 +359,8 @@ class BasemapsWidget(BASE, WIDGET):
 
     def explore(self):
         if self._check_has_items_checked():
-            selected = self.mosaicsList.selected_mosaics()       
-            add_mosaics_to_qgis_project(selected, 
+            selected = self.mosaicsList.selected_mosaics()
+            add_mosaics_to_qgis_project(selected,
                     self.comboSeriesName.currentText() or selected[0][NAME])
 
     def order(self):
@@ -387,16 +377,16 @@ class BasemapsWidget(BASE, WIDGET):
             if numquads > MAX_QUADS_TO_DOWNLOAD:
                 ret = QMessageBox.question(self, "Complete Download", 
                                     f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
-                                    "Are your sure you want to proceed?")                
+                                    "Are your sure you want to proceed?")
                 if ret != QMessageBox.Yes:
-                    return                                                          
+                    return
             self.show_order_name_page()
         elif self.radioDownloadAOI.isChecked():
             self.labelWarningQuads.setText("")
-            self.widgetProgressFindQuads.setVisible(False)       
+            self.widgetProgressFindQuads.setVisible(False)
             self.stackedWidget.setCurrentWidget(self.orderAOIPage)
         elif self.radioStreaming.isChecked():
-            self.show_order_streaming_page()            
+            self.show_order_streaming_page()
 
     def find_quads_clicked(self):
         self.find_quads()
@@ -415,11 +405,11 @@ class BasemapsWidget(BASE, WIDGET):
                               level=Qgis.Warning,
                               duration=10) 
             return
-        
+
         quad = self.p_client.get_one_quad(selected[0])
         quadarea = self._area_from_bbox_coords(quad[BBOX])
         qgsarea = QgsDistanceArea()
-        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom), 
+        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
                                         QgsUnitTypes.AreaSquareKilometers)
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
 
@@ -428,7 +418,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.progressBarQuads.setMaximum(numpages)
         self.finder = QuadFinder()
         self.finder.setup(self.p_client, selected, geom)
-        
+
         self.objThread = QThread()
         self.finder.moveToThread(self.objThread)
         self.finder.finished.connect(self.objThread.quit)
@@ -437,7 +427,6 @@ class BasemapsWidget(BASE, WIDGET):
         self.finder.pageRead.connect(self._page_read)
         self.objThread.started.connect(self.finder.find_quads)
         self.objThread.start()
-        #self.finder.find_quads()
 
     def cancel_quad_search(self):
         self.finder.cancel()
@@ -455,7 +444,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.labelProgressQuads.setText(f"Downloading quad footprints (page {i} of (estimated) {total})")
         self.progressBarQuads.setValue(i)
         QApplication.processEvents()
-        
+
     def _update_quads(self, quads):
         self._quads = quads
         self._populate_quads()
@@ -477,8 +466,8 @@ class BasemapsWidget(BASE, WIDGET):
 
     def next_quads_page_clicked(self):
         selected = self.quadsTree.selected_quads()
-        if selected:            
-            self.show_order_name_page()            
+        if selected:
+            self.show_order_name_page()
         else:
             self.parent.show_message(f'No checked quads to order',
                               level=Qgis.Warning,
@@ -496,7 +485,7 @@ class BasemapsWidget(BASE, WIDGET):
                             f'<span style="color:grey;">{len(selected)} instances | {dates}</span>')
         self.labelStreamingOrderDescription.setText(description)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                         QtCore.Qt.SmoothTransformation)
         self.labelStreamingOrderIcon.setPixmap(thumb)
         if THUMB in selected[0][LINKS]: 
@@ -517,7 +506,7 @@ class BasemapsWidget(BASE, WIDGET):
     def _quads_quota(self):
         selected_quads = self.quadsTree.selected_quads()
         total_area = 0
-        for quad in selected_quads:            
+        for quad in selected_quads:
             total_area += self._area_from_bbox_coords(quad[BBOX])
         return total_area
 
@@ -526,7 +515,7 @@ class BasemapsWidget(BASE, WIDGET):
         qgsarea = QgsDistanceArea()
         extent = QgsRectangle(*bbox)
         geom = QgsGeometry.fromRect(extent)
-        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom), 
+        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
                                                     QgsUnitTypes.AreaSquareKilometers)
         return area
 
@@ -540,21 +529,21 @@ class BasemapsWidget(BASE, WIDGET):
         dates = date_interval_from_mosaics(selected)
         if self.radioDownloadComplete.isChecked():
             description = (f'<span style="color:black;"><b>{name}</b></span><br>'
-                            f'<span style="color:grey;">{len(selected)} instances | {dates}</span>') 
-            
-            title = "Order Complete Basemap"            
+                            f'<span style="color:grey;">{len(selected)} instances | {dates}</span>')
+
+            title = "Order Complete Basemap"
             total_area = self._area_from_bbox_coords(selected[0][BBOX]) * len(selected)
             quad = self.p_client.get_one_quad(selected[0])
-            quadarea = self._area_from_bbox_coords(quad[BBOX])            
+            quadarea = self._area_from_bbox_coords(quad[BBOX])
             numquads = total_area / quadarea
         elif self.radioDownloadAOI.isChecked():
             selected_quads = self.quadsTree.selected_quads()
             numquads = len(selected_quads)
             title = "Order Partial Basemap"
             description = (f'<span style="color:black;"><b>{name}</b></span><br>'
-                            f'<span style="color:grey;">{self._quads_summary()}</span>')            
+                            f'<span style="color:grey;">{self._quads_summary()}</span>')
             total_area = self._quads_quota()
-            
+
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
                         QtCore.Qt.SmoothTransformation)
@@ -564,7 +553,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.labelOrderDescription.setText(description)
         self.grpBoxNamePage.setTitle(title)
         self.stackedWidget.setCurrentWidget(self.orderNamePage)
-        self.txtOrderName.setText("")         
+        self.txtOrderName.setText("")
         quota = self.p_client.user_quota_remaining()
         size = numquads * QUAD_SIZE
         if quota is not None:
@@ -584,7 +573,7 @@ class BasemapsWidget(BASE, WIDGET):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                             QtCore.Qt.SmoothTransformation)
         if self.radioStreaming.isChecked():
             self.labelStreamingOrderIcon.setPixmap(thumb)
@@ -606,7 +595,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.aoi_filter.reset_aoi_box()
 
     def submit_streaming_button_clicked(self):
-        selected = self.mosaicsList.selected_mosaics()        
+        selected = self.mosaicsList.selected_mosaics()
         zmin = self.comboMinZoomLevel.currentText() if self.chkMinZoomLevel.isChecked() else 0
         zmax = self.comboMaxZoomLevel.currentText() if self.chkMaxZoomLevel.isChecked() else 18
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
@@ -617,9 +606,9 @@ class BasemapsWidget(BASE, WIDGET):
             add_mosaics_to_qgis_project([mosaic], name, proc=proc, ramp=ramp,
                                         zmin=zmin, zmax=zmax, add_xyz_server=True)
         selected = self.mosaicsList.selected_mosaics()
-        base_html= ("<p>Your Connection(s) have been established</p>")        
+        base_html = ("<p>Your Connection(s) have been established</p>")
         self.grpBoxOrderConfirmation.setTitle("Order Streaming Download")
-        dates = date_interval_from_mosaics(selected)       
+        dates = date_interval_from_mosaics(selected)
         description = f'{len(selected)} | {dates}'
         values = {"Series Name": mosaicname,
                   "Series Instances": description}
@@ -627,7 +616,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.stackedWidget.setCurrentWidget(self.orderConfirmationPage)
 
 
-    def submit_button_clicked(self):        
+    def submit_button_clicked(self):
         name = self.txtOrderName.text()
         if not bool(name.strip()):
             self.parent.show_message(f'Enter a name for the order',
@@ -647,15 +636,15 @@ class BasemapsWidget(BASE, WIDGET):
             html += f"<tr><td>{k}</td><td><b>{v}</b></td></tr>"
         html += "</table>"
         self.textBrowserOrderConfirmation.setHtml(html)
-    
+
     @waitcursor
     def order_complete_submit(self):
-        selected = self.mosaicsList.selected_mosaics() 
+        selected = self.mosaicsList.selected_mosaics()
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
 
         self.grpBoxOrderConfirmation.setTitle("Order Complete Download")
-        dates = date_interval_from_mosaics(selected)        
+        dates = date_interval_from_mosaics(selected)
         description = f'{len(selected)} complete mosaics | {dates}'
         create_quad_order_from_mosaics(name, description, selected, load_as_virtual)
         refresh_orders()
@@ -668,7 +657,7 @@ class BasemapsWidget(BASE, WIDGET):
     def order_partial_submit(self):
         self.grpBoxOrderConfirmation.setTitle("Order Partial Download")
         mosaics = self.mosaicsList.selected_mosaics()
-        dates = date_interval_from_mosaics(mosaics)        
+        dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
@@ -676,7 +665,7 @@ class BasemapsWidget(BASE, WIDGET):
         create_quad_order_from_quads(name, description, quads, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),
-                    "Series Name": self.comboSeriesName.currentText() or selected[0][NAME],
+                    "Series Name": self.comboSeriesName.currentText() or mosaics[0][NAME],
                     "Quads": self._quads_summary(),
                     "Quota": self._quads_quota()}
         self.set_order_confirmation_summary(values)
@@ -706,11 +695,11 @@ class QuadFinder(QObject):
         bbox_rect = self.geom.boundingBox()
         bbox = [bbox_rect.xMinimum(), bbox_rect.yMinimum(),
                 bbox_rect.xMaximum(), bbox_rect.yMaximum()]
-        for i, mosaic in enumerate(self.mosaics):            
-            self.mosaicStarted.emit(i + 1, mosaic.get(NAME))                                    
+        for i, mosaic in enumerate(self.mosaics):
+            self.mosaicStarted.emit(i + 1, mosaic.get(NAME))
             json_quads = []
             self.pageRead.emit(1)
-            quads = self.client.get_quads_for_mosaic(mosaic, bbox)            
+            quads = self.client.get_quads_for_mosaic(mosaic, bbox)
             for j, page in enumerate(quads.iter()):
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
                 self.pageRead.emit(j + 2)

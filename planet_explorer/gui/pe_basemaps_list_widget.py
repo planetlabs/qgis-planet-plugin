@@ -43,18 +43,11 @@ from PyQt5.QtGui import (
     QPalette
 )
 
-from PyQt5.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest
-)
-
 from PyQt5 import QtCore
 
 from PyQt5.QtCore import (
-    QUrl,
     pyqtSignal,
     QSize,
-    QEvent,
     Qt
 )
 
@@ -68,21 +61,23 @@ from qgis.core import (
 
 from qgis.utils import iface
 
+from ..planet_api import (
+    PlanetClient
+)
+
 from ..pe_utils import (
     NAME,
     LINKS,
     TILES,
-    FIRST_ACQUIRED,    
+    FIRST_ACQUIRED,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
     mosaic_title,
     add_menu_section_action
 )
 
-from .pe_thumbnails import(
+from .pe_thumbnails import (
     download_thumbnail
 )
-
-from .extended_combobox import ExtendedComboBox
 
 ID = "id"
 BBOX = "bbox"
@@ -90,6 +85,7 @@ THUMB = "thumb"
 
 COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
+
 
 class BasemapsListWidget(QListWidget):
 
@@ -110,7 +106,7 @@ class BasemapsListWidget(QListWidget):
         super().clear()
 
     def populate(self, mosaics):
-        self.widgets = []        
+        self.widgets = []
         for mosaic in mosaics:
             available = TILES in mosaic[LINKS]
             if available:
@@ -126,7 +122,7 @@ class BasemapsListWidget(QListWidget):
                 item.setSizeHint(widget.sizeHint())
                 widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
                 self.widgets.append(widget)
-        
+
         self.sortItems()
 
     def resizeEvent(self, evt):
@@ -139,13 +135,14 @@ class BasemapsListWidget(QListWidget):
             widget.setFixedWidth(width)
 
     def selected_mosaics(self):
-        return sorted([w.mosaic for w in self.widgets if w.isSelected()], 
+        return sorted([w.mosaic for w in self.widgets if w.isSelected()],
                         key=lambda x: x[FIRST_ACQUIRED])
 
     def setAllChecked(self, checked):
         for w in self.widgets:
             w.setChecked(checked)
-        
+
+
 class BasemapListItem(QListWidgetItem):
 
     def __init__(self, mosaic):
@@ -157,7 +154,8 @@ class BasemapListItem(QListWidgetItem):
         if isinstance(other, BasemapListItem):
             return self.mosaic[FIRST_ACQUIRED] < other.mosaic[FIRST_ACQUIRED]
         else:
-            return True        
+            return True
+
 
 class BasemapItemWidget(QWidget):
 
@@ -165,17 +163,17 @@ class BasemapItemWidget(QWidget):
 
     def __init__(self, mosaic):
         QWidget.__init__(self)
-        self.mosaic = mosaic      
+        self.mosaic = mosaic
         title = mosaic_title(mosaic)
         self.nameLabel = QLabel(f'<span style="color:black;"><b>{title}</b></span>'
-                            f'<br><span style="color:grey;">{mosaic[NAME]}</span>')        
+                            f'<br><span style="color:grey;">{mosaic[NAME]}</span>')
         self.iconLabel = QLabel()
         self.toolsButton = QLabel()
         self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
@@ -198,27 +196,31 @@ class BasemapItemWidget(QWidget):
 
         if THUMB in mosaic[LINKS]:
             download_thumbnail(mosaic[LINKS][THUMB], self)
+        else:
+            THUMBNAIL_DEFAULT_URL = "https://tiles.planet.com/basemaps/v1/planet-tiles/{name}/thumb?api_key={apikey}"
+            download_thumbnail(THUMBNAIL_DEFAULT_URL.format(name=mosaic[NAME],
+                                        apikey=PlanetClient.getInstance().api_key()), self)
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)   
-        
+        self.iconLabel.setPixmap(thumb)
+
     def showContextMenu(self, evt):
         menu = QMenu()
         add_menu_section_action('Current item', menu)
-        zoom_act = QAction('Zoom to extent', menu)        
+        zoom_act = QAction('Zoom to extent', menu)
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
-        copy_id_act = QAction('Copy ID to clipboard', menu)        
+        copy_id_act = QAction('Copy ID to clipboard', menu)
         copy_id_act.triggered.connect(self.copy_id)
         menu.addAction(copy_id_act)
         menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
 
     def copy_id(self):
         cb = QgsApplication.clipboard()
-        cb.setText(self.mosaic[ID])        
+        cb.setText(self.mosaic[ID])
 
     def zoom_to_extent(self):
         rect = qgsrectangle_for_canvas_from_4326_bbox_coords(self.mosaic[BBOX])
@@ -230,7 +232,7 @@ class BasemapItemWidget(QWidget):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                             QtCore.Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
 
