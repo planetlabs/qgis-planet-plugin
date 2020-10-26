@@ -114,8 +114,9 @@ ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
+
 class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
-    
+
     def __init__(self,
                  parent=None,
                  ):
@@ -147,7 +148,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         self.listOrders.clear()
         for order in ordersArray:
             wrapper = OrderWrapper(order, self.p_client)
-            item = OrderItem(wrapper)                
+            item = OrderItem(wrapper)
             widget = OrderItemWidget(wrapper, self)
             item.setSizeHint(widget.sizeHint())
             self.listOrders.addItem(item)
@@ -163,6 +164,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listOrders.setItemWidget(item, widget)
 
         self.listOrders.sortItems(Qt.DescendingOrder)
+
 
 class OrderWrapper():
 
@@ -196,7 +198,7 @@ class OrderWrapper():
     def download_folder(self):
         return os.path.join(orders_download_folder(), "daily", self.id())
 
-    def downloaded(self):        
+    def downloaded(self):
         return os.path.exists(self.download_folder())
 
     def locations(self):
@@ -206,6 +208,7 @@ class OrderWrapper():
         locations = [(r[Order.LOCATION_KEY], r[NAME]) for r in results]
         return locations
 
+
 class BaseWidgetItem(QListWidgetItem):
 
     def __lt__(self, other):
@@ -214,6 +217,7 @@ class BaseWidgetItem(QListWidgetItem):
         except Exception as e:
             return QListWidgetItem.__lt__(self, other)
 
+
 class OrderItem(BaseWidgetItem):
 
     def __init__(self, order):
@@ -221,7 +225,8 @@ class OrderItem(BaseWidgetItem):
         self.order = order
 
     def date(self):
-        return self.order.date()       
+        return self.order.date()
+
 
 class OrderItemWidget(QWidget):
 
@@ -235,7 +240,7 @@ class OrderItemWidget(QWidget):
         label = QLabel(txt)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
-        button = QPushButton('Re-Download' if order.downloaded() else 'Download')   
+        button = QPushButton('Re-Download' if order.downloaded() else 'Download')
         button.clicked.connect(self.download)
         button.setEnabled(order.state() == 'success' and order.is_zipped())
 
@@ -258,20 +263,21 @@ class OrderItemWidget(QWidget):
     def download(self):
         for task in QgsApplication.taskManager().activeTasks():
             if isinstance(task, OrderProcessorTask) and task.order.id() == self.order.id():
-                iface.messageBar().pushMessage("", "This order is already being downloaded and processed", 
+                iface.messageBar().pushMessage("", "This order is already being downloaded and processed",
                                     level=Qgis.Warning, duration=5)
                 return
         if self.order.downloaded():
             ret = QMessageBox.question(self, "Download order", "This order is already downloaded.\nDownload again?")
             if ret == QMessageBox.No:
-                return          
+                return
 
         self.task = OrderProcessorTask(self.order)
         self.task.taskCompleted.connect(self.dialog.refresh_list)
         QgsApplication.taskManager().addTask(self.task)
         QCoreApplication.processEvents()
-        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",                
+        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",
                             level=Qgis.Info, duration=5)
+
 
 class QuadsOrderItem(BaseWidgetItem):
 
@@ -282,12 +288,13 @@ class QuadsOrderItem(BaseWidgetItem):
     def date(self):
         return self.order.date
 
+
 class QuadsOrderItemWidget(QWidget):
 
     def __init__(self, order, dialog):
         super().__init__()
         self.dialog = dialog
-        self.order = order        
+        self.order = order
 
         datestring = iso8601.parse_date(self.order.date).date().isoformat()
         txt = (f'<b>Order {self.order.name}<br>({datestring})</b><br>'
@@ -316,23 +323,24 @@ class QuadsOrderItemWidget(QWidget):
     def download(self):
         for task in QgsApplication.taskManager().activeTasks():
             if isinstance(task, QuadsOrderProcessorTask) and task.order.id() == self.order.id():
-                iface.messageBar().pushMessage("", "This order is already being downloaded and processed", 
+                iface.messageBar().pushMessage("", "This order is already being downloaded and processed",
                                     level=Qgis.Warning, duration=5)
                 return
         if self.order.downloaded():
             ret = QMessageBox.question(self, "Download order", "This order is already downloaded.\nDownload again?")
             if ret == QMessageBox.No:
-                return          
+                return
 
         self.task = QuadsOrderProcessorTask(self.order)
         self.task.taskCompleted.connect(self.dialog.refresh_list)
         QgsApplication.taskManager().addTask(self.task)
         QCoreApplication.processEvents()
-        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",                
+        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",
                             level=Qgis.Info, duration=5)
 
 
 dockwidget_instance = None
+
 
 def _get_widget_instance():
     global dockwidget_instance
@@ -340,7 +348,7 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = PlanetOrdersMonitorDockWidget(
-            parent=iface.mainWindow())        
+            parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
@@ -349,6 +357,7 @@ def _get_widget_instance():
         dockwidget_instance.hide()
     return dockwidget_instance
 
+
 def show_orders_monitor(refresh=True):
     wdgt = _get_widget_instance()
     if wdgt is not None:
@@ -356,18 +365,22 @@ def show_orders_monitor(refresh=True):
             wdgt.refresh_list()
         wdgt.show()
 
-def hide_orders_monitor():    
+
+def hide_orders_monitor():
     wdgt = _get_widget_instance()
     if wdgt is not None:
         wdgt.hide()
 
+
 def refresh_orders():
-    wdgt = _get_widget_instance()    
+    wdgt = _get_widget_instance()
     wdgt.refresh_list()
+
 
 def toggle_orders_monitor():
     wdgt = _get_widget_instance()
     wdgt.setVisible(not wdgt.isVisible())
+
 
 def remove_orders_monitor():
     if dockwidget_instance is not None:

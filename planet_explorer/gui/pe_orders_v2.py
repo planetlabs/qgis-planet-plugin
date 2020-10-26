@@ -32,7 +32,6 @@ from typing import (
 )
 
 from collections import OrderedDict, defaultdict
-from functools import partial
 
 import analytics
 
@@ -49,7 +48,6 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
     Qt,
-    QModelIndex,
     QSize,
     QUrl
 )
@@ -114,7 +112,7 @@ from .pe_orders_monitor_dockwidget import (
 
 from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT
-) 
+)
 
 from .pe_gui_utils import (
     waitcursor
@@ -153,40 +151,41 @@ class ImageItem(QListWidgetItem):
         super().__init__()
         self.image = image
 
+
 class ImageItemWidget(QFrame):
 
     checked_state_changed = pyqtSignal()
 
     def __init__(self, image, sort_criteria):
         QFrame.__init__(self)
-        self.image = image        
+        self.image = image
         self.properties = image['properties']
 
         datetime = iso8601.parse_date(self.properties[sort_criteria])
         self.time = datetime.strftime('%H:%M:%S')
         self.date = datetime.strftime('%b %d, %Y')
-        
+
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b><br>
                     """
         url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
-        
+
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.checked_state_changed.emit)
-        self.nameLabel = QLabel(text)        
+        self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
 
         layout = QHBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
-        self.iconLabel.setFixedSize(48, 48)            
+        self.iconLabel.setFixedSize(48, 48)
         self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)            
-        self.nam.get(QNetworkRequest(QUrl(url)))        
+        self.nam.finished.connect(self.iconDownloaded)
+        self.nam.get(QNetworkRequest(QUrl(url)))
         layout.addWidget(self.iconLabel)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
@@ -196,15 +195,16 @@ class ImageItemWidget(QFrame):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
-        self.iconLabel.setPixmap(thumb)        
+        self.iconLabel.setPixmap(thumb)
 
     def set_selected(self, checked):
         self.checkBox.setChecked(checked)
 
     def is_selected(self):
         return self.checkBox.isChecked()
+
 
 class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
@@ -264,7 +264,7 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
 
         self.populate_list()
 
-        self.lblSelectAll.linkActivated.connect(self._batch_check_items)        
+        self.lblSelectAll.linkActivated.connect(self._batch_check_items)
 
         # Get sample permissions from first node
         self._permissions = images[0][PERMISSIONS]
@@ -283,16 +283,16 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._order_bundle = None
         self._order_bundle_name = None
 
-        self._update_groupbox_title()        
+        self._update_groupbox_title()
         self.grpBxItemType.collapsedStateChanged[bool].connect(
-            self._group_box_collapsed_changed)        
+            self._group_box_collapsed_changed)
         self.grpBxItemType.clicked.connect(self._groupbox_clicked)
 
         self._filter_opts_cmbboxes = [
             self.cmbBoxBands, self.cmbBoxRadiometry,
             self.cmbBoxRectification, self.cmbBoxOutput
         ]
-        for cmbox in self._filter_opts_cmbboxes:            
+        for cmbox in self._filter_opts_cmbboxes:
             cmbox.currentTextChanged.connect(self._update_bundle_options)
 
         self._filter_info_labels = []
@@ -303,7 +303,6 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         self._set_up_tools()
 
         self._update_bundle_options()
-
 
     def populate_list(self):
         for img in self.images:
@@ -409,8 +408,8 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
         title = f'{self._display_name}   |   ' \
                 f'{chkd_cnt}/{ITEM_MAX} images selected'
         self.grpBxItemType.setTitle(title)
-    
-    def selected_images(self) -> List:  
+
+    def selected_images(self) -> List:
         selected_images = []
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
@@ -570,6 +569,7 @@ class PlanetOrderItemTypeWidget(ORDER_ITEM_BASE, ORDER_ITEM_WIDGET):
                 if listwdgt:
                     listwdgt.setFocus()
 
+
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     orderShouldCancel = pyqtSignal(str)
@@ -591,7 +591,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     def __init__(self, images: list,
                  sort_criteria,
-                 tool_resources: Optional[dict] = None,                 
+                 tool_resources: Optional[dict] = None,
                  parent=None
                  ):
         super().__init__(parent=parent)
@@ -612,7 +612,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.setMinimumWidth(640)
         self.setMinimumHeight(720)
 
-        self.lblName.setStyleSheet(self.NAME_HIGHLIGHT)        
+        self.lblName.setStyleSheet(self.NAME_HIGHLIGHT)
         self.leName.textChanged.connect(self.validate)
 
         self.frameOrderLog.hide()
@@ -624,8 +624,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.btnPlaceOrder = self.buttonBox.button(QDialogButtonBox.Ok)
         self.btnPlaceOrder.setText(
-            f'Place Order{"s" if len(images) > 1 else ""}')        
-        self.buttonBox.accepted.connect(self.place_orders)        
+            f'Place Order{"s" if len(images) > 1 else ""}')
+        self.buttonBox.accepted.connect(self.place_orders)
         self.buttonBox.rejected.connect(self.reject)
 
         first = None
@@ -769,9 +769,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             self._order_response(item_type, resp)
 
             if is_segments_write_key_valid():
-                analytics.track(self._p_client.user()["email"], "Order placed", 
+                analytics.track(self._p_client.user()["email"], "Order placed",
                                 {
-                                "name": order["name"], 
+                                "name": order["name"],
                                 "numItems": order["products"][0]["item_ids"]
                                 }
             )
@@ -782,7 +782,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             f'possible.<br>'
             f'You also should receive an email when your order is ready to '
             f'download.<br>')
-
 
     def _order_response(self, item_type: str, body: models.Order):
 
@@ -863,7 +862,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             f' -- Service message: {resp_data.get("last_message")}<br><br>'
         )
 
-
     @pyqtSlot()
     def _copy_log_to_clipboard(self):
         cb = QgsApplication.clipboard()
@@ -883,5 +881,3 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     @pyqtSlot()
     def _open_orders_monitor_dialog(self):
         show_orders_monitor()
-
-

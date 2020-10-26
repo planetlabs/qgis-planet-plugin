@@ -19,7 +19,7 @@ import json
 from urllib.parse import quote
 
 from PyQt5.QtCore import (
-    Qt, 
+    Qt,
     QRectF,
     pyqtSignal,
     QByteArray,
@@ -38,11 +38,10 @@ from PyQt5.QtWidgets import (
     QWidget,
     QSlider,
     QVBoxLayout,
-    QHBoxLayout,
     QGridLayout,
     QComboBox,
     QLabel,
-    QStyle, 
+    QStyle,
     QStyleOptionSlider,
     QFrame,
     QListWidget,
@@ -53,7 +52,6 @@ from qgis.core import (
     QgsLayerTreeLayer,
     QgsLayerTreeGroup,
     QgsProject,
-    QgsDataProvider
 )
 
 from qgis.gui import (
@@ -68,13 +66,13 @@ from ..pe_utils import (
     PLANET_MOSAIC_PROC,
     PLANET_MOSAIC_RAMP,
     PLANET_MOSAIC_DATATYPE,
-    PLANET_BASEMAP_LABEL,
     WIDGET_PROVIDER_NAME,
     mosaic_name_from_url,
     datatype_from_mosaic_name
 )
 
 TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
+
 
 class CustomSlider(QSlider):
 
@@ -92,7 +90,7 @@ class CustomSlider(QSlider):
         handle_rect = style.subControlRect(
             style.CC_Slider, opt, QStyle.SC_SliderHandle, self)
 
-        slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)        
+        slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
         range_x = style.sliderPositionFromValue(
             self.minimum(), self.maximum(), self.value(), slider_space)
         range_height = 4
@@ -154,24 +152,24 @@ class CustomSlider(QSlider):
 class BasemapRenderingOptionsWidget(QFrame):
 
     values_changed = pyqtSignal()
-    
+
     def __init__(self, datatype=None):
         super().__init__()
         self.layout = QGridLayout()
         self.layout.setMargin(0)
-                
+
         self.labelProc = QLabel("Processing:")
         self.comboProc = QComboBox()
         self.layout.addWidget(self.labelProc, 0, 0)
         self.layout.addWidget(self.comboProc, 0, 1)
 
-        self.load_ramps()        
-        self.labelRamp = QLabel("Color ramp:")        
-        self.comboRamp = QComboBox()                   
-        
+        self.load_ramps()
+        self.labelRamp = QLabel("Color ramp:")
+        self.comboRamp = QComboBox()
+
         self.layout.addWidget(self.labelRamp, 1, 0)
         self.layout.addWidget(self.comboRamp, 1, 1)
-        
+
         self.setLayout(self.layout)
         self.comboProc.currentIndexChanged.connect(self._proc_changed)
         self.listWidget = QListWidget()
@@ -192,7 +190,7 @@ class BasemapRenderingOptionsWidget(QFrame):
         self.comboRamp.setVisible(self.can_use_indices())
         self.labelRamp.setVisible(self.can_use_indices())
         self._proc_changed()
-    
+
     def _proc_changed(self):
         if self.can_use_indices():
             self.comboRamp.clear()
@@ -203,7 +201,7 @@ class BasemapRenderingOptionsWidget(QFrame):
                 self.labelRamp.setVisible(True)
                 for name in ramps:
                     icon = self.ramp_pixmaps[name]
-                    self.comboRamp.addItem(name)            
+                    self.comboRamp.addItem(name)
                     self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
                 self.comboRamp.setCurrentText(default)
                 if len(ramps) != len(list(self.ramps["colors"].keys())):
@@ -225,7 +223,7 @@ class BasemapRenderingOptionsWidget(QFrame):
         ramps = list(self.ramps["colors"].keys())
         for name in ramps:
             icon = self.ramp_pixmaps[name]
-            self.comboRamp.addItem(name)            
+            self.comboRamp.addItem(name)
             self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
         self.comboRamp.showPopup()
 
@@ -248,7 +246,7 @@ class BasemapRenderingOptionsWidget(QFrame):
             base64 = v["icon"][len("data:image/png;base64,"):].encode()
             byte_array = QByteArray.fromBase64(base64)
             image = QImage.fromData(byte_array, "PNG")
-            scaled = image.scaled(100, 20)           
+            scaled = image.scaled(100, 20)
             pixmap = QPixmap.fromImage(scaled)
             self.ramp_pixmaps[k] = pixmap
 
@@ -271,11 +269,12 @@ class BasemapRenderingOptionsWidget(QFrame):
         self.comboProc.setCurrentText(proc)
 
     def set_ramp(self, ramp):
-        self.comboRamp.setCurrentText(ramp)        
+        self.comboRamp.setCurrentText(ramp)
 
     def ramp(self):
         ramp = self.comboRamp.currentText() if self.can_use_indices() else ""
         return ramp
+
 
 class BasemapLayerWidget(QWidget):
 
@@ -296,7 +295,7 @@ class BasemapLayerWidget(QWidget):
             # It will be composed on-the-fly based on the mosaic parameters
             current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
             idx = self.mosaicnames.index(current_mosaic_name)
-            self.labelId = QLabel()        
+            self.labelId = QLabel()
             self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
             self.layout.addWidget(self.labelId)
             self.labelName = QLabel(current_mosaic_name)
@@ -309,7 +308,7 @@ class BasemapLayerWidget(QWidget):
             self.slider.setEnabled(True)
             self.slider.setValue(idx)
             self.slider.valueChanged.connect(self.on_value_changed)
-            self.slider.sliderReleased.connect(self.change_source)            
+            self.slider.sliderReleased.connect(self.change_source)
             self.layout.addWidget(self.labelName)
             self.layout.addWidget(self.slider)
         else:
@@ -320,13 +319,13 @@ class BasemapLayerWidget(QWidget):
             self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
         self.renderingOptionsWidget.set_process(proc)
         self.renderingOptionsWidget.set_ramp(ramp)
-        self.renderingOptionsWidget.values_changed.connect(self.change_source)        
+        self.renderingOptionsWidget.values_changed.connect(self.change_source)
         self.labelWarning = QLabel('<span style="color:red;"><b>No API key available</b></span>')
         self.layout.addWidget(self.labelWarning)
         self.setLayout(self.layout)
 
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
-        
+
         self.change_source()
 
     def on_value_changed(self, value):
@@ -335,20 +334,20 @@ class BasemapLayerWidget(QWidget):
         if not self.slider.isSliderDown():
             self.change_source()
 
-    def change_source(self):        
+    def change_source(self):
         has_api_key = PlanetClient.getInstance().has_api_key()
         self.labelWarning.setVisible(not has_api_key)
-        self.renderingOptionsWidget.setVisible(has_api_key)        
+        self.renderingOptionsWidget.setVisible(has_api_key)
         if len(self.mosaics) > 1:
             self.labelId.setVisible(has_api_key)
             self.labelName.setVisible(has_api_key)
-            self.slider.setVisible(has_api_key)        
+            self.slider.setVisible(has_api_key)
             value = self.slider.value() if len(self.mosaics) > 1 else 0
             name, mosaicid = self.mosaics[value]
             tile_url = TILE_URL_TEMPLATE % (mosaicid, str(PlanetClient.getInstance().api_key()))
             self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
         else:
-            tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"        
+            tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
         proc = self.renderingOptionsWidget.process()
         ramp = self.renderingOptionsWidget.ramp()
         procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
@@ -377,8 +376,8 @@ class BasemapLayerWidget(QWidget):
     def ensure_correct_size(self):
         def findLayerItem(root=None):
             root = root or QgsProject.instance().layerTreeRoot()
-            for child in root.children():                  
-                if isinstance(child, QgsLayerTreeLayer):                    
+            for child in root.children():
+                if isinstance(child, QgsLayerTreeLayer):
                     if self.layer.id() == child.layer().id():
                         return child
                 elif isinstance(child, QgsLayerTreeGroup):
@@ -407,12 +406,12 @@ class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
         if layer.id() not in self.widgets:
             widget = BasemapLayerWidget(layer)
             self.widgets[layer.id()] = widget
-        return self.widgets[layer.id()]        
+        return self.widgets[layer.id()]
 
-    def supportsLayer(self, layer):    
+    def supportsLayer(self, layer):
         return PLANET_CURRENT_MOSAIC in layer.customPropertyKeys()
 
-    def updateLayerWidgets(self):        
+    def updateLayerWidgets(self):
         for widget in self.widgets.values():
             widget.login_changed()
 

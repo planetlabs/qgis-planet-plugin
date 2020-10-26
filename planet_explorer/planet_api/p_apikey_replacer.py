@@ -21,8 +21,6 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
-import re
-import json
 import urllib.parse
 
 from qgis.core import(
@@ -34,13 +32,7 @@ from planet_explorer.planet_api import (
     PlanetClient
 )
 
-from planet_explorer.gui.pe_basemap_layer_widget import (
-    PLANET_CURRENT_MOSAIC
-)
-
 from planet_explorer.pe_utils import (
-    PLANET_PREVIEW_ITEM_IDS,
-    tile_service_data_src_uri,
     is_planet_url,
     mosaic_name_from_url
 )
@@ -49,9 +41,11 @@ APIKEY_PLACEHOLDER = "{api_key}"
 PLANET_ROOT_URL = "planet.com"
 PLANET_ROOT_URL_PLACEHOLDER = "{planet_url}"
 
+
 def replace_apikeys():
     for layerid, layer in QgsProject.instance().mapLayers().items():
         replace_apikey_for_layer(layer)
+
 
 def replace_apikey_for_layer(layer):
     source = urllib.parse.unquote(layer.source())
@@ -68,7 +62,7 @@ def replace_apikey_for_layer(layer):
                     idx = tokens[1].index("&")
                     tokens[1] = tokens[1][idx:]
                 except ValueError:
-                    tokens[1] = ""            
+                    tokens[1] = ""
             if client.has_api_key():
                 newsource = f"{tokens[0]}api_key={client.api_key()}{tokens[1]}"
                 newsource = newsource.replace(PLANET_ROOT_URL_PLACEHOLDER, PLANET_ROOT_URL)
@@ -76,7 +70,7 @@ def replace_apikey_for_layer(layer):
                 newsource = f"{tokens[0]}api_key={tokens[1]}"
                 newsource = newsource.replace(PLANET_ROOT_URL, PLANET_ROOT_URL_PLACEHOLDER)
 
-            #layer.dataProvider().setDataSourceUri(newsource)
-            layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(), 
+            # layer.dataProvider().setDataSourceUri(newsource)
+            layer.setDataSource(newsource, layer.name(), layer.dataProvider().name(),
                                 QgsDataProvider.ProviderOptions())
             layer.triggerRepaint()

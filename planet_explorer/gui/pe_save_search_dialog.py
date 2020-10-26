@@ -7,8 +7,8 @@ from qgis.core import Qgis
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt, QDateTime
 from qgis.PyQt.QtWidgets import (
-    QVBoxLayout, 
-    QDialogButtonBox, 
+    QVBoxLayout,
+    QDialogButtonBox,
     QSizePolicy,
     QInputDialog
 )
@@ -30,8 +30,9 @@ from ..planet_api.p_client import (
 from .pe_filters import filters_from_request, filters_as_text_from_request
 
 WIDGET, BASE = uic.loadUiType(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), 
+        os.path.dirname(os.path.dirname(__file__)),
         "ui", "save_search_dialog.ui"))
+
 
 class SaveSearchDialog(BASE, WIDGET):
 
@@ -40,11 +41,11 @@ class SaveSearchDialog(BASE, WIDGET):
         self.request = request
         self.request_to_save = None
 
-        self.setupUi(self)  
+        self.setupUi(self)
 
         self.bar = QgsMessageBar()
         self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed )
-        self.layout().addWidget(self.bar)     
+        self.layout().addWidget(self.bar)
 
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.save)
         self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.rejected)
@@ -54,7 +55,6 @@ class SaveSearchDialog(BASE, WIDGET):
         self.set_from_request()
 
         self.populate_folders()
-
 
     def createFolder(self):
         name, _ = QInputDialog.getText(self, "Save Search", "Enter folder name")
@@ -76,7 +76,7 @@ class SaveSearchDialog(BASE, WIDGET):
             for search in res["searches"]:
                 tokens = search["name"].split("/")
                 if len(tokens) > 1 and tokens[0] not in self._folder_names:
-                    self._folder_names.append(tokens[0])        
+                    self._folder_names.append(tokens[0])
 
         return self._folder_names
 
@@ -122,15 +122,15 @@ class SaveSearchDialog(BASE, WIDGET):
         if folder:
             name = f"{folder}/{name}"
 
-        filters = filters_from_request(self.request, 'acquired')        
+        filters = filters_from_request(self.request, 'acquired')
         if filters:
             config = filters[0]['config']
             if self.chkExcludeStart.isChecked():
                 del config['gte']
             if self.chkExcludeEnd.isChecked():
-                del donfig['lte']
+                del config['lte']
             self.request_to_save = copy.deepcopy(self.request)
-            self.replace_date_filter(self.request_to_save, config)            
+            self.replace_date_filter(self.request_to_save, config)
             self.request_to_save["name"] = name
         self.accept()
 
@@ -143,7 +143,3 @@ class SaveSearchDialog(BASE, WIDGET):
                     filterdict["config"] == newfilter
 
         process_filter(request["filter"])
-
-        
-
-    

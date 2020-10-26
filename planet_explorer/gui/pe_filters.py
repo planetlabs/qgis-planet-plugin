@@ -119,16 +119,17 @@ DAILY_WIDGET, DAILY_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
+
 def filters_from_request(request, field_name=None, filter_type=None):
     filters = []
-    def _add_filter(filterdict):            
+    def _add_filter(filterdict):
         if filterdict["type"] in ["AndFilter", "OrFilter"]:
             for subfilter in filterdict["config"]:
                 _add_filter(subfilter)
-        elif filterdict["type"] == "NotFilter":            
+        elif filterdict["type"] == "NotFilter":
             _add_filter(filterdict["config"][0])
         else:
-            if (field_name is not None 
+            if (field_name is not None
                 and "field_name" in filterdict
                 and filterdict["field_name"] == field_name):
                     filters.append(filterdict)
@@ -164,7 +165,7 @@ def filters_as_text_from_request(request):
             elif k == 'cloud_cover':
                 maxvalue *= 100.0
         else:
-            minvalue = mavalue = "---"
+            minvalue = maxvalue = "---"
         s += f"{k}: {minvalue}, {maxvalue}\n"
 
     filters = filters_from_request(request, filter_type='PermissionFilter')
@@ -173,16 +174,17 @@ def filters_as_text_from_request(request):
     else:
         s += "Only show images you can download: False\n"
     filters = filters_from_request(request, 'ground_control')
-    if filters:    
+    if filters:
         s += f"Only show images with ground control: {'assets:download' in filters[0]['config']}\n"
     else:
         s += "Only show images with ground control: False\n"
 
     filters = filters_from_request(request, 'id')
     if filters:
-        s += f'IDs: {",".join(filters[0]["config"])}'   
+        s += f'IDs: {",".join(filters[0]["config"])}'
 
-    return s 
+    return s
+
 
 class PlanetFilterMixin(QObject):
     """
@@ -199,11 +201,9 @@ class PlanetFilterMixin(QObject):
 
         self._plugin = plugin
 
-
     def _show_message(self, message, level=Qgis.Info,
                       duration=None, show_more=None):
         self._plugin.show_message(message, level, duration, show_more)
-
 
 
 class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
@@ -251,7 +251,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         self.p_client = PlanetClient.getInstance()
         self.p_client.loginChanged.connect(self.populate_saved_searches)
-        
+
         self.comboSavedSearch.currentIndexChanged.connect(self.saved_search_selected)
 
         if no_saved_search:
@@ -259,7 +259,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     def populate_saved_searches(self, is_logged):
         if is_logged:
-            self.comboSavedSearch.blockSignals(True)        
+            self.comboSavedSearch.blockSignals(True)
             self.comboSavedSearch.addItem("[Select a Saved Search]")
             res = self.p_client.get_searches().get()
             for search in res["searches"]:
@@ -267,11 +267,11 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             self.comboSavedSearch.blockSignals(False)
 
     def add_saved_search(self, request):
-        self.comboSavedSearch.blockSignals(True) 
+        self.comboSavedSearch.blockSignals(True)
         self.comboSavedSearch.addItem(request["name"], request)
         self.comboSavedSearch.setCurrentIndex(self.comboSavedSearch.count() - 1)
-        self.comboSavedSearch.blockSignals(False) 
-        
+        self.comboSavedSearch.blockSignals(False)
+
     def saved_search_selected(self, idx):
         if idx == 0:
             return
@@ -279,7 +279,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.savedSearchSelected.emit(request)
 
     def null_out_saved_search(self):
-        self.comboSavedSearch.blockSignals(True)         
+        self.comboSavedSearch.blockSignals(True)
         self.comboSavedSearch.setCurrentIndex(0)
         self.comboSavedSearch.blockSignals(False)
 
@@ -301,12 +301,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
                     self._show_message("AOI not valid GeoJSON polygon",
                                        level=Qgis.Warning,
                                        duration=10)
-            except:
+            except Exception:
                 self._show_message("AOI not valid JSON",
                                    level=Qgis.Warning,
                                    duration=10)
             finally:
-                return filters    
+                return filters
 
     def filters_as_json(self):
         filters = []
@@ -332,7 +332,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             self.filtersChanged.emit()
 
     @pyqtSlot()
-    def clean_up(self):        
+    def clean_up(self):
         self.reset_aoi_box()
 
     def _setup_tool_buttons(self):
@@ -458,8 +458,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         map_layer: QgsMapLayer = self._iface.activeLayer()
         if map_layer is None:
             log.debug('No active layer selected, skipping AOI extent')
-            return 
-        
+            return
+
         if not map_layer.isValid():
             log.debug('Active map layer invalid, skipping AOI extent')
             return
@@ -694,7 +694,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.zoom_to_aoi()
 
     def hide_aoi_if_matches_geom(self, geom):
-            color = (QColor(0, 0, 0, 0) if self._aoi_box.asGeometry().equals(geom) 
+            color = (QColor(0, 0, 0, 0) if self._aoi_box.asGeometry().equals(geom)
                     else self.color)
             self._aoi_box.setStrokeColor(color)
 
@@ -799,6 +799,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.leAOI.blockSignals(False)
 
         self.zoom_to_aoi()
+
 
 class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     """
@@ -1036,11 +1037,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     def change_date_vis(self):
         dates = self.frameDates.findChildren(
             QgsDateTimeEdit)
-        
+
         for date in dates:
             if date.dateTime().isNull():
                 date.lineEdit().setEchoMode(QLineEdit.NoEcho)
-            else: 
+            else:
                 date.lineEdit().setEchoMode(QLineEdit.Normal)
 
     def filters(self):
@@ -1134,7 +1135,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     def set_from_request(self, request):
         '''
         We assume here that the request has the structure of requests created
-        with the plugin. We are not fully parsing the request to analize it, 
+        with the plugin. We are not fully parsing the request to analize it,
         but instead making that assumption to simplify things.
         '''
         self.emitFiltersChanged = False
@@ -1152,7 +1153,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 self.endDateEdit.setDateTime(QDateTime.fromString(lte, Qt.ISODate))
         sliders = self.frameRangeSliders.findChildren(
             PlanetExplorerRangeSlider)
-        for slider in sliders:    
+        for slider in sliders:
             filters = filters_from_request(request, slider.filter_key)
             if filters:
                 gte = filters[0]['config'].get('gte')
@@ -1186,7 +1187,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         else:
             self.leStringIDs.setText("")
         self.emitFiltersChanged = True
-
 
     @pyqtSlot()
     def filters_changed(self):

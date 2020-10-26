@@ -32,15 +32,12 @@ from qgis.PyQt.QtCore import (
     pyqtSlot,
     Qt,
     QSize,
-    QUrl,
-    QThread
 )
 
 from qgis.PyQt.QtGui import (
     QIcon,
     QColor,
     QPixmap,
-    QImage
 )
 
 from qgis.PyQt.QtWidgets import (
@@ -74,8 +71,6 @@ from qgis.utils import(
     iface
 )
 
-plugin_path = os.path.split(os.path.dirname(__file__))[0]
-
 from ..gui.pe_save_search_dialog import SaveSearchDialog
 
 from ..gui.pe_results_configuration_dialog import (
@@ -102,16 +97,18 @@ from ..planet_api.p_utils import (
 from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT,
     ITEM_ASSET_DL_REGEX
-) 
+)
 
 from .pe_gui_utils import (
     waitcursor
 )
 
-from .pe_thumbnails import(
+from .pe_thumbnails import (
     createCompoundThumbnail,
     download_thumbnail
 )
+
+plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 TOP_ITEMS_BATCH = 250
 CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 500
@@ -141,6 +138,7 @@ RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
+
 class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     zoomToAOIRequested = pyqtSignal()
@@ -168,7 +166,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
         self._has_more = True
 
-        self._metadata_to_show = [PlanetNodeMetadata.CLOUD_PERCENTAGE, 
+        self._metadata_to_show = [PlanetNodeMetadata.CLOUD_PERCENTAGE,
                                   PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE]
 
         self._image_count = 0
@@ -209,7 +207,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return self._request is not None
 
     def _open_settings(self):
-        settings = self._metadata_to_show
         dlg = ResultsConfigurationDialog(self._metadata_to_show)
         if dlg.exec_():
             self._metadata_to_show = dlg.selection
@@ -218,15 +215,15 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def update_image_items(self):
         it = QTreeWidgetItemIterator(self.tree)
         while it.value():
-            item = it.value()            
+            item = it.value()
             if isinstance(item, SceneItem):
                 w = self.tree.itemWidget(item, 0)
-                w.set_metadata_to_show(self._metadata_to_show)                
+                w.set_metadata_to_show(self._metadata_to_show)
             it += 1
 
     def _save_search(self):
         dlg = SaveSearchDialog(self._request)
-        if dlg.exec_():           
+        if dlg.exec_():
             self._p_client.create_search(dlg.request_to_save)
             self.searchSaved.emit(dlg.request_to_save)
 
@@ -236,7 +233,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             str(self.cmbBoxDateSort.currentData())
         )
 
-    def _sort_order_changed(self, idx):  
+    def _sort_order_changed(self, idx):
         self.update_request(self._request)
 
     def load_more_link_clicked(self):
@@ -246,7 +243,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def update_request(self, request):
         self._image_count = 0
         self._request = request
-        self.tree.clear()   
+        self.tree.clear()
         stats_request = {"interval": "year"}
         stats_request.update(self._request)
         resp = self._p_client.stats(stats_request).get()
@@ -255,17 +252,17 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             response = self._p_client.quick_search(
                 self._request,
                 page_size=TOP_ITEMS_BATCH,
-                sort=' '.join(self.sort_order())                
+                sort=' '.join(self.sort_order())
             )
-            self._response_iterator = response.iter()            
+            self._response_iterator = response.iter()
             self.load_more()
             self._set_widgets_visibility(True)
         else:
             self._set_widgets_visibility(False)
-    
+
     @waitcursor
     def load_more(self):
-        page = next(self._response_iterator, None)        
+        page = next(self._response_iterator, None)
         if page is not None:
 
             for i in range(self.tree.topLevelItemCount()):
@@ -279,11 +276,11 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
             links = page.get()[page.LINKS_KEY]
             next_ = links.get(page.NEXT_KEY, None)
-            self._has_more = next_ is not None            
+            self._has_more = next_ is not None
             images = page.get().get(page.ITEM_KEY)
             self._image_count += len(images)
             for image in images:
-                sort_criteria = self.cmbBoxDateType.currentData()                
+                sort_criteria = self.cmbBoxDateType.currentData()
                 date_item, satellite_item = self._find_items_for_satellite(image)
                 date_widget = self.tree.itemWidget(date_item, 0)
                 satellite_widget = self.tree.itemWidget(satellite_item, 0)
@@ -315,7 +312,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     def _find_item_for_date(self, image):
         sort_criteria = self.cmbBoxDateType.currentData()
-        date = iso8601.parse_date(image[PROPERTIES][sort_criteria]).date() 
+        date = iso8601.parse_date(image[PROPERTIES][sort_criteria]).date()
         itemtype = image[PROPERTIES][ITEM_TYPE]
         count = self.tree.topLevelItemCount()
         for i in range(count):
@@ -327,7 +324,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         date_item.setSizeHint(0, widget.sizeHint())
         self.tree.addTopLevelItem(date_item)
         self.tree.setItemWidget(date_item, 0, widget)
-        return date_item        
+        return date_item
 
     def _find_items_for_satellite(self, image):
         date_item = self._find_item_for_date(image)
@@ -351,15 +348,15 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         selected = []
         it = QTreeWidgetItemIterator(self.tree)
         while it.value():
-            item = it.value()            
+            item = it.value()
             if isinstance(item, SceneItem):
                 w = self.tree.itemWidget(item, 0)
-                w.set_metadata_to_show(self._metadata_to_show)                
+                w.set_metadata_to_show(self._metadata_to_show)
                 if w.is_selected():
                     selected.append(w.image)
             it += 1
         return selected
-    
+
     def checked_count_changed(self):
         self.checkedCountChanged.emit(len(self.selected_images()))
 
@@ -392,7 +389,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self._aoi_box.setToGeometry(
             geom,
             QgsCoordinateReferenceSystem("EPSG:4326")
-        )        
+        )
 
         zoom_canvas_to_geometry(geom)
 
@@ -427,7 +424,7 @@ class ItemWidgetBase(QFrame):
         self.lockLabel.setPixmap(LOCK_ICON.pixmap(iconSize))
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.check_box_state_changed)
-        self.nameLabel = QLabel(text)        
+        self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
         self.toolsButton = QLabel()
         self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
@@ -440,12 +437,12 @@ class ItemWidgetBase(QFrame):
         self.lockLabel.setVisible(False)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         self.thumbnail = None
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
-        self.iconLabel.setFixedSize(48, 48)         
+        self.iconLabel.setFixedSize(48, 48)
         layout.addWidget(self.iconLabel)
-        if thumbnailurl is not None:           
+        if thumbnailurl is not None:
             download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
@@ -454,13 +451,13 @@ class ItemWidgetBase(QFrame):
         self.setLayout(layout)
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
+                              QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
     def set_thumbnail(self, img):
         self.thumbnail = QPixmap(img)
-        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.thumbnailChanged.emit()
@@ -473,7 +470,7 @@ class ItemWidgetBase(QFrame):
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
             QgsProject.instance()
-        )        
+        )
         return transform.transformBoundingBox(self.geom.boundingBox())
 
     def _geom_in_project_crs(self):
@@ -486,7 +483,7 @@ class ItemWidgetBase(QFrame):
         geom.transform(transform)
         return geom
 
-    def show_footprint(self):                
+    def show_footprint(self):
         self.footprint.setToGeometry(self._geom_in_project_crs())
 
     def hide_footprint(self):
@@ -499,7 +496,7 @@ class ItemWidgetBase(QFrame):
     def leaveEvent(self, event):
         self.setStyleSheet("ItemWidgetBase{border: 2px solid transparent;}")
         self.hide_footprint()
-    
+
     def zoom_to_extent(self):
         rect = QgsRectangle(self._geom_bbox_in_project_crs())
         rect.scale(1.05)
@@ -519,9 +516,9 @@ class ItemWidgetBase(QFrame):
         prev_layer_act = QAction('Add preview layers to map (footprints as memory layer)', menu)
         prev_layer_act.triggered.connect(self._add_preview_memory_clicked)
         menu.addAction(prev_layer_act)
-        prev_layer_act = QAction('Add preview layer to map(footprints as gpkg layer)', menu)        
+        prev_layer_act = QAction('Add preview layer to map(footprints as gpkg layer)', menu)
         prev_layer_act.triggered.connect(self._add_preview_gpkg_clicked)
-        menu.addAction(prev_layer_act)        
+        menu.addAction(prev_layer_act)
         if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             prev_layer_act.setEnabled(False)
             prev_layer_act.setToolTip("The node contains too many images to preview")
@@ -539,24 +536,24 @@ class ItemWidgetBase(QFrame):
     @waitcursor
     def add_preview(self, footprints_filename):
         create_preview_group(
-            self.name(), 
+            self.name(),
             self.item.images(),
             footprints_filename,
             tile_service='xyz'
         )
 
     def check_box_state_changed(self):
-        self.checkedStateChanged.emit()        
+        self.checkedStateChanged.emit()
         self.is_updating_checkbox = True
         total = self.item.childCount()
         if self.checkBox.isTristate():
-            self.checkBox.setTristate(False)            
+            self.checkBox.setTristate(False)
             self.checkBox.setChecked(False)
         else:
             for i in range(total):
                 w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
                 w.set_checked(self.checkBox.isChecked())
-        self.is_updating_checkbox = False            
+        self.is_updating_checkbox = False
 
     def update_checkbox(self):
         if self.is_updating_checkbox:
@@ -580,7 +577,7 @@ class ItemWidgetBase(QFrame):
         self.checkBox.blockSignals(False)
         self.checkedStateChanged.emit()
 
-    def set_checked(self, checked):                
+    def set_checked(self, checked):
         self.checkBox.setChecked(checked)
 
     def update_thumbnail(self):
@@ -593,24 +590,25 @@ class ItemWidgetBase(QFrame):
 
         if thumbnails and None not in thumbnails:
             pixmap = createCompoundThumbnail(bboxes, thumbnails)
-            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
             self.iconLabel.setPixmap(thumb)
             self.thumbnailChanged.emit()
 
-    def scene_thumbnails(self):                
+    def scene_thumbnails(self):
         thumbnails = []
         for i in range(self.item.childCount()):
             w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
             thumbnails.extend(w.scene_thumbnails())
         return thumbnails
 
+
 class DateItem(QTreeWidgetItem):
 
     def __init__(self, image, sort_criteria):
         QListWidgetItem.__init__(self)
         properties = image[PROPERTIES]
-        self.date = iso8601.parse_date(properties[sort_criteria]).date()        
+        self.date = iso8601.parse_date(properties[sort_criteria]).date()
         self.itemtype = properties[ITEM_TYPE]
 
     def images(self):
@@ -620,14 +618,15 @@ class DateItem(QTreeWidgetItem):
             images.extend(item.images())
         return images
 
+
 class DateItemWidget(ItemWidgetBase):
 
     def __init__(self, image, sort_criteria, item):
         ItemWidgetBase.__init__(self, item)
         self.has_new = True
         self.image = image
-        self.properties = image[PROPERTIES]        
-        datetime = iso8601.parse_date(self.properties[sort_criteria])        
+        self.properties = image[PROPERTIES]
+        datetime = iso8601.parse_date(self.properties[sort_criteria])
         self.date = datetime.strftime('%b %d, %Y')
 
         self._setup_ui("", None)
@@ -635,14 +634,13 @@ class DateItemWidget(ItemWidgetBase):
 
     def update_for_children(self):
         size = 0
-        ids = []
         for i in range(self.item.childCount()):
             child = self.item.child(i)
-            size += child.childCount()            
+            size += child.childCount()
         count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
-        self.children_count = size   
+        self.children_count = size
         text = f"""{self.date}<br>
-                    <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>                    
+                    <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
                     <span style="{count_style}">{size} images</span>"""
         self.nameLabel.setText(text)
 
@@ -655,6 +653,7 @@ class DateItemWidget(ItemWidgetBase):
 
     def name(self):
         return f"{self.date} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+
 
 class SatelliteItem(QTreeWidgetItem):
 
@@ -669,12 +668,13 @@ class SatelliteItem(QTreeWidgetItem):
             images.extend(item.images())
         return images
 
+
 class SatelliteItemWidget(ItemWidgetBase):
 
     def __init__(self, satellite, item):
         ItemWidgetBase.__init__(self, item)
         self.has_new = True
-        self.satellite = satellite        
+        self.satellite = satellite
         self._setup_ui("", None)
         self.update_for_children()
 
@@ -692,11 +692,12 @@ class SatelliteItemWidget(ItemWidgetBase):
             child = self.item.child(i)
             geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
             self.ids.append(child.image[ID])
-        self.geom = QgsGeometry.collectGeometry(geoms) 
-        #self._update_thumbnail()      
+        self.geom = QgsGeometry.collectGeometry(geoms)
+        # self._update_thumbnail()
 
     def name(self):
         return f"Satellite {self.satellite}"
+
 
 class SceneItem(QTreeWidgetItem):
 
@@ -714,21 +715,22 @@ class SceneItem(QTreeWidgetItem):
     def images(self):
         return [self.image]
 
+
 class SceneItemWidget(ItemWidgetBase):
 
     def __init__(self, image, sort_criteria, metadata_to_show, item):
         ItemWidgetBase.__init__(self, item)
-        self.image = image        
+        self.image = image
         self.metadata_to_show = metadata_to_show
         self.properties = image[PROPERTIES]
 
         datetime = iso8601.parse_date(self.properties[sort_criteria])
         self.time = datetime.strftime('%H:%M:%S')
         self.date = datetime.strftime('%b %d, %Y')
-        
+
         text = self._get_text()
         url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
-        
+
         self._setup_ui(text, url)
 
         permissions = image[PERMISSIONS]
@@ -753,9 +755,9 @@ class SceneItemWidget(ItemWidgetBase):
     def _get_text(self):
         metadata = ""
         for i, value in enumerate(self.metadata_to_show):
-            spacer = "<br>" if i == 1 else " "                
-            metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'          
-            
+            spacer = "<br>" if i == 1 else " "
+            metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
+
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>
@@ -772,10 +774,9 @@ class SceneItemWidget(ItemWidgetBase):
     def name(self):
         return f"{self.date} {self.time} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
 
-    def scene_thumbnails(self):  
+    def scene_thumbnails(self):
         return [self.thumbnail]
 
     def set_checked(self, checked):
         if self.downloadable:
             self.checkBox.setChecked(checked)
-

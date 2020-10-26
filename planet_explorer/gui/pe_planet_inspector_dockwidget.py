@@ -26,11 +26,6 @@ import re
 import iso8601
 import logging
 
-from planet.api.models import (
-    Orders,
-    Order
-)
-
 # noinspection PyPackageRequirements
 from qgis.core import (
     QgsProject,
@@ -95,11 +90,11 @@ from ..planet_api import (
 )
 
 from planet.api.filters import (
-    string_filter,    
+    string_filter,
     build_search_request
 )
 
-from ..planet_api.p_specs import (    
+from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT
 )
 
@@ -114,8 +109,9 @@ from ..pe_utils import (
     add_menu_section_action
 )
 
+
 class PointCaptureMapTool(QgsMapToolEmitPoint):
-    
+
     complete = pyqtSignal()
 
     def __init__(self, canvas):
@@ -156,8 +152,9 @@ ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
     resource_suffix=''
 )
 
+
 class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
-    
+
     def __init__(self,
                  parent=None,
                  ):
@@ -168,7 +165,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
         self.btnMapTool.setIcon(INSPECTOR_ICON)
 
-        self.textBrowser.setHtml("""<center> 
+        self.textBrowser.setHtml("""<center>
                 Click on a visible pixel within a streamed or previewed Planet Basemap
                 </center>""")
         self.textBrowser.setVisible(True)
@@ -181,7 +178,6 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         self.map_tool.canvasClicked.connect(self.point_captured)
         self.btnMapTool.toggled.connect(self._set_map_tool)
         iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
-
 
     def point_captured(self, point, button):
         self._populate_scenes_from_point(point)
@@ -226,7 +222,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                                      </span></center>""")
                 self.textBrowser.setVisible(True)
                 self.listScenes.setVisible(False)
-        else:   
+        else:
             self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
                                      ⚠️ Current layer is not a Planet Basemap.
                                      </span></center>""")
@@ -235,7 +231,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def _mosaic_id_from_current_layer(self):
         layer = iface.activeLayer()
-        source = layer.source()        
+        source = layer.source()
         name = None
         for prop in source.split("&"):
             tokens = prop.split("=")
@@ -251,7 +247,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         client = PlanetClient.getInstance()
         mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
         return mosaicid
-        
+
     def _set_map_tool(self, checked):
         if checked:
             self.prev_map_tool = iface.mapCanvas().mapTool()
@@ -263,13 +259,15 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         if new != self.map_tool:
            self.btnMapTool.blockSignals(True)
            self.btnMapTool.setChecked(False)
-           self.btnMapTool.blockSignals(False)          
+           self.btnMapTool.blockSignals(False)
+
 
 class SceneItem(QListWidgetItem):
 
     def __init__(self, scene):
         QListWidgetItem.__init__(self)
-        self.scene = scene        
+        self.scene = scene
+
 
 class SceneItemWidget(QFrame):
 
@@ -283,19 +281,19 @@ class SceneItemWidget(QFrame):
         datetime = iso8601.parse_date(self.properties["published"])
         time = datetime.strftime('%H:%M:%S')
         date = datetime.strftime('%b %d, %Y')
-            
+
         text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b>
                     """
 
-        self.nameLabel = QLabel(text)        
+        self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
         self.toolsButton = QLabel()
         self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         layout = QHBoxLayout()
@@ -318,14 +316,14 @@ class SceneItemWidget(QFrame):
         self.nam.get(QNetworkRequest(QUrl(url)))
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
+                              QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
         self.geom = qgsgeometry_from_geojson(scene[GEOMETRY])
 
         self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
-        
+
     def showContextMenu(self, evt):
         menu = QMenu()
         add_menu_section_action('Current item', menu)
@@ -339,7 +337,7 @@ class SceneItemWidget(QFrame):
 
     def open_in_explorer(self):
         from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
-        request = build_search_request(string_filter('id', self.scene[ID]), 
+        request = build_search_request(string_filter('id', self.scene[ID]),
                                         [self.properties[ITEM_TYPE]])
         show_explorer_and_search_daily_images(request)
 
@@ -353,11 +351,11 @@ class SceneItemWidget(QFrame):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
 
-    def show_footprint(self):                
+    def show_footprint(self):
         self.footprint.setToGeometry(self.geom)
 
     def hide_footprint(self):
@@ -371,7 +369,9 @@ class SceneItemWidget(QFrame):
         self.setStyleSheet("SceneItemWidget{border: 2px solid transparent;}")
         self.hide_footprint()
 
+
 dockwidget_instance = None
+
 
 def _get_widget_instance():
     global dockwidget_instance
@@ -379,7 +379,7 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = PlanetInspectorDockWidget(
-            parent=iface.mainWindow())        
+            parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
@@ -388,19 +388,23 @@ def _get_widget_instance():
         dockwidget_instance.hide()
     return dockwidget_instance
 
+
 def show_inspector():
     wdgt = _get_widget_instance()
     if wdgt is not None:
         wdgt.show()
 
+
 def hide_inspector():
-    wdgt = _get_widget_instance()    
+    wdgt = _get_widget_instance()
     if wdgt is not None:
         wdgt.hide()
+
 
 def toggle_inspector():
     wdgt = _get_widget_instance()
     wdgt.setVisible(not wdgt.isVisible())
+
 
 def remove_inspector():
     if dockwidget_instance is not None:

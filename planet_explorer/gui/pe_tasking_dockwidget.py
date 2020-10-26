@@ -83,9 +83,10 @@ WIDGET, BASE = uic.loadUiType(
     resource_suffix=''
 )
 
+
 class AOICaptureMapTool(QgsMapTool):
-    
-    aoi_captured = pyqtSignal(QgsRectangle, QgsPointXY)    
+
+    aoi_captured = pyqtSignal(QgsRectangle, QgsPointXY)
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
@@ -93,7 +94,7 @@ class AOICaptureMapTool(QgsMapTool):
         self.canvas = canvas
         self.cursor = Qt.CrossCursor
 
-    def activate(self):        
+    def activate(self):
         self.canvas.setCursor(self.cursor)
 
     def canvasReleaseEvent(self, event):
@@ -109,7 +110,7 @@ class AOICaptureMapTool(QgsMapTool):
             QgsProject.instance()
         )
         pt4326 = transform4326.transform(pt)
-        pt3857 = transform3857.transform(pt) 
+        pt3857 = transform3857.transform(pt)
         SIZE = 5000
         rect3857 = QgsRectangle(pt3857.x() - SIZE / 2, pt3857.y() - SIZE / 2,
                             pt3857.x() + SIZE / 2, pt3857.y() + SIZE / 2)
@@ -118,7 +119,7 @@ class AOICaptureMapTool(QgsMapTool):
 
 
 class TaskingDockWidget(BASE, WIDGET):
-    
+
     def __init__(self,
                  parent=None,
                  ):
@@ -132,7 +133,7 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnMapTool.setIcon(TASKING_ICON)
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
+                              QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(PLANET_COLOR)
         self.footprint.setWidth(2)
@@ -182,13 +183,15 @@ class TaskingDockWidget(BASE, WIDGET):
             self.btnMapTool.blockSignals(False)
 
     def visibility_changed(self, visible):
-        if not visible:        
+        if not visible:
             self.footprint.reset(QgsWkbTypes.PolygonGeometry)
             self.textBrowserPoint.setText("No point selected")
             self.btnOpenDashboard.setEnabled(False)
             self._set_map_tool(False)
 
+
 dockwidget_instance = None
+
 
 def _get_widget_instance():
     global dockwidget_instance
@@ -196,7 +199,7 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = TaskingDockWidget(
-            parent=iface.mainWindow())        
+            parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
@@ -205,19 +208,23 @@ def _get_widget_instance():
         dockwidget_instance.hide()
     return dockwidget_instance
 
+
 def show_tasking_widget():
     wdgt = _get_widget_instance()
     if wdgt is not None:
         wdgt.show()
 
+
 def hide_tasking_widget():
-    wdgt = _get_widget_instance()    
+    wdgt = _get_widget_instance()
     if wdgt is not None:
         wdgt.hide()
+
 
 def toggle_tasking_widget():
     wdgt = _get_widget_instance()
     wdgt.setVisible(not wdgt.isVisible())
+
 
 def remove_tasking_widget():
     if dockwidget_instance is not None:

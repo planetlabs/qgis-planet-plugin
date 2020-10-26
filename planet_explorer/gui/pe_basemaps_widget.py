@@ -510,7 +510,6 @@ class BasemapsWidget(BASE, WIDGET):
             total_area += self._area_from_bbox_coords(quad[BBOX])
         return total_area
 
-
     def _area_from_bbox_coords(self, bbox):
         qgsarea = QgsDistanceArea()
         extent = QgsRectangle(*bbox)

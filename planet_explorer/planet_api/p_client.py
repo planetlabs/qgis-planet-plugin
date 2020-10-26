@@ -76,6 +76,7 @@ QUOTA_URL = 'https://api.planet.com/auth/v1/experimental' \
 
 TILE_SERVICE_URL = 'https://tiles{0}.planet.com/data/v1/layers'
 
+
 class LoginException(Exception):
     """Issues raised during client login"""
     pass
@@ -91,7 +92,7 @@ class PlanetClient(QObject, ClientV1):
     loginChanged = pyqtSignal(bool)
 
     __instance = None
-    @staticmethod 
+    @staticmethod
     def getInstance():
         if PlanetClient.__instance is None:
             PlanetClient()
@@ -100,7 +101,7 @@ class PlanetClient(QObject, ClientV1):
         return PlanetClient.__instance
 
     def __init__(self):
-        if PlanetClient.__instance != None:
+        if PlanetClient.__instance is not None:
             raise Exception("Singleton class")
 
         QObject.__init__(self)
@@ -127,7 +128,7 @@ class PlanetClient(QObject, ClientV1):
             proxyType = settings.value("proxy/proxyType")
             if proxyType != "HttpProxy":
                 QgsMessageLog.logMessage("Planet Explorer: Only HttpProxy is supported "
-                                         "for connecting to the Planet API", 
+                                         "for connecting to the Planet API",
                                          level=Qgis.Warning)
                 return
 
@@ -226,7 +227,7 @@ class PlanetClient(QObject, ClientV1):
         if name_contains:
             params['name__contains'] = name_contains
         url = self._url('basemaps/v1/mosaics')
-        return self._get(url, api_models.Mosaics).get_body()       
+        return self._get(url, api_models.Mosaics).get_body()
 
     def get_mosaics_for_series(self, series_id):
         url = self._url('basemaps/v1/series/{}/mosaics?v=1.5'.format(series_id))
@@ -235,7 +236,7 @@ class PlanetClient(QObject, ClientV1):
     def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
         '''List all available quad for a given mosaic
         :returns: :py:Class:`planet.api.models.JSON`
-        '''        
+        '''
         if isinstance(mosaic, str):
             mosaicid = mosaic
         else:
@@ -253,13 +254,12 @@ class PlanetClient(QObject, ClientV1):
         if minimal:
             url += "&minimal=true"
         return self._get(url, api_models.MosaicQuads).get_body()
-        
 
     def get_one_quad(self, mosaic):
         url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
         params = {"_page_size":1, 
                     "bbox": ",".join(str(v) for v in mosaic['bbox'])}
-        response = self._get(url, api_models.MosaicQuads, params=params)        
+        response = self._get(url, api_models.MosaicQuads, params=params)
         quad = response.get_body().get().get("items")[0]
         return quad
 
@@ -270,11 +270,10 @@ class PlanetClient(QObject, ClientV1):
         items = response.get().get("items")
         for item in items:
             if item['link'].startswith("https://api.planet.com"):
-                response = self._get(item["link"], api_models.JSON)                    
+                response = self._get(item["link"], api_models.JSON)
                 item_descriptions.append(response.get_body().get())
-        
-        return item_descriptions
 
+        return item_descriptions
 
     @pyqtSlot(result=bool)
     def update_user_quota(self):
@@ -395,41 +394,10 @@ class PlanetClient(QObject, ClientV1):
 
         if quota_remaining is None:
             return False
-        
-        area_total =self.area_km_from_geometry(geometries)
+
+        area_total = self.area_km_from_geometry(geometries)
 
         return area_total >= quota_remaining
-
-    def area_from_geojsons(geoms):
-        """
-        :param json_types: List of GeoJSON features, feature collections or
-        geometries as string or `json` object
-        :type json_types: [str | dict]
-        :param source_crs: String containing a crs definition, e.g. 'EPSG:4326'
-        :type source_crs: str
-        :param units_out: Units to convert TO, as QgsUnitTypes enum
-        :type units_out: QgsUnitTypes
-        :rtype: float
-        """
-        skip = 'skipping area calculation'
-        total_area = 0.0
-
-        qgs_geoms = [qgsgeometry_from_geojson(j) for j in geoms]
-
-        if len(qgs_geoms) < 1:
-            log.debug(f'Geometry collection empty, {skip}')
-            return total_area
-
-        area = QgsDistanceArea()
-        src_crs = QgsCoordinateReferenceSystem('EPSG:4326')
-        prj_inst = QgsProject.instance()
-        area.setSourceCrs(src_crs, prj_inst.transformContext())
-        area.setEllipsoid(src_crs.ellipsoidAcronym())
-            
-        for geom in qgs_geoms:
-            total_area += area.measureArea(geom)
-
-        return area.convertAreaMeasurement(total_area, QgsUnitTypes.AreaSquareKilometers)
 
 
 def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
@@ -471,7 +439,7 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
     #             return res_json['name']
 
     # Via requests
-    # FIXME: Should be using the above code, not direct call to requests    
+    # FIXME: Should be using the above code, not direct call to requests
     res = post(tile_url, auth=(api_key, ''), data=data)
     if res.ok:
         res_json = res.json()
@@ -519,4 +487,3 @@ def tile_service_url(
             f'api_key={api_key}'
 
     return url
-

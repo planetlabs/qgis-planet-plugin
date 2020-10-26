@@ -36,18 +36,11 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import (
     QPixmap,
-    QImage
-)
-
-from PyQt5.QtNetwork import (
-    QNetworkAccessManager,
-    QNetworkRequest
 )
 
 from PyQt5 import QtCore
 
 from PyQt5.QtCore import (
-    QUrl,
     Qt,
     pyqtSignal
 )
@@ -57,7 +50,7 @@ from qgis.core import (
     QgsGeometry
 )
 
-from qgis.gui import(
+from qgis.gui import (
     QgsRubberBand
 )
 
@@ -74,7 +67,6 @@ from ..pe_utils import (
 
 from .pe_thumbnails import download_thumbnail
 
-from .extended_combobox import ExtendedComboBox
 
 ID = "id"
 THUMBNAIL = "thumbnail"
@@ -83,6 +75,7 @@ BBOX = "bbox"
 
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
+
 class QuadsTreeWidget(QTreeWidget):
 
     quadsSelectionChanged = pyqtSignal()
@@ -90,7 +83,7 @@ class QuadsTreeWidget(QTreeWidget):
     def __init__(self):
         QTreeWidget.__init__(self, None)
         self.setColumnCount(1)
-        self.header().hide()        
+        self.header().hide()
         self.setAutoScroll(True)
         self.setMouseTracking(True)
         self.setAlternatingRowColors(True)
@@ -110,13 +103,13 @@ class QuadsTreeWidget(QTreeWidget):
         self.widgets = {}
         super().clear()
 
-    def show_footprints(self):        
+    def show_footprints(self):
         for w in self.quad_widgets():
             w.show_footprint()
 
-    def hide_footprints(self):        
+    def hide_footprints(self):
         for w in self.quad_widgets():
-            w.hide_footprint()    
+            w.hide_footprint()
 
     def quads_count(self):
         return len(self.quad_widgets())
@@ -143,13 +136,13 @@ class QuadsTreeWidget(QTreeWidget):
     def populate_by_quad(self, mosaics, quads):
         self.clear()
         instances_by_quad = defaultdict(list)
-        for mosaic, mosaicquads in zip(mosaics, quads):            
+        for mosaic, mosaicquads in zip(mosaics, quads):
             widgets = []
             for quad in mosaicquads:
                 item = QuadInstanceTreeItem(quad)
                 widget = QuadInstanceItemWidget(quad)
                 widget.quadSelected.connect(self._quad_selection_changed)
-                widgets.append(widget)                
+                widgets.append(widget)
                 instances_by_quad[quad[ID]].append((item, widget))
             self.widgets[mosaic.get(NAME)] = widgets
 
@@ -158,7 +151,7 @@ class QuadsTreeWidget(QTreeWidget):
             self.addTopLevelItem(item)
             widget = ParentTreeItemWidget(quadid, item)
             self.setItemWidget(item, 0, widget)
-            item.setSizeHint(0, widget.sizeHint())          
+            item.setSizeHint(0, widget.sizeHint())
             for quaditem, quadwidget in values:
                 item.addChild(quaditem)
                 self.setItemWidget(quaditem, 0, quadwidget)
@@ -196,6 +189,7 @@ class QuadsTreeWidget(QTreeWidget):
                 w.update_name_and_checkbox()
         self._updating = False
 
+
 class ParentTreeItemWidget(QFrame):
 
     def __init__(self, text, item):
@@ -213,11 +207,11 @@ class ParentTreeItemWidget(QFrame):
         layout.addWidget(self.label)
         layout.addStretch()
         self.setLayout(layout)
-        
+
     def check_box_state_changed(self):
         total = self.item.childCount()
         if self.checkBox.isTristate():
-            self.checkBox.setTristate(False)            
+            self.checkBox.setTristate(False)
             self.checkBox.setChecked(False)
         else:
             for i in range(total):
@@ -225,7 +219,7 @@ class ParentTreeItemWidget(QFrame):
                 w.setChecked(self.checkBox.isChecked(), False)
             self.item.treeWidget().quadsSelectionChanged.emit()
 
-    def update_name_and_checkbox(self):        
+    def update_name_and_checkbox(self):
         selected = 0
         total = self.item.childCount()
         for i in range(total):
@@ -245,11 +239,13 @@ class ParentTreeItemWidget(QFrame):
             self.checkBox.setCheckState(Qt.PartiallyChecked)
         self.checkBox.blockSignals(False)
 
+
 class QuadInstanceTreeItem(QTreeWidgetItem):
 
     def __init__(self, quad):
         QTreeWidgetItem.__init__(self)
         self.quad = quad
+
 
 class QuadInstanceItemWidget(QFrame):
 
@@ -263,7 +259,7 @@ class QuadInstanceItemWidget(QFrame):
                             f'{quad[PERCENT_COVERED]} % covered</span>')
         self.iconLabel = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                             QtCore.Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
@@ -277,7 +273,7 @@ class QuadInstanceItemWidget(QFrame):
         self.iconWidget = QWidget()
         self.iconWidget.setFixedSize(48, 48)
         self.iconWidget.setLayout(vlayout)
-        layout.addWidget(self.iconWidget)        
+        layout.addWidget(self.iconWidget)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
         self.setLayout(layout)
@@ -285,14 +281,14 @@ class QuadInstanceItemWidget(QFrame):
         download_thumbnail(quad[LINKS][THUMBNAIL], self)
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
+                              QgsWkbTypes.PolygonGeometry)
         self.footprint.setFillColor(QUADS_AOI_COLOR)
         self.footprint.setStrokeColor(QUADS_AOI_COLOR)
         self.footprint.setWidth(2)
 
         self.footprintfill = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)        
-        self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)        
+                              QgsWkbTypes.PolygonGeometry)
+        self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)
         self.footprintfill.setWidth(0)
 
         self.update_footprint_brush()
@@ -303,19 +299,19 @@ class QuadInstanceItemWidget(QFrame):
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setStyleSheet("")
 
     def check_box_state_changed(self):
         self.update_footprint_brush()
-        self.quadSelected.emit()        
+        self.quadSelected.emit()
 
     def show_footprint(self):
         coords = self.quad[BBOX]
-        extent = qgsrectangle_for_canvas_from_4326_bbox_coords(coords)      
-        self.geom = QgsGeometry.fromRect(extent)        
+        extent = qgsrectangle_for_canvas_from_4326_bbox_coords(coords)
+        self.geom = QgsGeometry.fromRect(extent)
         self.footprint.setToGeometry(self.geom)
         self.footprintfill.setToGeometry(self.geom)
 
@@ -323,21 +319,21 @@ class QuadInstanceItemWidget(QFrame):
         self.footprint.reset(QgsWkbTypes.PolygonGeometry)
         self.footprintfill.reset(QgsWkbTypes.PolygonGeometry)
 
-    def show_solid_interior(self):                        
-        self.footprintfill.setBrushStyle(Qt.SolidPattern)        
+    def show_solid_interior(self):
+        self.footprintfill.setBrushStyle(Qt.SolidPattern)
         self.footprintfill.updateCanvas()
 
     def hide_solid_interior(self):
         self.footprintfill.setBrushStyle(Qt.NoBrush)
         self.footprintfill.updateCanvas()
-    
+
     def update_footprint_brush(self):
         self.footprint.setBrushStyle(Qt.CrossPattern if self.checkBox.isChecked() else Qt.NoBrush)
         self.footprint.updateCanvas()
 
     def remove_footprint(self):
         iface.mapCanvas().scene().removeItem(self.footprint)
-        iface.mapCanvas().scene().removeItem(self.footprintfill)    
+        iface.mapCanvas().scene().removeItem(self.footprintfill)
 
     def isSelected(self):
         return self.checkBox.isChecked()

@@ -50,7 +50,6 @@ from qgis.utils import iface
 
 from planet.api.filters import (
     and_filter,
-    or_filter,
     build_search_request
 )
 
@@ -93,6 +92,7 @@ WIDGET, BASE = uic.loadUiType(
 
 SEARCH_HIGHLIGHT = 'QToolButton {color: rgb(16, 131, 138);}'
 
+
 class DailyImagesWidget(BASE, WIDGET):
 
     def __init__(self, parent):
@@ -113,7 +113,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self.searchResultsWidget = DailyImagesSearchResultsWidget()
         layout = QVBoxLayout()
-        layout.setMargin(0)        
+        layout.setMargin(0)
         self.grpBoxResults.setLayout(layout)
         self.grpBoxResults.layout().addWidget(self.searchResultsWidget)
         self.searchResultsWidget.checkedCountChanged.connect(self._update_orders_button)
@@ -129,7 +129,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self._request = None
 
         self.btnOrder.clicked.connect(self.order_checked)
-        self._setup_actions_button()        
+        self._setup_actions_button()
 
         self._checked_queue_set_count = 0
         self._checked_queue_set = set()
@@ -148,7 +148,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self.stackedWidgetDailyImagery.setCurrentIndex(0)
 
     def clear_filters(self):
-        self.set_filters_from_request(self._default_filter_values)        
+        self.set_filters_from_request(self._default_filter_values)
 
     @pyqtSlot(bool)
     def _toggle_search_highlight(self, on=True):
@@ -181,7 +181,7 @@ class DailyImagesWidget(BASE, WIDGET):
         all_filters = main_filters + item_filters
 
         id_filters = [f for f in all_filters if "field_name" in f and f["field_name"] == "id"]
-        
+
         if id_filters:
             self._filters = id_filters[0]
         else:
@@ -200,7 +200,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self._collect_sources_filters()
 
         if not self._main_filters.leAOI.text():
-            id_filters = filters_from_request(self._filters, "id")            
+            id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
                 self.lblWarning.setText('⚠️ No area of interest (AOI) defined')
                 return
@@ -213,10 +213,9 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self._request = search_request
         if is_segments_write_key_valid():
-            analytics.track(self.p_client.user()["email"], 
-                            "Daily images search executed", 
+            analytics.track(self.p_client.user()["email"],
+                            "Daily images search executed",
                             {"query": search_request})
-
 
         self.searchResultsWidget.update_request(search_request)
 
@@ -238,7 +237,7 @@ class DailyImagesWidget(BASE, WIDGET):
         layout = QVBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self._daily_filters_widget)
-        self.widgetFilters.setLayout(layout)                
+        self.widgetFilters.setLayout(layout)
 
     def _setup_actions_button(self):
         actions_menu = QMenu(self)
@@ -248,7 +247,6 @@ class DailyImagesWidget(BASE, WIDGET):
         ids_act = QAction('Copy Selected IDs to clipboard', actions_menu)
         ids_act.triggered[bool].connect(self.copy_checked_ids)
         actions_menu.addAction(ids_act)
-
 
         api_act = QAction('Copy API Key to clipboard', actions_menu)
         api_act.triggered[bool].connect(self.copy_api_key)
@@ -275,15 +273,14 @@ class DailyImagesWidget(BASE, WIDGET):
         self._main_filters.null_out_saved_search()
         log.debug('Filters have changed')
 
-
     @pyqtSlot(dict)
-    def set_filters_from_request(self, request):        
+    def set_filters_from_request(self, request):
         self._daily_filters_widget.set_from_request(request)
         self._main_filters.set_from_request(request)
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
-        self._main_filters.set_from_request(request)        
+        self._main_filters.set_from_request(request)
 
     def _search_saved(self, request):
         self._main_filters.add_saved_search(request)
@@ -348,5 +345,5 @@ class DailyImagesWidget(BASE, WIDGET):
 
     def clean_up(self):
         self._main_filters.clean_up()
-        if self.searchResultsWidget.search_has_been_performed():            
+        if self.searchResultsWidget.search_has_been_performed():
             self.searchResultsWidget.clean_up()

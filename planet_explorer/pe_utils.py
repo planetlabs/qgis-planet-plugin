@@ -384,7 +384,7 @@ def create_preview_group(
 
             if 'item_id' in f_names:
                 feat['item_id'] = img[ID]
-        
+
             if search_query and 'search_query' in f_names:
                 feat['search_query'] = json.dumps(search_query)
             if (sort_order and 'sort_order' in f_names
@@ -434,6 +434,7 @@ def zoom_canvas_to_geometry(geom):
         iface.mapCanvas().setExtent(rect)
         iface.mapCanvas().refresh()
 
+
 def zoom_canvas_to_aoi(json_type):
     if not json_type:
         log.debug('No AOI defined, skipping zoom to AOI')
@@ -442,8 +443,10 @@ def zoom_canvas_to_aoi(json_type):
     geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
     zoom_canvas_to_geometry(geom)
 
+
 def resource_file(f):
     return os.path.join(os.path.dirname(__file__), "resources", f)
+
 
 def orders_download_folder():
     download_folder = settings.pluginSetting(ORDERS_DOWNLOAD_FOLDER)
@@ -457,10 +460,12 @@ def orders_download_folder():
 
     return download_folder
 
+
 def open_orders_download_folder():
     QDesktopServices.openUrl(
         QUrl.fromLocalFile(orders_download_folder())
     )
+
 
 def mosaic_title(mosaic):
     date = iso8601.parse_date(mosaic[FIRST_ACQUIRED])
@@ -477,13 +482,15 @@ def mosaic_title(mosaic):
     else:
         return date.strftime("%B %d %Y")
 
+
 def date_interval_from_mosaics(mosaic):
     date = iso8601.parse_date(mosaic[0][FIRST_ACQUIRED])
     date2 = iso8601.parse_date(mosaic[-1][LAST_ACQUIRED])
     dates = f'{date.strftime("%B %Y")} - {date2.strftime("%B %Y")}'
     return dates
 
-def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="", 
+
+def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
                                 zmin=0, zmax=22, add_xyz_server=False):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
     tile_url = mosaics[0][LINKS][TILES]
@@ -501,7 +508,7 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     view.model().refreshLayerLegend(view.currentNode())
     view.currentNode().setExpanded(True)
     if add_xyz_server:
-        s = QSettings()    
+        s = QSettings()
         s.setValue(f'qgis/connections-xyz/{name}/zmin', zmin)
         s.setValue(f'qgis/connections-xyz/{name}/zmax', zmax)
         s.setValue(f'qgis/connections-xyz/{name}/username', "")
@@ -510,21 +517,24 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
         s.setValue(f'qgis/connections-xyz/{name}/url',
             tile_url.replace(PlanetClient.getInstance().api_key(), ""))
 
+
 def layer_tree_node_for_layer(layer):
     def _nodes_from_tree(layerTreeGroup):
         _nodes = {}
-        for child in layerTreeGroup.children():                    
+        for child in layerTreeGroup.children():
             if isinstance(child, QgsLayerTreeLayer):
                 _nodes[child.layer()] = child
             elif isinstance(child, QgsLayerTreeGroup):
                 _nodes.update(_nodes_from_tree(child))
         return _nodes
-    root = QgsProject.instance().layerTreeRoot()                
+    root = QgsProject.instance().layerTreeRoot()
     nodes = _nodes_from_tree(root)
-    return nodes.get(layer, None)    
+    return nodes.get(layer, None)
+
 
 def open_link_with_browser(url):
     QDesktopServices.openUrl(QUrl(url))
+
 
 def datatype_from_mosaic_name(name):
     client = PlanetClient.getInstance()
@@ -538,15 +548,17 @@ def datatype_from_mosaic_name(name):
     else:
         return ""
 
+
 def mosaic_name_from_url(url):
     url = urllib.parse.unquote(url)
-    pattern = re.compile(r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*")        
+    pattern = re.compile(r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*")
     result = pattern.search(url)
     if result is not None:
         mosaic = result.group(1)
         return mosaic
     else:
         return None
+
 
 def add_widget_to_layer(layer):
     if is_planet_url(layer.source()) and PLANET_MOSAICS not in layer.customPropertyKeys():
@@ -559,13 +571,12 @@ def add_widget_to_layer(layer):
             layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
             layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
             layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, datatype)
-            layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaics))        
+            layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaics))
             layer.setCustomProperty("embeddedWidgets/count", 1)
-            layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME) 
+            layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
             view = iface.layerTreeView()
-            node = layer_tree_node_for_layer(layer)
-            #view.model().refreshLayerLegend(node)
             view.currentNode().setExpanded(True)
+
 
 def is_planet_url(url):
     url = urllib.parse.unquote(url)

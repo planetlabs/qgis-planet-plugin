@@ -32,7 +32,6 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtGui import (
     QMouseEvent,
-    QCursor
 )
 from qgis.PyQt.QtWidgets import (
     QLabel,

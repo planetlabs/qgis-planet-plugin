@@ -65,11 +65,11 @@ from qgiscommons2.settings import (
     setPluginSetting
 )
 
-from .pe_basemaps_widget import  (
+from .pe_basemaps_widget import (
     BasemapsWidget
 )
 
-from .pe_dailyimages_widget import  (
+from .pe_dailyimages_widget import (
     DailyImagesWidget
 )
 
@@ -177,14 +177,13 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         # Set default group type and filter widget
         self.tabWidgetResourceType.setCurrentIndex(0)
-        
+
         # noinspection PyTypeChecker
         self._terms_browser = None
 
         self.msg_log = QgsMessageLog()
         # Local QgsMessageBar
         self.msgBar.hide()
-
 
     # noinspection PyUnusedLocal
     def showEvent(self, event):
@@ -196,7 +195,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def _setup_client(self):
         # Init api client
         self.p_client = PlanetClient.getInstance()
-        self.p_client.loginChanged[bool].connect(self.login_changed)        
+        self.p_client.loginChanged[bool].connect(self.login_changed)
 
         # Retrieve any login/key settings
         self.switch_to_login_panel()
@@ -265,7 +264,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         # Now switch panels
         self.p_client.loginChanged.emit(self.p_client.has_api_key())
-        #self.login_changed()
+        # self.login_changed()
 
     @pyqtSlot()
     def login_changed(self):
@@ -285,7 +284,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     @pyqtSlot()
     def switch_to_browse_panel(self):
         self.stckdWidgetViews.setCurrentIndex(1)
-        self.tabWidgetResourceType.setCurrentWidget(self.tabWidgetResourceTypePage1)    
+        self.tabWidgetResourceType.setCurrentWidget(self.tabWidgetResourceTypePage1)
 
     @pyqtSlot(int)
     def _item_group_changed(self, indx):
@@ -380,13 +379,15 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.clean_up()
         event.accept()
 
+
 dockwidget_instance = None
+
 
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
         dockwidget_instance = PlanetExplorerDockWidget(
-            parent=iface.mainWindow(), iface=iface)        
+            parent=iface.mainWindow(), iface=iface)
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
@@ -395,15 +396,18 @@ def _get_widget_instance():
         dockwidget_instance.hide()
     return dockwidget_instance
 
+
 def toggle_explorer():
     instance = _get_widget_instance()
     instance._set_credential_fields()
     instance.setVisible(instance.isHidden())
 
+
 def show_explorer():
     instance = _get_widget_instance()
     instance._set_credential_fields()
     instance.show()
+
 
 def show_explorer_and_search_daily_images(request):
     instance = _get_widget_instance()
@@ -411,16 +415,19 @@ def show_explorer_and_search_daily_images(request):
     instance.show()
     instance.daily_images_widget.perform_search()
 
+
 def remove_explorer():
     if dockwidget_instance is not None:
         iface.removeDockWidget(dockwidget_instance)
+
 
 def toggle_images_search():
     instance = _get_widget_instance()
     instance.show_daily_images_panel()
     toggle_explorer()
 
+
 def toggle_mosaics_search():
     instance = _get_widget_instance()
     instance.show_mosaics_panel()
-    toggle_explorer()    
+    toggle_explorer()

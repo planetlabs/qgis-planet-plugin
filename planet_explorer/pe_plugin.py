@@ -62,9 +62,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgiscommons2.settings import (
-    readSettings,
-    setPluginSetting,
-    pluginSetting,
+    readSettings
 )
 from qgiscommons2.gui.settings import (
     addSettingsMenu,
@@ -81,14 +79,12 @@ from planet_explorer.resources import resources
 
 from planet_explorer.gui.pe_explorer_dockwidget import (
     show_explorer,
-    toggle_explorer,
     remove_explorer,
     toggle_mosaics_search,
     toggle_images_search
 )
 
 from planet_explorer.pe_utils import (
-    SETTINGS_NAMESPACE,
     sentry_dsn,
     segments_write_key,
     is_sentry_dsn_valid,
@@ -124,7 +120,6 @@ from planet_explorer.gui.pe_planet_inspector_dockwidget import (
 
 from planet_explorer.gui.pe_tasking_dockwidget import (
     toggle_tasking_widget,
-    hide_tasking_widget,
     remove_tasking_widget
 )
 
@@ -145,6 +140,7 @@ PE = P_E.replace(' ', '')
 DOCK_SHOWN_STATE = 'dockShownState'
 
 PLUGIN_NAMESPACE = "planet_explorer"
+
 
 # noinspection PyUnresolvedReferences
 class PlanetExplorer(object):
@@ -192,18 +188,18 @@ class PlanetExplorer(object):
                 try:
                     sentry_sdk.capture_exception(value)
                 except:
-                    pass #we swallow all exceptions here, to avoid entering an endless loop
+                    pass # we swallow all exceptions here, to avoid entering an endless loop
             self.qgis_hook(t, value, tb)
-        
+
         sys.excepthook = plugin_hook
 
         metadataFile = os.path.join(os.path.dirname(__file__), "metadata.txt")
         cp = configparser.ConfigParser()
         with codecs.open(metadataFile, "r", "utf8") as f:
             cp.read_file(f)
-        
+
         if is_sentry_dsn_valid():
-            version = cp["general"]["version"]       
+            version = cp["general"]["version"]
             with sentry_sdk.configure_scope() as scope:
                 scope.set_context("plugin_version", version)
                 scope.set_context("qgis_version", Qgis.QGIS_VERSION)
@@ -291,7 +287,7 @@ class PlanetExplorer(object):
 
     # noinspection PyPep8Naming
     def initGui(self):
-        
+
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
 
@@ -309,7 +305,7 @@ class PlanetExplorer(object):
             callback=toggle_mosaics_search,
             add_to_menu=True,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())        
+            parent=self.iface.mainWindow())
 
         self.showorders_act = self.add_action(
             ':/plugins/planet_explorer/download.svg',
@@ -333,7 +329,7 @@ class PlanetExplorer(object):
             callback=toggle_tasking_widget,
             add_to_menu=False,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())                    
+            parent=self.iface.mainWindow())
 
         self.add_user_button()
         self.add_info_button()
@@ -341,7 +337,7 @@ class PlanetExplorer(object):
         addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
         addAboutMenu(P_E, self.iface.addPluginToWebMenu)
 
-        self.provider = BasemapLayerWidgetProvider()    
+        self.provider = BasemapLayerWidgetProvider()
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
 
         QgsProject.instance().projectSaved.connect(self.project_saved)
@@ -355,10 +351,10 @@ class PlanetExplorer(object):
     def layer_removed(self, layer):
         self.provider.layerWasRemoved(layer)
 
-    def layers_added(self, layers):                
+    def layers_added(self, layers):
         for layer in layers:
             add_widget_to_layer(layer)
-            replace_apikey_for_layer(layer)        
+            replace_apikey_for_layer(layer)
 
     def login_changed(self, loggedin):
         replace_apikeys()
@@ -406,7 +402,7 @@ class PlanetExplorer(object):
         p_whatsnew_act.triggered[bool].connect(
             lambda: open_link_with_browser(PLANET_INTEGRATIONS)
         )
-        info_menu.addAction(p_whatsnew_act)        
+        info_menu.addAction(p_whatsnew_act)
 
         info_act = add_menu_section_action('Documentation', info_menu)
 
@@ -419,11 +415,11 @@ class PlanetExplorer(object):
         btn.setMenu(info_menu)
 
         # Also show menu on click, to keep disclosure triangle visible
-        btn.clicked.connect(btn.showMenu) 
+        btn.clicked.connect(btn.showMenu)
 
-        self.toolbar.addWidget(btn) 
+        self.toolbar.addWidget(btn)
 
-    def add_user_button(self):    
+    def add_user_button(self):
         user_menu = QMenu()
 
         self.user_act = add_menu_section_action('<b>Not Logged in<b/>', user_menu)
@@ -451,7 +447,6 @@ class PlanetExplorer(object):
         btn.clicked.connect(btn.showMenu)
 
         self.toolbar.addWidget(btn)
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -482,8 +477,7 @@ class PlanetExplorer(object):
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
         QgsProject.instance().layerLoaded.disconnect(self.project_layer_loaded)
 
-    #-----------------------------------------------------------        
-
+    # -----------------------------------------------------------
 
     def show_terms(self, _):
         if self._terms_browser is None:
@@ -504,7 +498,7 @@ class PlanetExplorer(object):
     def logout(self):
         PlanetClient.getInstance().log_out()
 
-    def enable_buttons(self, loggedin):        
+    def enable_buttons(self, loggedin):
         self.login_act.setVisible(not loggedin)
         self.logout_act.setVisible(loggedin)
         self.acct_act.setVisible(loggedin)
@@ -523,19 +517,19 @@ class PlanetExplorer(object):
             self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
         else:
             self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
-            self.showdailyimages_act.setToolTip("Login to access Imagery Search")        
+            self.showdailyimages_act.setToolTip("Login to access Imagery Search")
             self.showbasemaps_act.setToolTip("Login to access Basemaps Search")
             self.showorders_act.setToolTip("Login to access Order Status")
             self.showinspector_act.setToolTip("Login to access Planet Inspector")
             self.showtasking_act.setToolTip("Login to access Tasking Panel")
 
-    def project_saved(self):        
-        if PlanetClient.getInstance().has_api_key():            
+    def project_saved(self):
+        if PlanetClient.getInstance().has_api_key():
             def resave():
                 path = QgsProject.instance().absoluteFilePath()
                 if path.lower().endswith(".qgs"):
                     with open(path) as f:
-                        s = f.read()            
+                        s = f.read()
                     with open(path, "w") as f:
                         f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
                 else:

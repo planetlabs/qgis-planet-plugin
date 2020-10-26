@@ -17,16 +17,19 @@ from .p_client import (
     PlanetClient
 )
 
+
 class OrderAlreadyExistsException(Exception):
     pass
 
+
 def _quad_orders_file():
     folder = os.path.join(os.path.dirname(
-            QgsApplication.qgisUserDatabaseFilePath()), 
+            QgsApplication.qgisUserDatabaseFilePath()),
             "planetexplorer")
     os.makedirs(folder, exist_ok = True)
     file = os.path.join(folder, "quadorders.json")
     return file
+
 
 NAME = "name"
 DATE = "date"
@@ -39,18 +42,19 @@ ID = "id"
 LINKS = "_links"
 DOWNLOAD = "download"
 
+
 def quad_orders():
     if os.path.exists(_quad_orders_file()):
-        with open(_quad_orders_file()) as f: 
+        with open(_quad_orders_file()) as f:
             definitions = json.load(f)
         orders = []
         for orderdef in definitions:
             if QUADS in orderdef:
-                order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION], 
+                order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION],
                                 orderdef[QUADS], orderdef[LOAD_AS_VIRTUAL],
                                 orderdef[DATE])
             else:
-                order = QuadCompleteOrder(orderdef[NAME], orderdef[DESCRIPTION], 
+                order = QuadCompleteOrder(orderdef[NAME], orderdef[DESCRIPTION],
                                 orderdef[MOSAICS], orderdef[LOAD_AS_VIRTUAL],
                                 orderdef[DATE])
             orders.append(order)
@@ -58,25 +62,29 @@ def quad_orders():
     else:
         return []
 
+
 def _add_order(order):
     all_orders = [order]
     all_orders.extend(quad_orders())
     with open(_quad_orders_file(), "w") as f:
         json.dump(all_orders, f, default=lambda x: x.__dict__)
 
+
 def create_quad_order_from_quads(name, description, quads, load_as_virtual):
     order = QuadOrder(name, description, quads, load_as_virtual)
     _add_order(order)
+
 
 def create_quad_order_from_mosaics(name, description, mosaics, load_as_virtual):
     order = QuadCompleteOrder(name, description, mosaics, load_as_virtual)
     _add_order(order)
 
+
 class QuadOrder():
 
-    def __init__(self, name, description, quads, 
+    def __init__(self, name, description, quads,
                 load_as_virtual, date=None):
-        self.quads = quads 
+        self.quads = quads
         self.load_as_virtual = load_as_virtual
         self.name = name
         self.description = description
@@ -94,14 +102,15 @@ class QuadOrder():
     def download_folder(self):
         return os.path.join(orders_download_folder(), "basemaps", self.name)
 
-    def downloaded(self):        
+    def downloaded(self):
         return os.path.exists(self.download_folder())
+
 
 class QuadCompleteOrder(QuadOrder):
 
-    def __init__(self, name, description, mosaics, 
+    def __init__(self, name, description, mosaics,
                 load_as_virtual, date=None):
-        self.mosaics = mosaics 
+        self.mosaics = mosaics
         self.load_as_virtual = load_as_virtual
         self.name = name
         self.description = description
@@ -113,9 +122,8 @@ class QuadCompleteOrder(QuadOrder):
         locations = {}
         for mosaic in self.mosaics:
             json_quads = []
-            quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)         
+            quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)
             for page in quads.iter():
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
             locations[mosaic[NAME]] = [(quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads]
         return locations
-
