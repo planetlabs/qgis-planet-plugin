@@ -214,6 +214,7 @@ class BasemapRenderingOptionsWidget(QFrame):
             else:
                 self.comboRamp.setVisible(False)
                 self.labelRamp.setVisible(False)
+                self.values_changed.emit()
         else:
             self.values_changed.emit()
 
