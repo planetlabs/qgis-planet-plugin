@@ -59,6 +59,11 @@ from qgis.PyQt.QtGui import (
     QIcon
 )
 
+from qgis.PyQt.QtWidgets import (
+    QVBoxLayout,
+    QDialog,
+    QTextBrowser)
+
 from ..planet_api import (
     PlanetClient
 )
@@ -118,6 +123,39 @@ class AOICaptureMapTool(QgsMapTool):
         self.aoi_captured.emit(rect, pt4326)
 
 
+class WarningDialog(QDialog):
+
+    def __init__(self, pt):
+        super().__init__(iface.mainWindow())
+        self.pt = pt
+        layout = QVBoxLayout()
+        textbrowser = QTextBrowser()
+        textbrowser.setOpenLinks(False)
+        textbrowser.setOpenExternalLinks(False)
+        textbrowser.anchorClicked.connect(self._link_clicked)
+        css = '''a:link{
+                  color: black;
+                }'''
+        text = '''<p><strong>Complete your high resolution imagery order</strong></p>
+                <p><br />Your custom high resolution imagery order can be completed using Planet&rsquo;s Tasking Dashboard. The dashboard allows you to place an order to task our SkySat satellite and get high-resolution imagery for your area and time of interest.</p>
+                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples <a href="">here</a> and contact our sales team <a href="">here</a>.</p>
+                <p>&nbsp;</p>
+                <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>'''
+        textbrowser.document().setDefaultStyleSheet(css)
+        textbrowser.setHtml(text)
+        layout.addWidget(textbrowser)
+        self.setLayout(layout)
+        self.setFixedSize(600, 400)
+
+    def _link_clicked(self, url):
+        print(url)
+        if url.toString() == "dashboard":    
+            url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
+            open_link_with_browser(url)
+            self.close()
+        else:
+            open_link_with_browser(url.toString())
+
 class TaskingDockWidget(BASE, WIDGET):
 
     def __init__(self,
@@ -131,6 +169,7 @@ class TaskingDockWidget(BASE, WIDGET):
         self.prev_map_tool = None
 
         self.btnMapTool.setIcon(TASKING_ICON)
+        self.btnMapTool.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         self.footprint = QgsRubberBand(iface.mapCanvas(),
                               QgsWkbTypes.PolygonGeometry)
@@ -144,29 +183,39 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnMapTool.toggled.connect(self._set_map_tool)
         iface.mapCanvas().mapToolSet.connect(self._map_tool_set)
 
-        self.textBrowserInfo.anchorClicked.connect(self._link_clicked)
-
         self.textBrowserPoint.setHtml("No point selected")
         self.btnOpenDashboard.setEnabled(False)
 
         self.btnOpenDashboard.clicked.connect(self._open_tasking_dashboard)
+        self.btnCancel.clicked.connect(self.cancel_clicked)
 
         self.visibilityChanged.connect(self.visibility_changed)
+
+        self.textBrowserPoint.viewport().setAutoFillBackground(False)
+        # self.textBrowserPoint.setVisible(False)
 
     def aoi_captured(self, rect, pt):
         self.pt = pt
         self.rect = rect
         self.footprint.setToGeometry(QgsGeometry.fromRect(rect))
         self._set_map_tool(False)
-        self.textBrowserPoint.setHtml(f"Selected point: {pt.x():.6g},{pt.y():.6g}")
+        text = f'''
+                <p><b>Selected Point Coordinates</b></p>
+                <p align="center">Latitude : {pt.x():.4f}</p>
+                <p align="center">Longitude : {pt.y():.4f}</p>
+                '''
+        #self.textBrowserPoint.setVisible(True)
+        self.textBrowserPoint.setHtml(text)
+        self.btnCancel.setEnabled(True)        
         self.btnOpenDashboard.setEnabled(True)
 
-    def _link_clicked(self, url):
-        open_link_with_browser(url)
-
-    def _open_tasking_dashboard(self):
-        url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
-        open_link_with_browser(url)
+    def cancel_clicked(self):
+        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+        self.btnOpenDashboard.setEnabled(False)
+        self.textBrowserPoint.setHtml("")
+        #self.textBrowserPoint.setVisible(False)
+        self.btnCancel.setEnabled(False)
+        self._set_map_tool(False)
 
     def _set_map_tool(self, checked):
         if checked:
@@ -184,11 +233,12 @@ class TaskingDockWidget(BASE, WIDGET):
 
     def visibility_changed(self, visible):
         if not visible:
-            self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-            self.textBrowserPoint.setText("No point selected")
-            self.btnOpenDashboard.setEnabled(False)
-            self._set_map_tool(False)
+            self.cancel_clicked()
 
+    def _open_tasking_dashboard(self):
+        dialog = WarningDialog(self.pt)
+        dialog.exec()
+            
 
 dockwidget_instance = None
 
