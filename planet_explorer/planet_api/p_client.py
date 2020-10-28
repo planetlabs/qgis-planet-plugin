@@ -122,7 +122,7 @@ class PlanetClient(QObject, ClientV1):
         proxyEnabled = settings.value("proxy/proxyEnabled")
         base_url = self.base_url.lower()
         excluded = False
-        noProxyUrls = settings.value("proxy/noProxyUrls", [])
+        noProxyUrls = settings.value("proxy/noProxyUrls") or []
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
         if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
@@ -267,7 +267,7 @@ class PlanetClient(QObject, ClientV1):
         url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items')
         response = self._get(url, api_models.JSON)
         item_descriptions = []
-        items = response.get().get("items")
+        items = response.get_body().get().get("items")
         for item in items:
             if item['link'].startswith("https://api.planet.com"):
                 response = self._get(item["link"], api_models.JSON)

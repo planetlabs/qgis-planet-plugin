@@ -412,8 +412,9 @@ def show_explorer():
 def show_explorer_and_search_daily_images(request):
     instance = _get_widget_instance()
     instance.daily_images_widget.set_filters_from_request(request)
-    instance.show()
     instance.daily_images_widget.perform_search()
+    instance.show()
+    instance.show_daily_images_panel()
 
 
 def remove_explorer():
