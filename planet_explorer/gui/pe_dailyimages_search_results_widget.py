@@ -434,7 +434,7 @@ class ItemWidgetBase(QFrame):
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
         layout.addWidget(self.lockLabel)
-        self.lockLabel.setVisible(False)
+        #self.lockLabel.setVisible(False)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         self.thumbnail = None
         thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
@@ -645,10 +645,16 @@ class DateItemWidget(ItemWidgetBase):
         self.nameLabel.setText(text)
 
         geoms = []
+        self.downloadable = False
         for i in range(self.item.childCount()):
             child = self.item.child(i)
-            geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
+            w = self.item.treeWidget().itemWidget(child, 0)
+            geoms.append(w.geom)
+            if w.downloadable:
+                self.downloadable = True
         self.geom = QgsGeometry.collectGeometry(geoms)
+        self.lockLabel.setVisible(not self.downloadable)
+        self.checkBox.setEnabled(self.downloadable)
         #self._update_thumbnail()
 
     def name(self):
@@ -688,11 +694,17 @@ class SatelliteItemWidget(ItemWidgetBase):
 
         geoms = []
         self.ids = []
+        self.downloadable = False
         for i in range(size):
             child = self.item.child(i)
-            geoms.append(self.item.treeWidget().itemWidget(child, 0).geom)
+            w = self.item.treeWidget().itemWidget(child, 0)
+            geoms.append(w.geom)
+            if w.downloadable:
+                self.downloadable = True
             self.ids.append(child.image[ID])
         self.geom = QgsGeometry.collectGeometry(geoms)
+        self.lockLabel.setVisible(not self.downloadable)
+        self.checkBox.setEnabled(self.downloadable)
         # self._update_thumbnail()
 
     def name(self):
