@@ -82,6 +82,7 @@ from .pe_thumbnails import (
 ID = "id"
 BBOX = "bbox"
 THUMB = "thumb"
+DATATYPE = "datatype"
 
 COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
@@ -100,6 +101,7 @@ class BasemapsListWidget(QListWidget):
         p.setColor(QPalette.Highlight, ITEM_BACKGROUND_COLOR)
         self.setPalette(p)
         self.widgets = []
+        self.onlysr = False
 
     def clear(self):
         self.widgets = []
@@ -124,6 +126,7 @@ class BasemapsListWidget(QListWidget):
                 self.widgets.append(widget)
 
         self.sortItems()
+        self._update_for_only_sr_setting()
 
     def resizeEvent(self, evt):
         super().resizeEvent(evt)
@@ -141,6 +144,15 @@ class BasemapsListWidget(QListWidget):
     def setAllChecked(self, checked):
         for w in self.widgets:
             w.setChecked(checked)
+
+    def set_only_sr_basemaps(self, onlysr):
+        self.onlysr = onlysr
+        self._update_for_only_sr_setting()
+
+    def _update_for_only_sr_setting(self):
+        for i in range(self.count()):
+            item = self.item(i)
+            item.setHidden(item.mosaic[DATATYPE] != "uint16" and self.onlysr)
 
 
 class BasemapListItem(QListWidgetItem):

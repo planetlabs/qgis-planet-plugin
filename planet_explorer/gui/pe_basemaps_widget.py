@@ -103,7 +103,6 @@ from .pe_orders_monitor_dockwidget import (
     refresh_orders
 )
 
-from .extended_combobox import ExtendedComboBox
 from .pe_quads_treewidget import QuadsTreeWidget
 from .pe_basemaps_list_widget import BasemapsListWidget
 from .pe_basemap_layer_widget import BasemapRenderingOptionsWidget
@@ -145,10 +144,6 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.setupUi(self)
 
-        self.comboSeriesName = ExtendedComboBox()
-        self.comboSeriesName.lineEdit().setPlaceholderText("Select a basemap series or type to filter")
-        self.grpBoxFilter.layout().addWidget(self.comboSeriesName, 0, 1)
-
         self.mosaicsList = BasemapsListWidget()
         self.frameResults.layout().addWidget(self.mosaicsList)
         self.mosaicsList.setVisible(False)
@@ -170,14 +165,11 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.radioDownloadComplete.setChecked(True)
 
-        self.buttons = [self.btnOneOff, self.btnQuaterly,
-                        self.btnMonthly, self.btnWeekly,
+        self.buttons = [self.btnOneOff, self.btnSeries,
                         self.btnAll]
 
         self.btnOneOff.clicked.connect(lambda: self.btn_filter_clicked(self.btnOneOff))
-        self.btnQuaterly.clicked.connect(lambda: self.btn_filter_clicked(self.btnQuaterly))
-        self.btnMonthly.clicked.connect(lambda: self.btn_filter_clicked(self.btnMonthly))
-        self.btnWeekly.clicked.connect(lambda: self.btn_filter_clicked(self.btnWeekly))
+        self.btnSeries.clicked.connect(lambda: self.btn_filter_clicked(self.btnSeries))
         self.btnAll.clicked.connect(lambda: self.btn_filter_clicked(self.btnAll))
 
         self.btnOrder.clicked.connect(self.order)
@@ -206,21 +198,26 @@ class BasemapsWidget(BASE, WIDGET):
 
         self.textBrowserOrderConfirmation.setOpenExternalLinks(False)
         self.textBrowserOrderConfirmation.anchorClicked.connect(show_orders_monitor)
-
         self.comboSeriesName.currentIndexChanged.connect(self.serie_selected)
-
         self.grpBoxFilter.collapsedStateChanged.connect(self.collapse_state_changed)
-
         self.lblSelectAllMosaics.linkActivated.connect(self.batch_select_mosaics_clicked)
         self.lblSelectAllQuads.linkActivated.connect(self.batch_select_quads_clicked)
         self.chkGroupByQuad.stateChanged.connect(self._populate_quads)
+        self.chkOnlySRBasemaps.stateChanged.connect(self._only_sr_basemaps_changed)
+        self.btnBasemapsFilter.clicked.connect(self._apply_filter)
+
+        self.comboCadence.currentIndexChanged.connect(self.cadence_selected)
 
     def init(self):
         if not self._initialized:
-            self.stackedWidget.setCurrentWidget(self.searchPage)
-            self.btnAll.setChecked(True)
-            self.btn_filter_clicked(self.btnAll)
-            self._initialized = True
+            if PlanetClient.getInstance().has_access_to_mosaics():
+                self.stackedWidget.setCurrentWidget(self.searchPage)
+                self.btnSeries.setChecked(True)
+                self.btn_filter_clicked(self.btnSeries)
+                self._initialized = True
+            else:
+                self.stackedWidget.setCurrentWidget(self.noBasemapsAccessPage)
+                self._initialized = True
 
     def reset(self):
         self._initialized = False
@@ -239,7 +236,33 @@ class BasemapsWidget(BASE, WIDGET):
 
     def set_filter_visibility(self):
         is_one_off = self.btnOneOff.isChecked()
-        self.grpBoxFilter.setVisible(not is_one_off)
+        if is_one_off:
+            self.grpBoxFilter.setVisible(False)
+            mosaics = self.one_off_mosaics()
+            self.mosaicsList.populate(mosaics)
+            self.mosaicsList.setVisible(True)
+            self.toggle_select_basemap_panel(False)
+        else:
+            is_all = self.btnAll.isChecked()
+            self.grpBoxFilter.setVisible(True)
+            self.labelBasemapsFilter.setVisible(is_all)
+            self.textBasemapsFilter.setVisible(is_all)
+            self.btnBasemapsFilter.setVisible(is_all)
+            self.labelCadence.setVisible(not is_all)
+            self.comboCadence.setVisible(not is_all)
+            self.comboSeriesName.clear()                        
+            if is_all:
+                self.textBasemapsFilter.setText("")
+                self.comboSeriesName.addItem("Apply a filter to populate this list of series", None)
+            else:
+                cadences = set([s[INTERVAL] for s in self.series()])
+                self.comboCadence.blockSignals(True)
+                self.comboCadence.clear()
+                self.comboCadence.addItem("Select a cadence", None)
+                for cadence in cadences:
+                    self.comboCadence.addItem(cadence, cadence)
+                self.comboCadence.blockSignals(False)
+                self.cadence_selected()
 
     def btn_filter_clicked(self, selectedbtn):
         for btn in self.buttons:
@@ -257,36 +280,65 @@ class BasemapsWidget(BASE, WIDGET):
             self._series = self.p_client.list_mosaic_series().get()[SERIES]
         return self._series
 
+    def _apply_filter(self):
+        text = self.textBasemapsFilter.text()
+        mosaics = self._get_filtered_mosaics(text) 
+        series = self._get_filtered_series(text)
+        if len(mosaics) == 0 and len(series) == 0:
+            self.parent.show_message('No results for current filter',
+                                      level=Qgis.Warning,
+                                      duration=10)
+            return
+        self.comboSeriesName.clear()
+        self.comboSeriesName.addItem("Select a series or mosaic", None)
+        for m in mosaics:
+            self.comboSeriesName.addItem(m[NAME], (m, False))
+        self.comboSeriesName.insertSeparator(len(mosaics))
+        for s in series:
+            self.comboSeriesName.addItem(s[NAME], (s, True))
+
+    def _get_filtered_mosaics(self, text):
+        mosaics = []
+        response = self.p_client.get_mosaics(text)
+        for page in response.iter():
+            mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
+        mosaics = [m for m in mosaics if m[PRODUCT_TYPE] != TIMELAPSE]
+        return mosaics
+
+    def _get_filtered_series(self, text):
+         return self.p_client.list_mosaic_series(text).get()[SERIES]
+
+    def _only_sr_basemaps_changed(self):
+        self.mosaicsList.set_only_sr_basemaps(self.chkOnlySRBasemaps.isChecked())
+
+    def cadence_selected(self):
+        cadence = self.comboCadence.currentData()
+        self.comboSeriesName.blockSignals(True)
+        self.comboSeriesName.clear()
+        if cadence is None:
+            self.comboSeriesName.addItem("Select a cadence to populate this list of series", None)
+        else:
+            self.comboSeriesName.addItem("Select a series", None)
+            series = self.series_for_interval(cadence)
+            for s in series:
+                self.comboSeriesName.addItem(s[NAME], (s, True))
+        self.comboSeriesName.blockSignals(False)
+        self.toggle_select_basemap_panel(True)
+
     def populate(self, category_btn = None):
         category_btn = category_btn or self.btnAll
 
+        self.mosaicsList.clear()
+        self.btnOrder.setText("Order (0 instances)")
         self.set_filter_visibility()
 
-        self.comboSeriesName.clear()
-        self.comboSeriesName.addItem("", None)
         self.batch_select_mosaics_clicked("none")
-        self.btnOrder.setText("Order (0 instances)")
-        if category_btn == self.btnAll:
-            series = self.series()
-        elif category_btn == self.btnMonthly:
-            series = self.series_for_interval(ONEMONTH)
-        elif category_btn == self.btnQuaterly:
-            series = self.series_for_interval(THREEMONTHS)
-        elif category_btn == self.btnWeekly:
-            series = self.series_for_interval(WEEK)
-        elif category_btn == self.btnOneOff:
-            mosaics = self.one_off_mosaics()
-            self.mosaicsList.populate(mosaics)
-            self.mosaicsList.setVisible(True)
-            self.toggle_select_basemap_panel(False)
-        if category_btn != self.btnOneOff:
-            for s in series:
-                self.comboSeriesName.addItem(s[NAME], s)
 
     def toggle_select_basemap_panel(self, show):
         self.lblSelectBasemapName.setVisible(show)
         self.lblSelectAllMosaics.setVisible(not show)
         self.lblCheckInstances.setVisible(not show)
+        self.mosaicsList.setVisible(not show)
 
     def min_zoom_level_checked(self):
         self.comboMinZoomLevel.setEnabled(self.chkMinZoomLevel.isChecked())
@@ -301,7 +353,7 @@ class BasemapsWidget(BASE, WIDGET):
             response = self.p_client.get_mosaics()
             for page in response.iter():
                 all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
-            self.oneoff = [m for m in all_mosaics if m[PRODUCT_TYPE] != "e"][:5]#TIMELAPSE]
+            self.oneoff = [m for m in all_mosaics if m[PRODUCT_TYPE] != TIMELAPSE]
 
         return self.oneoff
 
@@ -323,11 +375,14 @@ class BasemapsWidget(BASE, WIDGET):
 
     def serie_selected(self):
         self.mosaicsList.clear()
-        series = self.comboSeriesName.currentData()
-        self.toggle_select_basemap_panel(series is None)
-        self.mosaicsList.setVisible(series is not None)
-        if series:
-            mosaics = self.mosaics_for_serie(series)
+        data = self.comboSeriesName.currentData()
+        self.toggle_select_basemap_panel(data is None)
+        self.mosaicsList.setVisible(data is not None)
+        if data:
+            if data[1]: #it is a series, not a single mosaic
+                mosaics = self.mosaics_for_serie(data[0])
+            else:
+                mosaics = [data[0]]
             self.mosaicsList.populate(mosaics)
 
     def selection_changed(self):

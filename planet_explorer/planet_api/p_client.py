@@ -212,22 +212,32 @@ class PlanetClient(QObject, ClientV1):
             return self.auth.value not in [None, '', API_KEY_DEFAULT]
         return False
 
-    def list_mosaic_series(self):
+    def has_access_to_mosaics(self):
+        url = self._url('basemaps/v1/mosaics')
+        params = {'_page_size': 1}
+        response = self._get(url, api_models.Mosaics).get_body().get()
+        return len(response) > 0
+
+    def list_mosaic_series(self, name_contains=None):
         '''List all available mosaic series
         :returns: :py:Class:`planet.api.models.JSON`
         '''
+        params = {}
+        if name_contains:
+            params['name__contains'] = name_contains
         url = self._url('basemaps/v1/series/')
-        return self._get(url, api_models.JSON).get_body()
+        return self._get(url, api_models.JSON, params=params).get_body()
 
+    @waitcursor
     def get_mosaics(self, name_contains=None):
         '''List all available mosaics
         :returns: :py:Class:`planet.api.models.JSON`
         '''
-        params = {"v":"1.5"}
+        params = {"v":"1.5", "_page_size": 10000}
         if name_contains:
             params['name__contains'] = name_contains
         url = self._url('basemaps/v1/mosaics')
-        return self._get(url, api_models.Mosaics).get_body()
+        return self._get(url, api_models.Mosaics, params=params).get_body()
 
     def get_mosaics_for_series(self, series_id):
         url = self._url('basemaps/v1/series/{}/mosaics?v=1.5'.format(series_id))
