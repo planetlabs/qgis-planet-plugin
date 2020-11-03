@@ -37,7 +37,8 @@ from qgis.core import (
 
 from qgis.gui import (
     QgsRubberBand,
-    QgsMapTool
+    QgsMapTool,
+    QgsVertexMarker
 )
 
 # noinspection PyPackageRequirements
@@ -56,7 +57,8 @@ from qgis.PyQt.QtCore import (
 
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import (
-    QIcon
+    QIcon,
+    QColor
 )
 
 from qgis.PyQt.QtWidgets import (
@@ -174,9 +176,13 @@ class TaskingDockWidget(BASE, WIDGET):
         self.footprint = QgsRubberBand(iface.mapCanvas(),
                               QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
-        self.footprint.setFillColor(PLANET_COLOR)
+        self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.footprint.setBrushStyle(Qt.CrossPattern)
+        self.marker = QgsVertexMarker(iface.mapCanvas())
+        self.marker.setIconType(QgsVertexMarker.ICON_BOX)
+        self.marker.setIconSize(8)
+        self.marker.setPenWidth(2)
+        self.marker.setColor(QColor(255, 0, 0,255))        
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
         self.map_tool.aoi_captured.connect(self.aoi_captured)
@@ -198,6 +204,14 @@ class TaskingDockWidget(BASE, WIDGET):
         self.pt = pt
         self.rect = rect
         self.footprint.setToGeometry(QgsGeometry.fromRect(rect))
+        transform = QgsCoordinateTransform(
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().crs(),
+            QgsProject.instance()
+        )
+        transformed = transform.transform(pt)
+        self.marker.setCenter(transformed)
+        self.marker.show()
         self._set_map_tool(False)
         text = f'''
                 <p><b>Selected Point Coordinates</b></p>
@@ -211,6 +225,7 @@ class TaskingDockWidget(BASE, WIDGET):
 
     def cancel_clicked(self):
         self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+        self.marker.hide()
         self.btnOpenDashboard.setEnabled(False)
         self.textBrowserPoint.setHtml("")
         #self.textBrowserPoint.setVisible(False)
