@@ -258,7 +258,7 @@ class BasemapsWidget(BASE, WIDGET):
                 cadences = set([s[INTERVAL] for s in self.series()])
                 self.comboCadence.blockSignals(True)
                 self.comboCadence.clear()
-                self.comboCadence.addItem("Select a cadence", None)
+                self.comboCadence.addItem("All", None)
                 for cadence in cadences:
                     self.comboCadence.addItem(cadence, cadence)
                 self.comboCadence.blockSignals(False)
@@ -315,13 +315,10 @@ class BasemapsWidget(BASE, WIDGET):
         cadence = self.comboCadence.currentData()
         self.comboSeriesName.blockSignals(True)
         self.comboSeriesName.clear()
-        if cadence is None:
-            self.comboSeriesName.addItem("Select a cadence to populate this list of series", None)
-        else:
-            self.comboSeriesName.addItem("Select a series", None)
-            series = self.series_for_interval(cadence)
-            for s in series:
-                self.comboSeriesName.addItem(s[NAME], (s, True))
+        self.comboSeriesName.addItem("Select a series", None)
+        series = self.series_for_interval(cadence)
+        for s in series:
+            self.comboSeriesName.addItem(s[NAME], (s, True))
         self.comboSeriesName.blockSignals(False)
         self.toggle_select_basemap_panel(True)
 
@@ -361,7 +358,7 @@ class BasemapsWidget(BASE, WIDGET):
         series = []
         for s in self.series():
             interv = s.get(INTERVAL)
-            if interv == interval:
+            if interv == interval or interval is None:
                 series.append(s)
         return series
 
