@@ -475,7 +475,8 @@ class PlanetExplorer(object):
         sys.excepthook = self.qgis_hook
 
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
-        QgsProject.instance().layerLoaded.disconnect(self.project_layer_loaded)
+        QgsProject.instance().layersAdded.disconnect(self.layers_added)
+        QgsProject.instance().layerRemoved.disconnect(self.layer_removed)
 
     # -----------------------------------------------------------
 
