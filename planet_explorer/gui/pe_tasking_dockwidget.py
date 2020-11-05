@@ -53,6 +53,7 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     Qt,
     pyqtSignal,
+    QPoint
 )
 
 # noinspection PyPackageRequirements
@@ -78,6 +79,7 @@ from ..pe_utils import (
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 TASKING_ICON = QIcon(os.path.join(plugin_path, "resources", "tasking.png"))
+SVG_ICON = os.path.join(plugin_path, "resources", "pin.svg")
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -135,15 +137,12 @@ class WarningDialog(QDialog):
         textbrowser.setOpenLinks(False)
         textbrowser.setOpenExternalLinks(False)
         textbrowser.anchorClicked.connect(self._link_clicked)
-        css = '''a:link{
-                  color: black;
-                }'''
         text = '''<p><strong>Complete your high resolution imagery order</strong></p>
                 <p><br />Your custom high resolution imagery order can be completed using Planet&rsquo;s Tasking Dashboard. The dashboard allows you to place an order to task our SkySat satellite and get high-resolution imagery for your area and time of interest.</p>
-                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples <a href="">here</a> and contact our sales team <a href="">here</a>.</p>
+                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples 
+                <a href="https://learn.planet.com/sample-skysat.html?utm_source=defense-and-intelligence&amp;amp;utm_medium=website&amp;amp;utm_campaign=skysat-sample-imagery&amp;amp;utm_content=skysat-sample-imagery">here</a> and contact our sales team <a href="https://www.planet.com/contact-sales/">here</a>.</p>
                 <p>&nbsp;</p>
                 <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>'''
-        textbrowser.document().setDefaultStyleSheet(css)
         textbrowser.setHtml(text)
         layout.addWidget(textbrowser)
         self.setLayout(layout)
@@ -178,11 +177,10 @@ class TaskingDockWidget(BASE, WIDGET):
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.marker = QgsVertexMarker(iface.mapCanvas())
-        self.marker.setIconType(QgsVertexMarker.ICON_BOX)
-        self.marker.setIconSize(8)
-        self.marker.setPenWidth(2)
-        self.marker.setColor(QColor(255, 0, 0,255))        
+        self.marker = QgsRubberBand(iface.mapCanvas(),
+                              QgsWkbTypes.PointGeometry)        
+        self.marker.setIcon(QgsRubberBand.ICON_SVG)
+        self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
         self.map_tool.aoi_captured.connect(self.aoi_captured)
@@ -210,8 +208,7 @@ class TaskingDockWidget(BASE, WIDGET):
             QgsProject.instance()
         )
         transformed = transform.transform(pt)
-        self.marker.setCenter(transformed)
-        self.marker.show()
+        self.marker.setToGeometry(QgsGeometry.fromPointXY(transformed))
         self._set_map_tool(False)
         text = f'''
                 <p><b>Selected Point Coordinates</b></p>
@@ -225,7 +222,7 @@ class TaskingDockWidget(BASE, WIDGET):
 
     def cancel_clicked(self):
         self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.marker.hide()
+        self.marker.reset(QgsWkbTypes.PointGeometry)
         self.btnOpenDashboard.setEnabled(False)
         self.textBrowserPoint.setHtml("")
         #self.textBrowserPoint.setVisible(False)
