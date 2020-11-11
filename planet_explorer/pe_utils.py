@@ -43,6 +43,7 @@ import os
 import re
 import logging
 import urllib
+from urllib.parse import quote
 import json
 import iso8601
 
@@ -514,8 +515,11 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
         s.setValue(f'qgis/connections-xyz/{name}/username', "")
         s.setValue(f'qgis/connections-xyz/{name}/password', "")
         s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
+        procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
+        rampparam = quote(f'&color={ramp}') if ramp else ""
+        full_uri = f"{tile_url}{procparam}{rampparam}"
         s.setValue(f'qgis/connections-xyz/{name}/url',
-            tile_url.replace(PlanetClient.getInstance().api_key(), ""))
+            full_uri.replace(PlanetClient.getInstance().api_key(), ""))
 
 
 def layer_tree_node_for_layer(layer):
@@ -566,6 +570,15 @@ def add_widget_to_layer(layer):
         ramp = ""
         mosaic = mosaic_name_from_url(layer.source())
         if mosaic is not None:
+            tokens = layer.source().split("&")
+            for token in tokens:
+                if token.startswith("url="):
+                    subtokens = urllib.parse.unquote(token).split("&")
+                    for subtoken in subtokens:
+                        if subtoken.startswith("proc="):
+                            proc = subtoken.split("=")[1]
+                        if subtoken.startswith("ramp="):
+                            ramp = subtoken.split("=")[1]
             datatype = datatype_from_mosaic_name(mosaic)
             mosaics = [(mosaic, mosaic)]
             layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
