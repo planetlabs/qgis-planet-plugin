@@ -150,10 +150,10 @@ class PlanetClient(QObject, ClientV1):
                 tokens = url.split("://")
                 url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"
 
-            self.client.dispatcher.session.proxies["http"] = url
-            self.client.dispatcher.session.proxies["https"] = url
+            self.dispatcher.session.proxies["http"] = url
+            self.dispatcher.session.proxies["https"] = url
         else:
-            self.client.dispatcher.session.proxies = {}
+            self.dispatcher.session.proxies = {}
 
     def _url(self, path):
         if path.startswith('http'):
