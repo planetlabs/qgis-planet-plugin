@@ -126,6 +126,7 @@ class DailyImagesWidget(BASE, WIDGET):
         # Collected sources/filters, upon search request
         self._sources = None
         self._filters = None
+        self.local_filters = None
         self._request = None
 
         self.btnOrder.clicked.connect(self.order_checked)
@@ -174,7 +175,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self._sources = self._daily_filters_widget.sources()
 
-        item_filters = self._daily_filters_widget.filters()
+        item_filters, self.local_filters = self._daily_filters_widget.filters()
         if not item_filters:
             item_filters = []
 
@@ -217,7 +218,7 @@ class DailyImagesWidget(BASE, WIDGET):
                             "Daily images search executed",
                             {"query": search_request})
 
-        self.searchResultsWidget.update_request(search_request)
+        self.searchResultsWidget.update_request(search_request, self.local_filters)
 
     def _setup_main_filter(self):
         """Main filters: AOI visual extent, date range and text"""

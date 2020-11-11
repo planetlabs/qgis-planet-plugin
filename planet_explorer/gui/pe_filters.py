@@ -103,6 +103,8 @@ from ..planet_api.p_client import (
     PlanetClient
 )
 
+LOCAL_FILTERS = ["area_coverage"]
+
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -888,9 +890,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         # noinspection PyUnresolvedReferences
         self.leStringIDs.textChanged['QString'].connect(self.filters_changed)
 
-        # TODO: Figure out how area coverage filter works in Explorer
-
-        # TODO: Consolidate range filters for basemap/mosaic reusability
         self.rangeCloudCover = PlanetExplorerRangeSlider(
             title='Cloud cover',
             filter_key='cloud_cover',
@@ -988,6 +987,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1
         )
+
         # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeAnomalousPx)
         self.rangeAnomalousPx.rangeChanged[float, float].connect(
@@ -1008,6 +1008,22 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeUsable)
         self.rangeUsable.rangeChanged[float, float].connect(
+            self.filters_changed)
+
+        self.rangeAreaCoverage = PlanetExplorerRangeSlider(
+            title='Area Coverage',
+            filter_key='area_coverage',
+            prefix='',
+            suffix='%',
+            minimum=0,
+            maximum=100,
+            low=0,
+            high=100,
+            step=1,
+            precision=1
+        )
+        self.frameRangeSliders.layout().addWidget(self.rangeAreaCoverage)
+        self.rangeAreaCoverage.rangeChanged[float, float].connect(
             self.filters_changed)
 
         # TODO: Add rest of range sliders
@@ -1045,7 +1061,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 date.lineEdit().setEchoMode(QLineEdit.Normal)
 
     def filters(self):
-
         populated_filters = []
 
         start_date = None
@@ -1130,7 +1145,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             gc_filter = not_filter(string_filter('ground_control', 'false'))
             populated_filters.append(gc_filter)
 
-        return populated_filters
+        server_filters = [f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS]
+        local_filters = [f for f in populated_filters if f["field_name"] in LOCAL_FILTERS]
+        return server_filters, local_filters
 
     def set_from_request(self, request):
         '''

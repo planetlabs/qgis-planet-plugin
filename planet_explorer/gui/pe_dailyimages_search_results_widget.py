@@ -78,6 +78,10 @@ from ..gui.pe_results_configuration_dialog import (
     PlanetNodeMetadata
 )
 
+from ..gui.pe_filters import (
+    filters_from_request
+)
+
 from ..pe_utils import (
     qgsgeometry_from_geojson,
     add_menu_section_action,
@@ -173,6 +177,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self._total_count = 0
 
         self._request = None
+        self._local_filters = None
         self._response_iterator = None
 
         self.btnZoomToAOI.clicked.connect(self._zoom_to_request_aoi)
@@ -240,9 +245,10 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.load_more()
 
     @waitcursor
-    def update_request(self, request):
+    def update_request(self, request, local_filters):
         self._image_count = 0
         self._request = request
+        self._local_filters = local_filters
         self.tree.clear()
         stats_request = {"interval": "year"}
         stats_request.update(self._request)
@@ -264,7 +270,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def load_more(self):
         page = next(self._response_iterator, None)
         if page is not None:
-
             for i in range(self.tree.topLevelItemCount()):
                 date_item = self.tree.topLevelItem(i)
                 date_widget = self.tree.itemWidget(date_item, 0)
@@ -278,37 +283,57 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             next_ = links.get(page.NEXT_KEY, None)
             self._has_more = next_ is not None
             images = page.get().get(page.ITEM_KEY)
-            self._image_count += len(images)
+            #self._image_count += len(images)
             for image in images:
-                sort_criteria = self.cmbBoxDateType.currentData()
-                date_item, satellite_item = self._find_items_for_satellite(image)
-                date_widget = self.tree.itemWidget(date_item, 0)
-                satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                item = SceneItem(image, sort_criteria)
-                widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item)
-                widget.checkedStateChanged.connect(self.checked_count_changed)
-                widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
-                widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
-                item.setSizeHint(0, widget.sizeHint())
-                satellite_item.addChild(item)
-                self.tree.setItemWidget(item, 0, widget)
-                date_widget.update_for_children()
-
-            for i in range(self.tree.topLevelItemCount()):
-                date_item = self.tree.topLevelItem(i)
-                date_widget = self.tree.itemWidget(date_item, 0)
-                for j in range(date_item.childCount()):
-                    satellite_item = date_item.child(j)
+                if self._passes_area_coverage_filter(image):
+                    sort_criteria = self.cmbBoxDateType.currentData()
+                    date_item, satellite_item = self._find_items_for_satellite(image)
+                    date_widget = self.tree.itemWidget(date_item, 0)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                    satellite_widget.update_for_children()
-                    satellite_widget.update_thumbnail()
-                    satellite_item.sortChildren(0, Qt.AscendingOrder)
-                date_widget.update_for_children()
-                date_widget.update_thumbnail()
+                    item = SceneItem(image, sort_criteria)
+                    widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item)
+                    widget.checkedStateChanged.connect(self.checked_count_changed)
+                    widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
+                    widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
+                    item.setSizeHint(0, widget.sizeHint())
+                    satellite_item.addChild(item)
+                    self.tree.setItemWidget(item, 0, widget)
+                    date_widget.update_for_children()
+                    self._image_count +=1
+
+                for i in range(self.tree.topLevelItemCount()):
+                    date_item = self.tree.topLevelItem(i)
+                    date_widget = self.tree.itemWidget(date_item, 0)
+                    for j in range(date_item.childCount()):
+                        satellite_item = date_item.child(j)
+                        satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                        satellite_widget.update_for_children()
+                        satellite_widget.update_thumbnail()
+                        satellite_item.sortChildren(0, Qt.AscendingOrder)
+                    date_widget.update_for_children()
+                    date_widget.update_thumbnail()
             self.item_count_changed()
         else:
             self._has_more = False
             self.item_count_changed()
+    
+    def _local_filter(self, name):
+        for f in self._local_filters:
+            if f.get("field_name") == name:
+                return f
+
+    def _passes_area_coverage_filter(self, image):
+        aoi_geom = geometry_from_request(self._request)
+        aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
+        image_qgsgeom = qgsgeometry_from_geojson(image[GEOMETRY])
+        filt = self._local_filter('area_coverage')
+        if filt:
+            minvalue = filt['config'].get('gte', 0)
+            maxvalue = filt['config'].get('lte', 100)
+            intersection = aoi_qgsgeom.intersection(image_qgsgeom)
+            area_coverage = intersection.area() / image_qgsgeom.area() * 100
+            return area_coverage > minvalue and area_coverage < maxvalue
+        return True
 
     def _find_item_for_date(self, image):
         sort_criteria = self.cmbBoxDateType.currentData()
