@@ -353,7 +353,16 @@ class BasemapLayerWidget(QWidget):
         ramp = self.renderingOptionsWidget.ramp()
         procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
         rampparam = quote(f'&color={ramp}') if ramp else ""
-        uri = f"type=xyz&url={tile_url}{procparam}{rampparam}"
+        tokens = self.layer.source().split("&")
+        zoom = []
+        for token in tokens:
+            if token.startswith("zmin="):
+                zoom.append(token)
+            if token.startswith("zmax="):
+                zoom.append(token)
+        szoom = f"&{'&'.join(zoom)}" if zoom else ""
+        uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
+        print(uri)
         provider = self.layer.dataProvider()
         if provider is not None:
             provider.setDataSourceUri(uri)
