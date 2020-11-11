@@ -328,7 +328,7 @@ class QuadInstanceItemWidget(QFrame):
         self.footprintfill.updateCanvas()
 
     def update_footprint_brush(self):
-        self.footprint.setBrushStyle(Qt.CrossPattern if self.checkBox.isChecked() else Qt.NoBrush)
+        self.footprint.setBrushStyle(Qt.BDiagPattern if self.checkBox.isChecked() else Qt.NoBrush)
         self.footprint.updateCanvas()
 
     def remove_footprint(self):
