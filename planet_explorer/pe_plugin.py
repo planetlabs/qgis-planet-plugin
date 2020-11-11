@@ -414,6 +414,7 @@ class PlanetExplorer(object):
         btn.setIcon(QIcon(':/plugins/planet_explorer/info.svg'))
         btn.setMenu(info_menu)
 
+        btn.setPopupMode(QToolButton.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         btn.clicked.connect(btn.showMenu)
 
@@ -443,6 +444,7 @@ class PlanetExplorer(object):
         btn.setIcon(QIcon(':/plugins/planet_explorer/planet-user.svg'))
         btn.setMenu(user_menu)
 
+        btn.setPopupMode(QToolButton.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         btn.clicked.connect(btn.showMenu)
 
