@@ -1135,6 +1135,14 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                                    level=Qgis.Warning,
                                    duration=10)
 
+        instruments = []
+        for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
+            if chk.isChecked():
+                instruments.append(chk.text())
+        if instruments:
+            instrument_filter = string_filter('instrument', *instruments)
+            populated_filters.append(instrument_filter)
+
         if self.chkBxCanDownload.isChecked():
             dl_permission_filter = permission_filter('assets:download')
             populated_filters.append(dl_permission_filter)
@@ -1197,6 +1205,16 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.chkBxCanDownload.setChecked(False)
         filters = filters_from_request(request, 'ground_control')
         self.chkBxGroundControl.setChecked(bool(filters))
+
+        filters = filters_from_request(request, 'instrument')
+        if filters:
+            types = filters[0]['config']
+            for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
+                chk.setChecked(chk.text() in types)
+        else:
+            for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
+                chk.setChecked(False)
+
 
         filters = filters_from_request(request, 'id')
         if filters:
