@@ -92,6 +92,7 @@ from ..pe_utils import (
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,
+    open_link_with_browser
 )
 
 from .pe_gui_utils import (
@@ -207,6 +208,13 @@ class BasemapsWidget(BASE, WIDGET):
         self.btnBasemapsFilter.clicked.connect(self._apply_filter)
 
         self.comboCadence.currentIndexChanged.connect(self.cadence_selected)
+
+        self.textBrowserNoAccess.setOpenLinks(False)
+        self.textBrowserNoAccess.setOpenExternalLinks(False)
+        self.textBrowserNoAccess.anchorClicked.connect(self._open_basemaps_website)
+        
+    def _open_basemaps_website(self):
+        open_link_with_browser("https://www.planet.com/purchase")
 
     def init(self):
         if not self._initialized:
