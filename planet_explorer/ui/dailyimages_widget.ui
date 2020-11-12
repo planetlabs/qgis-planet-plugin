@@ -73,20 +73,20 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="btnFilterResults">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Filter Results</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QPushButton" name="btnFilterResults">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Filter Results</string>
+           </property>
+          </widget>
+         </item>
          <item>
           <spacer name="horizontalSpacer_4">
            <property name="orientation">
@@ -99,17 +99,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item>
-          <widget class="QLabel" name="lblWarning">
-           <property name="styleSheet">
-            <string notr="true">QLabel{
-color: rgb(255, 0, 0);}</string>
-           </property>
-           <property name="text">
-            <string>⚠️ Warning</string>
-           </property>
-          </widget>
          </item>
          <item>
           <spacer name="horizontalSpacer_3">
@@ -157,6 +146,20 @@ color: rgb(255, 0, 0);}</string>
           </widget>
          </item>
         </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblWarning">
+         <property name="styleSheet">
+          <string notr="true">QLabel{
+color: rgb(255, 0, 0);}</string>
+         </property>
+         <property name="text">
+          <string>⚠️ Warning</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QGroupBox" name="grpBoxResults">
