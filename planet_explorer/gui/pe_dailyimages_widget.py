@@ -136,7 +136,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self._checked_queue_set = set()
         self._checked_item_type_nodes = {}
 
-        self.lblWarning.setText("")
+        self.lblWarning.setHidden(True)
 
         self._collect_sources_filters()
         self._default_filter_values = build_search_request(
@@ -203,10 +203,10 @@ class DailyImagesWidget(BASE, WIDGET):
         if not self._main_filters.leAOI.text():
             id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
-                self.lblWarning.setText('⚠️ No area of interest (AOI) defined')
+                self.lblWarning.setHidden(False)
                 return
 
-        self.lblWarning.setText("")
+        self.lblWarning.setHidden(True)
         # TODO: Also validate GeoJSON prior to performing search
 
         search_request = build_search_request(
