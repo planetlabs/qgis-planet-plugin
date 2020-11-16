@@ -67,19 +67,21 @@ from qgis.gui import (
     QgsRubberBand
 )
 
-from qgis.utils import(
+from qgis.utils import (
     iface
 )
 
-from ..gui.pe_save_search_dialog import SaveSearchDialog
+from ..gui.pe_save_search_dialog import (
+    SaveSearchDialog
+)
+
+from ..gui.pe_daily_images_preview_config_dialog import (
+    DailyImagesPreviewConfigDialog
+)
 
 from ..gui.pe_results_configuration_dialog import (
     ResultsConfigurationDialog,
     PlanetNodeMetadata
-)
-
-from ..gui.pe_filters import (
-    filters_from_request
 )
 
 from ..pe_utils import (
@@ -316,7 +318,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         else:
             self._has_more = False
             self.item_count_changed()
-    
+
     def _local_filter(self, name):
         for f in self._local_filters:
             if f.get("field_name") == name:
@@ -538,11 +540,8 @@ class ItemWidgetBase(QFrame):
         zoom_act = QAction('Zoom to extent', menu)
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
-        prev_layer_act = QAction('Add preview layers to map (footprints as memory layer)', menu)
-        prev_layer_act.triggered.connect(self._add_preview_memory_clicked)
-        menu.addAction(prev_layer_act)
-        prev_layer_act = QAction('Add preview layer to map(footprints as gpkg layer)', menu)
-        prev_layer_act.triggered.connect(self._add_preview_gpkg_clicked)
+        prev_layer_act = QAction('Add preview layers to map', menu)
+        prev_layer_act.triggered.connect(self._add_preview_clicked)
         menu.addAction(prev_layer_act)
         if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             prev_layer_act.setEnabled(False)
@@ -550,21 +549,18 @@ class ItemWidgetBase(QFrame):
             menu.setToolTipsVisible(True)
         return menu
 
-    def _add_preview_gpkg_clicked(self):
-        filename, _ = QFileDialog.getSaveFileName(self, "Footprints layer filename", "", '*.gpkg')
-        if filename:
-            self.add_preview(filename)
-
-    def _add_preview_memory_clicked(self):
-        self.add_preview(None)
+    def _add_preview_clicked(self):
+        dlg = DailyImagesPreviewConfigDialog(self)
+        if dlg.exec():
+            self.add_preview(dlg.footprintsFilename, dlg.layerName)
 
     @waitcursor
-    def add_preview(self, footprints_filename):
+    def add_preview(self, footprints_filename, add_to_catalog):
         create_preview_group(
             self.name(),
             self.item.images(),
             footprints_filename,
-            tile_service='xyz'
+            add_to_catalog
         )
 
     def check_box_state_changed(self):

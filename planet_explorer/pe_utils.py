@@ -55,9 +55,9 @@ from typing import (
 )
 
 from qgis.PyQt.QtCore import (
-    QVariant,    
+    QVariant,
     QUrl,
-    QSettings 
+    QSettings
 )
 
 from qgis.PyQt.QtGui import (
@@ -203,7 +203,7 @@ def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
-            QgsProject.instance())        
+            QgsProject.instance())
         extent = QgsRectangle(*coords)
         transform_extent = transform.transformBoundingBox(extent)
         return transform_extent
@@ -345,6 +345,7 @@ def create_preview_group(
         group_name: str,
         images: List[dict],
         footprints_filename,
+        catalog_layer_name,
         tile_service: str = 'xyz',
         search_query: str = None,
         sort_order: Tuple[str, str] = None) -> None:
@@ -363,6 +364,15 @@ def create_preview_group(
 
         rlayer = QgsRasterLayer(uri, 'Image previews', 'wms')
         rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
+
+        if tile_service == 'xyz' and catalog_layer_name is not None:
+            url = uri.split("url=")[-1]
+            s = QSettings()
+            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/username', "")
+            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/password', "")
+            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/authcfg', "")
+            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/url',
+                url.replace(PlanetClient.getInstance().api_key(), ""))
     else:
         log.debug('No tile URI for preview group')
         return
@@ -504,7 +514,7 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaic_names))
     QgsProject.instance().addMapLayer(layer)
     layer.setCustomProperty("embeddedWidgets/count", 1)
-    layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME) 
+    layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
     view = iface.layerTreeView()
     view.model().refreshLayerLegend(view.currentNode())
     view.currentNode().setExpanded(True)
