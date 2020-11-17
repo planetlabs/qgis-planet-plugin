@@ -326,6 +326,9 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     def _passes_area_coverage_filter(self, image):
         aoi_geom = geometry_from_request(self._request)
+        if aoi_geom is None:
+            return True # an ID filter is begin used, so it makes no sense to
+                        # check for are acoverage
         aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
         image_qgsgeom = qgsgeometry_from_geojson(image[GEOMETRY])
         filt = self._local_filter('area_coverage')
