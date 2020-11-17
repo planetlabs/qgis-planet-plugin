@@ -42,8 +42,8 @@ from PyQt5.QtCore import (
     QSettings
 )
 from qgis.core import (QgsAuthMethodConfig,
-                        QgsApplication, 
-                        QgsMessageLog, 
+                        QgsApplication,
+                        QgsMessageLog,
                         Qgis
 )
 
@@ -101,7 +101,7 @@ class PlanetClient(QObject):
     loginChanged = pyqtSignal(bool)
 
     __instance = None
-    @staticmethod 
+    @staticmethod
     def getInstance():
         if PlanetClient.__instance is None:
             PlanetClient()
@@ -159,7 +159,7 @@ class PlanetClient(QObject):
             proxyType = settings.value("proxy/proxyType")
             if proxyType != "HttpProxy":
                 QgsMessageLog.logMessage("Planet Explorer: Only HttpProxy is supported "
-                                         "for connecting to the Planet API", 
+                                         "for connecting to the Planet API",
                                          level=Qgis.Warning)
                 return
 
@@ -366,7 +366,7 @@ class PlanetClient(QObject):
         response = self.client.dispatcher.response(
             api_models.Request(
                 url, self.client.auth,
-                body_type=api_models.JSON,                
+                body_type=api_models.JSON,
             )
         )
         return response.get_body()
@@ -382,11 +382,11 @@ class PlanetClient(QObject):
         response = self.client.dispatcher.response(
             api_models.Request(
                 url, self.client.auth,
-                body_type=api_models.Mosaics,                
+                body_type=api_models.Mosaics,
                 params=params,
             )
         )
-        return response.get_body()        
+        return response.get_body()
 
     def get_mosaics_for_series(self, series_id):
         '''List all available mosaics for a given series
@@ -396,7 +396,7 @@ class PlanetClient(QObject):
         response = self.client.dispatcher.response(
             api_models.Request(
                 url, self.client.auth,
-                body_type=api_models.Mosaics                
+                body_type=api_models.Mosaics
             )
         )
         return response.get_body()
@@ -566,29 +566,8 @@ def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
 
     tile_url = TILE_SERVICE_URL.format('')
 
-    # resp: api_models.Response = self.client.dispatcher.response(
-    #     api_models.Request(
-    #         tile_url,
-    #         self.client.auth,
-    #         params={},
-    #         body_type=api_models.JSON,
-    #         data=json.dumps(data),
-    #         method='POST'
-    #     )
-    # )
-    # log.debug(f'resp.request.auth.value: {resp.request.auth.value}')
-    # body: api_models.JSON = resp.get_body()
-    #
-    # if body and hasattr(body, 'response'):
-    #     res: ReqResponse = body.response
-    #     if res.ok:
-    #         res_json = body.get()
-    #         if 'name' in res_json:
-    #             return res_json['name']
-
-    # Via requests
-    # FIXME: Should be using the above code, not direct call to requests
-    res = post(tile_url, auth=(api_key, ''), data=data)
+    session = PlanetClient.getInstance().client.dispatcher.session
+    res = session.post(tile_url, auth=(api_key, ''), data=data)
     if res.ok:
         res_json = res.json()
         if 'name' in res_json:
