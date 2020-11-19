@@ -343,8 +343,13 @@ class SceneItemWidget(QFrame):
 
     def zoom_to_extent(self):
         rect = QgsRectangle(self.geom.boundingBox())
-        rect.scale(1.05)
-        iface.mapCanvas().setExtent(rect)
+        canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
+        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(4326),
+                                           canvasCrs,
+                                           QgsProject.instance())
+        newrect = transform.transform(rect)
+        newrect.scale(1.05)
+        iface.mapCanvas().setExtent(newrect)
         iface.mapCanvas().refresh()
 
     def iconDownloaded(self, reply):
@@ -356,7 +361,13 @@ class SceneItemWidget(QFrame):
         self.iconLabel.setPixmap(thumb)
 
     def show_footprint(self):
-        self.footprint.setToGeometry(self.geom)
+        rect = QgsRectangle(self.geom.boundingBox())
+        canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
+        transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(4326),
+                                           canvasCrs,
+                                           QgsProject.instance())
+        newrect = transform.transform(rect)
+        self.footprint.setToGeometry(newrect)
 
     def hide_footprint(self):
         self.footprint.reset(QgsWkbTypes.PolygonGeometry)
