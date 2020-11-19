@@ -336,7 +336,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             minvalue = filt['config'].get('gte', 0)
             maxvalue = filt['config'].get('lte', 100)
             intersection = aoi_qgsgeom.intersection(image_qgsgeom)
-            area_coverage = intersection.area() / image_qgsgeom.area() * 100
+            area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
             return area_coverage > minvalue and area_coverage < maxvalue
         return True
 
