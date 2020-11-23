@@ -42,8 +42,8 @@ from PyQt5.QtCore import (
     QSettings
 )
 from qgis.core import (QgsAuthMethodConfig,
-                        QgsApplication, 
-                        QgsMessageLog, 
+                        QgsApplication,
+                        QgsMessageLog,
                         Qgis
 )
 
@@ -155,13 +155,6 @@ class PlanetClient(QObject, ClientV1):
         else:
             self.dispatcher.session.proxies = {}
 
-    def _url(self, path):
-        if path.startswith('http'):
-            url = path
-        else:
-            url = self.base_url + path
-        return url
-
     @waitcursor
     def log_in(self, user, password, api_key=None):
         old_api_key = self.api_key()
@@ -215,7 +208,7 @@ class PlanetClient(QObject, ClientV1):
     def has_access_to_mosaics(self):
         url = self._url('basemaps/v1/mosaics')
         params = {'_page_size': 1}
-        response = self._get(url, api_models.Mosaics).get_body().get()
+        response = self._get(url, api_models.Mosaics, params=params).get_body().get()
         return len(response) > 0
 
     def list_mosaic_series(self, name_contains=None):
@@ -226,7 +219,7 @@ class PlanetClient(QObject, ClientV1):
         if name_contains:
             params['name__contains'] = name_contains
         url = self._url('basemaps/v1/series/')
-        return self._get(url, api_models.JSON, params=params).get_body()
+        return self._get(url, api_models.Mosaics, params=params).get_body()
 
     @waitcursor
     def get_mosaics(self, name_contains=None):
@@ -267,7 +260,7 @@ class PlanetClient(QObject, ClientV1):
 
     def get_one_quad(self, mosaic):
         url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
-        params = {"_page_size":1, 
+        params = {"_page_size":1,
                     "bbox": ",".join(str(v) for v in mosaic['bbox'])}
         response = self._get(url, api_models.MosaicQuads, params=params)
         quad = response.get_body().get().get("items")[0]
