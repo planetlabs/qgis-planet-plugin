@@ -212,7 +212,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.textBrowserNoAccess.setOpenLinks(False)
         self.textBrowserNoAccess.setOpenExternalLinks(False)
         self.textBrowserNoAccess.anchorClicked.connect(self._open_basemaps_website)
-        
+
     def _open_basemaps_website(self):
         open_link_with_browser("https://www.planet.com/purchase")
 
@@ -258,7 +258,7 @@ class BasemapsWidget(BASE, WIDGET):
             self.btnBasemapsFilter.setVisible(is_all)
             self.labelCadence.setVisible(not is_all)
             self.comboCadence.setVisible(not is_all)
-            self.comboSeriesName.clear()                        
+            self.comboSeriesName.clear()
             if is_all:
                 self.textBasemapsFilter.setText("")
                 self.comboSeriesName.addItem("Apply a filter to populate this list of series", None)
@@ -285,12 +285,15 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def series(self):
         if self._series is None:
-            self._series = self.p_client.list_mosaic_series().get()[SERIES]
+            self._series = []
+            response = self.p_client.list_mosaic_series()
+            for page in response.iter():
+                self._series.extend(page.get().get(SERIES))
         return self._series
 
     def _apply_filter(self):
         text = self.textBasemapsFilter.text()
-        mosaics = self._get_filtered_mosaics(text) 
+        mosaics = self._get_filtered_mosaics(text)
         series = self._get_filtered_series(text)
         if len(mosaics) == 0 and len(series) == 0:
             self.parent.show_message('No results for current filter',
@@ -435,7 +438,7 @@ class BasemapsWidget(BASE, WIDGET):
             mosaicarea = self._area_from_bbox_coords(mosaics[0][BBOX])
             numquads = int(mosaicarea / quadarea)
             if numquads > MAX_QUADS_TO_DOWNLOAD:
-                ret = QMessageBox.question(self, "Complete Download", 
+                ret = QMessageBox.question(self, "Complete Download",
                                     f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
                                     "Are your sure you want to proceed?")
                 if ret != QMessageBox.Yes:
@@ -463,7 +466,7 @@ class BasemapsWidget(BASE, WIDGET):
         if not geom.intersects(mosaic_extent):
             self.parent.show_message(f'No mosaics in the selected area',
                               level=Qgis.Warning,
-                              duration=10) 
+                              duration=10)
             return
 
         quad = self.p_client.get_one_quad(selected[0])
@@ -494,7 +497,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.widgetProgressFindQuads.setVisible(False)
 
     def _mosaic_started(self, i, name):
-        self.labelProgressInstances.setText(f"Processing basemap '{name}' " 
+        self.labelProgressInstances.setText(f"Processing basemap '{name}' "
                             f"({i}/{self.progressBarInstances.maximum()})")
         self.progressBarInstances.setValue(i)
         QApplication.processEvents()
@@ -531,7 +534,7 @@ class BasemapsWidget(BASE, WIDGET):
         else:
             self.parent.show_message(f'No checked quads to order',
                               level=Qgis.Warning,
-                              duration=10) 
+                              duration=10)
 
     def back_quads_page_clicked(self):
         self.quadsTree.clear()
@@ -548,7 +551,7 @@ class BasemapsWidget(BASE, WIDGET):
         thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                         QtCore.Qt.SmoothTransformation)
         self.labelStreamingOrderIcon.setPixmap(thumb)
-        if THUMB in selected[0][LINKS]: 
+        if THUMB in selected[0][LINKS]:
             self.set_summary_icon(selected[0][LINKS][THUMB])
         self.chkMinZoomLevel.setChecked(False)
         self.chkMaxZoomLevel.setChecked(False)
@@ -604,10 +607,10 @@ class BasemapsWidget(BASE, WIDGET):
             total_area = self._quads_quota()
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio, 
+        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
                         QtCore.Qt.SmoothTransformation)
         self.labelOrderIcon.setPixmap(thumb)
-        if THUMB in selected[0][LINKS]: 
+        if THUMB in selected[0][LINKS]:
             self.set_summary_icon(selected[0][LINKS][THUMB])
         self.labelOrderDescription.setText(description)
         self.grpBoxNamePage.setTitle(title)
