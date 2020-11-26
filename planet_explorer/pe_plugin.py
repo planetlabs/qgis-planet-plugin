@@ -27,7 +27,6 @@ import os
 import zipfile
 import sys
 import codecs
-import shutil
 import traceback
 import configparser
 
@@ -292,7 +291,7 @@ class PlanetExplorer(object):
         self.toolbar.setObjectName(P_E)
 
         self.showdailyimages_act = self.add_action(
-            ':/plugins/planet_explorer/planet-logo-p.svg',
+            os.path.join(plugin_path, "resources", "search.svg"),
             text=self.tr(P_E),
             callback=toggle_images_search,
             add_to_menu=True,
@@ -300,7 +299,7 @@ class PlanetExplorer(object):
             parent=self.iface.mainWindow())
 
         self.showbasemaps_act = self.add_action(
-            ':/plugins/planet_explorer/planet-logo-p.svg',
+            os.path.join(plugin_path, "resources", "basemap.svg"),
             text=self.tr("Show Basemaps Search"),
             callback=toggle_mosaics_search,
             add_to_menu=True,
@@ -308,7 +307,7 @@ class PlanetExplorer(object):
             parent=self.iface.mainWindow())
 
         self.showorders_act = self.add_action(
-            ':/plugins/planet_explorer/download.svg',
+            os.path.join(plugin_path, "resources", "orders.svg"),
             text=self.tr("Show Orders Monitor..."),
             callback=toggle_orders_monitor,
             add_to_menu=False,
@@ -316,7 +315,7 @@ class PlanetExplorer(object):
             parent=self.iface.mainWindow())
 
         self.showinspector_act = self.add_action(
-            os.path.join(plugin_path, "resources", "inspector.png"),
+            os.path.join(plugin_path, "resources", "inspector.svg"),
             text=self.tr("Show Planet Inspector..."),
             callback=toggle_inspector,
             add_to_menu=False,
@@ -324,7 +323,7 @@ class PlanetExplorer(object):
             parent=self.iface.mainWindow())
 
         self.showtasking_act = self.add_action(
-            os.path.join(plugin_path, "resources", "tasking.png"),
+            os.path.join(plugin_path, "resources", "tasking.svg"),
             text=self.tr("Show Tasking..."),
             callback=toggle_tasking_widget,
             add_to_menu=False,
@@ -404,14 +403,14 @@ class PlanetExplorer(object):
         )
         info_menu.addAction(p_whatsnew_act)
 
-        info_act = add_menu_section_action('Documentation', info_menu)
+        add_menu_section_action('Documentation', info_menu)
 
         terms_act = QAction('Terms', info_menu)
         terms_act.triggered[bool].connect(self.show_terms)
         info_menu.addAction(terms_act)
 
         btn = QToolButton()
-        btn.setIcon(QIcon(':/plugins/planet_explorer/info.svg'))
+        btn.setIcon(QIcon(os.path.join(plugin_path, "resources", "info.svg"),))
         btn.setMenu(info_menu)
 
         btn.setPopupMode(QToolButton.MenuButtonPopup)
@@ -441,7 +440,7 @@ class PlanetExplorer(object):
         user_menu.addAction(self.login_act)
 
         btn = QToolButton()
-        btn.setIcon(QIcon(':/plugins/planet_explorer/planet-user.svg'))
+        btn.setIcon(QIcon(os.path.join(plugin_path, "resources", "account.svg"),))
         btn.setMenu(user_menu)
 
         btn.setPopupMode(QToolButton.MenuButtonPopup)
@@ -545,7 +544,7 @@ class PlanetExplorer(object):
                                 if not item.filename.lower().endswith(".qgs"):
                                     zout.writestr(item, zin.read(item.filename))
                                 else:
-                                    s = zin.read(item.filename).decode("utf-8") 
+                                    s = zin.read(item.filename).decode("utf-8")
                                     s = s.replace(PlanetClient.getInstance().api_key(), "")
                                     qgsfilename = item.filename
                     os.remove(path)
