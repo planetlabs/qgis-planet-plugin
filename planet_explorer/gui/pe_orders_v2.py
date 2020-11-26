@@ -783,30 +783,14 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             f'You also should receive an email when your order is ready to '
             f'download.<br>')
 
-    def _order_response(self, item_type: str, body: models.Order):
+    def _order_response(self, item_type: str, response: dict):
 
         if not item_type:
             self._log('Requesting order failed: no item_type')
-            # self._remove_watcher(item_type)
             return
 
-        if body is None or not hasattr(body, 'response'):
-            self._log(f'Requesting {item_type} order failed: '
-                      f'no body or response')
-            return
-
-        resp: ReqResponse = body.response
-        # log.debug(requests_response_metadata(resp))
-
-        if not resp.ok:
-            # TODO: Add the error reason
-            self._log(f'Requesting {item_type} order failed: response error')
-            return
-
-        # Process JSON response
-        resp_data = body.get()
-        log.debug(f'Order resp_data:\n{resp_data}')
-        if not resp_data:
+        log.debug(f'Order resp_data:\n{response}')
+        if not response:
             self._log(f'Requesting {item_type} order failed: '
                       f'no response data found')
             return
@@ -831,7 +815,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         #     "state": "queued"
         # }
 
-        if not resp_data.get("id"):
+        if not response.get("id"):
             self._log(f'Requesting {item_type} order failed: '
                       f'response data contains no Order ID')
             return
@@ -840,7 +824,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         itemtype = 'Unknown type'
         itemids = []
         itemids_cnt = '_'
-        products: list = resp_data.get('products')
+        products: list = response.get('products')
         if products and len(products) > 0:
             bundle = products[0].get('product_bundle')
             itemtype = products[0].get('item_type')
@@ -852,14 +836,14 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._log(
             f'<br><br>'
             f'<b>Order for {item_type} successfully QUEUED:</b><br>'
-            f' --  Name: {resp_data.get("name")}<br>'
-            f' --  Created on: {resp_data.get("created_on")}<br>'
-            f' -- Order ID: <b>{resp_data.get("id")}</b> '
+            f' --  Name: {response.get("name")}<br>'
+            f' --  Created on: {response.get("created_on")}<br>'
+            f' -- Order ID: <b>{response.get("id")}</b> '
             f'SAVE THIS FOR REFERENCE<br>'
             f' -- Order type: {itemtype} ({itemids_cnt} items)<br>'
             f' -- Bundle: {bundle}<br>'
-            f' -- State: {resp_data.get("state")}<br>'
-            f' -- Service message: {resp_data.get("last_message")}<br><br>'
+            f' -- State: {response.get("state")}<br>'
+            f' -- Service message: {response.get("last_message")}<br><br>'
         )
 
     @pyqtSlot()

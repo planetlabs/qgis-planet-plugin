@@ -54,14 +54,9 @@ from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
 
-# from .p_models import
-from .p_specs import (
-    RESOURCE_SINGLE_MOSAICS,
-    RESOURCE_MOSAIC_SERIES,
-    RESOURCE_DAILY,
-)
 
-from ..gui.pe_gui_utils import(
+
+from ..gui.pe_gui_utils import (
     waitcursor
 )
 
@@ -278,6 +273,15 @@ class PlanetClient(QObject, ClientV1):
 
         return item_descriptions
 
+    def create_order(self, request):
+        api_key = PlanetClient.getInstance().api_key()
+        url = self._url('compute/ops/orders/v2')
+        headers = {"X-Planet-App": "qgis"}
+        session = PlanetClient.getInstance().dispatcher.session
+        res = session.post(url, auth=(api_key, ''), json=request,
+                           headers=headers)
+        return res.json()
+
     @pyqtSlot(result=bool)
     def update_user_quota(self):
         """
@@ -421,29 +425,8 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
 
     tile_url = TILE_SERVICE_URL.format('')
 
-    # resp: api_models.Response = self.dispatcher.response(
-    #     api_models.Request(
-    #         tile_url,
-    #         self.auth,
-    #         params={},
-    #         body_type=api_models.JSON,
-    #         data=json.dumps(data),
-    #         method='POST'
-    #     )
-    # )
-    # log.debug(f'resp.request.auth.value: {resp.request.auth.value}')
-    # body: api_models.JSON = resp.get_body()
-    #
-    # if body and hasattr(body, 'response'):
-    #     res: ReqResponse = body.response
-    #     if res.ok:
-    #         res_json = body.get()
-    #         if 'name' in res_json:
-    #             return res_json['name']
-
-    # Via requests
-    # FIXME: Should be using the above code, not direct call to requests
-    res = post(tile_url, auth=(api_key, ''), data=data)
+    session = PlanetClient.getInstance().dispatcher.session
+    res = session.post(tile_url, auth=(api_key, ''), data=data)
     if res.ok:
         res_json = res.json()
         if 'name' in res_json:
