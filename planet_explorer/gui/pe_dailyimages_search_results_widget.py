@@ -25,6 +25,8 @@ import os
 import logging
 import iso8601
 
+import analytics
+
 from qgis.PyQt import uic
 
 from qgis.PyQt.QtCore import (
@@ -89,6 +91,7 @@ from ..pe_utils import (
     add_menu_section_action,
     zoom_canvas_to_geometry,
     create_preview_group,
+    is_segments_write_key_valid,
     SEARCH_AOI_COLOR,
     PLANET_COLOR
 )
@@ -559,6 +562,12 @@ class ItemWidgetBase(QFrame):
 
     @waitcursor
     def add_preview(self, footprints_filename, add_to_catalog):
+        if is_segments_write_key_valid():
+            item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}"
+                for img in self.item.images()]
+            analytics.track(PlanetClient.getInstance().user()["email"],
+                            "Scene preview added to map",
+                            {"images": item_ids })
         create_preview_group(
             self.name(),
             self.item.images(),

@@ -36,11 +36,6 @@ from collections import OrderedDict, defaultdict
 import analytics
 
 # noinspection PyPackageRequirements
-from requests.models import Response as ReqResponse
-
-from planet.api import models
-
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
 
 # noinspection PyPackageRequirements
@@ -761,18 +756,21 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
             log.debug(f'{io_k} order...\n{json.dumps(order, indent=2)}')
 
-        # return
-
         for item_type, order in orders.items():
 
             resp = self._p_client.create_order(order)
             self._order_response(item_type, resp)
 
             if is_segments_write_key_valid():
+                try:
+                    clipAoi = order['tools']['clip']['aoi']
+                except KeyError:
+                    clipAoi = None
                 analytics.track(self._p_client.user()["email"], "Order placed",
                                 {
                                 "name": order["name"],
-                                "numItems": order["products"][0]["item_ids"]
+                                "numItems": order["products"][0]["item_ids"],
+                                "clipAoi": clipAoi
                                 }
             )
 

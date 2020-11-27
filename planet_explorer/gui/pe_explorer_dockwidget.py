@@ -87,6 +87,8 @@ from ..pe_utils import (
     open_link_with_browser
 )
 
+from pyplugin_installer.installer_data import plugins
+
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -244,7 +246,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
                                 "email": user["email"],
                                 "apiKey": user["api_key"],
                                 "organizationId": user["organization_id"],
-                                "programId": user["program_id"]
+                                "programId": user["program_id"],
+                                "qgisVersion": Qgis.QGIS_VERSION,
+                                "pluginVersion": plugins.all()["planet_explorer"]['version_installed']
                                 }
             )
             analytics.track(user["email"], "Log in to Explorer")

@@ -26,6 +26,8 @@ __revision__ = '$Format:%H$'
 import os
 import math
 
+import analytics
+
 from PyQt5.QtWidgets import (
     QApplication,
     QMessageBox,
@@ -85,14 +87,12 @@ from ..pe_utils import (
     QUADS_AOI_COLOR,
     NAME,
     LINKS,
-    ONEMONTH,
-    THREEMONTHS,
-    WEEK,
     INTERVAL,
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,
-    open_link_with_browser
+    open_link_with_browser,
+    is_segments_write_key_valid
 )
 
 from .pe_gui_utils import (
@@ -423,6 +423,13 @@ class BasemapsWidget(BASE, WIDGET):
     def explore(self):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
+            if is_segments_write_key_valid():
+                analytics.track(PlanetClient.getInstance().user()["email"],
+                                "Basemaps added to map",
+                                {
+                                "basemaps": [basemap[NAME] for basemap in selected]
+                                }
+                )
             add_mosaics_to_qgis_project(selected,
                     self.comboSeriesName.currentText() or selected[0][NAME])
 
@@ -663,6 +670,13 @@ class BasemapsWidget(BASE, WIDGET):
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
         proc = self.renderingOptions.process()
         ramp = self.renderingOptions.ramp()
+        if is_segments_write_key_valid():
+            analytics.track(PlanetClient.getInstance().user()["email"],
+                            "Basemaps connection stablished",
+                            {
+                            "basemaps": [basemap[NAME] for basemap in selected]
+                            }
+                )
         for mosaic in selected:
             name = f"{mosaicname} - {mosaic_title(mosaic)}"
             add_mosaics_to_qgis_project([mosaic], name, proc=proc, ramp=ramp,
@@ -702,6 +716,13 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def order_complete_submit(self):
         selected = self.mosaicsList.selected_mosaics()
+        if is_segments_write_key_valid():
+            analytics.track(PlanetClient.getInstance().user()["email"],
+                            "Basemaps complete order submitted",
+                            {
+                            "basemaps": [basemap[NAME] for basemap in selected]
+                            }
+            )
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
 
@@ -719,6 +740,13 @@ class BasemapsWidget(BASE, WIDGET):
     def order_partial_submit(self):
         self.grpBoxOrderConfirmation.setTitle("Order Partial Download")
         mosaics = self.mosaicsList.selected_mosaics()
+        if is_segments_write_key_valid():
+            analytics.track(PlanetClient.getInstance().user()["email"],
+                            "Basemaps partial order submitted",
+                            {
+                            "basemaps": [basemap[NAME] for basemap in mosaics]
+                            }
+            )
         dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()
         name = self.txtOrderName.text()

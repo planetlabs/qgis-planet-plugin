@@ -24,6 +24,8 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 
+import analytics
+
 # noinspection PyPackageRequirements
 from qgis.core import (
     QgsProject,
@@ -37,8 +39,7 @@ from qgis.core import (
 
 from qgis.gui import (
     QgsRubberBand,
-    QgsMapTool,
-    QgsVertexMarker
+    QgsMapTool
 )
 
 # noinspection PyPackageRequirements
@@ -73,7 +74,8 @@ from ..planet_api import (
 
 from ..pe_utils import (
     PLANET_COLOR,
-    open_link_with_browser
+    open_link_with_browser,
+    is_segments_write_key_valid
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
@@ -139,7 +141,7 @@ class WarningDialog(QDialog):
         textbrowser.anchorClicked.connect(self._link_clicked)
         text = '''<p><strong>Complete your high resolution imagery order</strong></p>
                 <p><br />Your custom high resolution imagery order can be completed using Planet&rsquo;s Tasking Dashboard. The dashboard allows you to place an order to task our SkySat satellite and get high-resolution imagery for your area and time of interest.</p>
-                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples 
+                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples
                 <a href="https://learn.planet.com/sample-skysat.html?utm_source=defense-and-intelligence&amp;amp;utm_medium=website&amp;amp;utm_campaign=skysat-sample-imagery&amp;amp;utm_content=skysat-sample-imagery">here</a> and contact our sales team <a href="https://www.planet.com/contact-sales/">here</a>.</p>
                 <p>&nbsp;</p>
                 <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>'''
@@ -149,8 +151,11 @@ class WarningDialog(QDialog):
         self.setFixedSize(600, 400)
 
     def _link_clicked(self, url):
-        print(url)
-        if url.toString() == "dashboard":    
+        if url.toString() == "dashboard":
+            if is_segments_write_key_valid():
+                analytics.track(PlanetClient.getInstance().user()["email"],
+                                "SkySat task created",
+                                {"point": self.pt.asWkt()})
             url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
             open_link_with_browser(url)
             self.close()
@@ -178,7 +183,7 @@ class TaskingDockWidget(BASE, WIDGET):
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
         self.marker = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PointGeometry)        
+                              QgsWkbTypes.PointGeometry)
         self.marker.setIcon(QgsRubberBand.ICON_SVG)
         self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 
@@ -196,7 +201,6 @@ class TaskingDockWidget(BASE, WIDGET):
         self.visibilityChanged.connect(self.visibility_changed)
 
         self.textBrowserPoint.viewport().setAutoFillBackground(False)
-        # self.textBrowserPoint.setVisible(False)
 
     def aoi_captured(self, rect, pt):
         self.pt = pt
@@ -215,9 +219,8 @@ class TaskingDockWidget(BASE, WIDGET):
                 <p align="center">Latitude : {pt.x():.4f}</p>
                 <p align="center">Longitude : {pt.y():.4f}</p>
                 '''
-        #self.textBrowserPoint.setVisible(True)
         self.textBrowserPoint.setHtml(text)
-        self.btnCancel.setEnabled(True)        
+        self.btnCancel.setEnabled(True)
         self.btnOpenDashboard.setEnabled(True)
 
     def cancel_clicked(self):
@@ -225,7 +228,6 @@ class TaskingDockWidget(BASE, WIDGET):
         self.marker.reset(QgsWkbTypes.PointGeometry)
         self.btnOpenDashboard.setEnabled(False)
         self.textBrowserPoint.setHtml("")
-        #self.textBrowserPoint.setVisible(False)
         self.btnCancel.setEnabled(False)
         self._set_map_tool(False)
 
@@ -250,7 +252,7 @@ class TaskingDockWidget(BASE, WIDGET):
     def _open_tasking_dashboard(self):
         dialog = WarningDialog(self.pt)
         dialog.exec()
-            
+
 
 dockwidget_instance = None
 

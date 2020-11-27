@@ -23,11 +23,7 @@ __revision__ = '$Format:%H$'
 
 import os
 import logging
-import json
 import random
-
-# noinspection PyPackageRequirements
-from requests import post
 
 from typing import (
     Optional,
@@ -53,8 +49,6 @@ from qgis.core import (QgsAuthMethodConfig,
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
-
-
 
 from ..gui.pe_gui_utils import (
     waitcursor
