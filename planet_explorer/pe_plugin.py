@@ -47,17 +47,24 @@ from qgis.PyQt.QtCore import (
     QCoreApplication,
     Qt,
     QTimer,
-    QUrl
+    QUrl,
+    QSize
 )
+
 from qgis.PyQt.QtGui import (
     QIcon,
     QDesktopServices
 )
+
 from qgis.PyQt.QtWidgets import (
     QAction,
     QToolButton,
     QMenu,
-    QTextBrowser
+    QTextBrowser,
+    QWidget,
+    QHBoxLayout,
+    QSizePolicy,
+    QLabel
 )
 
 from qgiscommons2.settings import (
@@ -330,7 +337,8 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow())
 
-        self.add_user_button()
+        self.add_central_toolbar_button()
+        #self.add_user_button()
         self.add_info_button()
 
         addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
@@ -346,6 +354,41 @@ class PlanetExplorer(object):
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
 
         self.enable_buttons(False)
+
+    def add_central_toolbar_button(self):
+        widget = QWidget()
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        layout = QHBoxLayout()
+        layout.addStretch()
+        self.btnLogin = QToolButton()
+        self.btnLogin.setText("Log in")
+        self.btnLogin.setAutoRaise(True)
+        self.btnLogin.setAttribute(Qt.WA_TranslucentBackground)
+        self.btnLogin.setStyleSheet(
+                    "background-color: rgb(0, 157, 165);"
+                    "border: 1px solid black;"
+                    "border-radius: 20px;"
+                    "color: white; "
+                    #"font-size: 14px;"
+                    )
+        self.btnLogin.clicked.connect(self.btn_login_clicked)
+        icon = QIcon(os.path.join(plugin_path, "resources", "planet-logo-p.svg"))
+        labelIcon = QLabel()
+        labelIcon.setPixmap(icon.pixmap(QSize(16, 16)))
+        layout.addWidget(labelIcon)
+        self.labelLoggedIn = QLabel()
+        self.labelLoggedIn.setText("")
+        layout.addWidget(self.labelLoggedIn)
+        layout.addWidget(self.btnLogin)
+        layout.addStretch()
+        widget.setLayout(layout)
+        self.toolbar.addWidget(widget)
+
+    def btn_login_clicked(self):
+        if PlanetClient.getInstance().has_api_key():
+            self.logout()
+        else:
+            self.login()
 
     def layer_removed(self, layer):
         self.provider.layerWasRemoved(layer)
@@ -501,24 +544,25 @@ class PlanetExplorer(object):
         PlanetClient.getInstance().log_out()
 
     def enable_buttons(self, loggedin):
-        self.login_act.setVisible(not loggedin)
-        self.logout_act.setVisible(loggedin)
-        self.acct_act.setVisible(loggedin)
+        #self.login_act.setVisible(not loggedin)
+        #self.logout_act.setVisible(loggedin)
+        self.btnLogin.setText("Log out" if loggedin else "Log in")
+        labelText = (f"<b>Logged in as {PlanetClient.getInstance().user()['user_name']}</b>"
+                    if loggedin else "")
+        self.labelLoggedIn.setText(labelText)
+        #self.acct_act.setVisible(loggedin)
         self.showdailyimages_act.setEnabled(loggedin)
         self.showbasemaps_act.setEnabled(loggedin)
         self.showinspector_act.setEnabled(loggedin)
         self.showorders_act.setEnabled(loggedin)
         self.showtasking_act.setEnabled(loggedin)
         if loggedin:
-            self.user_act.defaultWidget().setText(
-                f"<b>{PlanetClient.getInstance().user()['user_name']}<b/>")
             self.showdailyimages_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
             self.showbasemaps_act.setToolTip("Show / Hide the Planet Basemaps Search Panel")
             self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
             self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
             self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
         else:
-            self.user_act.defaultWidget().setText("<b>Not Logged In<b/>")
             self.showdailyimages_act.setToolTip("Login to access Imagery Search")
             self.showbasemaps_act.setToolTip("Login to access Basemaps Search")
             self.showorders_act.setToolTip("Login to access Order Status")
