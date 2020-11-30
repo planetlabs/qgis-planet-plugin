@@ -62,8 +62,7 @@ from qgis.PyQt.QtCore import (
 
 from qgis.PyQt.QtGui import (
     QColor,
-    QDesktopServices,
-    QColor
+    QDesktopServices
 )
 
 from qgis.PyQt.QtWidgets import (
@@ -71,34 +70,23 @@ from qgis.PyQt.QtWidgets import (
     QWidgetAction,
 )
 
-from qgis.PyQt.QtXml import (
-    QDomDocument,
-)
-
 from qgis.core import (
     QgsPointXY,
     QgsGeometry,
     QgsFeature,
     QgsField,
-    QgsFields,
-    QgsUnitTypes,
-    QgsDistanceArea,
     QgsCoordinateTransform,
     QgsRectangle,
     QgsProject,
-    QgsMapLayer,
     QgsVectorLayer,
     QgsRasterLayer,
     QgsCoordinateReferenceSystem,
-    QgsEditorWidgetSetup,
     QgsSimpleLineSymbolLayer,
     QgsLayerTree,
     QgsLayerTreeGroup,
-    QgsReadWriteContext,
     QgsApplication,
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
-    QgsLayerTreeGroup
 )
 
 from qgis.gui import QgisInterface
@@ -125,7 +113,7 @@ from planet.api.exceptions import (
     APIException
 )
 
-from qgiscommons2 import(
+from qgiscommons2 import (
     settings
 )
 
