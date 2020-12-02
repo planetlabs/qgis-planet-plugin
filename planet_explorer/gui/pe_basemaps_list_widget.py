@@ -43,8 +43,6 @@ from PyQt5.QtGui import (
     QPalette
 )
 
-from PyQt5 import QtCore
-
 from PyQt5.QtCore import (
     pyqtSignal,
     QSize,
@@ -125,7 +123,7 @@ class BasemapsListWidget(QListWidget):
                 widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
                 self.widgets.append(widget)
 
-        self.sortItems()
+        self.sortItems(Qt.DescendingOrder)
         self._update_for_only_sr_setting()
 
     def resizeEvent(self, evt):
@@ -244,8 +242,8 @@ class BasemapItemWidget(QWidget):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
-                            QtCore.Qt.SmoothTransformation)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
+                            Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
 
     def isSelected(self):
