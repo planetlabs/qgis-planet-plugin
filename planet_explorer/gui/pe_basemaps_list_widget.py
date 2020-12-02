@@ -107,7 +107,8 @@ class BasemapsListWidget(QListWidget):
 
     def populate(self, mosaics):
         self.widgets = []
-        for mosaic in mosaics:
+        # we reverse the list, so most recent ones have their thumbnails loaded before
+        for mosaic in mosaics[::-1]: 
             available = TILES in mosaic[LINKS]
             if available:
                 item = BasemapListItem(mosaic)
