@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>490</width>
+    <width>457</width>
     <height>559</height>
    </rect>
   </property>
@@ -29,10 +29,25 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>7</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="searchPage">
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>9</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_12">
          <item>
@@ -217,7 +232,14 @@ font-weight: bold;
            <widget class="QComboBox" name="comboCadence"/>
           </item>
           <item row="2" column="1" colspan="2">
-           <widget class="QComboBox" name="comboSeriesName"/>
+           <widget class="QComboBox" name="comboSeriesName">
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
+            <property name="minimumContentsLength">
+             <number>1</number>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
