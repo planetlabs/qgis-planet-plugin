@@ -53,12 +53,14 @@ from qgis.PyQt.QtCore import (
 
 from qgis.PyQt.QtGui import (
     QIcon,
-    QDesktopServices
+    QDesktopServices,
+    QPalette
 )
 
 from qgis.PyQt.QtWidgets import (
     QAction,
     QToolButton,
+    QPushButton,
     QMenu,
     QTextBrowser,
     QWidget,
@@ -98,7 +100,8 @@ from planet_explorer.pe_utils import (
     add_menu_section_action,
     BASE_URL,
     open_link_with_browser,
-    add_widget_to_layer
+    add_widget_to_layer,
+    PLANET_COLOR
 )
 
 from planet_explorer.planet_api import PlanetClient
@@ -311,15 +314,7 @@ class PlanetExplorer(object):
             callback=toggle_mosaics_search,
             add_to_menu=True,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())
-
-        self.showorders_act = self.add_action(
-            os.path.join(plugin_path, "resources", "orders.svg"),
-            text=self.tr("Show Orders Monitor..."),
-            callback=toggle_orders_monitor,
-            add_to_menu=False,
-            add_to_toolbar=True,
-            parent=self.iface.mainWindow())
+            parent=self.iface.mainWindow())        
 
         self.showinspector_act = self.add_action(
             os.path.join(plugin_path, "resources", "inspector.svg"),
@@ -338,7 +333,16 @@ class PlanetExplorer(object):
             parent=self.iface.mainWindow())
 
         self.add_central_toolbar_button()
-        #self.add_user_button()
+
+        self.showorders_act = self.add_action(
+            os.path.join(plugin_path, "resources", "orders.svg"),
+            text=self.tr("Show Orders Monitor..."),
+            callback=toggle_orders_monitor,
+            add_to_menu=False,
+            add_to_toolbar=True,
+            parent=self.iface.mainWindow())
+
+        self.add_user_button()
         self.add_info_button()
 
         addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
@@ -360,17 +364,13 @@ class PlanetExplorer(object):
         widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout = QHBoxLayout()
         layout.addStretch()
-        self.btnLogin = QToolButton()
+        self.btnLogin = QPushButton()
+        palette = self.btnLogin.palette()
+        palette.setColor(QPalette.Button, PLANET_COLOR)
+        self.btnLogin.setPalette(palette)
         self.btnLogin.setText("Log in")
-        self.btnLogin.setAutoRaise(True)
+        #self.btnLogin.setAutoRaise(True)
         self.btnLogin.setAttribute(Qt.WA_TranslucentBackground)
-        self.btnLogin.setStyleSheet(
-                    "background-color: rgb(0, 157, 165);"
-                    "border: 1px solid black;"
-                    "border-radius: 20px;"
-                    "color: white; "
-                    #"font-size: 14px;"
-                    )
         self.btnLogin.clicked.connect(self.btn_login_clicked)
         icon = QIcon(os.path.join(plugin_path, "resources", "planet-logo-p.svg"))
         labelIcon = QLabel()
@@ -462,11 +462,9 @@ class PlanetExplorer(object):
 
         self.toolbar.addWidget(btn)
 
-    def add_user_button(self):
+    def add_user_button(self):        
         user_menu = QMenu()
-
-        self.user_act = add_menu_section_action('<b>Not Logged in<b/>', user_menu)
-
+        
         self.acct_act = QAction(QIcon(EXT_LINK),
                            'Account', user_menu)
         self.acct_act.triggered[bool].connect(
@@ -476,21 +474,18 @@ class PlanetExplorer(object):
 
         self.logout_act = QAction('Logout', user_menu)
         self.logout_act.triggered[bool].connect(self.logout)
-        user_menu.addAction(self.logout_act)
+        user_menu.addAction(self.logout_act)        
 
-        self.login_act = QAction('Login to Planet', user_menu)
-        self.login_act.triggered[bool].connect(self.login)
-        user_menu.addAction(self.login_act)
+        self.user_button = QToolButton()
+        self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+        self.user_button.setIcon(QIcon(os.path.join(plugin_path, "resources", "account.svg"),))
+        self.user_button.setMenu(user_menu)
 
-        btn = QToolButton()
-        btn.setIcon(QIcon(os.path.join(plugin_path, "resources", "account.svg"),))
-        btn.setMenu(user_menu)
-
-        btn.setPopupMode(QToolButton.MenuButtonPopup)
+        self.user_button.setPopupMode(QToolButton.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
-        btn.clicked.connect(btn.showMenu)
+        self.user_button.clicked.connect(self.user_button.showMenu)
 
-        self.toolbar.addWidget(btn)
+        self.toolbar.addWidget(self.user_button)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -543,19 +538,19 @@ class PlanetExplorer(object):
     def logout(self):
         PlanetClient.getInstance().log_out()
 
-    def enable_buttons(self, loggedin):
-        #self.login_act.setVisible(not loggedin)
-        #self.logout_act.setVisible(loggedin)
-        self.btnLogin.setText("Log out" if loggedin else "Log in")
-        labelText = (f"<b>Logged in as {PlanetClient.getInstance().user()['user_name']}</b>"
-                    if loggedin else "")
-        self.labelLoggedIn.setText(labelText)
-        #self.acct_act.setVisible(loggedin)
+    def enable_buttons(self, loggedin):        
+        self.btnLogin.setVisible(not loggedin)
+        labelText = (f"<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>")
+        self.labelLoggedIn.setText(labelText)        
         self.showdailyimages_act.setEnabled(loggedin)
         self.showbasemaps_act.setEnabled(loggedin)
         self.showinspector_act.setEnabled(loggedin)
         self.showorders_act.setEnabled(loggedin)
         self.showtasking_act.setEnabled(loggedin)
+        self.user_button.setEnabled(loggedin)
+        self.user_button.setText(
+            PlanetClient.getInstance().user()['user_name'] 
+            if loggedin else "")
         if loggedin:
             self.showdailyimages_act.setToolTip("Show / Hide the Planet Imagery Search Panel")
             self.showbasemaps_act.setToolTip("Show / Hide the Planet Basemaps Search Panel")
