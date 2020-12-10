@@ -25,6 +25,7 @@ import os
 import re
 import iso8601
 import logging
+import mercantile
 
 # noinspection PyPackageRequirements
 from qgis.core import (
@@ -184,39 +185,35 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     @waitcursor
     def _populate_scenes_from_point(self, point):
-        BUFFER = 0.00001
-
         self.listScenes.clear()
         canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(canvasCrs, QgsCoordinateReferenceSystem(4326),
                                            QgsProject.instance())
         wgspoint = transform.transform(point)
-
-        mosaicid = self._mosaic_id_from_current_layer()
-        if mosaicid:
-            bbox = [wgspoint.x() - BUFFER, wgspoint.y() - BUFFER,
-                    wgspoint.x() + BUFFER, wgspoint.y() + BUFFER,]
-            quads = self.p_client.get_quads_for_mosaic(mosaicid, bbox)
-            json_quads = []
-            for page in quads.iter():
-                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
-            if json_quads:
-                added = False
-                pointgeom = QgsGeometry.fromPointXY(wgspoint)
-                for quad in json_quads:
-                    scenes = self.p_client.get_items_for_quad(mosaicid, quad[ID])
-                    for scene in scenes:
-                        geom = qgsgeometry_from_geojson(scene[GEOMETRY])
-                        if pointgeom.within(geom) and not added:
-                            item = SceneItem(scene)
-                            self.listScenes.addItem(item)
-                            widget = SceneItemWidget(scene)
-                            item.setSizeHint(widget.sizeHint())
-                            self.listScenes.setItemWidget(item, widget)
-                            added = True
+        mosaicname = self._mosaic_name_from_current_layer()
+        print(mosaicname)
+        if mosaicname:
+            client = PlanetClient.getInstance()
+            mosaic = client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
+            tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic['level'])
+            url = 'https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json'
+            url = url.format(mosaicname, tile.z, tile.x, tile.y)
+            data = client._get(url).get_body().get()
+            grid = self.parse_utfgrid(data['grid'])
+            links = data['keys']
+            idx = self.read_val_at_pixel(grid, wgspoint.y(), wgspoint.x(), mosaic['level'])
+            url = links[idx]            
+            try:
+                info = client._get(url).get_body().get()                
+                item = SceneItem(info)
+                self.listScenes.addItem(item)
+                widget = SceneItemWidget(info)
+                item.setSizeHint(widget.sizeHint())
+                self.listScenes.setItemWidget(item, widget)
                 self.textBrowser.setVisible(False)
                 self.listScenes.setVisible(True)
-            else:
+            except Exception:
+                raise
                 self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
                                      ⚠️ The selected pixel is not part of a streamed Planet Basemap.
                                      </span></center>""")
@@ -229,7 +226,33 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.textBrowser.setVisible(True)
             self.listScenes.setVisible(False)
 
-    def _mosaic_id_from_current_layer(self):
+    def parse_utfgrid(self, utf):
+        """Convert a utfgrid formatted array into an integer array."""
+        def _convert_char(character):
+            val = ord(character)
+            for breakpoint in [93, 35]:
+                if val >= breakpoint:
+                    val -= 1
+            return val - 32
+        grid = []
+        for line in utf:
+            grid.append([_convert_char(x) for x in line])
+        return grid
+
+    def read_val_at_pixel(self, grid, lat, lon, zoom):
+        """Interpolate the row/column of a webtile from a lat/lon/zoom and extract
+        the corresponding value from `grid`."""
+        tile = mercantile.tile(lon, lat, zoom)
+        size = len(grid)
+        box = mercantile.xy_bounds(tile)
+        x, y = mercantile.xy(lon, lat)
+        width = box.right - box.left
+        height = box.top - box.bottom
+        i = int(round(size * (box.top - y) / height))
+        j = int(round(size * (x - box.left) / width))
+        return grid[i][j]
+
+    def _mosaic_name_from_current_layer(self):
         layer = iface.activeLayer()
         source = layer.source()
         name = None
@@ -242,11 +265,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                 if groups:
                     name = groups.group(1)
                     break
-        if name is None:
-            return
-        client = PlanetClient.getInstance()
-        mosaicid = client.get_mosaic_by_name(name).get().get(Mosaics.ITEM_KEY)[0][ID]
-        return mosaicid
+        return name
 
     def _set_map_tool(self, checked):
         if checked:
@@ -366,8 +385,8 @@ class SceneItemWidget(QFrame):
         transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(4326),
                                            canvasCrs,
                                            QgsProject.instance())
-        newrect = transform.transform(rect)
-        self.footprint.setToGeometry(newrect)
+        newrect = transform.transform(rect)        
+        self.footprint.setToGeometry(QgsGeometry.fromRect(newrect))
 
     def hide_footprint(self):
         self.footprint.reset(QgsWkbTypes.PolygonGeometry)
