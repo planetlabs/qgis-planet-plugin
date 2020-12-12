@@ -62,7 +62,8 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsProject,
     QgsWkbTypes,
-    QgsRectangle
+    QgsRectangle,
+    Qgis
 )
 
 from qgis.gui import (
@@ -75,10 +76,6 @@ from qgis.utils import (
 
 from ..gui.pe_save_search_dialog import (
     SaveSearchDialog
-)
-
-from ..gui.pe_daily_images_preview_config_dialog import (
-    DailyImagesPreviewConfigDialog
 )
 
 from ..gui.pe_results_configuration_dialog import (
@@ -120,7 +117,7 @@ from .pe_thumbnails import (
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 TOP_ITEMS_BATCH = 250
-CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 500
+CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 3
 
 ID = "id"
 SATELLITE_ID = "satellite_id"
@@ -459,9 +456,14 @@ class ItemWidgetBase(QFrame):
         self.checkBox.stateChanged.connect(self.check_box_state_changed)
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
-        self.toolsButton = QLabel()
-        self.toolsButton.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
-        self.toolsButton.mousePressEvent = self.show_context_menu
+        self.labelZoomTo = QLabel()
+        self.labelZoomTo.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.labelZoomTo.setToolTip("Zoom to extent")
+        self.labelZoomTo.mousePressEvent = self.zoom_to_extent
+        self.labelAddPreview = QLabel()
+        self.labelAddPreview.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.labelAddPreview.setToolTip("Add preview layer to map")
+        self.labelAddPreview.mousePressEvent = self._add_preview_clicked
 
         layout = QHBoxLayout()
         layout.setMargin(0)
@@ -479,7 +481,8 @@ class ItemWidgetBase(QFrame):
             download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
-        layout.addWidget(self.toolsButton)
+        layout.addWidget(self.labelZoomTo)
+        layout.addWidget(self.labelAddPreview)
         layout.addSpacing(10)
         self.setLayout(layout)
 
@@ -530,7 +533,7 @@ class ItemWidgetBase(QFrame):
         self.setStyleSheet("ItemWidgetBase{border: 2px solid transparent;}")
         self.hide_footprint()
 
-    def zoom_to_extent(self):
+    def zoom_to_extent(self, evt):
         rect = QgsRectangle(self._geom_bbox_in_project_crs())
         rect.scale(1.05)
         iface.mapCanvas().setExtent(rect)
@@ -540,28 +543,17 @@ class ItemWidgetBase(QFrame):
         menu = self._context_menu()
         menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
 
-    def _context_menu(self):
-        menu = QMenu()
-        add_menu_section_action('Current item', menu)
-        zoom_act = QAction('Zoom to extent', menu)
-        zoom_act.triggered.connect(self.zoom_to_extent)
-        menu.addAction(zoom_act)
-        prev_layer_act = QAction('Add preview layers to map', menu)
-        prev_layer_act.triggered.connect(self._add_preview_clicked)
-        menu.addAction(prev_layer_act)
-        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
-            prev_layer_act.setEnabled(False)
-            prev_layer_act.setToolTip("The node contains too many images to preview")
-            menu.setToolTipsVisible(True)
         return menu
 
-    def _add_preview_clicked(self):
-        dlg = DailyImagesPreviewConfigDialog(self)
-        if dlg.exec():
-            self.add_preview(dlg.footprintsFilename, dlg.layerName)
+    def _add_preview_clicked(self, evt):
+        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+            self.parent().parent.show_message("The node contains too many images to preview",
+                                                Qgis.Warning)
+        else:
+            self.add_preview()
 
     @waitcursor
-    def add_preview(self, footprints_filename, add_to_catalog):
+    def add_preview(self):
         if is_segments_write_key_valid():
             item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}"
                 for img in self.item.images()]
@@ -570,9 +562,7 @@ class ItemWidgetBase(QFrame):
                             {"images": item_ids })
         create_preview_group(
             self.name(),
-            self.item.images(),
-            footprints_filename,
-            add_to_catalog
+            self.item.images()
         )
 
     def check_box_state_changed(self):
@@ -614,10 +604,6 @@ class ItemWidgetBase(QFrame):
         self.checkBox.setChecked(checked)
 
     def update_thumbnail(self):
-        bbox = self.geom.boundingBox()
-
-        item_ids = [f"{img[PROPERTIES][ITEM_TYPE]}:{img[ID]}" for img in self.item.images()]
-
         thumbnails =self.scene_thumbnails()
         bboxes = [img[GEOMETRY] for img in self.item.images()]
 

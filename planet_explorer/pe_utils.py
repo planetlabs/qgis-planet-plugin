@@ -332,8 +332,8 @@ def create_preview_vector_layer(image):
 def create_preview_group(
         group_name: str,
         images: List[dict],
-        footprints_filename,
-        catalog_layer_name,
+        footprints_filename = None,
+        catalog_layer_name = None,
         tile_service: str = 'xyz',
         search_query: str = None,
         sort_order: Tuple[str, str] = None) -> None:
