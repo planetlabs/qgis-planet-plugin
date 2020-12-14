@@ -546,11 +546,7 @@ class ItemWidgetBase(QFrame):
         return menu
 
     def _add_preview_clicked(self, evt):
-        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
-            self.parent().parent.show_message("The node contains too many images to preview",
-                                                Qgis.Warning)
-        else:
-            self.add_preview()
+        self.add_preview()
 
     @waitcursor
     def add_preview(self):
@@ -674,6 +670,10 @@ class DateItemWidget(ItemWidgetBase):
         self.geom = QgsGeometry.collectGeometry(geoms)
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
+        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+            self.labelAddPreview.setToolTip("Too many images to preview")
+            self.labelAddPreview.setEnabled(False)
+
         #self._update_thumbnail()
 
     def name(self):
@@ -724,6 +724,10 @@ class SatelliteItemWidget(ItemWidgetBase):
         self.geom = QgsGeometry.collectGeometry(geoms)
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
+        self.labelAddPreview.setEnabled(self.downloadable)        
+        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+            self.labelAddPreview.setToolTip("Too many images to preview")
+            self.labelAddPreview.setEnabled(False)
         # self._update_thumbnail()
 
     def name(self):
