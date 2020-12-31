@@ -106,11 +106,6 @@ from planet_explorer.pe_utils import (
 
 from planet_explorer.planet_api import PlanetClient
 
-from planet_explorer.planet_api.p_apikey_replacer import (
-    replace_apikeys,
-    replace_apikey_for_layer
-)
-
 from planet_explorer.gui.pe_basemap_layer_widget import (
     BasemapLayerWidgetProvider
 )
@@ -396,10 +391,8 @@ class PlanetExplorer(object):
     def layers_added(self, layers):
         for layer in layers:
             add_widget_to_layer(layer)
-            replace_apikey_for_layer(layer)
 
     def login_changed(self, loggedin):
-        replace_apikeys()
         self.provider.updateLayerWidgets()
         self.enable_buttons(loggedin)
         if not loggedin:

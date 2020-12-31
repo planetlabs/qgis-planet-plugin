@@ -670,7 +670,12 @@ class DateItemWidget(ItemWidgetBase):
         self.geom = QgsGeometry.collectGeometry(geoms)
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
-        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+
+        nscenes = 0
+        for i in range(self.item.childCount()):
+            nscenes += self.item.child(i).childCount()
+
+        if nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
 
