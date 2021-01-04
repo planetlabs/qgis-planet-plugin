@@ -43,16 +43,13 @@ from qgis.PyQt.QtGui import (
 )
 
 from qgis.PyQt.QtWidgets import (
-    QAction,
     QLabel,
     QFrame,
-    QMenu,
     QListWidgetItem,
     QCheckBox,
     QHBoxLayout,
     QTreeWidgetItem,
-    QTreeWidgetItemIterator,
-    QFileDialog
+    QTreeWidgetItemIterator
 )
 
 
@@ -63,7 +60,7 @@ from qgis.core import (
     QgsProject,
     QgsWkbTypes,
     QgsRectangle,
-    Qgis
+    QgsApplication
 )
 
 from qgis.gui import (
@@ -85,7 +82,6 @@ from ..gui.pe_results_configuration_dialog import (
 
 from ..pe_utils import (
     qgsgeometry_from_geojson,
-    add_menu_section_action,
     zoom_canvas_to_geometry,
     create_preview_group,
     is_segments_write_key_valid,
@@ -117,7 +113,7 @@ from .pe_thumbnails import (
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 TOP_ITEMS_BATCH = 250
-CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 3
+CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 100
 
 ID = "id"
 SATELLITE_ID = "satellite_id"
@@ -129,7 +125,9 @@ PERMISSIONS = "_permissions"
 SUBTEXT_STYLE = 'color: rgb(100,100,100);'
 SUBTEXT_STYLE_WITH_NEW_CHILDREN = 'color: rgb(157,0,165);'
 
-COG_ICON = QIcon(':/plugins/planet_explorer/cog.svg')
+ADD_PREVIEW_ICON = QgsApplication.getThemeIcon("/mActionAddXyzLayer.svg")
+SAVE_ICON = QgsApplication.getThemeIcon("/mActionFileSave.svg")
+ZOOMTO_ICON = QIcon(':/plugins/planet_explorer/zoom-target.svg')
 LOCK_ICON = QIcon(':/plugins/planet_explorer/lock-light.svg')
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
@@ -182,8 +180,13 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self._local_filters = None
         self._response_iterator = None
 
+        self.btnSaveSearch.setIcon(SAVE_ICON)
+        self.btnAddPreview.setIcon(ADD_PREVIEW_ICON)
+        self.btnAddPreview.setEnabled(False)
+
         self.btnZoomToAOI.clicked.connect(self._zoom_to_request_aoi)
         self.btnSaveSearch.clicked.connect(self._save_search)
+        self.btnAddPreview.clicked.connect(self._add_preview_clicked)
         self.btnSettings.clicked.connect(self._open_settings)
         self.lblImageCount.setOpenExternalLinks(False)
         self.lblImageCount.linkActivated.connect(self.load_more_link_clicked)
@@ -218,6 +221,23 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         if dlg.exec_():
             self._metadata_to_show = dlg.selection
             self.update_image_items()
+
+    def _add_preview_clicked(self):
+        self.add_preview()
+
+    @waitcursor
+    def add_preview(self):
+        imgs = self.selected_images()
+        if is_segments_write_key_valid():
+            item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}"
+                for img in imgs]
+            analytics.track(PlanetClient.getInstance().user()["email"],
+                            "Scene preview added to map",
+                            {"images": item_ids})
+        create_preview_group(
+            "Selected images",
+            imgs
+        )
 
     def update_image_items(self):
         it = QTreeWidgetItemIterator(self.tree)
@@ -388,7 +408,9 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return selected
 
     def checked_count_changed(self):
-        self.checkedCountChanged.emit(len(self.selected_images()))
+        hasSelection = bool(len(self.selected_images()))
+        self.btnAddPreview.setEnabled(hasSelection)
+        self.checkedCountChanged.emit(hasSelection)
 
     def item_count_changed(self):
         if self._has_more:
@@ -457,11 +479,11 @@ class ItemWidgetBase(QFrame):
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
         self.labelZoomTo = QLabel()
-        self.labelZoomTo.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.labelZoomTo.setPixmap(ZOOMTO_ICON.pixmap(QSize(18, 18)))
         self.labelZoomTo.setToolTip("Zoom to extent")
         self.labelZoomTo.mousePressEvent = self.zoom_to_extent
         self.labelAddPreview = QLabel()
-        self.labelAddPreview.setPixmap(COG_ICON.pixmap(QSize(18, 18)))
+        self.labelAddPreview.setPixmap(ADD_PREVIEW_ICON.pixmap(QSize(18, 18)))
         self.labelAddPreview.setToolTip("Add preview layer to map")
         self.labelAddPreview.mousePressEvent = self._add_preview_clicked
 
@@ -729,7 +751,7 @@ class SatelliteItemWidget(ItemWidgetBase):
         self.geom = QgsGeometry.collectGeometry(geoms)
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
-        self.labelAddPreview.setEnabled(self.downloadable)        
+        self.labelAddPreview.setEnabled(self.downloadable)
         if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
