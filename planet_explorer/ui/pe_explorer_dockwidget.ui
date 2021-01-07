@@ -87,7 +87,7 @@
              <property name="clearButtonEnabled">
               <bool>true</bool>
              </property>
-             <property name="showLockIcon">
+             <property name="showLockIcon" stdset="0">
               <bool>true</bool>
              </property>
             </widget>
@@ -269,9 +269,7 @@
            <bool>true</bool>
           </property>
           <property name="styleSheet">
-           <string notr="true"> QTabWidget::pane{border: 1px;border-color:red;background-color: transparent;} 
-QTabWidget::tab-bar{alignment:center;}
-</string>
+           <string notr="true"> QTabWidget::tab-bar{alignment:center;}</string>
           </property>
           <property name="currentIndex">
            <number>0</number>

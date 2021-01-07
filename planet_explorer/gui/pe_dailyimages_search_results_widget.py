@@ -82,7 +82,6 @@ from ..gui.pe_results_configuration_dialog import (
 
 from ..pe_utils import (
     qgsgeometry_from_geojson,
-    zoom_canvas_to_geometry,
     create_preview_group,
     is_segments_write_key_valid,
     SEARCH_AOI_COLOR,
@@ -112,6 +111,11 @@ from .pe_thumbnails import (
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
+
+def iconPath(f):
+    return os.path.join(plugin_path, "resources", f)
+
+
 TOP_ITEMS_BATCH = 250
 CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 100
 
@@ -128,6 +132,7 @@ SUBTEXT_STYLE_WITH_NEW_CHILDREN = 'color: rgb(157,0,165);'
 ADD_PREVIEW_ICON = QgsApplication.getThemeIcon("/mActionAddXyzLayer.svg")
 SAVE_ICON = QgsApplication.getThemeIcon("/mActionFileSave.svg")
 ZOOMTO_ICON = QIcon(':/plugins/planet_explorer/zoom-target.svg')
+SORT_ICON = QIcon(iconPath("sort.svg"))
 LOCK_ICON = QIcon(':/plugins/planet_explorer/lock-light.svg')
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
@@ -145,21 +150,9 @@ RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
 
 class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
-    zoomToAOIRequested = pyqtSignal()
     setAOIRequested = pyqtSignal(dict)
     checkedCountChanged = pyqtSignal(int)
     searchSaved = pyqtSignal(dict)
-
-    SORT_ORDER_DATE_TYPES = [
-        ('acquired', 'Acquired'),
-        ('published', 'Published'),
-        # ('updated', 'Updated'),
-    ]
-
-    SORT_ORDER_TYPES = [
-        ('desc', 'descending'),
-        ('asc', 'ascending'),
-    ]
 
     def __init__(self):
         super().__init__()
@@ -181,30 +174,19 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self._response_iterator = None
 
         self.btnSaveSearch.setIcon(SAVE_ICON)
+        self.btnSort.setIcon(SORT_ICON)
         self.btnAddPreview.setIcon(ADD_PREVIEW_ICON)
         self.btnAddPreview.setEnabled(False)
 
-        self.btnZoomToAOI.clicked.connect(self._zoom_to_request_aoi)
         self.btnSaveSearch.clicked.connect(self._save_search)
         self.btnAddPreview.clicked.connect(self._add_preview_clicked)
+        self.btnSort.clicked.connect(self._sort_order_changed)
         self.btnSettings.clicked.connect(self._open_settings)
         self.lblImageCount.setOpenExternalLinks(False)
         self.lblImageCount.linkActivated.connect(self.load_more_link_clicked)
 
         self._aoi_box = None
         self._setup_request_aoi_box()
-
-        self.cmbBoxDateType.clear()
-        for i, (a, b) in enumerate(self.SORT_ORDER_DATE_TYPES):
-            self.cmbBoxDateType.insertItem(i, b, userData=a)
-        self.cmbBoxDateType.setCurrentIndex(0)
-        self.cmbBoxDateType.currentIndexChanged.connect(self._sort_order_changed)
-
-        self.cmbBoxDateSort.clear()
-        for i, (a, b) in enumerate(self.SORT_ORDER_TYPES):
-            self.cmbBoxDateSort.insertItem(i, b, userData=a)
-        self.cmbBoxDateSort.setCurrentIndex(0)
-        self.cmbBoxDateSort.currentIndexChanged.connect(self._sort_order_changed)
 
         self._set_widgets_visibility(False)
 
@@ -255,13 +237,15 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             self.searchSaved.emit(dlg.request_to_save)
 
     def sort_order(self):
-        return (
-            str(self.cmbBoxDateType.currentData()),
-            str(self.cmbBoxDateSort.currentData())
-        )
+        order = ["published"]
+        if self.btnSort.isChecked():
+            order.append("asc")
+        else:
+            order.append("desc")
+        return order
 
-    def _sort_order_changed(self, idx):
-        self.update_request(self._request)
+    def _sort_order_changed(self):
+        self.update_request(self._request, {})
 
     def load_more_link_clicked(self):
         self.load_more()
@@ -305,10 +289,9 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             next_ = links.get(page.NEXT_KEY, None)
             self._has_more = next_ is not None
             images = page.get().get(page.ITEM_KEY)
-            #self._image_count += len(images)
-            for image in images:
+            for i, image in enumerate(images):
                 if self._passes_area_coverage_filter(image):
-                    sort_criteria = self.cmbBoxDateType.currentData()
+                    sort_criteria = "published"
                     date_item, satellite_item = self._find_items_for_satellite(image)
                     date_widget = self.tree.itemWidget(date_item, 0)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
@@ -323,17 +306,17 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                     date_widget.update_for_children()
                     self._image_count +=1
 
-                for i in range(self.tree.topLevelItemCount()):
-                    date_item = self.tree.topLevelItem(i)
-                    date_widget = self.tree.itemWidget(date_item, 0)
-                    for j in range(date_item.childCount()):
-                        satellite_item = date_item.child(j)
-                        satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                        satellite_widget.update_for_children()
-                        satellite_widget.update_thumbnail()
-                        satellite_item.sortChildren(0, Qt.AscendingOrder)
-                    date_widget.update_for_children()
-                    date_widget.update_thumbnail()
+            for i in range(self.tree.topLevelItemCount()):
+                date_item = self.tree.topLevelItem(i)
+                date_widget = self.tree.itemWidget(date_item, 0)
+                for j in range(date_item.childCount()):
+                    satellite_item = date_item.child(j)
+                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                    satellite_widget.update_for_children()
+                    satellite_widget.update_thumbnail()
+                    satellite_item.sortChildren(0, Qt.AscendingOrder)
+                date_widget.update_for_children()
+                date_widget.update_thumbnail()
             self.item_count_changed()
         else:
             self._has_more = False
@@ -361,7 +344,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return True
 
     def _find_item_for_date(self, image):
-        sort_criteria = self.cmbBoxDateType.currentData()
+        sort_criteria = "published"
         date = iso8601.parse_date(image[PROPERTIES][sort_criteria]).date()
         itemtype = image[PROPERTIES][ITEM_TYPE]
         count = self.tree.topLevelItemCount()
@@ -413,12 +396,12 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.checkedCountChanged.emit(hasSelection)
 
     def item_count_changed(self):
-        if self._has_more:
+        if self._image_count < self._total_count:
             self.lblImageCount.setText(
-                f"{self._image_count} of {self._total_count} images. <a href='#'>Load more</a>")
+                f"{self._image_count} images. <a href='#'>Load more</a>")
         else:
             self.lblImageCount.setText(
-                f"{self._image_count} of {self._total_count} images")
+                f"{self._image_count} images")
 
     def _setup_request_aoi_box(self):
         self._aoi_box = QgsRubberBand(
@@ -433,21 +416,11 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         if self._aoi_box:
             self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
 
-    @pyqtSlot()
-    def _zoom_to_request_aoi(self):
-        aoi_geom = geometry_from_request(self._request)
-
-        geom: QgsGeometry = qgsgeometry_from_geojson(aoi_geom)
-        self._aoi_box.setToGeometry(
-            geom,
-            QgsCoordinateReferenceSystem("EPSG:4326")
-        )
-
-        zoom_canvas_to_geometry(geom)
-
     def clean_up(self):
         self.clear_aoi_box()
         self.tree.clear()
+        self.lblImageCount.setText("")
+        self._set_widgets_visibility(False)
 
     def closeEvent(self, event):
         self.clean_up()
@@ -491,7 +464,6 @@ class ItemWidgetBase(QFrame):
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
         layout.addWidget(self.lockLabel)
-        #self.lockLabel.setVisible(False)
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         self.thumbnail = None
         thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
@@ -500,6 +472,7 @@ class ItemWidgetBase(QFrame):
         self.iconLabel.setFixedSize(48, 48)
         layout.addWidget(self.iconLabel)
         if thumbnailurl is not None:
+            pass
             download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
@@ -561,12 +534,6 @@ class ItemWidgetBase(QFrame):
         iface.mapCanvas().setExtent(rect)
         iface.mapCanvas().refresh()
 
-    def show_context_menu(self, evt):
-        menu = self._context_menu()
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
-
-        return menu
-
     def _add_preview_clicked(self, evt):
         self.add_preview()
 
@@ -623,9 +590,8 @@ class ItemWidgetBase(QFrame):
 
     def update_thumbnail(self):
         thumbnails =self.scene_thumbnails()
-        bboxes = [img[GEOMETRY] for img in self.item.images()]
-
         if thumbnails and None not in thumbnails:
+            bboxes = [img[GEOMETRY] for img in self.item.images()]
             pixmap = createCompoundThumbnail(bboxes, thumbnails)
             thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
                             Qt.SmoothTransformation)
@@ -692,14 +658,19 @@ class DateItemWidget(ItemWidgetBase):
         self.geom = QgsGeometry.collectGeometry(geoms)
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
+        self.labelAddPreview.setEnabled(self.downloadable)
 
         nscenes = 0
         for i in range(self.item.childCount()):
             nscenes += self.item.child(i).childCount()
 
-        if nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+        if not self.downloadable:
+            self.labelAddPreview.setToolTip("Contact sales to purchase access")
+        elif nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
+        else:
+            self.labelAddPreview.setToolTip("Add preview layer to map")
 
         #self._update_thumbnail()
 
@@ -752,10 +723,15 @@ class SatelliteItemWidget(ItemWidgetBase):
         self.lockLabel.setVisible(not self.downloadable)
         self.checkBox.setEnabled(self.downloadable)
         self.labelAddPreview.setEnabled(self.downloadable)
-        if self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
+
+        if not self.downloadable:
+            self.labelAddPreview.setToolTip("Contact sales to purchase access")
+            self.labelAddPreview.setEnabled(False)
+        elif self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
-        # self._update_thumbnail()
+        else:
+            self.labelAddPreview.setToolTip("Add preview layer to map")
 
     def name(self):
         return f"Satellite {self.satellite}"
@@ -768,7 +744,7 @@ class SceneItem(QTreeWidgetItem):
         self.image = image
         self.date = iso8601.parse_date(image[PROPERTIES][sort_criteria])
 
-    def __lt__( self, other ):
+    def __lt__(self, other):
         if (not isinstance(other, SceneItem)):
             return super(SceneItem, self).__lt__(other)
 
@@ -807,6 +783,10 @@ class SceneItemWidget(ItemWidgetBase):
         self.checkBox.setEnabled(self.downloadable)
         self.geom = qgsgeometry_from_geojson(image[GEOMETRY])
 
+        if not self.downloadable:
+            self.labelAddPreview.setToolTip("Contact sales to purchase access")
+            self.labelAddPreview.setEnabled(False)
+
     def set_metadata_to_show(self, metadata_to_show):
         self.metadata_to_show = metadata_to_show
         self.update_text()
@@ -826,12 +806,6 @@ class SceneItemWidget(ItemWidgetBase):
                     """
 
         return text
-
-    def _context_menu(self):
-        menu = super()._context_menu()
-
-        #TODO
-        return menu
 
     def name(self):
         return f"{self.date} {self.time} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
