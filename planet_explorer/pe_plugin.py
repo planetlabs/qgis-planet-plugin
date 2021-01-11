@@ -133,6 +133,8 @@ SAT_SPECS_PDF = 'https://assets.planet.com/docs/' \
 PLANET_SUPPORT_COMMUNITY = 'https://support.planet.com'
 PLANET_EXPLORER = f'{PLANET_COM}/explorer'
 PLANET_INTEGRATIONS = "https://developers.planet.com/tag/integrations.html"
+PLANET_SALES = "https://www.planet.com/contact-sales"
+
 EXT_LINK = ':/plugins/planet_explorer/external-link.svg'
 ACCOUNT_URL = f'{BASE_URL}/account'
 
@@ -309,7 +311,7 @@ class PlanetExplorer(object):
             callback=toggle_mosaics_search,
             add_to_menu=True,
             add_to_toolbar=True,
-            parent=self.iface.mainWindow())        
+            parent=self.iface.mainWindow())
 
         self.showinspector_act = self.add_action(
             os.path.join(plugin_path, "resources", "inspector.svg"),
@@ -439,6 +441,13 @@ class PlanetExplorer(object):
         )
         info_menu.addAction(p_whatsnew_act)
 
+        p_sales_act = QAction(QIcon(EXT_LINK),
+                                "Sales", info_menu)
+        p_sales_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_SALES)
+        )
+        info_menu.addAction(p_sales_act)
+
         add_menu_section_action('Documentation', info_menu)
 
         terms_act = QAction('Terms', info_menu)
@@ -455,9 +464,9 @@ class PlanetExplorer(object):
 
         self.toolbar.addWidget(btn)
 
-    def add_user_button(self):        
+    def add_user_button(self):
         user_menu = QMenu()
-        
+
         self.acct_act = QAction(QIcon(EXT_LINK),
                            'Account', user_menu)
         self.acct_act.triggered[bool].connect(
@@ -467,7 +476,7 @@ class PlanetExplorer(object):
 
         self.logout_act = QAction('Logout', user_menu)
         self.logout_act.triggered[bool].connect(self.logout)
-        user_menu.addAction(self.logout_act)        
+        user_menu.addAction(self.logout_act)
 
         self.user_button = QToolButton()
         self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
@@ -531,10 +540,10 @@ class PlanetExplorer(object):
     def logout(self):
         PlanetClient.getInstance().log_out()
 
-    def enable_buttons(self, loggedin):        
+    def enable_buttons(self, loggedin):
         self.btnLogin.setVisible(not loggedin)
         labelText = (f"<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>")
-        self.labelLoggedIn.setText(labelText)        
+        self.labelLoggedIn.setText(labelText)
         self.showdailyimages_act.setEnabled(loggedin)
         self.showbasemaps_act.setEnabled(loggedin)
         self.showinspector_act.setEnabled(loggedin)
@@ -542,7 +551,7 @@ class PlanetExplorer(object):
         self.showtasking_act.setEnabled(loggedin)
         self.user_button.setEnabled(loggedin)
         self.user_button.setText(
-            PlanetClient.getInstance().user()['user_name'] 
+            PlanetClient.getInstance().user()['user_name']
             if loggedin else "")
         if loggedin:
             self.showdailyimages_act.setToolTip("Show / Hide the Planet Imagery Search Panel")

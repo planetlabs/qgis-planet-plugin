@@ -472,7 +472,6 @@ class ItemWidgetBase(QFrame):
         self.iconLabel.setFixedSize(48, 48)
         layout.addWidget(self.iconLabel)
         if thumbnailurl is not None:
-            pass
             download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
@@ -664,8 +663,10 @@ class DateItemWidget(ItemWidgetBase):
         for i in range(self.item.childCount()):
             nscenes += self.item.child(i).childCount()
 
+        self.setToolTip("")
         if not self.downloadable:
-            self.labelAddPreview.setToolTip("Contact sales to purchase access")
+            self.labelAddPreview.setToolTip("Contact sales to purchase access.\nUse the link in the ⓘ menu.")
+            self.setToolTip("Contact sales to purchase access.\nUse the link in the ⓘ menu.")
         elif nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)

@@ -269,10 +269,10 @@
            <bool>true</bool>
           </property>
           <property name="styleSheet">
-           <string notr="true"> QTabWidget::tab-bar{alignment:center;}</string>
+           <string notr="true">QTabWidget::tab-bar{alignment:center;}</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tabWidgetResourceTypePage1">
            <attribute name="title">
@@ -283,13 +283,16 @@
              <number>0</number>
             </property>
             <property name="leftMargin">
-             <number>0</number>
+             <number>6</number>
+            </property>
+            <property name="topMargin">
+             <number>6</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
             <property name="bottomMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
            </layout>
           </widget>
@@ -299,16 +302,16 @@
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_9">
             <property name="leftMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
             <property name="topMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
             <property name="rightMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
             <property name="bottomMargin">
-             <number>0</number>
+             <number>6</number>
             </property>
            </layout>
           </widget>
