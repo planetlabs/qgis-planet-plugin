@@ -48,7 +48,7 @@ class SaveSearchDialog(BASE, WIDGET):
         self.layout().addWidget(self.bar)
 
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.save)
-        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.rejected)
+        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
 
         self.btnCreateFolder.clicked.connect(self.createFolder)
 

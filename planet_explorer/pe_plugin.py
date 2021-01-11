@@ -178,6 +178,7 @@ class PlanetExplorer(object):
 
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
+        self._terms_browser = None
 
         readSettings()
 
