@@ -129,7 +129,7 @@ PERMISSIONS = "_permissions"
 SUBTEXT_STYLE = 'color: rgb(100,100,100);'
 SUBTEXT_STYLE_WITH_NEW_CHILDREN = 'color: rgb(157,0,165);'
 
-ADD_PREVIEW_ICON = QgsApplication.getThemeIcon("/mActionAddXyzLayer.svg")
+ADD_PREVIEW_ICON = QIcon(iconPath("mActionAddXyzLayer.svg"))
 SAVE_ICON = QgsApplication.getThemeIcon("/mActionFileSave.svg")
 ZOOMTO_ICON = QIcon(':/plugins/planet_explorer/zoom-target.svg')
 SORT_ICON = QIcon(iconPath("sort.svg"))
