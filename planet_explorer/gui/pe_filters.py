@@ -560,6 +560,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             aoi_json = aoi_geom.asJson(precision=6)
 
         if isinstance(aoi, QgsGeometry):
+            if aoi.isMultipart():
+                aoi = QgsGeometry.fromPolygonXY(aoi.asMultiPolygon()[0])
             self._aoi_box.setToGeometry(aoi)
             # TODO: validate geom is less than 500 vertices
             aoi.transform(transform)
