@@ -44,7 +44,7 @@ class SaveSearchDialog(BASE, WIDGET):
         self.setupUi(self)
 
         self.bar = QgsMessageBar()
-        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed )
+        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.layout().addWidget(self.bar)
 
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.save)
@@ -82,15 +82,19 @@ class SaveSearchDialog(BASE, WIDGET):
 
     def set_from_request(self):
         filters = filters_from_request(self.request, "geometry")
-        geom = filters[0]["config"]
-        aoi_txt = json.dumps(geom)
+        if filters:
+            geom = filters[0].get("config")
+            aoi_txt = json.dumps(geom)
+            extent = qgsgeometry_from_geojson(aoi_txt).boundingBox()
+        else:
+            extent = iface.mapCanvas().fullExtent()
+
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.canvas = QgsMapCanvas()
         layers = iface.mapCanvas().mapSettings().layers()
         crs = QgsCoordinateReferenceSystem("EPSG:4326")
         self.canvas.setLayers(layers)
-        extent = qgsgeometry_from_geojson(aoi_txt).boundingBox()
         self.canvas.setDestinationCrs(crs)
         self.canvas.setExtent(extent)
         layout.addWidget(self.canvas)
@@ -122,6 +126,8 @@ class SaveSearchDialog(BASE, WIDGET):
         if folder:
             name = f"{folder}/{name}"
 
+        self.request_to_save = copy.deepcopy(self.request)
+        self.request_to_save["name"] = name
         filters = filters_from_request(self.request, 'acquired')
         if filters:
             config = filters[0]['config']
@@ -129,9 +135,7 @@ class SaveSearchDialog(BASE, WIDGET):
                 del config['gte']
             if self.chkExcludeEnd.isChecked():
                 del config['lte']
-            self.request_to_save = copy.deepcopy(self.request)
             self.replace_date_filter(self.request_to_save, config)
-            self.request_to_save["name"] = name
         self.accept()
 
     def replace_date_filter(self, request, newfilter):
