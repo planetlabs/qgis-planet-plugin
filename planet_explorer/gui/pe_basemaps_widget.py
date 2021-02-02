@@ -218,7 +218,7 @@ class BasemapsWidget(BASE, WIDGET):
 
     def init(self):
         if not self._initialized:
-            if PlanetClient.getInstance().has_access_to_mosaics():
+            if self.series():
                 self.stackedWidget.setCurrentWidget(self.searchPage)
                 self.btnSeries.setChecked(True)
                 self.btn_filter_clicked(self.btnSeries)
