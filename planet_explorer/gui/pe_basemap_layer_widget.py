@@ -413,9 +413,8 @@ class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
         return "Planet Basemap Layer Widget"
 
     def createWidget(self, layer, widgetIndex):
-        if layer.id() not in self.widgets:
-            widget = BasemapLayerWidget(layer)
-            self.widgets[layer.id()] = widget
+        widget = BasemapLayerWidget(layer)
+        self.widgets[layer.id()] = widget
         return self.widgets[layer.id()]
 
     def supportsLayer(self, layer):
