@@ -7,7 +7,7 @@
 name=Planet_Explorer
 qgisMinimumVersion=3.6
 description=The Planet Plugin enables QGIS users to quickly discover, stream, and download Planet imagery and Planet Basemaps. The plug-in provides an imagery discovery interface that allows users to search for, stream, and download Planet imagery within QGIS.<br><br>Full documentation for the Plugin is available <a href="https://developers.planet.com/docs/integrations/qgis/">here</a>.
-version=1.3
+version=2.0
 author=Planet Inc
 
 about=Planet Explorer accesses the Planet imagery catalog archive. PYTHON 3.6 MINIMUM REQUIRED
@@ -21,6 +21,12 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v1.3.3 (2020-12-01)
+  * use session with proxy settings to revieve hashid for image preview
+  v1.3.2 (2020-11-09)
+  * fixed bug where noProxyUrls were set to none, introduced in 1.3.1
+  v1.3.1 (2020-10-23)
+  * fixed case of noProxyUrls setting being None
   v1.2 (2019-12-06)
   * Added mosaics support
   * Improved support for paginating large daily imagery search result sets
