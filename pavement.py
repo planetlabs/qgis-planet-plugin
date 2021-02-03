@@ -56,6 +56,7 @@ options(
             'thumbnails',
             # 'ui/*.py',
             'qgis_resources.py',
+            "pe_utils.py"
         ],
         path_to_settings='Raster --> Planet Explorer --> Settings...',
         # skip certain files inadvertently found by exclude pattern globbing
@@ -161,10 +162,13 @@ def read_requirements():
 @task
 @cmdopts([
     ('tests', 't', 'Package tests with plugin'),
+    ('segments=', 's', 'Segments write key'),
+    ('sentry=', 'd', 'Sentry dns'),
 ])
 def package(options):
     """Create plugin package
     """
+    print(options.package)
     if options.sphinx.docroot.exists():
         builddocs(options)
     package_file = options.plugin.package_dir / \
@@ -208,6 +212,19 @@ def _make_zip(zipfile, options):
                 options.plugin.name, "docs",
                 os.path.relpath(root, options.sphinx.builddir))
             zipfile.write(path(root) / f, path(relpath) / f)
+
+    utils_filename = os.path.join(os.path.dirname(__file__),
+                                  "planet_explorer", "pe_utils.py")
+    with open(utils_filename) as f:
+        txt = f.read()
+        if hasattr(options.package, 'segments'):
+            txt = txt.replace("# [set_segments_write_key]",
+                              f"os.environ['SEGMENTS_WRITE_KEY'] = '{options.package.segments}'")
+        if hasattr(options.package, 'sentry'):
+            txt = txt.replace("# [set_sentry_dsn]",
+                              f"os.environ['SENTRY_DSN'] = '{options.package.sentry}'")
+
+        zipfile.writestr("planet_explorer/pe_utils.py", txt)
 
 
 # noinspection PyShadowingNames

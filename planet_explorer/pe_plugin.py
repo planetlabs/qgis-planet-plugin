@@ -33,7 +33,6 @@ import configparser
 import analytics
 import sentry_sdk
 
-
 from qgis.core import (
     Qgis,
     QgsProject
@@ -146,7 +145,6 @@ PE = P_E.replace(' ', '')
 DOCK_SHOWN_STATE = 'dockShownState'
 
 PLUGIN_NAMESPACE = "planet_explorer"
-
 
 # noinspection PyUnresolvedReferences
 class PlanetExplorer(object):

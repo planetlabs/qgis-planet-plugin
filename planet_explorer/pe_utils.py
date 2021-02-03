@@ -159,6 +159,10 @@ PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
 PLANET_BASEMAP_LABEL = "planet/basemapLabel"
 WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
+
+# [set_segments_write_key]
+# [set_sentry_dsn]
+
 def sentry_dsn():
     return os.environ.get("SEGMENTS_WRITE_KEY")
 
