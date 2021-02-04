@@ -237,7 +237,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             self.searchSaved.emit(dlg.request_to_save)
 
     def sort_order(self):
-        order = ["published"]
+        order = ["acquired"]
         if self.btnSort.isChecked():
             order.append("asc")
         else:
@@ -291,7 +291,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             images = page.get().get(page.ITEM_KEY)
             for i, image in enumerate(images):
                 if self._passes_area_coverage_filter(image):
-                    sort_criteria = "published"
+                    sort_criteria = "acquired"
                     date_item, satellite_item = self._find_items_for_satellite(image)
                     date_widget = self.tree.itemWidget(date_item, 0)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
@@ -344,7 +344,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return True
 
     def _find_item_for_date(self, image):
-        sort_criteria = "published"
+        sort_criteria = "acquired"
         date = iso8601.parse_date(image[PROPERTIES][sort_criteria]).date()
         itemtype = image[PROPERTIES][ITEM_TYPE]
         count = self.tree.topLevelItemCount()
