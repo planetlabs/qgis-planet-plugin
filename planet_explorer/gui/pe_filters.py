@@ -1104,14 +1104,17 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if slider.filter_key == 'cloud_cover':
                 range_low /= 100.0
                 range_high /= 100.0
-            if range_low != slider.min and range_high != slider.max:
+                slider_max = 1.0
+            else:
+                slider_max = slider.max
+            if range_low != slider.min and range_high != slider_max:
                 slide_filter = range_filter(slider.filter_key,
                                             gte=range_low,
                                             lte=range_high)
             elif range_low != slider.min:
                 slide_filter = range_filter(slider.filter_key,
                                             gte=range_low)
-            elif range_high != slider.max:
+            elif range_high != slider_max:
                 slide_filter = range_filter(slider.filter_key,
                                             lte=range_high)
             if slide_filter:
