@@ -202,9 +202,9 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             grid = self.parse_utfgrid(data['grid'])
             links = data['keys']
             idx = self.read_val_at_pixel(grid, wgspoint.y(), wgspoint.x(), mosaic['level'])
-            url = links[idx]            
+            url = links[idx]
             try:
-                info = client._get(url).get_body().get()                
+                info = client._get(url).get_body().get()
                 item = SceneItem(info)
                 self.listScenes.addItem(item)
                 widget = SceneItemWidget(info)
@@ -349,7 +349,7 @@ class SceneItemWidget(QFrame):
         zoom_act = QAction('Zoom to extent', menu)
         zoom_act.triggered.connect(self.zoom_to_extent)
         menu.addAction(zoom_act)
-        open_act = QAction('Open in Explorer', menu)
+        open_act = QAction('Open in Search Panel', menu)
         open_act.triggered.connect(self.open_in_explorer)
         menu.addAction(open_act)
         menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
@@ -385,7 +385,7 @@ class SceneItemWidget(QFrame):
         transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(4326),
                                            canvasCrs,
                                            QgsProject.instance())
-        newrect = transform.transform(rect)        
+        newrect = transform.transform(rect)
         self.footprint.setToGeometry(QgsGeometry.fromRect(newrect))
 
     def hide_footprint(self):
