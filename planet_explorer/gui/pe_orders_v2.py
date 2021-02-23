@@ -166,6 +166,7 @@ class ImageItemWidget(QFrame):
         url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
 
         self.checkBox = QCheckBox("")
+        self.checkBox.setChecked(True)
         self.checkBox.stateChanged.connect(self.checked_state_changed.emit)
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
