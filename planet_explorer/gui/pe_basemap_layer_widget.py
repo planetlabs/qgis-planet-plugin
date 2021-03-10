@@ -185,7 +185,12 @@ class BasemapRenderingOptionsWidget(QFrame):
         self.datatype = datatype
         self.comboRamp.blockSignals(True)
         self.comboProc.clear()
-        self.comboProc.addItems(self.processes_for_datatype())
+        self.comboProc.addItem("default")
+        procs = self.processes_for_datatype()
+        if procs:
+            self.comboProc.addItems(procs)
+        self.labelProc.setVisible(self.can_use_indices())
+        self.comboProc.setVisible(self.can_use_indices())
         self.comboRamp.blockSignals(False)
         self.comboRamp.setVisible(self.can_use_indices())
         self.labelRamp.setVisible(self.can_use_indices())
@@ -238,7 +243,7 @@ class BasemapRenderingOptionsWidget(QFrame):
 
     def load_ramps(self):
         path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                        "resources", "mosaics_caps.json")
+                            "resources", "mosaics_caps.json")
         with open(path) as f:
             self.ramps = json.load(f)
 
@@ -253,12 +258,10 @@ class BasemapRenderingOptionsWidget(QFrame):
 
     def processes_for_datatype(self):
         if self.datatype == "uint16":
-            return  ["rgb", "cir", "ndvi", "mtvi2", "ndwi",
-                        "msavi2", "tgi", "vari"]
-        elif self.datatype == "byte":
-            return ["rgb", "tgi", "vari"]
+            return ["rgb", "cir", "ndvi", "mtvi2", "ndwi",
+                    "msavi2", "tgi", "vari"]
         else:
-            return ["rgb"]
+            return []
 
     def can_use_indices(self):
         return self.datatype == "uint16"
@@ -351,7 +354,7 @@ class BasemapLayerWidget(QWidget):
             tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
         proc = self.renderingOptionsWidget.process()
         ramp = self.renderingOptionsWidget.ramp()
-        procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
+        procparam = quote(f'&proc={proc}') if proc != "default" else ""
         rampparam = quote(f'&color={ramp}') if ramp else ""
         tokens = self.layer.source().split("&")
         zoom = []
