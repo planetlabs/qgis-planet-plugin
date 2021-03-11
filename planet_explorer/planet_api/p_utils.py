@@ -160,7 +160,7 @@ def geometry_from_request(request: Union[str, dict]) -> Optional[dict]:
         config = fltr.get('config', None)
 
     for conf in config:
-        if conf.get('field_name', None) == 'geometry':
+        if isinstance(conf, dict) and conf.get('field_name', None) == 'geometry':
             geom = conf.get('config', None)
             break
 

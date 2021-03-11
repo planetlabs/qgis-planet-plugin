@@ -1,7 +1,6 @@
 from .p_client import (
     PlanetClient,
     API_KEY_DEFAULT,
-    ITEM_GROUPS,
     LoginException,
 )
 from .p_specs import (
@@ -20,7 +19,6 @@ __all_ = [
     RESOURCE_MOSAIC_SERIES,
     RESOURCE_SINGLE_MOSAICS,
     RESOURCE_DAILY,
-    ITEM_GROUPS,
     DAILY_ITEM_TYPES,
     DAILY_ITEM_TYPES_DICT,
     MOSAIC_ITEM_TYPES,

@@ -37,24 +37,11 @@ from typing import (
     # Tuple,
 )
 
-try:
-    from .p_utils import (
-        json_str_or_obj_to_obj,
-    )
-    from .p_specs import (
-        ITEM_ASSET_DL_REGEX,
-        ITEM_TYPE_SPECS,
-    )
-except (ImportError, ModuleNotFoundError):
-    # noinspection PyUnresolvedReferences
-    from p_utils import (
-        json_str_or_obj_to_obj,
-    )
-    # noinspection PyUnresolvedReferences
-    from p_specs import (
-        ITEM_ASSET_DL_REGEX,
-        ITEM_TYPE_SPECS,
-    )
+from .p_specs import (
+    ITEM_ASSET_DL_REGEX,
+    ITEM_TYPE_SPECS,
+)
+
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)

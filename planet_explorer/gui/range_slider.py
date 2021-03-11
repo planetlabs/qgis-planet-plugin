@@ -225,8 +225,8 @@ class RangeSlider(QSlider):
 
         cur_brush = painter.brush()
         cur_pen = painter.pen()
-        painter.setBrush(QBrush(QColor(18, 141, 148)))
-        painter.setPen(Qt.NoPen)
+        #painter.setBrush(QBrush(QColor(18, 141, 148)))
+        #painter.setPen(Qt.NoPen)
         painter.drawRect(range_rect)
         painter.setBrush(cur_brush)
         painter.setPen(cur_pen)

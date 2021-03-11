@@ -45,8 +45,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>352</width>
-        <height>373</height>
+        <width>366</width>
+        <height>371</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -150,17 +150,17 @@
             </property>
             <property name="dateTime">
              <datetime>
-              <hour>6</hour>
+              <hour>23</hour>
               <minute>0</minute>
               <second>0</second>
-              <year>2000</year>
-              <month>1</month>
-              <day>1</day>
+              <year>1999</year>
+              <month>12</month>
+              <day>30</day>
              </datetime>
             </property>
             <property name="time">
              <time>
-              <hour>6</hour>
+              <hour>23</hour>
               <minute>0</minute>
               <second>0</second>
              </time>
@@ -218,22 +218,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="lblSortOrder">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(17, 141, 148);</string>
-         </property>
-         <property name="text">
-          <string>Sort order</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QFrame" name="frameSortOrder">
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
@@ -257,19 +241,6 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item>
-           <widget class="QComboBox" name="cmbBoxDateType"/>
-          </item>
-          <item>
-           <widget class="QComboBox" name="cmbBoxDateSort">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-           </widget>
-          </item>
           <item>
            <spacer name="horizontalSpacer_2">
             <property name="orientation">
@@ -343,6 +314,68 @@
         </widget>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QLabel" name="lblInstrumentFilter">
+           <property name="styleSheet">
+            <string notr="true">color: rgb(17, 141, 148);</string>
+           </property>
+           <property name="text">
+            <string>&lt;b&gt;Instrument filter&lt;/b&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="lblLearnMore">
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://developers.planet.com/docs/data/sensors/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn More&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="openExternalLinks">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <widget class="QCheckBox" name="chkPs2">
+           <property name="text">
+            <string>PS2</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chkPs2Sd">
+           <property name="text">
+            <string>PS2.SD</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chkPsbSd">
+           <property name="text">
+            <string>PSB.SD</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <widget class="QLabel" name="lblOnlyShow">
          <property name="font">
           <font>
@@ -396,15 +429,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QgsDateTimeEdit</class>
-   <extends>QDateTimeEdit</extends>
-   <header>qgsdatetimeedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>QgsScrollArea</class>
    <extends>QScrollArea</extends>
    <header location="global">qgis.gui</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QgsDateTimeEdit</class>
+   <extends>QDateTimeEdit</extends>
+   <header>qgsdatetimeedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

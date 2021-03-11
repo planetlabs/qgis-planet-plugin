@@ -23,11 +23,7 @@ __revision__ = '$Format:%H$'
 
 import os
 import logging
-import json
 import random
-
-# noinspection PyPackageRequirements
-from requests import post
 
 from typing import (
     Optional,
@@ -54,11 +50,8 @@ from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
 
-# from .p_models import
-from .p_specs import (
-    RESOURCE_SINGLE_MOSAICS,
-    RESOURCE_MOSAIC_SERIES,
-    RESOURCE_DAILY,
+from ..gui.pe_gui_utils import (
+    waitcursor
 )
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -67,22 +60,11 @@ log = logging.getLogger(__name__)
 
 API_KEY_DEFAULT = 'SKIP_ENVIRON'
 
-ITEM_GROUPS = [
-    {'display_name': 'Daily Imagery',
-     'filter_widget': None,
-     'resource_type': RESOURCE_DAILY},
-    {'display_name': 'Mosaic Series',
-     'filter_widget': None,
-     'resource_type': RESOURCE_MOSAIC_SERIES},
-    {'display_name': 'Single Mosaics',
-     'filter_widget': None,
-     'resource_type': RESOURCE_SINGLE_MOSAICS}
-]
-
 QUOTA_URL = 'https://api.planet.com/auth/v1/experimental' \
             '/public/my/subscriptions'
 
 TILE_SERVICE_URL = 'https://tiles{0}.planet.com/data/v1/layers'
+
 
 class LoginException(Exception):
     """Issues raised during client login"""
@@ -90,12 +72,10 @@ class LoginException(Exception):
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
-class PlanetClient(QObject):
+class PlanetClient(QObject, ClientV1):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
     a Qt object.
-
-    .. note:: This class should only use Python or Qt APIs.
     """
 
     loginChanged = pyqtSignal(bool)
@@ -109,32 +89,16 @@ class PlanetClient(QObject):
         PlanetClient.__instance.set_proxy_values()
         return PlanetClient.__instance
 
-    def __init__(self, parent=None,
-                 api_key=API_KEY_DEFAULT,
-                 area_km_func=None):
-
-        if PlanetClient.__instance != None:
+    def __init__(self):
+        if PlanetClient.__instance is not None:
             raise Exception("Singleton class")
-        """
-        :param api_key:
-        :param area_km_func: External function for calculating area of GeoJSON
-        geometry, with signature `func(geometry)`, where geometry can be either
-        a text or dict (from `json` module) GeoJSON geometry representation.
-        Passed geometry should be in EPSG:4326.
-        """
-        super(PlanetClient, self).__init__(parent=parent)
-        PlanetClient.__instance = self
 
+        QObject.__init__(self)
         # NOTE: We pass in API_KEY_DEFAULT to keep the API client from looking
         #       elsewhere on the system or within the environ
-        self.client_v1 = ClientV1(api_key=api_key)
-        # TODO: add client_v2 when available
+        ClientV1.__init__(self, api_key=API_KEY_DEFAULT)
 
-        # Generic client for swapping context relative to Planet item type
-        self.client = self.client_v1
-
-        # A Planet user
-        self.p_user = None
+        PlanetClient.__instance = self
 
         self._user_quota = {
             'enabled': False,
@@ -142,16 +106,10 @@ class PlanetClient(QObject):
             'used': 0.0,
         }
 
-        self._area_km_func = area_km_func
-
-        # if not callable(self._area_km_func):
-        #     log.info('No external geometry area calc function registered')
-        #     # TODO: Create/register internal func based upon `ogr` module
-
     def set_proxy_values(self):
         settings = QSettings()
         proxyEnabled = settings.value("proxy/proxyEnabled")
-        base_url = self.client.base_url.lower()
+        base_url = self.base_url.lower()
         excluded = False
         noProxyUrls = settings.value("proxy/noProxyUrls") or []
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
@@ -181,41 +139,32 @@ class PlanetClient(QObject):
                 tokens = url.split("://")
                 url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"
 
-            self.client.dispatcher.session.proxies["http"] = url
-            self.client.dispatcher.session.proxies["https"] = url
+            self.dispatcher.session.proxies["http"] = url
+            self.dispatcher.session.proxies["https"] = url
         else:
-            self.client.dispatcher.session.proxies = {}
+            self.dispatcher.session.proxies = {}
 
-    def _url(self, path):
-        if path.startswith('http'):
-            url = path
-        else:
-            url = self.client.base_url + path
-        return url
-
-    def api_client(self):
-        return self.client
-
+    @waitcursor
     def log_in(self, user, password, api_key=None):
         old_api_key = self.api_key()
 
         if api_key:
             # TODO: Sanitize?
-            self.client.auth = auth.APIKey(api_key)
+            self.auth = auth.APIKey(api_key)
         else:
             # Do login. Propogate captured errors to caller
             # TODO: swap with new auth endpoint?
             #       auth/v1/experimental/public/users/authenticate
 
             try:
-                res = self.client.login(user, password)
+                res = self.login(user, password)
             except (APIException, InvalidIdentity) as exc:
                 raise LoginException from exc
 
             if 'user_id' in res:
                 self.p_user = res
-                self.client.auth = auth.APIKey(self.p_user['api_key'])
-                # self.update_user_quota()
+                self.auth = auth.APIKey(self.p_user['api_key'])
+                self.update_user_quota()
             else:
                 raise LoginException()
 
@@ -226,7 +175,7 @@ class PlanetClient(QObject):
         old_api_key = self.api_key()
 
         # Do log out
-        self.client.auth = auth.APIKey(API_KEY_DEFAULT)
+        self.auth = auth.APIKey(API_KEY_DEFAULT)
         self.p_user = None
 
         if old_api_key != self.api_key():
@@ -236,187 +185,96 @@ class PlanetClient(QObject):
         return self.p_user
 
     def api_key(self):
-        if hasattr(self.client.auth, 'value'):
-            return self.client.auth.value
+        if hasattr(self.auth, 'value'):
+            return self.auth.value
         return None
 
-    def set_api_key(self, api_key):
-        self.client.auth = auth.APIKey(api_key)
-
     def has_api_key(self):
-        if hasattr(self.client.auth, 'value'):
-            return self.client.auth.value not in [None, '', API_KEY_DEFAULT]
+        if hasattr(self.auth, 'value'):
+            return self.auth.value not in [None, '', API_KEY_DEFAULT]
         return False
 
-    # def thumbnail_image(self, thumb_url=None, item_type=None, item_id=None):
-    #     url = thumb_url
-    #
-    #     if item_type is not None and item_id is not None:
-    #         if not self.has_api_key():
-    #             log.warning('No API key for thumbnail image download')
-    #             return QPixmap()
-    #         url = f'https://tiles.planet.com/data/v1/item-types/' \
-    #               f'{item_type}/items/{item_id}/thumb' \
-    #               f'?api_key={self.api_key()}'
-    #
-    #     if url is None:
-    #         log.warning('No valid URL for thumbnail image download')
-    #         return QPixmap()
-    #
-    #     dispatcher = self.client.dispatcher
-    #
-    #     # TODO: This should download the thumb instead, to cache on disk
-    #     #       and to allow generation of thumb.pgw world files
-    #     # TODO: Try/catch requests errors
-    #     result = dispatcher.dispatch_request(method="GET", url=url)
-    #     # TODO: This blocks, needs ...
-    #     #       result.get_body_async(callback)
-    #     #       and the callback func/method
-    #     # TODO: This *should* use QgsNetworkContentFetcherRegistry, but this
-    #     #       class should not include qgis modules. Maybe test to see if
-    #     #       qgis.core has been imported globally, then conditionally use?
-    #     image_data = result.content
-    #
-    #     qp = QPixmap()
-    #     qp.loadFromData(image_data)
-    #
-    #     # Previously returned QImage, but QPixmap is a better base UI image
-    #     return qp
+    def has_access_to_mosaics(self):
+        url = self._url('basemaps/v1/mosaics')
+        params = {'_page_size': 1}
+        response = self._get(url, api_models.Mosaics, params=params).get_body().get()
+        return len(response) > 0
 
-    def quick_search(self, request, callback=None, **kwargs):
-        """
-        Note: Duplicated from `planet.api.client.ClientV1.quick_search` so
-        that async requests can be supported.
-
-        IMPORTANT: Unlike `ClientV1.quick_search`, this returns just the
-        `planet.api.models.Response`. For non-async calls, you will need to
-        use my_response.get_body() for the `planet.api.models.Items` body.
-
-        Execute a quick search with the specified request.
-
-        :param request: see :ref:`api-search-request`
-        :param callback: Optional callback for when async requests finish
-        :param kwargs: See Options below
-        :returns: :py:class:`planet.api.models.Response`
-        :raises planet.api.exceptions.APIException: On API error.
-
-        :Options:
-
-        * page_size (int): Size of response pages
-        * sort (string): Sorting order in the form `field (asc|desc)`
-
-        """
-        def qs_params(kw):
-            _params = {}
-            if 'page_size' in kw:
-                _params['_page_size'] = kw['page_size']
-            if 'sort' in kw and kw['sort']:
-                _params['_sort'] = ''.join(kw['sort'])
-            return _params
-
-        body = json.dumps(request)
-        params = qs_params(kwargs)
-        response = self.client.dispatcher.response(
-            api_models.Request(
-                self._url('data/v1/quick-search'),
-                self.client.auth,
-                params=params,
-                body_type=api_models.Items,
-                data=body,
-                method='POST'
-            )
-        )
-        if callback:
-            response.get_body_async(callback)
-
-        return response
-
-    # noinspection PyUnusedLocal
-    def create_order(self, request, callback=None, **kwargs):
-        """Create an order.
-
-        :param request: see :ref:`api-search-request`
-        :param callback: Optional callback for when async requests finish
-        :returns: :py:Class:`planet.api.models.Orders` containing a
-                  :py:Class:`planet.api.models.Body` of the order response.
-        :raises planet.api.exceptions.APIException: On API error.
-        """
-        url = self._url('compute/ops/orders/v2')
-        body = json.dumps(request)
-        response = self.client.dispatcher.response(
-            api_models.Request(
-                url, self.client.auth,
-                body_type=api_models.Order,
-                data=body,
-                method='POST'
-            )
-        )
-
-        if callback:
-            response.get_body_async(callback)
-            return response
-        else:
-            return response.get_body()
-
-    def list_mosaic_series(self):
+    def list_mosaic_series(self, name_contains=None):
         '''List all available mosaic series
         :returns: :py:Class:`planet.api.models.JSON`
         '''
+        params = {}
+        if name_contains:
+            params['name__contains'] = name_contains
         url = self._url('basemaps/v1/series/')
-        response = self.client.dispatcher.response(
-            api_models.Request(
-                url, self.client.auth,
-                body_type=api_models.JSON,
-            )
-        )
-        return response.get_body()
+        return self._get(url, api_models.Mosaics, params=params).get_body()
 
+    @waitcursor
     def get_mosaics(self, name_contains=None):
-        '''List all available mosaic series
+        '''List all available mosaics
         :returns: :py:Class:`planet.api.models.JSON`
         '''
-        params = {"v":"1.5"}
+        params = {"v":"1.5", "_page_size": 10000}
         if name_contains:
             params['name__contains'] = name_contains
         url = self._url('basemaps/v1/mosaics')
-        response = self.client.dispatcher.response(
-            api_models.Request(
-                url, self.client.auth,
-                body_type=api_models.Mosaics,
-                params=params,
-            )
-        )
-        return response.get_body()
+        return self._get(url, api_models.Mosaics, params=params).get_body()
 
     def get_mosaics_for_series(self, series_id):
-        '''List all available mosaics for a given series
+        url = self._url('basemaps/v1/series/{}/mosaics?v=1.5'.format(series_id))
+        return self._get(url, api_models.Mosaics).get_body()
+
+    def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
+        '''List all available quad for a given mosaic
         :returns: :py:Class:`planet.api.models.JSON`
         '''
-        url = self._url('basemaps/v1/series/{}/mosaics?v=1.5'.format(series_id))
-        response = self.client.dispatcher.response(
-            api_models.Request(
-                url, self.client.auth,
-                body_type=api_models.Mosaics
-            )
-        )
-        return response.get_body()
+        if isinstance(mosaic, str):
+            mosaicid = mosaic
+        else:
+            mosaicid = mosaic["id"]
 
-    def register_area_km_func(self, func):
-        self._area_km_func = func
+        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads?bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}')
+        if bbox is None:
+            if isinstance(mosaic, str):
+                bbox = [-180, -85, 180, 85]
+            else:
+                bbox = mosaic['bbox']
+        bbox = (max(-180, bbox[0]), max(-85, bbox[1]),
+                min(180, bbox[2]), min(85, bbox[3]))
+        url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
+        if minimal:
+            url += "&minimal=true"
+        return self._get(url, api_models.MosaicQuads).get_body()
 
-    def area_calc_func_registered(self):
-        return callable(self._area_km_func)
+    def get_one_quad(self, mosaic):
+        url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
+        params = {"_page_size":1,
+                    "bbox": ",".join(str(v) for v in mosaic['bbox'])}
+        response = self._get(url, api_models.MosaicQuads, params=params)
+        quad = response.get_body().get().get("items")[0]
+        return quad
 
-    def area_km_from_geometry(self, geometry):
-        """
-        :param geometry: JSON geometry (as string or `json` object)
-        :rtype geometry: str | dict
-        :return:
-        """
-        if not self.area_calc_func_registered():
-            log.warning('No geometry area calc function registered')
-            return None
-        return self._area_km_func(geometry)
+    def get_items_for_quad(self, mosaicid, quadid):
+        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items')
+        response = self._get(url, api_models.JSON)
+        item_descriptions = []
+        items = response.get_body().get().get("items")
+        for item in items:
+            if item['link'].startswith("https://api.planet.com"):
+                response = self._get(item["link"], api_models.JSON)
+                item_descriptions.append(response.get_body().get())
+
+        return item_descriptions
+
+    def create_order(self, request):
+        api_key = PlanetClient.getInstance().api_key()
+        url = self._url('compute/ops/orders/v2')
+        headers = {"X-Planet-App": "qgis"}
+        session = PlanetClient.getInstance().dispatcher.session
+        res = session.post(url, auth=(api_key, ''), json=request,
+                           headers=headers)
+        return res.json()
 
     @pyqtSlot(result=bool)
     def update_user_quota(self):
@@ -469,13 +327,13 @@ class PlanetClient(QObject):
 
         # TODO: Catch errors
         # TODO: Switch to async call
-        # response = self.client.dispatcher.dispatch_request(
-        #     method="GET", url=QUOTA_URL, auth=self.client.auth)
+        # response = self.dispatcher.dispatch_request(
+        #     method="GET", url=QUOTA_URL, auth=self.auth)
 
-        resp: api_models.JSON = self.client.dispatcher.response(
+        resp: api_models.JSON = self.dispatcher.response(
             api_models.Request(
                 QUOTA_URL,
-                auth=self.client.auth,
+                auth=self.auth,
                 body_type=api_models.JSON,
                 method='GET')
         ).get_body()
@@ -531,31 +389,26 @@ class PlanetClient(QObject):
         :type geometries: list[str|dict]
         :rtype: bool
         """
-        if not self.area_calc_func_registered():
-            log.warning('No geometry area calc function registered')
-            return False
 
         area_total = 0.0
         quota_remaining = self.user_quota_remaining()
 
-        if not quota:
+        if quota_remaining is None:
             return False
 
-        for geometry in geometries:
-            area_total += float(self.area_km_from_geometry(geometry))
+        area_total = self.area_km_from_geometry(geometries)
 
         return area_total >= quota_remaining
 
 
-def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
+def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
     """
     :param item_type_ids: List of item Type:IDs
     :param api_key: API key string
     :return: Tile service hash that can be used in tile URLs
     """
-    if not api_key:
-        log.debug('No API key, skipping tile hash')
-        return None
+
+    api_key = PlanetClient.getInstance().api_key()
 
     if not item_type_ids:
         log.debug('No item type:ids passed, skipping tile hash')
@@ -566,7 +419,7 @@ def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
 
     tile_url = TILE_SERVICE_URL.format('')
 
-    session = PlanetClient.getInstance().client.dispatcher.session
+    session = PlanetClient.getInstance().dispatcher.session
     res = session.post(tile_url, auth=(api_key, ''), data=data)
     if res.ok:
         res_json = res.json()
@@ -582,7 +435,6 @@ def tile_service_hash(item_type_ids: List[str], api_key: str) -> Optional[str]:
 
 def tile_service_url(
         item_type_ids: List[str],
-        api_key: str,
         tile_hash: Optional[str] = None,
         service: str = 'xyz') -> Optional[str]:
     """
@@ -592,15 +444,13 @@ def tile_service_url(
     :param service: Either 'xyz' or 'wmts'
     :return: Tile service URL
     """
-    if not api_key:
-        log.debug('No API key, skipping tile URL')
-        return None
+    api_key = PlanetClient.getInstance().api_key()
 
     if not tile_hash:
         if not item_type_ids:
             log.debug('No item type:ids passed, skipping tile URL')
             return None
-        tile_hash = tile_service_hash(item_type_ids, api_key)
+        tile_hash = tile_service_hash(item_type_ids)
 
     if not tile_hash:
         log.debug('No tile URL hash passed, skipping tile URL')
@@ -617,30 +467,3 @@ def tile_service_url(
             f'api_key={api_key}'
 
     return url
-
-if __name__ == "__main__":
-    import sys
-    from qgis.PyQt.QtWidgets import (
-        QApplication,
-    )
-
-    plugin_path = os.path.split(os.path.dirname(__file__))[0]
-    print(plugin_path)
-    sys.path.insert(0, plugin_path)
-
-    from ..pe_utils import (
-        area_from_geojsons,
-    )
-
-    app = QApplication(sys.argv)
-
-    apikey = os.getenv('PL_API_KEY')
-
-    # Init api client
-    p_client = PlanetClient(
-        api_key=apikey, area_km_func=area_from_geojsons,)
-    # noinspection PyUnresolvedReferences
-    # p_client.loginChanged[bool].connect(self.login_changed)
-    # p_client.update_user_quota()
-
-    sys.exit(app.exec_())

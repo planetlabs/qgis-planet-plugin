@@ -36,6 +36,7 @@ from qgis.PyQt.QtGui import (
 from qgis.PyQt.QtWidgets import (
     QLabel,
     QToolTip,
+    QApplication
 )
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -77,3 +78,16 @@ class PlanetClickableLabel(QLabel):
             event.accept()
 
         return QLabel.event(self, event)
+
+
+def waitcursor(method):
+    def func(*args, **kw):
+        try:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            return method(*args, **kw)
+        except Exception as ex:
+            raise ex
+        finally:
+            QApplication.restoreOverrideCursor()
+
+    return func
