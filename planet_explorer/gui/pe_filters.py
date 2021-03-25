@@ -25,7 +25,6 @@ import os
 import json
 import logging
 import re
-from math import floor
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
@@ -43,10 +42,10 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QLineEdit,
     QFrame,
-    QGridLayout,
     QComboBox,
     QMenu,
     QAction,
+    QMessageBox
 )
 
 from qgis.core import (
@@ -82,10 +81,6 @@ from planet.api.filters import (
 )
 
 from planet.api.utils import geometry_from_json
-
-from ..planet_api.p_specs import (
-    DAILY_ITEM_TYPES
-)
 
 from ..pe_utils import (
     qgsgeometry_from_geojson,
@@ -263,6 +258,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     def populate_saved_searches(self, is_logged):
         if is_logged:
+            self.comboSavedSearch.clear()
             self.comboSavedSearch.blockSignals(True)
             self.comboSavedSearch.addItem("[Select a Saved Search]")
             res = self.p_client.get_searches().get()
@@ -879,30 +875,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.emitFiltersChanged = True
 
-        # Set up sources (in 2 columns; layout is grid)
-        checked = ['PSScene4Band']
-        row_total = floor(len(DAILY_ITEM_TYPES) / 2)
-        row = col = 0
-        gl = QGridLayout(self.frameSources)
-        gl.setContentsMargins(0, 0, 0, 0)
-        for a, b in DAILY_ITEM_TYPES:
-            # Strip ' Scene' to reduce horizontal width of 2-column layout, except for SkySat
-            name = b.replace(' Scene', '') if b != "SkySat Scene" else b
-            cb = QCheckBox(name, parent=self.frameSources)
-            cb.setChecked(a in checked)
-            cb.setProperty('api-name', a)
-            cb.setToolTip(b)
-            # noinspection PyUnresolvedReferences
-            cb.stateChanged[int].connect(self.filtersChanged)
-            gl.addWidget(cb, row, col)
-            row += 1
-            if row > row_total:
-                row = 0
-                col += 1
-
-        self.frameSources.setLayout(gl)
-
-        # TODO: (Eventually) Add multi-date range widget with and/or selector
+        sources = self.frameSources.findChildren(QCheckBox)
+        for source in sources:
+            apiname = source.property('api-name')
+            if apiname is not None:
+                source.stateChanged.connect(self.filtersChanged)
 
         # noinspection PyUnresolvedReferences
         self.startDateEdit.valueChanged['QDateTime'].connect(
@@ -1084,7 +1061,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
             if source.isChecked():
-                checked_sources.append(source.property('api-name'))
+                apiname = source.property('api-name')
+                if apiname is not None:
+                    checked_sources.append(apiname)
         return checked_sources
 
     def set_min_enddate(self):
