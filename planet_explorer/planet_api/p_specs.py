@@ -54,8 +54,8 @@ THUMB_GEOREF_FIELDS_IMAGE = [
 ]
 
 ITEM_TYPE_SPECS = {
-    'PSScene4Band': {
-        'name': 'PlanetScope 4-band Scene',
+    'PSScene': {
+        'name': 'PlanetScope',
         'thumb_georef_fields': THUMB_GEOREF_FIELDS_IMAGE,
         'properties': {
             'acquired': 'datetime',
@@ -94,39 +94,6 @@ ITEM_TYPE_SPECS = {
             '2': 'Green',
             '3': 'Blue',
             '4': 'Near-infrared',
-        },
-    },
-    'PSScene3Band': {
-        'name': 'PlanetScope 3-band Scene',
-        'thumb_georef_fields': THUMB_GEOREF_FIELDS_IMAGE,
-        'properties': {
-            'acquired': 'datetime',
-            'anomalous_pixels': 'float',
-            'cloud_cover': 'float',
-            'columns': 'int',
-            'epsg_code': 'int',
-            'ground_control': 'bool',
-            'gsd': 'float',
-            'instrument': 'str',
-            'item_type': 'str',
-            'origin_x': 'float',
-            'origin_y': 'float',
-            'pixel_resolution': 'float',
-            'provider': 'str',
-            'published': 'datetime',
-            'quality_category': 'str',
-            'rows': 'int',
-            'satellite_id': 'str',
-            'strip_id': 'str',
-            'sun_azimuth': 'float',
-            'sun_elevation': 'float',
-            'updated': 'datetime',
-            'view_angle': 'float',
-        },
-        'bands': {
-            '1': 'Red',
-            '2': 'Green',
-            '3': 'Blue',
         },
     },
     'REOrthoTile': {

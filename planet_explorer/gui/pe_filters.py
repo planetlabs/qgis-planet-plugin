@@ -25,7 +25,6 @@ import os
 import json
 import logging
 import re
-from math import floor
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
@@ -43,10 +42,10 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QLineEdit,
     QFrame,
-    QGridLayout,
     QComboBox,
     QMenu,
     QAction,
+    QMessageBox
 )
 
 from qgis.core import (
@@ -81,10 +80,6 @@ from planet.api.filters import (
 )
 
 from planet.api.utils import geometry_from_json
-
-from ..planet_api.p_specs import (
-    DAILY_ITEM_TYPES
-)
 
 from ..pe_utils import (
     qgsgeometry_from_geojson,
@@ -261,6 +256,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     def populate_saved_searches(self, is_logged):
         if is_logged:
+            self.comboSavedSearch.clear()
             self.comboSavedSearch.blockSignals(True)
             self.comboSavedSearch.addItem("[Select a Saved Search]")
             res = self.p_client.get_searches().get()
@@ -278,6 +274,19 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         if idx == 0:
             return
         request = self.comboSavedSearch.currentData()
+        sources = request['item_types']
+        if 'PSScene3Band' in sources or 'PSScene4Band' in sources:
+            item_types = ["PSScene" if typ in ["PSScene3Band", "PSScene4Band"]
+                          else typ for typ in request['item_types']]
+            request['item_types'] = item_types
+            self.comboSavedSearch.setItemData(idx, request)
+            ret = QMessageBox.question(self, "Saved Search Conversion",
+                                       'This search was saved using an older format and it will be converted.\n'
+                                       'Do you also want to update the search request in the server?',
+                                      )
+            if ret == QMessageBox.Yes:
+                pass # PlanetClient.getInstance().update_search(request['name'], request)
+
         self.savedSearchSelected.emit(request)
 
     def null_out_saved_search(self):
@@ -838,30 +847,20 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.emitFiltersChanged = True
 
-        # Set up sources (in 2 columns; layout is grid)
-        checked = ['PSScene4Band']
-        row_total = floor(len(DAILY_ITEM_TYPES) / 2)
-        row = col = 0
-        gl = QGridLayout(self.frameSources)
-        gl.setContentsMargins(0, 0, 0, 0)
-        for a, b in DAILY_ITEM_TYPES:
-            # Strip ' Scene' to reduce horizontal width of 2-column layout, except for SkySat
-            name = b.replace(' Scene', '') if b != "SkySat Scene" else b
-            cb = QCheckBox(name, parent=self.frameSources)
-            cb.setChecked(a in checked)
-            cb.setProperty('api-name', a)
-            cb.setToolTip(b)
-            # noinspection PyUnresolvedReferences
-            cb.stateChanged[int].connect(self.filtersChanged)
-            gl.addWidget(cb, row, col)
-            row += 1
-            if row > row_total:
-                row = 0
-                col += 1
+        self.chkPlanetScope.stateChanged.connect(self._planet_scope_check_changed)
+        self.chkOrthotiles.stateChanged.connect(self._orthotiles_check_changed)
+        self.chkPlanetScopeOrtho.stateChanged.connect(self._update_orthotiles_check)
+        self.chkPlanetScope5BandsOrtho.stateChanged.connect(self._update_orthotiles_check)
+        self.chkRapidEyeOrtho.stateChanged.connect(self._update_orthotiles_check)
 
-        self.frameSources.setLayout(gl)
+        self.chkPlanetScope5BandsOrtho.setVisible(False)
+        self.chkRapidEyeBasic.setVisible(False)
 
-        # TODO: (Eventually) Add multi-date range widget with and/or selector
+        sources = self.frameSources.findChildren(QCheckBox)
+        for source in sources:
+            apiname = source.property('api-name')
+            if apiname is not None:
+                source.stateChanged.connect(self.filtersChanged)
 
         # noinspection PyUnresolvedReferences
         self.startDateEdit.valueChanged['QDateTime'].connect(
@@ -1038,12 +1037,50 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         # noinspection PyUnresolvedReferences
         self.chkBxCanDownload.stateChanged[int].connect(self.filters_changed)
 
+    def _update_orthotiles_check(self):
+        sources = [self.chkPlanetScopeOrtho,
+                   self.chkPlanetScope5BandsOrtho,
+                   self.chkRapidEyeOrtho]
+        nchecked = sum([1 if s.isChecked() else 0 for s in sources])
+        self.chkOrthotiles.blockSignals(True)
+        if nchecked == 0:
+            self.chkOrthotiles.setCheckState(Qt.Unchecked)
+        elif nchecked == len(sources):
+            self.chkOrthotiles.setCheckState(Qt.Checked)
+        else:
+            self.chkOrthotiles.setCheckState(Qt.PartiallyChecked)
+        self.chkOrthotiles.blockSignals(False)
+
+    def _orthotiles_check_changed(self):
+        sources = [self.chkPlanetScopeOrtho,
+                   self.chkPlanetScope5BandsOrtho,
+                   self.chkRapidEyeOrtho]
+        if self.chkOrthotiles.checkState() == Qt.Unchecked:
+            for s in sources:
+                s.blockSignals(True)
+                s.setChecked(False)
+                s.blockSignals(False)
+        elif self.chkOrthotiles.checkState() == Qt.Checked:
+            for s in sources:
+                s.blockSignals(True)
+                s.setChecked(True)
+                s.blockSignals(False)
+        else:
+            self.chkOrthotiles.setCheckState(Qt.Checked)
+
+    def _planet_scope_check_changed(self):
+        radio_boxes = [self.radio3Bands, self.radio4Bands, self.radio8Bands]
+        for radio in radio_boxes:
+            radio.setEnabled(self.chkPlanetScope.isChecked())
+
     def sources(self):
         checked_sources = []
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
             if source.isChecked():
-                checked_sources.append(source.property('api-name'))
+                apiname = source.property('api-name')
+                if apiname is not None:
+                    checked_sources.append(apiname)
         return checked_sources
 
     def set_min_enddate(self):
