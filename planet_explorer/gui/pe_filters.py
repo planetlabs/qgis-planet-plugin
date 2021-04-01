@@ -285,7 +285,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
                                        'Do you also want to update the search request in the server?',
                                       )
             if ret == QMessageBox.Yes:
-                pass # PlanetClient.getInstance().update_search(request['name'], request)
+                PlanetClient.getInstance().update_search(request)
 
         self.savedSearchSelected.emit(request)
 
@@ -850,11 +850,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.chkPlanetScope.stateChanged.connect(self._planet_scope_check_changed)
         self.chkOrthotiles.stateChanged.connect(self._orthotiles_check_changed)
         self.chkPlanetScopeOrtho.stateChanged.connect(self._update_orthotiles_check)
-        self.chkPlanetScope5BandsOrtho.stateChanged.connect(self._update_orthotiles_check)
         self.chkRapidEyeOrtho.stateChanged.connect(self._update_orthotiles_check)
-
-        self.chkPlanetScope5BandsOrtho.setVisible(False)
-        self.chkRapidEyeBasic.setVisible(False)
 
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
@@ -1039,7 +1035,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
     def _update_orthotiles_check(self):
         sources = [self.chkPlanetScopeOrtho,
-                   self.chkPlanetScope5BandsOrtho,
                    self.chkRapidEyeOrtho]
         nchecked = sum([1 if s.isChecked() else 0 for s in sources])
         self.chkOrthotiles.blockSignals(True)
@@ -1053,7 +1048,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
     def _orthotiles_check_changed(self):
         sources = [self.chkPlanetScopeOrtho,
-                   self.chkPlanetScope5BandsOrtho,
                    self.chkRapidEyeOrtho]
         if self.chkOrthotiles.checkState() == Qt.Unchecked:
             for s in sources:

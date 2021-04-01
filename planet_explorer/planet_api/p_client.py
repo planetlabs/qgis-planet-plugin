@@ -24,6 +24,7 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 import random
+import json
 
 from typing import (
     Optional,
@@ -275,6 +276,19 @@ class PlanetClient(QObject, ClientV1):
         res = session.post(url, auth=(api_key, ''), json=request,
                            headers=headers)
         return res.json()
+
+    def create_search(self, request):
+        '''Updates a saved search from the specified request.
+        The request must contain a ``name`` property.
+
+        :param request: see :ref:`api-search-request`
+        :returns: :py:class:`planet.api.models.JSON`
+        :raises planet.api.exceptions.APIException: On API error.
+        '''
+        body = json.dumps(request)
+        return self.dispatcher.response(api_models.Request(
+            self._url('data/v1/searches/'), self.auth,
+            body_type=api_models.JSON, data=body, method='PUT')).get_body()
 
     @pyqtSlot(result=bool)
     def update_user_quota(self):
