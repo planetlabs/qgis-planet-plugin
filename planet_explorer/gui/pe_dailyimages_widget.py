@@ -61,7 +61,7 @@ from ..planet_api import (
     PlanetClient
 )
 
-from .pe_orders_v2 import (
+from .pe_orders import (
     PlanetOrdersDialog
 )
 
@@ -290,9 +290,9 @@ class DailyImagesWidget(BASE, WIDGET):
     def order_checked(self):
         log.debug('Order initiated')
 
-        selected = self.searchResultsWidget.selected_images()
+        images = self.searchResultsWidget.selected_images()
 
-        if not selected:
+        if not images:
             self.parent.show_message(f'No checked items to order',
                               level=Qgis.Warning,
                               duration=10)
@@ -304,11 +304,11 @@ class DailyImagesWidget(BASE, WIDGET):
         else:
             tool_resources['aoi'] = None
 
+        thumbnails = self.searchResultsWidget.selected_thumbnails()
         dlg = PlanetOrdersDialog(
-            selected,
-            self.searchResultsWidget.sort_order()[0],
-            tool_resources=tool_resources,
-            parent=self
+            images,
+            thumbnails,
+            tool_resources=tool_resources
         )
 
         dlg.setMinimumWidth(700)
