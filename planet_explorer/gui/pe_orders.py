@@ -113,6 +113,7 @@ UDM_ICON = resource_file("udm.svg")
 FILETYPE_ICON = resource_file("filetype.svg")
 NITEMS_ICON = resource_file("nitems.svg")
 SATELLITE_ICON = resource_file("satellite.svg")
+CLIP_ICON = resource_file("crop.svg")
 
 
 class IconLabel(QWidget):
@@ -359,7 +360,8 @@ class PlanetOrderReviewWidget(QWidget):
                  item_type,
                  asset_type,
                  images,
-                 thumbnails
+                 thumbnails,
+                 add_clip
                  ):
         super().__init__()
 
@@ -367,20 +369,21 @@ class PlanetOrderReviewWidget(QWidget):
         self.asset_type = asset_type
         self.images = images
         self.thumbnails = thumbnails
+        self.add_clip = add_clip
 
-        labelName = IconLabel(f"<b>{item_type} - {asset_type}</b>", SATELLITE_ICON)
-        labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
-        hlayout = QHBoxLayout()
-        hlayout.setMargin(0)
-        hlayout.addWidget(labelNumItems)
-        hlayout.addStretch()
-        self.btnDetails = QPushButton("Show images")
-        self.btnDetails.clicked.connect(self._btnDetailsClicked)
-        hlayout.addWidget(self.btnDetails)
         layout = QVBoxLayout()
         layout.setMargin(0)
-        layout.addLayout(hlayout)
-        layout.addWidget(labelName)
+        labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {asset_type}</b>",
+                              SATELLITE_ICON)
+        labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
+        gridlayout = QGridLayout()
+        gridlayout.setMargin(0)
+        gridlayout.addWidget(labelNumItems, 0, 0)
+        self.btnDetails = QPushButton("Show images")
+        self.btnDetails.clicked.connect(self._btnDetailsClicked)
+        gridlayout.addWidget(self.btnDetails, 0, 2)
+        gridlayout.addWidget(labelName, 1, 0, 1, 3)
+        layout.addLayout(gridlayout)
         self.widgetDetails = QWidget()
         layout.addWidget(self.widgetDetails)
         line = QFrame()
@@ -393,25 +396,45 @@ class PlanetOrderReviewWidget(QWidget):
         self.widgetDetails.hide()
         self.updateGeometry()
 
-        self.populate_images()
+        self.populate_details()
 
-    def populate_images(self):
+    def populate_details(self):
         self.imgWidgets = []
         layout = QGridLayout()
+        layout.setMargin(0)
+        layout.setVerticalSpacing(15)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(2, 1)
+        if self.add_clip:
+            layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
+            layout.addWidget(QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter)
+            self.chkClip = QCheckBox("Clip items to AOI")
+            self.chkClip.stateChanged.connect(self.checkStateChanged)
+            layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
+        layout.addWidget(QLabel("<b>Review Items</b>"), 3, 1, Qt.AlignCenter)
+        layout.addWidget(QLabel("We recommend deselecting items that appear to have no pixels"), 4, 1, Qt.AlignCenter)
+
+        sublayout = QGridLayout()
+        sublayout.setMargin(0)
         for i, thumb in enumerate(self.thumbnails):
             w = ImageReviewWidget(self.images[i], thumb)
             w.selectedChanged.connect(self.selectedImagesChanged.emit)
             row = i // 4
             col = i % 4 + 1
-            layout.addWidget(w, row, col)
+            sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(5, 1)
+        layout.addLayout(sublayout, 5, 1, Qt.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
+    def checkStateChanged(self):
+        self.selectedImagesChanged.emit()
+
     def selected_images(self):
         return [w.image for w in self.imgWidgets if w.selected()]
+
+    def clipping(self):
+        return self.chkClip.isChecked()
 
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
@@ -432,7 +455,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.setMargin(0)
-        layout.addWidget(QLabel(f"<h3>{summary['type']}</h3>"))
+        layout.addWidget(QLabel(f"<h3>{ITEM_TYPE_SPECS[summary['type']]['name']}</h3>"))
         for asset in summary["assets"]:
             frame = QFrame()
             framelayout = QVBoxLayout()
@@ -445,6 +468,9 @@ class PlanetOrderSummaryOrderWidget(QWidget):
             if asset["udm"]:
                 udmLabel = IconLabel("UDM2", UDM_ICON)
                 hlayout.addWidget(udmLabel)
+            if asset["clipping"]:
+                clipLabel = IconLabel("", CLIP_ICON)
+                hlayout.addWidget(clipLabel)
             hlayout.addStretch()
             framelayout.addLayout(hlayout)
             frame.setLayout(framelayout)
@@ -476,10 +502,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
         self.btnContinueName.clicked.connect(self._btnContinueNameClicked)
         self.btnContinueAssets.clicked.connect(self._btnContinueAssetsClicked)
+        self.btnBackReview.clicked.connect(self._btnBackReviewClicked)
+        self.btnBackAssets.clicked.connect(self._btnBackAssetsClicked)
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
@@ -518,6 +545,12 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.selectionChanged()
 
+    def _btnBackReviewClicked(self):
+        self.stackedWidget.setCurrentIndex(1)
+
+    def _btnBackAssetsClicked(self):
+        self.stackedWidget.setCurrentIndex(0)
+
     def _btnContinueNameClicked(self):
         self.stackedWidget.setCurrentIndex(1)
 
@@ -550,16 +583,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
     @pyqtSlot()
     def _btnPlaceOrderClicked(self):
-        log.debug('Placing orders...')
-        orders = OrderedDict()
-        for i_type in ITEM_TYPE_SPECS:
-            if i_type in self._item_type_widgets:
-                orders[i_type] = self._item_type_widgets[i_type].get_order()
-
         self.stackedWidget.setEnabled(False)
         self.btnPlaceOrder.setEnabled(False)
 
-        self._process_orders(orders)
+        self._process_orders()
 
     def selectionChanged(self):
         self.update_review_items()
@@ -575,7 +602,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             images = widget.images
             thumbnails = widget.thumbnails
             for asset in assets:
-                w = PlanetOrderReviewWidget(item_type, asset["name"], images, thumbnails)
+                w = PlanetOrderReviewWidget(item_type, asset["name"], images,
+                                            thumbnails, self.tool_resources["aoi"] is not None)
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)
@@ -583,10 +611,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         scrollWidget.setLayout(layout)
         self.scrollAreaReview.setWidget(scrollWidget)
 
-    def images_for_asset(self, item_type, asset_type):
+    def _review_widget_for_asset(self, item_type, asset_type):
         for w in self._order_review_widgets:
             if w.item_type == item_type and w.asset_type == asset_type:
-                return w.selected_images()
+                return w
 
     def update_summary_items(self):
         layout = self.widgetSummaryItems.layout()
@@ -601,8 +629,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             summary["type"] = item_type
             summary["assets"] = widget.assets()
             for asset in summary["assets"]:
-                images = self.images_for_asset(item_type, asset["name"])
+                w = self._review_widget_for_asset(item_type, asset["name"])
+                images = w.selected_images()
                 asset["numitems"] = len(images)
+                asset["clipping"] = w.clipping()
                 norders += 1
             w = PlanetOrderSummaryOrderWidget(summary)
             layout.addWidget(w)
@@ -611,58 +641,47 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelNumberOfOrders.setText(f"{norders}")
 
     @waitcursor
-    def _process_orders(self, item_orders):
-        name = str(self.leName.text())
-        orders = OrderedDict()
-        for io_k, io_v in item_orders.items():
-            if not bool(io_v['valid']):
-                self._log(f'Skipping item order {io_k} (not valid)')
-                continue
+    def _process_orders(self):
+        name = self.txtOrderName.text()
 
-            # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
-            #            their order in Explorer web app
-            order = OrderedDict()  # necessary to maintain toolchain order
-            order['name'] = f'{name.replace(" ", "_")}_{io_k}'
-            order['order_type'] = 'partial'
-            order['products'] = [
-                    {
-                        'item_ids': io_v['item_ids'],
-                        'item_type': io_k,
-                        'product_bundle': io_v['bundle_name']
-                    }
-                ]
-            order['delivery'] = {
-                    'archive_filename': '{{name}}_QGIS.zip',
-                    'archive_type': 'zip',
-                    'single_archive': True,
-                }
-            order['notifications'] = {
-                    'email': True
-                }
-
-            if io_v['tools']:
-                order['tools'] = []
-
-            for tool in io_v['tools']:
-                if tool == 'clip':
-                    if self._tool_resources['aoi'] is None:
-                        self._log('Clip tool is missing AOI, skipping')
-                        continue
-                    order['tools'].append(
+        orders = []
+        for item_type, widget in self._item_type_widgets.items():
+            for asset in widget.assets():
+                w = self._review_widget_for_asset(item_type, asset["name"])
+                images = w.selected_images()
+                ids = [img["id"] for img in images]
+                # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
+                #            their order in Explorer web app
+                order = OrderedDict()  # necessary to maintain toolchain order
+                order['name'] = f'{name.replace(" ", "_")}_{item_type}'
+                order['order_type'] = 'partial'
+                order['products'] = [
                         {
+                            'item_ids': ids,
+                            'item_type': item_type,
+                        }
+                    ]
+                order['delivery'] = {
+                        'archive_filename': f'{name}_QGIS.zip',
+                        'archive_type': 'zip',
+                        'single_archive': True,
+                    }
+                order['notifications'] = {
+                        'email': True
+                    }
+
+                if w.clipping():
+                    order['tools'] = [{
                             'clip': {
                                 'aoi': json.loads(self._tool_resources['aoi'])
-                            }
-                        }
-                    )
+                            }}]
 
-            orders[io_k] = order
+                orders.append(order)
 
-            log.debug(f'{io_k} order...\n{json.dumps(order, indent=2)}')
+        return
 
         responses = []
-        for item_type, order in orders.items():
-
+        for order in orders:
             resp = self._p_client.create_order(order)
             responses.append(resp)
 
@@ -679,12 +698,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                                 }
                                 )
 
-        self._log('<br><br>'
-                  '<b>IMPORTANT:</b> Open the <a href="opendlg">Orders monitor'
-                  'dialog</a> to monitor your order status and download it when '
-                  'possible.<br>'
-                  'You also should receive an email when your order is ready to '
-                  'download.<br>')
+
 
     def _order_response(self, item_type: str, response: dict):
         if not item_type:
