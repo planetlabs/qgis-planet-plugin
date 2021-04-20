@@ -165,6 +165,7 @@ class PlanetOrderAssetWidget(QFrame):
         hlayouttype = QHBoxLayout()
         hlayouttype.setMargin(0)
         self.radioTiff = QRadioButton("GeoTIFF")
+        self.radioTiff.setChecked(True)
         hlayouttype.addWidget(self.radioTiff)
         self.radioNitf = QRadioButton("NITF")
         hlayouttype.addWidget(self.radioNitf)

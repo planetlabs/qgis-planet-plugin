@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>936</width>
-    <height>712</height>
+    <width>861</width>
+    <height>439</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
@@ -229,8 +235,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>642</width>
-               <height>558</height>
+               <width>100</width>
+               <height>30</height>
               </rect>
              </property>
             </widget>
@@ -296,8 +302,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>642</width>
-               <height>549</height>
+               <width>100</width>
+               <height>30</height>
               </rect>
              </property>
             </widget>
@@ -451,7 +457,7 @@
            <x>0</x>
            <y>0</y>
            <width>225</width>
-           <height>249</height>
+           <height>112</height>
           </rect>
          </property>
         </widget>
