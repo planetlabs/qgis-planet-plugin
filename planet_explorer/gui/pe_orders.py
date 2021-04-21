@@ -51,7 +51,17 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QRadioButton,
     QGridLayout,
-    QPushButton
+    QPushButton,
+    QSizePolicy
+)
+
+from qgis.core import (
+    QgsMessageLog,
+    Qgis
+)
+
+from qgis.gui import (
+    QgsMessageBar
 )
 
 from qgis.utils import iface
@@ -63,14 +73,15 @@ from ..pe_utils import (
 from ..planet_api.p_client import (
     PlanetClient,
 )
-
 from ..planet_api.p_specs import (
     ITEM_TYPE_SPECS,
+)
+from ..planet_api.p_bundles import (
+    PlanetOrdersV2Bundles,
 )
 from .pe_orders_monitor_dockwidget import (
     show_orders_monitor
 )
-
 from .pe_gui_utils import (
     waitcursor
 )
@@ -80,6 +91,8 @@ from .pe_thumbnails import (
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
+bundles_file = os.path.join(plugin_path, 'planet_api', 'resources', 'bundles.json')
+order_bundles = PlanetOrdersV2Bundles(bundles_file)
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -105,9 +118,6 @@ ITEM_MAX = 100
 ID = "id"
 GEOMETRY = "geometry"
 PERMISSIONS = "_permissions"
-
-ASSET_TYPES = [("Surface Reflectance", "description", True),
-               ("Analytic Radiance (TOAR)", "description", True)]
 
 UDM_ICON = resource_file("udm.svg")
 FILETYPE_ICON = resource_file("filetype.svg")
@@ -135,17 +145,19 @@ class IconLabel(QWidget):
         self.setLayout(layout)
 
 
-class PlanetOrderAssetWidget(QFrame):
+class PlanetOrderBundleWidget(QFrame):
 
     selectionChanged = pyqtSignal()
 
     def __init__(self,
+                 bundleid,
                  name,
                  description,
                  udm
                  ):
         super().__init__()
 
+        self.bundleid = bundleid
         self.name = name
         self.description = description
         self.udm = udm
@@ -161,6 +173,7 @@ class PlanetOrderAssetWidget(QFrame):
         hlayout.addWidget(self.chkSelected)
         layout.addLayout(hlayout)
         self.labelDescription = QLabel(description)
+        self.labelDescription.setWordWrap(True)
         layout.addWidget(self.labelDescription)
         hlayouttype = QHBoxLayout()
         hlayouttype.setMargin(0)
@@ -256,17 +269,27 @@ class PlanetOrderItemTypeWidget(QWidget):
         self.populate_details()
 
     def populate_details(self):
-        self.assetWidgets = []
+        self.bundleWidgets = []
         layout = QGridLayout()
         layout.setMargin(0)
-        for i, typ in enumerate(ASSET_TYPES):
-            w = PlanetOrderAssetWidget(*typ)
+
+        permissions = self.images[0][PERMISSIONS]
+
+        item_bundles = order_bundles.bundles_per_item_type(
+                self.item_type, permissions=permissions)
+
+        for i, bundleid in enumerate(item_bundles.keys()):
+            bundle = item_bundles[bundleid]
+            name = bundle["name"]
+            description = bundle["description"]
+            udm = "udm" in bundle["auxiliaryFiles"]
+            w = PlanetOrderBundleWidget(bundleid, name, description, udm)
             row = i // 2
             col = i % 2
             layout.addWidget(w, row, col)
             w.setSelected(i == 0)
             w.selectionChanged.connect(lambda: self.selectionChanged.emit())
-            self.assetWidgets.append(w)
+            self.bundleWidgets.append(w)
 
         self.widgetDetails.setLayout(layout)
 
@@ -279,45 +302,17 @@ class PlanetOrderItemTypeWidget(QWidget):
             self.btnDetails.setText("Hide Details")
         self.updateGeometry()
 
-    def get_order(self):
-        order_details = {}
-        valid = self.validate()
-
-        ids = self.selected_images_ids()
-        order_details['valid'] = valid
-        order_details['item_ids'] = ids
-        order_details['bundle_name'] = self._order_bundle_name
-        order_details['bundle'] = self._order_bundle
-
-        tools = []
-        tool_ckbxs = self.grpBoxTools.findChildren(QCheckBox)
-        for tool in tool_ckbxs:
-            if tool.isChecked():
-                tools.append(tool.property('tool'))
-
-        order_details['tools'] = tools
-
-        log.debug(
-            f'Ordering {self.item_type}...\n'
-            f'  valid: {valid}\n'
-            f'  item count: {len(ids)}\n'
-            f'  type_ids: {ids}\n'
-            f'  bundle_name: {self._order_bundle_name}\n'
-            f'  tools: {tools}'
-        )
-
-        return order_details
-
-    def assets(self):
-        assets = []
-        for w in self.assetWidgets:
+    def bundles(self):
+        bundles = []
+        for w in self.bundleWidgets:
             if w.selected():
-                asset = {}
-                asset["name"] = w.name
-                asset["filetype"] = w.filetype()
-                asset["udm"] = w.udm
-                assets.append(asset)
-        return assets
+                bundle = {}
+                bundle["id"] = w.bundleid
+                bundle["name"] = w.name
+                bundle["filetype"] = w.filetype()
+                bundle["udm"] = w.udm
+                bundles.append(bundle)
+        return bundles
 
 
 class ImageReviewWidget(QFrame):
@@ -359,7 +354,7 @@ class PlanetOrderReviewWidget(QWidget):
 
     def __init__(self,
                  item_type,
-                 asset_type,
+                 bundle_type,
                  images,
                  thumbnails,
                  add_clip
@@ -367,14 +362,14 @@ class PlanetOrderReviewWidget(QWidget):
         super().__init__()
 
         self.item_type = item_type
-        self.asset_type = asset_type
+        self.bundle_type = bundle_type
         self.images = images
         self.thumbnails = thumbnails
         self.add_clip = add_clip
 
         layout = QVBoxLayout()
         layout.setMargin(0)
-        labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {asset_type}</b>",
+        labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {bundle_type}</b>",
                               SATELLITE_ICON)
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
         gridlayout = QGridLayout()
@@ -457,19 +452,19 @@ class PlanetOrderSummaryOrderWidget(QWidget):
         layout = QVBoxLayout()
         layout.setMargin(0)
         layout.addWidget(QLabel(f"<h3>{ITEM_TYPE_SPECS[summary['type']]['name']}</h3>"))
-        for asset in summary["assets"]:
+        for bundle in summary["bundles"]:
             frame = QFrame()
             framelayout = QVBoxLayout()
-            framelayout.addWidget(IconLabel(f"{asset['numitems']} items", NITEMS_ICON))
-            framelayout.addWidget(QLabel(f"<b>{asset['name']}</b>"))
+            framelayout.addWidget(IconLabel(f"{bundle['numitems']} items", NITEMS_ICON))
+            framelayout.addWidget(QLabel(f"<b>{bundle['name']}</b>"))
             hlayout = QHBoxLayout()
             hlayout.setMargin(0)
-            fileLabel = IconLabel(asset["filetype"], FILETYPE_ICON)
+            fileLabel = IconLabel(bundle["filetype"], FILETYPE_ICON)
             hlayout.addWidget(fileLabel)
-            if asset["udm"]:
+            if bundle["udm"]:
                 udmLabel = IconLabel("UDM2", UDM_ICON)
                 hlayout.addWidget(udmLabel)
-            if asset["clipping"]:
+            if bundle["clipping"]:
                 clipLabel = IconLabel("", CLIP_ICON)
                 hlayout.addWidget(clipLabel)
             hlayout.addStretch()
@@ -492,6 +487,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.setupUi(self)
 
+        self.bar = QgsMessageBar()
+        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.layout().addWidget(self.bar)
+
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.widgetSummaryItems = QWidget()
@@ -504,10 +503,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnContinueName.clicked.connect(self._btnContinueNameClicked)
-        self.btnContinueAssets.clicked.connect(self._btnContinueAssetsClicked)
-        self.btnBackReview.clicked.connect(self._btnBackReviewClicked)
-        self.btnBackAssets.clicked.connect(self._btnBackAssetsClicked)
+        self.btnContinueName.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnContinueAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
+        self.btnBackReview.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnBackAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
@@ -546,18 +545,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.selectionChanged()
 
-    def _btnBackReviewClicked(self):
-        self.stackedWidget.setCurrentIndex(1)
-
-    def _btnBackAssetsClicked(self):
-        self.stackedWidget.setCurrentIndex(0)
-
-    def _btnContinueNameClicked(self):
-        self.stackedWidget.setCurrentIndex(1)
-
-    def _btnContinueAssetsClicked(self):
-        self.stackedWidget.setCurrentIndex(2)
-
     def _pageLabelClicked(self, url):
         page = int(url)
         self.stackedWidget.setCurrentIndex(page)
@@ -589,6 +576,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self._process_orders()
 
+        self.stackedWidget.setEnabled(True)
+        self.btnPlaceOrder.setEnabled(True)
+
     def selectionChanged(self):
         self.update_review_items()
         self.update_summary_items()
@@ -599,11 +589,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         layout = QVBoxLayout()
         layout.setMargin(0)
         for item_type, widget in self._item_type_widgets.items():
-            assets = widget.assets()
+            bundles = widget.bundles()
             images = widget.images
             thumbnails = widget.thumbnails
-            for asset in assets:
-                w = PlanetOrderReviewWidget(item_type, asset["name"], images,
+            for bundle in bundles:
+                w = PlanetOrderReviewWidget(item_type, bundle["name"], images,
                                             thumbnails, self.tool_resources["aoi"] is not None)
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 self._order_review_widgets.append(w)
@@ -612,9 +602,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         scrollWidget.setLayout(layout)
         self.scrollAreaReview.setWidget(scrollWidget)
 
-    def _review_widget_for_asset(self, item_type, asset_type):
+    def _review_widget_for_bundle(self, item_type, bundle_type):
         for w in self._order_review_widgets:
-            if w.item_type == item_type and w.asset_type == asset_type:
+            if w.item_type == item_type and w.bundle_type == bundle_type:
                 return w
 
     def update_summary_items(self):
@@ -628,12 +618,12 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for item_type, widget in self._item_type_widgets.items():
             summary = {}
             summary["type"] = item_type
-            summary["assets"] = widget.assets()
-            for asset in summary["assets"]:
-                w = self._review_widget_for_asset(item_type, asset["name"])
+            summary["bundles"] = widget.bundles()
+            for bundle in summary["bundles"]:
+                w = self._review_widget_for_bundle(item_type, bundle["name"])
                 images = w.selected_images()
-                asset["numitems"] = len(images)
-                asset["clipping"] = w.clipping()
+                bundle["numitems"] = len(images)
+                bundle["clipping"] = w.clipping()
                 norders += 1
             w = PlanetOrderSummaryOrderWidget(summary)
             layout.addWidget(w)
@@ -647,8 +637,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         orders = []
         for item_type, widget in self._item_type_widgets.items():
-            for asset in widget.assets():
-                w = self._review_widget_for_asset(item_type, asset["name"])
+            for bundle in widget.bundles():
+                w = self._review_widget_for_bundle(item_type, bundle["name"])
                 images = w.selected_images()
                 ids = [img["id"] for img in images]
                 # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
@@ -660,6 +650,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                         {
                             'item_ids': ids,
                             'item_type': item_type,
+                            "product_bundle": bundle["id"]
                         }
                     ]
                 order['delivery'] = {
@@ -679,12 +670,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
                 orders.append(order)
 
-        return
-
-        responses = []
+        responses_ok = True
         for order in orders:
             resp = self._p_client.create_order(order)
-            responses.append(resp)
+            responses_ok = responses_ok and resp
 
             if is_segments_write_key_valid():
                 try:
@@ -699,49 +688,31 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                                 }
                                 )
 
+        if responses_ok:
+            self.bar.pushMessage("", "All orders correctly processed. Open the Order Monitor to check their status", Qgis.Success)
+        else:
+            self.bar.pushMessage("", "Not all orders correctly processed. Open the QGIS log for more information", Qgis.Warning)
 
+    def _log(self, msg):
+        QgsMessageLog.logMessage(msg, level=Qgis.Warning)
 
-    def _order_response(self, item_type: str, response: dict):
+    def _process_response(self, item_type: str, response: dict):
         if not item_type:
             self._log('Requesting order failed: no item_type')
-            return
+            return False
 
-        log.debug(f'Order resp_data:\n{response}')
         if not response:
             self._log(f'Requesting {item_type} order failed: '
                       f'no response data found')
-            return
+            return False
 
         if not response.get("id"):
             self._log(f'Requesting {item_type} order failed: '
-                      f'response data contains no Order ID')
-            return
+                      f'response data contains no Order ID.\n'
+                      f'Order resp_data:\n{response}')
+            return False
 
-        bundle = 'unknown'
-        itemtype = 'Unknown type'
-        itemids = []
-        itemids_cnt = '_'
-        products: list = response.get('products')
-        if products and len(products) > 0:
-            bundle = products[0].get('product_bundle')
-            itemtype = products[0].get('item_type')
-            itemids = products[0].get('item_ids')
-
-        if itemids:
-            itemids_cnt = len(itemids)
-
-        self._log(
-            f'<br><br>'
-            f'<b>Order for {item_type} successfully QUEUED:</b><br>'
-            f' --  Name: {response.get("name")}<br>'
-            f' --  Created on: {response.get("created_on")}<br>'
-            f' -- Order ID: <b>{response.get("id")}</b> '
-            f'SAVE THIS FOR REFERENCE<br>'
-            f' -- Order type: {itemtype} ({itemids_cnt} items)<br>'
-            f' -- Bundle: {bundle}<br>'
-            f' -- State: {response.get("state")}<br>'
-            f' -- Service message: {response.get("last_message")}<br><br>'
-        )
+        return True
 
     @pyqtSlot()
     def _open_orders_monitor_dialog(self):

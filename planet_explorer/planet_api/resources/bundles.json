@@ -44,18 +44,6 @@
           "analytic_xml",
           "udm"
         ],
-        "REScene": [
-          "basic_analytic_b1",
-          "basic_analytic_b2",
-          "basic_analytic_b3",
-          "basic_analytic_b4",
-          "basic_analytic_b5",
-          "basic_analytic_xml",
-          "basic_analytic_rpc",
-          "basic_udm",
-          "basic_analytic_sci",
-          "browse"
-        ],
         "Sentinel1": [
           "ortho_analytic_vv",
           "ortho_analytic_vh"
@@ -107,6 +95,11 @@
           "udm",
           "udm2"
         ],
+        "PSScene": [
+          "ortho_analytic_4b",
+          "ortho_analytic_4b_xml",
+          "orth_udm2"
+        ],
         "SkySatScene": [
           "ortho_analytic",
           "ortho_analytic_udm",
@@ -119,42 +112,52 @@
         ]
       }
     },
-    "analytic_dn": {
-      "name": "Uncalibrated DN",
-      "description": "This product bundle is deprecated, please use 'uncalibrated_dn' instead",
+    "analytic_5b": {
+      "name": "Analytic Image",
+      "description": "Radiometrically-calibrated analytic image stored as 16-bit scaled radiance",
+      "bands": "all",
+      "rectification": "orthorectified",
+      "radiometry": "at-sensor",
+      "fileType": "GeoTIFF",
+      "auxiliaryFiles": "udm",
       "assets": {
         "PSOrthoTile": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm"
-        ],
-        "PSScene3Band": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm"
-        ],
-        "PSScene4Band": [
-          "analytic_dn",
-          "analytic_dn_xml",
+          "analytic_5b",
+          "analytic_5b_xml",
           "udm"
         ]
       }
     },
-    "analytic_nitf": {
-      "name": "Non-Orthorectified Analytic Radiance NITF",
-      "description": "This product bundle is deprecated, please use 'basic_analytic_nitf' instead",
+    "analytic_5b_udm2": {
+      "name": "Analytic Image",
+      "description": "Radiometrically-calibrated analytic image stored as 16-bit scaled radiance. Includes udm2",
+      "bands": "all",
+      "rectification": "orthorectified",
+      "radiometry": "at-sensor",
+      "fileType": "GeoTIFF",
+      "auxiliaryFiles": "udm and udm2",
       "assets": {
-        "REScene": [
-          "basic_analytic_b1_nitf",
-          "basic_analytic_b2_nitf",
-          "basic_analytic_b3_nitf",
-          "basic_analytic_b4_nitf",
-          "basic_analytic_b5_nitf",
-          "basic_analytic_rpc",
-          "basic_analytic_sci",
-          "basic_analytic_xml_nitf",
-          "basic_udm",
-          "browse"
+        "PSOrthoTile": [
+          "analytic_5b",
+          "analytic_5b_xml",
+          "udm",
+          "udm2"
+        ]
+      }
+    },
+    "analytic_8b_udm2": {
+      "name": "Analytic Radiance with UDM2",
+      "description": "Orthorectified product, calibrated to at-sensor radiance. Includes udm2.",
+      "bands": "8-band",
+      "rectification": "orthorectified",
+      "radiometry": "at-sensor",
+      "fileType": "GeoTIFF",
+      "auxiliaryFiles": "udm2",
+      "assets": {
+        "PSScene": [
+          "ortho_analytic_8b",
+          "ortho_analytic_8b_xml",
+          "ortho_udm2"
         ]
       }
     },
@@ -176,6 +179,9 @@
         "PSScene3Band": [
           "visual",
           "visual_xml"
+        ],
+        "PSScene": [
+          "ortho_visual"
         ],
         "REOrthoTile": [
           "visual",
@@ -294,8 +300,8 @@
         ],
         "SkySatScene": [
           "basic_analytic",
-          "basic_analytic_udm",
-          "basic_analytic_rpc"
+          "basic_analytic_rpc",
+          "basic_analytic_udm"
         ]
       }
     },
@@ -315,45 +321,33 @@
           "basic_analytic_rpc",
           "basic_analytic_xml"
         ],
+        "PSScene": [
+          "basic_analytic_4b",
+          "basic_udm2",
+          "basic_analytic_4b_rpc",
+          "basic_analytic_4b_xml"
+        ],
         "SkySatScene": [
           "basic_analytic",
-          "basic_analytic_udm",
-          "basic_analytic_udm2",
-          "basic_analytic_rpc"
-        ]
-      }
-    },
-    "basic_analytic_dn": {
-      "name": "Non-Orthorectified, Uncalibrated DN",
-      "description": "This product bundle is deprecated, please use 'basic_uncalibrated_dn' instead",
-      "assets": {
-        "PSScene3Band": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc",
-          "basic_analytic_dn_xml",
-          "basic_udm"
-        ],
-        "PSScene4Band": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_xml",
           "basic_analytic_rpc",
-          "basic_udm"
-        ],
-        "SkySatScene": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc"
+          "basic_analytic_udm"
         ]
       }
     },
-    "basic_analytic_dn_nitf": {
-      "name": "Non-Orthorectified, Uncalibrated DN NITF",
-      "description": "This product bundle is deprecated, please use 'basic_uncalibrated_dn_nitf' instead",
+    "basic_analytic_8b_udm2": {
+      "name": "Non-Orthorectified Analytic Radiance with UDM2",
+      "description": "Non-orthorectified, calibrated to at-sensor radiance. Includes udm2.",
+      "bands": "8-band",
+      "rectification": "non-orthorectified",
+      "radiometry": "at-sensor",
+      "fileType": "TIFF and RPCs",
+      "auxiliaryFiles": "udm2",
       "assets": {
-        "PSScene4Band": [
-          "basic_analytic_dn_nitf",
-          "basic_analytic_dn_rpc_nitf",
-          "basic_analytic_dn_xml_nitf",
-          "basic_udm"
+        "PSScene": [
+          "basic_analytic_8b",
+          "basic_udm2",
+          "basic_analytic_4b_rpc",
+          "basic_analytic_8b_xml"
         ]
       }
     },
@@ -376,7 +370,7 @@
           "basic_analytic_dn",
           "basic_analytic_dn_xml",
           "basic_udm",
-          "basic_analytic_rpc"
+          "basic_analytic_dn_rpc"
         ],
         "SkySatScene": [
           "basic_analytic_dn",
@@ -399,13 +393,12 @@
           "basic_analytic_dn_xml",
           "basic_udm",
           "basic_udm2",
-          "basic_analytic_rpc"
+          "basic_analytic_dn_rpc"
         ],
         "SkySatScene": [
           "basic_analytic_dn",
           "basic_analytic_dn_rpc",
-          "basic_analytic_udm",
-          "basic_analytic_udm2"
+          "basic_analytic_udm"
         ]
       }
     },
@@ -419,6 +412,16 @@
       "auxiliaryFiles": "udm",
       "assets": {
         "PSScene4Band": [
+          "analytic_sr",
+          "udm",
+          "analytic_xml"
+        ],
+        "PSOrthoTile": [
+          "analytic_sr",
+          "udm",
+          "analytic_xml"
+        ],
+        "REOrthoTile": [
           "analytic_sr",
           "udm",
           "analytic_xml"
@@ -490,6 +493,14 @@
           "analytic_obscov_500m",
           "analytic_iobs_res",
           "analytic_q_scan"
+        ],
+        "SkySatCollect": [
+          "ortho_analytic_sr",
+          "ortho_analytic_udm"
+        ],
+        "SkySatScene": [
+          "ortho_analytic_sr",
+          "ortho_analytic_udm"
         ]
       }
     },
@@ -507,6 +518,43 @@
           "analytic_xml",
           "udm",
           "udm2"
+        ],
+        "PSScene": [
+          "ortho_analytic_4b_sr",
+          "ortho_analytic_4b_xml",
+          "ortho_udm2"
+        ],
+        "PSOrthoTile": [
+          "analytic_sr",
+          "udm",
+          "udm2",
+          "analytic_xml"
+        ],
+        "SkySatCollect": [
+          "ortho_analytic_sr",
+          "ortho_analytic_udm",
+          "ortho_analytic_udm2"
+        ],
+        "SkySatScene": [
+          "ortho_analytic_sr",
+          "ortho_analytic_udm",
+          "ortho_analytic_udm2"
+        ]
+      }
+    },
+    "analytic_8b_sr_udm2": {
+      "name": "Analytic Surface Reflectance with UDM2",
+      "description": "Orthorectified product, radiometrically calibrated and atmospherically corrected to surface reflectance. Includes udm2.",
+      "bands": "8-band",
+      "rectification": "orthorectified",
+      "radiometry": "surface reflectance",
+      "fileType": "GeoTIFF",
+      "auxiliaryFiles": "udm2",
+      "assets": {
+        "PSScene": [
+          "ortho_analytic_8b_sr",
+          "ortho_analytic_8b_xml",
+          "ortho_udm2"
         ]
       }
     },
@@ -620,46 +668,6 @@
         ]
       }
     },
-    "ortho_analytic_dn": {
-      "name": "Uncalibrated DN",
-      "description": "This product bundle is deprecated, please use 'uncalibrated_dn' instead",
-      "assets": {
-        "SkySatScene": [
-          "ortho_analytic_dn",
-          "ortho_analytic_udm"
-        ]
-      }
-    },
-    "ortho_panchromatic_dn": {
-      "name": "Panchromatic DN",
-      "description": "This product bundle is deprecated, please use 'panchromatic_dn' instead",
-      "assets": {
-        "SkySatScene": [
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm"
-        ]
-      }
-    },
-    "ortho_pansharpened": {
-      "name": "Pansharpened",
-      "description": "This product bundle is deprecated, please use 'pansharpened' instead",
-      "assets": {
-        "SkySatScene": [
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm"
-        ]
-      }
-    },
-    "ortho_visual": {
-      "name": "Visual",
-      "description": "This product bundle is deprecated, please use 'visual' instead",
-      "assets": {
-        "SkySatScene": [
-          "ortho_analytic_udm",
-          "ortho_visual"
-        ]
-      }
-    },
     "panchromatic": {
       "name": "Panchromatic",
       "description": "Orthorectified radiometrically-calibrated panchromatic image stored as 16-bit scaled radiance",
@@ -761,389 +769,23 @@
         ]
       }
     },
-    "all": {
-      "name": "All assets",
-      "description": "All assets that can be produced for an item",
+    "basic_l1a_dn": {
+      "name": "Non-Orthorectified, Level 1A Uncalibrated DN",
+      "description": "Non-orthorectified, non-radiometrically-calibrated, raw digital number, Level 1A",
+      "bands": "panchromatic",
+      "rectification": "non-orthorectified",
+      "radiometry": "digital numbers",
+      "fileType": "TIFF and RPCs",
       "assets": {
-        "Landsat8L1G": [
-          "analytic_b1",
-          "analytic_b2",
-          "analytic_b3",
-          "analytic_b4",
-          "analytic_b5",
-          "analytic_b6",
-          "analytic_b7",
-          "analytic_b8",
-          "analytic_b9",
-          "analytic_b10",
-          "analytic_b11",
-          "analytic_bqa",
-          "metadata_txt",
-          "visual"
-        ],
-        "MOD09GA": [
-          "analytic_num_observations_500m",
-          "analytic_num_observations_1km",
-          "analytic_state_1km",
-          "analytic_sensor_zenith",
-          "analytic_sensor_azimuth",
-          "analytic_range",
-          "analytic_solar_zenith",
-          "analytic_solar_azimuth",
-          "analytic_gflags",
-          "analytic_orbit_pnt",
-          "analytic_granule_pnt",
-          "analytic_sur_refl_b01",
-          "analytic_sur_refl_b02",
-          "analytic_sur_refl_b03",
-          "analytic_sur_refl_b04",
-          "analytic_sur_refl_b05",
-          "analytic_sur_refl_b06",
-          "analytic_sur_refl_b07",
-          "analytic_qc_500m",
-          "analytic_obscov_500m",
-          "analytic_iobs_res",
-          "analytic_q_scan"
-        ],
-        "MOD09GQ": [
-          "analytic_num_observations",
-          "analytic_orbit_pnt",
-          "analytic_granule_pnt",
-          "analytic_sur_refl_b01",
-          "analytic_sur_refl_b02",
-          "analytic_qc_250m",
-          "analytic_obscov",
-          "analytic_iobs_res"
-        ],
-        "MYD09GA": [
-          "analytic_num_observations_500m",
-          "analytic_num_observations_1km",
-          "analytic_state_1km",
-          "analytic_sensor_zenith",
-          "analytic_sensor_azimuth",
-          "analytic_range",
-          "analytic_solar_zenith",
-          "analytic_solar_azimuth",
-          "analytic_gflags",
-          "analytic_orbit_pnt",
-          "analytic_granule_pnt",
-          "analytic_sur_refl_b01",
-          "analytic_sur_refl_b02",
-          "analytic_sur_refl_b03",
-          "analytic_sur_refl_b04",
-          "analytic_sur_refl_b05",
-          "analytic_sur_refl_b06",
-          "analytic_sur_refl_b07",
-          "analytic_qc_500m",
-          "analytic_obscov_500m",
-          "analytic_iobs_res",
-          "analytic_q_scan"
-        ],
-        "MYD09GQ": [
-          "analytic_num_observations",
-          "analytic_orbit_pnt",
-          "analytic_granule_pnt",
-          "analytic_sur_refl_b01",
-          "analytic_sur_refl_b02",
-          "analytic_qc_250m",
-          "analytic_obscov",
-          "analytic_iobs_res"
-        ],
-        "PSOrthoTile": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm",
-          "analytic",
-          "analytic_xml",
-          "visual",
-          "visual_xml"
-        ],
-        "PSScene3Band": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm",
-          "analytic",
-          "analytic_xml",
-          "basic_analytic",
-          "basic_udm",
-          "basic_analytic_rpc",
-          "basic_analytic_xml",
-          "visual",
-          "visual_xml",
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc",
-          "basic_analytic_dn_xml"
-        ],
-        "PSScene4Band": [
-          "basic_udm",
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm",
-          "analytic",
-          "analytic_xml",
-          "basic_analytic",
-          "basic_analytic_rpc",
-          "basic_analytic_xml",
-          "basic_analytic_dn",
-          "basic_analytic_dn_xml",
-          "analytic_sr"
-        ],
-        "REOrthoTile": [
-          "analytic",
-          "analytic_xml",
-          "udm",
-          "visual",
-          "visual_xml"
-        ],
-        "REScene": [
-          "basic_analytic_rpc",
-          "basic_udm",
-          "basic_analytic_sci",
-          "browse",
-          "basic_analytic_b1",
-          "basic_analytic_b2",
-          "basic_analytic_b3",
-          "basic_analytic_b4",
-          "basic_analytic_b5",
-          "basic_analytic_xml"
-        ],
-        "Sentinel1": [
-          "ortho_analytic_vv",
-          "ortho_analytic_vh"
-        ],
-        "Sentinel2L1C": [
-          "analytic_b1",
-          "analytic_b2",
-          "analytic_b3",
-          "analytic_b4",
-          "analytic_b5",
-          "analytic_b6",
-          "analytic_b7",
-          "analytic_b8",
-          "analytic_b8a",
-          "analytic_b9",
-          "analytic_b10",
-          "analytic_b11",
-          "analytic_b12",
-          "metadata_aux",
-          "visual"
+        "SkySatScene": [
+          "basic_l1a_panchromatic_dn",
+          "basic_l1a_panchromatic_dn_rpc"
         ],
         "SkySatCollect": [
-          "ortho_analytic_dn",
-          "ortho_analytic_udm",
-          "ortho_panchromatic",
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm",
-          "ortho_visual",
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm",
-          "ortho_analytic"
-        ],
-        "SkySatScene": [
-          "ortho_analytic",
-          "ortho_analytic_udm",
-          "ortho_visual",
-          "ortho_analytic_dn",
-          "ortho_panchromatic",
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm",
-          "basic_panchromatic",
-          "basic_panchromatic_dn",
-          "basic_panchromatic_dn_rpc",
-          "basic_analytic",
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc",
-          "basic_analytic_udm",
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm"
-        ]
-      }
-    },
-    "all_udm2": {
-      "name": "All assets with UDM2",
-      "description": "All assets that can be produced for an item. Includes udm2.",
-      "auxiliaryFiles": "udm and udm2",
-      "assets": {
-        "PSOrthoTile": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm",
-          "udm2",
-          "analytic",
-          "analytic_xml",
-          "visual",
-          "visual_xml"
-        ],
-        "PSScene4Band": [
-          "basic_udm",
-          "basic_udm2",
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm",
-          "udm2",
-          "analytic",
-          "analytic_xml",
-          "basic_analytic",
-          "basic_analytic_rpc",
-          "basic_analytic_xml",
-          "basic_analytic_dn",
-          "basic_analytic_dn_xml",
-          "analytic_sr"
-        ],
-        "SkySatCollect": [
-          "ortho_panchromatic",
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm",
-          "ortho_panchromatic_udm2",
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm",
-          "ortho_pansharpened_udm2",
-          "ortho_visual",
-          "ortho_analytic",
-          "ortho_analytic_dn",
-          "ortho_analytic_udm",
-          "ortho_analytic_udm2"
-        ],
-        "SkySatScene": [
-          "basic_analytic",
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc",
-          "basic_analytic_udm",
-          "basic_analytic_udm2",
-          "basic_panchromatic",
-          "basic_panchromatic_dn",
-          "basic_panchromatic_dn_rpc",
-          "basic_panchromatic_udm2",
-          "ortho_panchromatic",
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm",
-          "ortho_panchromatic_udm2",
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm",
-          "ortho_pansharpened_udm2",
-          "ortho_visual",
-          "ortho_analytic",
-          "ortho_analytic_dn",
-          "ortho_analytic_udm",
-          "ortho_analytic_udm2"
+          "basic_l1a_all_frames"
         ]
       }
     }
   },
-  "deprecated": {
-    "analytic": {
-      "assets": {
-        "REScene": [
-          "basic_analytic_b1",
-          "basic_analytic_b2",
-          "basic_analytic_b3",
-          "basic_analytic_b4",
-          "basic_analytic_b5",
-          "basic_analytic_xml",
-          "basic_analytic_rpc",
-          "basic_udm",
-          "basic_analytic_sci",
-          "browse"
-        ]
-      }
-    },
-    "analytic_dn": {
-      "assets": {
-        "PSOrthoTile": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm"
-        ],
-        "PSScene3Band": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm"
-        ],
-        "PSScene4Band": [
-          "analytic_dn",
-          "analytic_dn_xml",
-          "udm"
-        ]
-      }
-    },
-    "analytic_nitf": {
-      "assets": {
-        "REScene": [
-          "basic_analytic_b1_nitf",
-          "basic_analytic_b2_nitf",
-          "basic_analytic_b3_nitf",
-          "basic_analytic_b4_nitf",
-          "basic_analytic_b5_nitf",
-          "basic_analytic_rpc",
-          "basic_analytic_sci",
-          "basic_analytic_xml_nitf",
-          "basic_udm",
-          "browse"
-        ]
-      }
-    },
-    "basic_analytic_dn": {
-      "assets": {
-        "PSScene3Band": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc",
-          "basic_analytic_dn_xml",
-          "basic_udm"
-        ],
-        "PSScene4Band": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_xml",
-          "basic_analytic_rpc",
-          "basic_udm"
-        ],
-        "SkySatScene": [
-          "basic_analytic_dn",
-          "basic_analytic_dn_rpc"
-        ]
-      }
-    },
-    "basic_analytic_dn_nitf": {
-      "assets": {
-        "PSScene4Band": [
-          "basic_analytic_dn_nitf",
-          "basic_analytic_dn_rpc_nitf",
-          "basic_analytic_dn_xml_nitf",
-          "basic_udm"
-        ]
-      }
-    },
-    "ortho_analytic_dn": {
-      "assets": {
-        "SkySatScene": [
-          "ortho_analytic_dn",
-          "ortho_analytic_udm"
-        ]
-      }
-    },
-    "ortho_panchromatic_dn": {
-      "assets": {
-        "SkySatScene": [
-          "ortho_panchromatic_dn",
-          "ortho_panchromatic_udm"
-        ]
-      }
-    },
-    "ortho_pansharpened": {
-      "assets": {
-        "SkySatScene": [
-          "ortho_pansharpened",
-          "ortho_pansharpened_udm"
-        ]
-      }
-    },
-    "ortho_visual": {
-      "assets": {
-        "SkySatScene": [
-          "ortho_analytic_udm",
-          "ortho_visual"
-        ]
-      }
-    }
-  },
-  "version": "2019-08-30"
+  "version": "2021-04-06"
 }
