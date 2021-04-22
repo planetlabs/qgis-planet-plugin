@@ -99,12 +99,6 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
 
-ORDER_ITEM_WIDGET, ORDER_ITEM_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_orders_item_type.ui'),
-    from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
-    resource_suffix=''
-)
-
 ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
     os.path.join(plugin_path, 'ui', 'pe_orders.ui'),
     from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
@@ -270,28 +264,85 @@ class PlanetOrderItemTypeWidget(QWidget):
 
     def populate_details(self):
         self.bundleWidgets = []
-        layout = QGridLayout()
-        layout.setMargin(0)
 
         permissions = self.images[0][PERMISSIONS]
-
         item_bundles = order_bundles.bundles_per_item_type(
                 self.item_type, permissions=permissions)
 
-        for i, bundleid in enumerate(item_bundles.keys()):
-            bundle = item_bundles[bundleid]
-            name = bundle["name"]
-            description = bundle["description"]
-            udm = "udm" in bundle["auxiliaryFiles"]
-            w = PlanetOrderBundleWidget(bundleid, name, description, udm)
-            row = i // 2
-            col = i % 2
-            layout.addWidget(w, row, col)
-            w.setSelected(i == 0)
-            w.selectionChanged.connect(lambda: self.selectionChanged.emit())
-            self.bundleWidgets.append(w)
+        def _center(obj):
+            hlayout = QHBoxLayout()
+            hlayout.addStretch()
+            hlayout.addWidget(obj)
+            hlayout.addStretch()
+            return hlayout
 
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        layout.setSpacing(20)
+
+        layout.addLayout(_center(QLabel("<b>RECTIFIED ASSETS</b>")))
+
+        gridlayout = QGridLayout()
+        gridlayout.setMargin(0)
+
+        i = 0
+        for bundleid in item_bundles.keys():
+            bundle = item_bundles[bundleid]
+            if bundle["rectification"] == "orthorectified":
+                name = bundle["name"]
+                description = bundle["description"]
+                udm = "udm2" in bundle["auxiliaryFiles"]
+                w = PlanetOrderBundleWidget(bundleid, name, description, udm)
+                gridlayout.addWidget(w, i // 2, i % 2)
+                w.setSelected(i == 0)
+                w.selectionChanged.connect(lambda: self.selectionChanged.emit())
+                self.bundleWidgets.append(w)
+                i += 1
+
+        layout.addLayout(gridlayout)
+
+        self.labelUnrectified = QLabel("<b>UNRECTIFIED ASSETS</b>")
+        layout.addLayout(_center(self.labelUnrectified))
+
+        self.widgetUnrectified = QWidget()
+
+        gridlayoutUnrect = QGridLayout()
+        gridlayoutUnrect.setMargin(0)
+
+        i = 0
+        for bundleid in item_bundles.keys():
+            bundle = item_bundles[bundleid]
+            if bundle["rectification"] != "orthorectified":
+                name = bundle["name"]
+                description = bundle["description"]
+                udm = "udm2" in bundle["auxiliaryFiles"]
+                w = PlanetOrderBundleWidget(bundleid, name, description, udm)
+                gridlayoutUnrect.addWidget(w, i // 2, i % 2)
+                w.selectionChanged.connect(lambda: self.selectionChanged.emit())
+                self.bundleWidgets.append(w)
+                i += 1
+
+        self.widgetUnrectified.setLayout(gridlayoutUnrect)
+        layout.addWidget(self.widgetUnrectified)
+
+        self.labelMore = QLabel('<a href="#">+ Show More</a>')
+        self.labelMore.setOpenExternalLinks(False)
+        self.labelMore.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.labelMore.linkActivated.connect(self._showMoreClicked)
+        layout.addLayout(_center(self.labelMore))
+
+        self.widgetUnrectified.hide()
+        self.labelUnrectified.hide()
         self.widgetDetails.setLayout(layout)
+
+    def _showMoreClicked(self):
+        visible = self.widgetUnrectified.isVisible()
+        self.widgetUnrectified.setVisible(not visible)
+        self.labelUnrectified.setVisible(not visible)
+        if visible:
+            self.labelMore.setText('<a href="#">+ Show More</a>')
+        else:
+            self.labelMore.setText('<a href="#">- Show Less</a>')
 
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
