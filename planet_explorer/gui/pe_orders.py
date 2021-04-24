@@ -113,11 +113,18 @@ ID = "id"
 GEOMETRY = "geometry"
 PERMISSIONS = "_permissions"
 
-UDM_ICON = resource_file("udm.svg")
-FILETYPE_ICON = resource_file("filetype.svg")
-NITEMS_ICON = resource_file("nitems.svg")
-SATELLITE_ICON = resource_file("satellite.svg")
-CLIP_ICON = resource_file("crop.svg")
+
+def _icon(f):
+    return QIcon(resource_file(f))
+
+
+UDM_ICON = _icon("udm.svg")
+FILETYPE_ICON = _icon("filetype.svg")
+NITEMS_ICON = _icon("nitems.svg")
+SATELLITE_ICON = _icon("satellite.svg")
+CLIP_ICON = _icon("crop.svg")
+EXPAND_MORE_ICON = _icon("expand_more.svg")
+EXPAND_LESS_ICON = _icon("expand_less.svg")
 
 
 class IconLabel(QWidget):
@@ -129,7 +136,7 @@ class IconLabel(QWidget):
         layout.setMargin(0)
 
         iconlabel = QLabel()
-        iconlabel.setPixmap(QIcon(icon).pixmap(QSize(24, 24)))
+        iconlabel.setPixmap(icon.pixmap(QSize(24, 24)))
         layout.addWidget(iconlabel)
 
         label = QLabel(text)
@@ -243,7 +250,9 @@ class PlanetOrderItemTypeWidget(QWidget):
         layout.addWidget(labelNumItems, 0, 1)
         layout.addWidget(labelName, 1, 1)
 
-        self.btnDetails = QPushButton("Show details")
+        self.btnDetails = QPushButton()
+        self.btnDetails.setFlat(True)
+        self.btnDetails.setIcon(EXPAND_MORE_ICON)
         self.btnDetails.clicked.connect(self._btnDetailsClicked)
         layout.addWidget(self.btnDetails, 0, 2)
 
@@ -347,10 +356,10 @@ class PlanetOrderItemTypeWidget(QWidget):
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
             self.widgetDetails.hide()
-            self.btnDetails.setText("Show Details")
+            self.btnDetails.setIcon(EXPAND_MORE_ICON)
         else:
             self.widgetDetails.show()
-            self.btnDetails.setText("Hide Details")
+            self.btnDetails.setIcon(EXPAND_LESS_ICON)
         self.updateGeometry()
 
     def bundles(self):
@@ -426,7 +435,9 @@ class PlanetOrderReviewWidget(QWidget):
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
         gridlayout.addWidget(labelNumItems, 0, 0)
-        self.btnDetails = QPushButton("Show images")
+        self.btnDetails = QPushButton()
+        self.btnDetails.setFlat(True)
+        self.btnDetails.setIcon(EXPAND_MORE_ICON)
         self.btnDetails.clicked.connect(self._btnDetailsClicked)
         gridlayout.addWidget(self.btnDetails, 0, 2)
         gridlayout.addWidget(labelName, 1, 0, 1, 3)
@@ -486,10 +497,10 @@ class PlanetOrderReviewWidget(QWidget):
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
             self.widgetDetails.hide()
-            self.btnDetails.setText("Show Images")
+            self.btnDetails.setIcon(EXPAND_MORE_ICON)
         else:
             self.widgetDetails.show()
-            self.btnDetails.setText("Hide Images")
+            self.btnDetails.setIcon(EXPAND_LESS_ICON)
         self.updateGeometry()
 
 
