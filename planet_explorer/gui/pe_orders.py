@@ -724,12 +724,18 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                         'email': True
                     }
 
+                tools = []
                 if w.clipping():
-                    order['tools'] = [{
+                    tools.append({
                             'clip': {
                                 'aoi': json.loads(self._tool_resources['aoi'])
-                            }}]
-
+                            }})
+                if bundle["filetype"] == "NITF":
+                    tools.append({
+                            "file_format": {
+                                "format": "PL_NITF"
+                            }})
+                order['tools'] = tools
                 orders.append(order)
 
         responses_ok = True
