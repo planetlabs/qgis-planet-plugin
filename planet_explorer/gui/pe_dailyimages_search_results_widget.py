@@ -404,9 +404,9 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return thumbnails
 
     def checked_count_changed(self):
-        hasSelection = bool(len(self.selected_images()))
-        self.btnAddPreview.setEnabled(hasSelection)
-        self.checkedCountChanged.emit(hasSelection)
+        numimages = len(self.selected_images())
+        self.btnAddPreview.setEnabled(numimages)
+        self.checkedCountChanged.emit(numimages)
 
     def item_count_changed(self):
         if self._image_count < self._total_count:
