@@ -22,6 +22,8 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
+from collections import defaultdict
+
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
     QNetworkRequest,
@@ -45,10 +47,6 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
 )
 
-from ..planet_api.p_client import (
-    PlanetClient
-)
-
 from ..pe_utils import (
     qgsgeometry_from_geojson
 )
@@ -60,13 +58,13 @@ class ThumbnailManager():
         self.nam = QNetworkAccessManager()
         self.nam.finished.connect(self.thumbnail_downloaded)
         self.thumbnails = {}
-        self.widgets = {}
+        self.widgets = defaultdict(list)
 
     def download_thumbnail(self, url, widget):
         if url in self.thumbnails:
             widget.set_thumbnail(self.thumbnails[url])
         else:
-            self.widgets[url] = widget
+            self.widgets[url].append(widget)
             self.nam.get(QNetworkRequest(QUrl(url)))
 
     def thumbnail_downloaded(self, reply):
@@ -75,12 +73,12 @@ class ThumbnailManager():
             img = QImage()
             img.loadFromData(reply.readAll())
             self.thumbnails[url] = img
-            try:
-                self.widgets[url].set_thumbnail(img)
-                #del self.widgets[url]
-            except Exception:
-                # the widget might have been deleted
-                pass
+            for w in self.widgets[url]:
+                try:
+                    w.set_thumbnail(img)
+                except Exception:
+                    # the widget might have been deleted
+                    pass
 
 
 _thumbnailManager = ThumbnailManager()

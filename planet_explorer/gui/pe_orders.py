@@ -40,7 +40,8 @@ from qgis.PyQt.QtCore import (
 )
 
 from qgis.PyQt.QtGui import (
-    QIcon
+    QIcon,
+    QPixmap
 )
 
 from qgis.PyQt.QtWidgets import (
@@ -89,6 +90,7 @@ from .pe_gui_utils import (
 
 from .pe_thumbnails import (
     createCompoundThumbnail,
+    download_thumbnail
 )
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
@@ -181,8 +183,10 @@ class PlanetOrderBundleWidget(QFrame):
         hlayouttype.setMargin(0)
         self.radioTiff = QRadioButton("GeoTIFF")
         self.radioTiff.setChecked(True)
+        self.radioTiff.toggled.connect(self.selectionChanged.emit)
         hlayouttype.addWidget(self.radioTiff)
         self.radioNitf = QRadioButton("NITF")
+        self.radioNitf.toggled.connect(self.selectionChanged.emit)
         hlayouttype.addWidget(self.radioNitf)
         hlayouttype.addStretch()
         layout.addLayout(hlayouttype)
@@ -229,24 +233,29 @@ class PlanetOrderItemTypeWidget(QWidget):
 
     def __init__(self,
                  item_type,
-                 images,
-                 thumbnails
+                 images
                  ):
         super().__init__()
 
+        self.thumbnails = []
+
         self.item_type = item_type
         self.images = images
-        self.thumbnails = thumbnails
 
         layout = QGridLayout()
         layout.setMargin(0)
 
-        bboxes = [img[GEOMETRY] for img in images]
-        pixmap = createCompoundThumbnail(bboxes, thumbnails)
-        thumb = pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.labelThumbnail = QLabel()
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio,
+                            Qt.SmoothTransformation)
         self.labelThumbnail.setPixmap(thumb)
+        self.labelThumbnail.setFixedSize(96, 96)
         layout.addWidget(self.labelThumbnail, 0, 0, 3, 1)
+
+        for image in images:
+            url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+            download_thumbnail(url, self)
 
         labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']}</b>",
                               SATELLITE_ICON)
@@ -391,12 +400,23 @@ class PlanetOrderItemTypeWidget(QWidget):
                 bundles.append(bundle)
         return bundles
 
+    def set_thumbnail(self, img):
+        thumbnail = QPixmap(img)
+        self.thumbnails.append(thumbnail.scaled(96, 96, Qt.KeepAspectRatio,
+                                                Qt.SmoothTransformation))
+
+        if len(self.images) == len(self.thumbnails):
+            bboxes = [img[GEOMETRY] for img in self.images]
+            pixmap = createCompoundThumbnail(bboxes, self.thumbnails)
+            thumb = pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.labelThumbnail.setPixmap(thumb)
+
 
 class ImageReviewWidget(QFrame):
 
     selectedChanged = pyqtSignal()
 
-    def __init__(self, image, thumb):
+    def __init__(self, image):
         super().__init__()
 
         self.image = image
@@ -411,7 +431,14 @@ class ImageReviewWidget(QFrame):
         vlayout.setMargin(0)
         vlayout.addLayout(hlayout)
         self.label = QLabel()
-        self.label.setPixmap(thumb.scaled(96, 96))
+        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio,
+                            Qt.SmoothTransformation)
+        self.label.setPixmap(thumb)
+        self.label.setFixedSize(96, 96)
+
+        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        download_thumbnail(url, self)
         vlayout.addWidget(self.label)
         self.setLayout(vlayout)
 
@@ -424,6 +451,12 @@ class ImageReviewWidget(QFrame):
     def selected(self):
         return self.checkBox.isChecked()
 
+    def set_thumbnail(self, img):
+        self.thumbnail = QPixmap(img)
+        thumb = self.thumbnail.scaled(96, 96, Qt.KeepAspectRatio,
+                            Qt.SmoothTransformation)
+        self.label.setPixmap(thumb)
+
 
 class PlanetOrderReviewWidget(QWidget):
 
@@ -433,7 +466,6 @@ class PlanetOrderReviewWidget(QWidget):
                  item_type,
                  bundle_type,
                  images,
-                 thumbnails,
                  add_clip
                  ):
         super().__init__()
@@ -441,7 +473,6 @@ class PlanetOrderReviewWidget(QWidget):
         self.item_type = item_type
         self.bundle_type = bundle_type
         self.images = images
-        self.thumbnails = thumbnails
         self.add_clip = add_clip
 
         layout = QVBoxLayout()
@@ -492,8 +523,8 @@ class PlanetOrderReviewWidget(QWidget):
 
         sublayout = QGridLayout()
         sublayout.setMargin(0)
-        for i, thumb in enumerate(self.thumbnails):
-            w = ImageReviewWidget(self.images[i], thumb)
+        for i, img in enumerate(self.images):
+            w = ImageReviewWidget(img)
             w.selectedChanged.connect(self.selectedImagesChanged.emit)
             row = i // 4
             col = i % 4 + 1
@@ -565,7 +596,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     PLANET_COLOR_CSS = 'QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}'
     TRANSPARENT_CSS = ''
 
-    def __init__(self, images, thumbnails, tool_resources=None):
+    def __init__(self, images, tool_resources=None):
         super().__init__(parent=iface.mainWindow())
 
         self.setupUi(self)
@@ -595,11 +626,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
         images_dict = defaultdict(list)
-        thumbnails_dict = defaultdict(list)
-        for img, thumbnail in zip(images, thumbnails):
+        #thumbnails_dict = defaultdict(list)
+        for img in images:
             item_type = img['properties']['item_type']
             images_dict[item_type].append(img)
-            thumbnails_dict[item_type].append(thumbnail)
+            #thumbnails_dict[item_type].append(thumbnail)
 
         widget = QWidget()
         self._item_type_widgets = {}
@@ -608,8 +639,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for i, item_type in enumerate(images_dict.keys()):
             w = PlanetOrderItemTypeWidget(
                 item_type,
-                images_dict[item_type],
-                thumbnails_dict[item_type]
+                images_dict[item_type]
             )
             if i == 0:
                 w.expand()
@@ -676,10 +706,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for item_type, widget in self._item_type_widgets.items():
             bundles = widget.bundles()
             images = widget.images
-            thumbnails = widget.thumbnails
+            #thumbnails = widget.thumbnails
             for bundle in bundles:
                 w = PlanetOrderReviewWidget(item_type, bundle["name"], images,
-                                            thumbnails, self.tool_resources["aoi"] is not None)
+                                            self.tool_resources["aoi"] is not None)
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)

@@ -304,10 +304,8 @@ class DailyImagesWidget(BASE, WIDGET):
         else:
             tool_resources['aoi'] = None
 
-        thumbnails = self.searchResultsWidget.selected_thumbnails()
         dlg = PlanetOrdersDialog(
             images,
-            thumbnails,
             tool_resources=tool_resources
         )
 
