@@ -220,9 +220,13 @@ def _make_zip(zipfile, options):
         if hasattr(options.package, 'segments'):
             txt = txt.replace("# [set_segments_write_key]",
                               f"os.environ['SEGMENTS_WRITE_KEY'] = '{options.package.segments}'")
+        else:
+            print("WARNING: No Segments write key provided.")
         if hasattr(options.package, 'sentry'):
             txt = txt.replace("# [set_sentry_dsn]",
                               f"os.environ['SENTRY_DSN'] = '{options.package.sentry}'")
+        else:
+            print("WARNING: No Sentry DSN write key provided.")
 
         zipfile.writestr("planet_explorer/pe_utils.py", txt)
 
