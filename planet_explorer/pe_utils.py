@@ -492,7 +492,7 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     layer.setCustomProperty("embeddedWidgets/count", 1)
     layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
     view = iface.layerTreeView()
-    view.model().refreshLayerLegend(view.currentNode())
+    view.layerTreeModel().refreshLayerLegend(view.currentNode())
     view.currentNode().setExpanded(True)
     if add_xyz_server:
         s = QSettings()
