@@ -1152,13 +1152,14 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             dl_permission_filter = permission_filter('assets:download')
             populated_filters.append(dl_permission_filter)
 
+        server_filters = []
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
         if self.chkBxGroundControl.isChecked():
             gc_filter = not_filter(string_filter('ground_control', 'false'))
-            populated_filters.append(gc_filter)
+            server_filters.append(gc_filter)
 
-        server_filters = [f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS]
+        server_filters.extend([f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS])
         local_filters = [f for f in populated_filters if f["field_name"] in LOCAL_FILTERS]
         return server_filters, local_filters
 
