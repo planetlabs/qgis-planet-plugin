@@ -711,6 +711,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     def _process_orders(self, item_orders):
         name = str(self.leName.text())
         orders = OrderedDict()
+        aoi = None
+        if self._tool_resources.get('aoi') is not None:
+            aoi = json.loads(self._tool_resources.get('aoi'))
         for io_k, io_v in item_orders.items():
             if not bool(io_v['valid']):
                 self._log(f'Skipping item order {io_k} (not valid)')
@@ -742,13 +745,13 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
             for tool in io_v['tools']:
                 if tool == 'clip':
-                    if self._tool_resources['aoi'] is None:
+                    if aoi is None:
                         self._log('Clip tool is missing AOI, skipping')
                         continue
                     order['tools'].append(
                         {
                             'clip': {
-                                'aoi': json.loads(self._tool_resources['aoi'])
+                                'aoi': aoi
                             }
                         }
                     )
@@ -763,15 +766,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             self._order_response(item_type, resp)
 
             if is_segments_write_key_valid():
-                try:
-                    clipAoi = order['tools']['clip']['aoi']
-                except KeyError:
-                    clipAoi = None
                 analytics.track(self._p_client.user()["email"], "Order placed",
                                 {
                                 "name": order["name"],
                                 "numItems": order["products"][0]["item_ids"],
-                                "clipAoi": clipAoi
+                                "clipAoi": aoi
                                 }
             )
 
@@ -813,7 +812,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         #     ],
         #     "state": "queued"
         # }
-
         if not response.get("id"):
             self._log(f'Requesting {item_type} order failed: '
                       f'response data contains no Order ID')
