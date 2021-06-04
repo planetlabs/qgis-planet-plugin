@@ -276,12 +276,14 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot(dict)
     def set_filters_from_request(self, request):
-        self._daily_filters_widget.set_from_request(request)
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._daily_filters_widget.set_from_request(request)
+            self._main_filters.set_from_request(request)
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._main_filters.set_from_request(request)
 
     def _search_saved(self, request):
         self._main_filters.add_saved_search(request)

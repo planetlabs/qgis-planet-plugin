@@ -543,7 +543,7 @@ class ItemWidgetBase(QFrame):
                 for img in self.item.images()]
             analytics.track(PlanetClient.getInstance().user()["email"],
                             "Scene preview added to map",
-                            {"images": item_ids })
+                            {"images": item_ids})
         create_preview_group(
             self.name(),
             self.item.images()
@@ -599,9 +599,14 @@ class ItemWidgetBase(QFrame):
 
     def scene_thumbnails(self):
         thumbnails = []
-        for i in range(self.item.childCount()):
-            w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
-            thumbnails.extend(w.scene_thumbnails())
+        try:
+            for i in range(self.item.childCount()):
+                w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+                thumbnails.extend(w.scene_thumbnails())
+        except RuntimeError:
+            # item might not exist anymore. In this case, we just return
+            # an empty list
+            pass
         return thumbnails
 
 

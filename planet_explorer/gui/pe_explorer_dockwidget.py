@@ -349,7 +349,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
     def _retrieve_auth_creds(self):
         auth_creds_str = self._auth_man.authSetting(
-            AUTH_CREDS_KEY, defaultValue='', decrypt=True)
+            AUTH_CREDS_KEY, defaultValue='', decrypt=True) or ''
         creds = auth_creds_str.split(AUTH_SEP)
         return {
             'user': creds[0] if len(creds) > 0 else None,
