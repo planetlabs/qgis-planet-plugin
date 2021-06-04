@@ -697,6 +697,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     def _process_orders(self):
         name = self.txtOrderName.text()
 
+        aoi = None
+        if self.tool_resources.get('aoi') is not None:
+            aoi = json.loads(self.tool_resources.get('aoi'))
         orders = []
         for item_type, widget in self._item_type_widgets.items():
             for bundle in widget.bundles():
@@ -728,7 +731,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 if w.clipping():
                     tools.append({
                             'clip': {
-                                'aoi': json.loads(self._tool_resources['aoi'])
+                                'aoi': aoi
                             }})
                 if bundle["filetype"] == "NITF":
                     tools.append({
@@ -744,15 +747,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             responses_ok = responses_ok and resp
 
             if is_segments_write_key_valid():
-                try:
-                    clipAoi = order['tools']['clip']['aoi']
-                except KeyError:
-                    clipAoi = None
                 analytics.track(self._p_client.user()["email"], "Order placed",
                                 {
                                 "name": order["name"],
                                 "numItems": order["products"][0]["item_ids"],
-                                "clipAoi": clipAoi
+                                "clipAoi": aoi
                                 }
                                 )
 

@@ -74,6 +74,9 @@ def geometry_from_json_str_or_obj(
     """
     json_obj = json_str_or_obj_to_obj(json_type)
 
+    if json_obj is None:
+        return None
+
     # Strip outer Feature or FeatureCollection
     json_geom = geometry_from_json(json_obj)
 

@@ -57,6 +57,11 @@ from qgis.PyQt.QtGui import (
     QDesktopServices
 )
 
+from qgis.PyQt.QtWidgets import (
+    QPushButton
+)
+
+
 from ..pe_utils import (
     QGIS_LOG_SECTION_NAME,
     is_segments_write_key_valid

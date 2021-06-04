@@ -7,6 +7,8 @@ iso8601
 mercantile
 analytics-python
 sentry-sdk==0.12.3
+monotonic
+backoff
 
 # typing
 

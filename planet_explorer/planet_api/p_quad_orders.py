@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import uuid
 
 from qgis.core import (
     QgsApplication
@@ -89,6 +90,7 @@ class QuadOrder():
         self.name = name
         self.description = description
         self.date = date or (datetime.date.today().isoformat())
+        self._id = uuid.uuid4()
 
     def locations(self):
         locations = {}
@@ -104,6 +106,9 @@ class QuadOrder():
 
     def downloaded(self):
         return os.path.exists(self.download_folder())
+
+    def id(self):
+        return self._id
 
 
 class QuadCompleteOrder(QuadOrder):

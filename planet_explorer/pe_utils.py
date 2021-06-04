@@ -30,6 +30,7 @@ import urllib
 from urllib.parse import quote
 import json
 import iso8601
+import configparser
 
 from typing import (
     Optional,
@@ -164,10 +165,10 @@ WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 # [set_sentry_dsn]
 
 def sentry_dsn():
-    return os.environ.get("SEGMENTS_WRITE_KEY")
+    return os.environ.get("SENTRY_DSN")
 
 def segments_write_key():
-    return os.environ.get("SENTRY_DSN")
+    return os.environ.get("SEGMENTS_WRITE_KEY")
 
 def is_segments_write_key_valid():
     return segments_write_key() is not None
@@ -492,7 +493,7 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     layer.setCustomProperty("embeddedWidgets/count", 1)
     layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
     view = iface.layerTreeView()
-    view.model().refreshLayerLegend(view.currentNode())
+    view.layerTreeModel().refreshLayerLegend(view.currentNode())
     view.currentNode().setExpanded(True)
     if add_xyz_server:
         s = QSettings()
@@ -587,3 +588,9 @@ def is_planet_url(url):
     singleUrl = url.count("&url=") == 1
 
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
+
+def plugin_version():
+    config = configparser.ConfigParser()
+    path = os.path.join(os.path.dirname(__file__), "metadata.txt")
+    config.read(path)
+    return config.get("general", "version")

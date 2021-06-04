@@ -191,7 +191,6 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                                            QgsProject.instance())
         wgspoint = transform.transform(point)
         mosaicname = self._mosaic_name_from_current_layer()
-        print(mosaicname)
         if mosaicname:
             client = PlanetClient.getInstance()
             mosaic = client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
@@ -254,17 +253,18 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def _mosaic_name_from_current_layer(self):
         layer = iface.activeLayer()
-        source = layer.source()
-        name = None
-        for prop in source.split("&"):
-            tokens = prop.split("=")
-            if tokens[0] == "url":
-                url = tokens[1]
-                groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
-                                        url, re.IGNORECASE)
-                if groups:
-                    name = groups.group(1)
-                    break
+        if layer is not None:
+            source = layer.source()
+            name = None
+            for prop in source.split("&"):
+                tokens = prop.split("=")
+                if tokens[0] == "url":
+                    url = tokens[1]
+                    groups = re.search('https://tiles.planet.com/basemaps/v1/planet-tiles/(.*)/gmap',
+                                       url, re.IGNORECASE)
+                    if groups:
+                        name = groups.group(1)
+                        break
         return name
 
     def _set_map_tool(self, checked):
@@ -276,9 +276,9 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def _map_tool_set(self, new, old):
         if new != self.map_tool:
-           self.btnMapTool.blockSignals(True)
-           self.btnMapTool.setChecked(False)
-           self.btnMapTool.blockSignals(False)
+            self.btnMapTool.blockSignals(True)
+            self.btnMapTool.setChecked(False)
+            self.btnMapTool.blockSignals(False)
 
 
 class SceneItem(QListWidgetItem):
@@ -313,7 +313,7 @@ class SceneItemWidget(QFrame):
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
         thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+                              Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         layout = QHBoxLayout()
         layout.setMargin(2)
@@ -357,7 +357,7 @@ class SceneItemWidget(QFrame):
     def open_in_explorer(self):
         from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
         request = build_search_request(string_filter('id', self.scene[ID]),
-                                        [self.properties[ITEM_TYPE]])
+                                       [self.properties[ITEM_TYPE]])
         show_explorer_and_search_daily_images(request)
 
     def zoom_to_extent(self):
