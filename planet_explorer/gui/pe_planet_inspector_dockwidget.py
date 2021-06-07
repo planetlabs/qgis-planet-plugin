@@ -212,7 +212,6 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                 self.textBrowser.setVisible(False)
                 self.listScenes.setVisible(True)
             except Exception:
-                raise
                 self.textBrowser.setHtml("""<center><span style="color: rgb(200,0,0);">
                                      ⚠️ The selected pixel is not part of a streamed Planet Basemap.
                                      </span></center>""")
