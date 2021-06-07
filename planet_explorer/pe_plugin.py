@@ -100,7 +100,8 @@ from planet_explorer.pe_utils import (
     BASE_URL,
     open_link_with_browser,
     add_widget_to_layer,
-    PLANET_COLOR
+    PLANET_COLOR,
+    plugin_version
 )
 
 from planet_explorer.planet_api import PlanetClient
@@ -198,16 +199,10 @@ class PlanetExplorer(object):
 
         sys.excepthook = plugin_hook
 
-        metadataFile = os.path.join(os.path.dirname(__file__), "metadata.txt")
-        cp = configparser.ConfigParser()
-        with codecs.open(metadataFile, "r", "utf8") as f:
-            cp.read_file(f)
-
         if is_sentry_dsn_valid():
-            version = cp["general"]["version"]
             with sentry_sdk.configure_scope() as scope:
-                scope.set_context("plugin_version", version)
-                scope.set_context("qgis_version", Qgis.QGIS_VERSION)
+                scope.set_context("versions", {"plugin_version", plugin_version(),
+                                               "qgis_version", Qgis.QGIS_VERSION})
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
