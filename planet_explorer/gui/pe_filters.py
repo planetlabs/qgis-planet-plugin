@@ -299,7 +299,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             try:
                 qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
                 if qgsgeom:
-                    filters.append(geom_filter(qgsgeom.asJson()))
+                    geom_json = json.loads(qgsgeom.asJson())
+                    filters.append(geom_filter(geom_json))
                 else:
                     self._show_message("AOI not valid GeoJSON polygon",
                                        level=Qgis.Warning,
