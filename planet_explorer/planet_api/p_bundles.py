@@ -216,9 +216,6 @@ class PlanetOrdersV2Bundles(object):
                                or b_k.startswith('all'))
             exclude_dn = (item_type in ['PSScene3Band', 'PSScene4Band']
                           and b_v.get('radiometry') == 'digital numbers')
-            # TODO: Remove "udm and udm2" filter once that's vetted
-            #       (Note from Planet Explorer web app team)
-            exclude_udm2 = b_v.get('auxiliaryFiles') == 'udm and udm2'
             exclude_all_bands = (item_type == 'PSScene3Band'
                                  and b_v.get('bands') == 'all')
 
@@ -229,7 +226,6 @@ class PlanetOrdersV2Bundles(object):
             #               and item_type in self._deprecated[b_k]['assets'])
 
             if (item_type in assets
-                    and not exclude_udm2
                     and not exclude_dn
                     and not exclude_all_bands
                     and has_all_filters):
@@ -389,15 +385,15 @@ class PlanetOrdersV2Bundles(object):
     @staticmethod
     def default_bundles():
         return {
-            'PSScene4Band': 'analytic',
+            'PSScene4Band': 'analytic_sr_udm2',
             'PSScene3Band': 'visual',
-            'REOrthoTile': 'analytic',
-            'SkySatCollect': 'analytic',
+            'REOrthoTile': 'analytic_sr_udm2',
+            'SkySatCollect': 'pansharpened_udm2',
             'Landsat8L1G': 'analytic',
-            'SkySatScene': 'analytic',
-            'REScene': 'analytic',
+            'SkySatScene': 'pansharpened_udm2',
+            'REScene': 'basic_analytic',
             'Sentinel2L1C': 'analytic',
-            'PSOrthoTile': 'analytic',
+            'PSOrthoTile': 'analytic_sr_udm2',
         }
 
     @staticmethod
