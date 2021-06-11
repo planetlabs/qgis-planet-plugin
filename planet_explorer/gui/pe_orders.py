@@ -355,6 +355,11 @@ class PlanetOrderItemTypeWidget(QWidget):
         else:
             self.labelMore.setText('<a href="#">- Show Less</a>')
 
+    def expand(self):
+        self.widgetDetails.show()
+        self.btnDetails.setIcon(EXPAND_LESS_ICON)
+        self.updateGeometry()
+
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
             self.widgetDetails.hide()
@@ -586,12 +591,14 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._item_type_widgets = {}
         layout = QVBoxLayout()
         layout.setMargin(0)
-        for item_type in images_dict.keys():
+        for i, item_type in enumerate(images_dict.keys()):
             w = PlanetOrderItemTypeWidget(
                 item_type,
                 images_dict[item_type],
                 thumbnails_dict[item_type]
             )
+            if i == 0:
+                w.expand()
             w.selectionChanged.connect(self.selectionChanged)
             self._item_type_widgets[item_type] = w
             layout.addWidget(w)
