@@ -26,9 +26,7 @@ from builtins import object
 import os
 import zipfile
 import sys
-import codecs
 import traceback
-import configparser
 
 import analytics
 import sentry_sdk
@@ -567,9 +565,9 @@ class PlanetExplorer(object):
             def resave():
                 path = QgsProject.instance().absoluteFilePath()
                 if path.lower().endswith(".qgs"):
-                    with open(path) as f:
+                    with open(path, encoding='utf-8') as f:
                         s = f.read()
-                    with open(path, "w") as f:
+                    with open(path, "w", encoding='utf-8') as f:
                         f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
                 else:
                     tmpfilename = path + ".temp"
