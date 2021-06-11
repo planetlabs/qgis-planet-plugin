@@ -27,9 +27,11 @@ import os
 import zipfile
 import sys
 import traceback
+import requests
 
 import analytics
 import sentry_sdk
+
 
 from qgis.core import (
     Qgis,
@@ -63,7 +65,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QSizePolicy,
-    QLabel
+    QLabel,
+    QMessageBox
 )
 
 from qgiscommons2.settings import (
@@ -193,7 +196,19 @@ class PlanetExplorer(object):
                     sentry_sdk.capture_exception(value)
                 except:
                     pass # we swallow all exceptions here, to avoid entering an endless loop
-            self.qgis_hook(t, value, tb)
+                s = ""
+                if issubclass(t, requests.exceptions.Timeout):
+                    s = "Connection to Planet server timed out."
+                elif issubclass(t, requests.exceptions.ConnectionError):
+                    s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
+                elif issubclass(t, requests.exceptions.ProxyError):
+                    s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
+                if s:
+                    QMessageBox.warning(self.iface.mainWindow(), "Error", s)
+                else:
+                    self.qgis_hook(t, value, tb)
+            else:
+                self.qgis_hook(t, value, tb)
 
         sys.excepthook = plugin_hook
 
