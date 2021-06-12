@@ -61,6 +61,7 @@ from qgis.core import (
     QgsRectangle,
     QgsFeature,
     QgsVectorLayer,
+    QgsCsException
 )
 from qgis.gui import (
     QgisInterface,
@@ -436,7 +437,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         )
 
         canvas_extent: QgsRectangle = canvas.extent()
-        transform_extent = transform.transformBoundingBox(canvas_extent)
+        try:
+            transform_extent = transform.transformBoundingBox(canvas_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
@@ -475,7 +482,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             QgsProject.instance())
 
         ml_extent: QgsRectangle = map_layer.extent()
-        transform_extent = transform.transformBoundingBox(ml_extent)
+        try:
+            transform_extent = transform.transformBoundingBox(ml_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
@@ -509,7 +522,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         canvas_extent: QgsRectangle = canvas.fullExtent()
         if canvas_extent.isNull(): # Canvas not yet initialized
             return
-        transform_extent = transform.transformBoundingBox(canvas_extent)
+        try:
+            transform_extent = transform.transformBoundingBox(canvas_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
