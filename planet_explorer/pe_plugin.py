@@ -578,27 +578,32 @@ class PlanetExplorer(object):
     def project_saved(self):
         if PlanetClient.getInstance().has_api_key():
             def resave():
-                path = QgsProject.instance().absoluteFilePath()
-                if path.lower().endswith(".qgs"):
-                    with open(path, encoding='utf-8') as f:
-                        s = f.read()
-                    with open(path, "w", encoding='utf-8') as f:
-                        f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
-                else:
-                    tmpfilename = path + ".temp"
-                    qgsfilename = os.path.splitext(os.path.basename(path))[0] + ".qgs"
-                    with zipfile.ZipFile(path, 'r') as zin:
-                        with zipfile.ZipFile(tmpfilename, 'w') as zout:
-                            zout.comment = zin.comment
-                            for item in zin.infolist():
-                                if not item.filename.lower().endswith(".qgs"):
-                                    zout.writestr(item, zin.read(item.filename))
-                                else:
-                                    s = zin.read(item.filename).decode("utf-8")
-                                    s = s.replace(PlanetClient.getInstance().api_key(), "")
-                                    qgsfilename = item.filename
-                    os.remove(path)
-                    os.rename(tmpfilename, path)
-                    with zipfile.ZipFile(path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
-                        zf.writestr(qgsfilename, s)
+                try:
+                    path = QgsProject.instance().absoluteFilePath()
+                    if path.lower().endswith(".qgs"):
+                        with open(path, encoding='utf-8') as f:
+                            s = f.read()
+                        with open(path, "w", encoding='utf-8') as f:
+                            f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
+                    else:
+                        tmpfilename = path + ".temp"
+                        qgsfilename = os.path.splitext(os.path.basename(path))[0] + ".qgs"
+                        with zipfile.ZipFile(path, 'r') as zin:
+                            with zipfile.ZipFile(tmpfilename, 'w') as zout:
+                                zout.comment = zin.comment
+                                for item in zin.infolist():
+                                    if not item.filename.lower().endswith(".qgs"):
+                                        zout.writestr(item, zin.read(item.filename))
+                                    else:
+                                        s = zin.read(item.filename).decode("utf-8")
+                                        s = s.replace(PlanetClient.getInstance().api_key(), "")
+                                        qgsfilename = item.filename
+                        os.remove(path)
+                        os.rename(tmpfilename, path)
+                        with zipfile.ZipFile(path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
+                            zf.writestr(qgsfilename, s)
+                except Exception:
+                    QMessageBox.warning(self.iface.mainWindow("Error saving project",
+                        "There was an error while removing API keys from QGIS project file.\n"
+                        "The project that you have just saved might contain Planet API keys in plain text."))
             QTimer.singleShot(100, resave)
