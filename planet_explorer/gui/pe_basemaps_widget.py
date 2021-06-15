@@ -121,6 +121,7 @@ TIMELAPSE = "timelapse"
 
 QUADS_PER_PAGE = 50
 MAX_QUADS_TO_DOWNLOAD = 100
+MAX_AREA_TO_DOWNLOAD = 100000
 
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
@@ -452,6 +453,12 @@ class BasemapsWidget(BASE, WIDGET):
             quad = self.p_client.get_one_quad(mosaics[0])
             quadarea = self._area_from_bbox_coords(quad[BBOX])
             mosaicarea = self._area_from_bbox_coords(mosaics[0][BBOX])
+            if mosaicarea > MAX_AREA_TO_DOWNLOAD:
+                QMessageBox.warning(self, "Complete Download",
+                                    "This area is too big to download from the QGIS Plugin.<br>"
+                                    "To download a large Basemap area, you may want to consult our "
+                                    "<a href='https://developers.planet.com/docs/basemaps/'>developer resources</a>")
+                return
             numquads = int(mosaicarea / quadarea)
             if numquads > MAX_QUADS_TO_DOWNLOAD:
                 ret = QMessageBox.question(self, "Complete Download",
@@ -478,18 +485,28 @@ class BasemapsWidget(BASE, WIDGET):
             self.labelWarningQuads.setText('⚠️ No area of interest (AOI) defined')
             return
         geom = self.aoi_filter.aoi_as_4326_geom()
+        if geom is None:
+            self.parent.show_message(f'Wrong AOI definition',
+                              level=Qgis.Warning,
+                              duration=10)
+            return
         mosaic_extent = QgsRectangle(*selected[0][BBOX])
         if not geom.intersects(mosaic_extent):
             self.parent.show_message(f'No mosaics in the selected area',
                               level=Qgis.Warning,
                               duration=10)
             return
-
-        quad = self.p_client.get_one_quad(selected[0])
-        quadarea = self._area_from_bbox_coords(quad[BBOX])
         qgsarea = QgsDistanceArea()
         area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
                                         QgsUnitTypes.AreaSquareKilometers)
+        if area > MAX_AREA_TO_DOWNLOAD:
+            QMessageBox.warning(self, "Quad Download",
+                                "This area is too big to download from the QGIS Plugin.<br>"
+                                "To download a large Basemap area, you may want to consult our "
+                                "<a href='https://developers.planet.com/docs/basemaps/'>developer resources</a>")
+            return
+        quad = self.p_client.get_one_quad(selected[0])
+        quadarea = self._area_from_bbox_coords(quad[BBOX])
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
 
         self.widgetProgressFindQuads.setVisible(True)
@@ -545,6 +562,12 @@ class BasemapsWidget(BASE, WIDGET):
 
     def next_quads_page_clicked(self):
         selected = self.quadsTree.selected_quads()
+        if len(selected) > MAX_QUADS_TO_DOWNLOAD:
+            ret = QMessageBox.question(self, "Quad Download",
+                                f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
+                                "Are your sure you want to proceed?")
+            if ret != QMessageBox.Yes:
+                return
         if selected:
             self.show_order_name_page()
         else:
