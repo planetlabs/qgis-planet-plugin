@@ -58,6 +58,9 @@ from planet.api.models import (
     MosaicQuads
 )
 
+from planet.api.exceptions import (
+    InvalidAPIKey
+)
 
 from qgis.core import (
     Qgis,
@@ -388,7 +391,13 @@ class BasemapsWidget(BASE, WIDGET):
         self.mosaicsList.setVisible(data is not None)
         if data:
             if data[1]: #it is a series, not a single mosaic
-                mosaics = self.mosaics_for_serie(data[0])
+                try:
+                    mosaics = self.mosaics_for_serie(data[0])
+                except InvalidAPIKey:
+                    self.parent.show_message('Insufficient privileges. Cannot show mosaics of the selected series',
+                              level=Qgis.Warning,
+                              duration=10)
+                    return
             else:
                 mosaics = [data[0]]
             self.mosaicsList.populate(mosaics)
