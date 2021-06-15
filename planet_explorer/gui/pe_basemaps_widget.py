@@ -475,10 +475,6 @@ class BasemapsWidget(BASE, WIDGET):
             self.show_order_streaming_page()
 
     def find_quads_clicked(self):
-        self.find_quads()
-
-    @waitcursor
-    def find_quads(self):
         self.labelWarningQuads.setText("")
         selected = self.mosaicsList.selected_mosaics()
         if not self.aoi_filter.leAOI.text():
@@ -505,6 +501,15 @@ class BasemapsWidget(BASE, WIDGET):
                                 "To download a large Basemap area, you may want to consult our "
                                 "<a href='https://developers.planet.com/docs/basemaps/'>developer resources</a>")
             return
+        self.find_quads()
+
+    @waitcursor
+    def find_quads(self):
+        selected = self.mosaicsList.selected_mosaics()
+        geom = self.aoi_filter.aoi_as_4326_geom()
+        qgsarea = QgsDistanceArea()
+        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
+                                        QgsUnitTypes.AreaSquareKilometers)
         quad = self.p_client.get_one_quad(selected[0])
         quadarea = self._area_from_bbox_coords(quad[BBOX])
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
