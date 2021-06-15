@@ -227,7 +227,7 @@ class PlanetPolyMapTool(QgsMapTool):
 
     def canvasReleaseEvent(self, event):
         if event.button() == Qt.RightButton:
-            if self.rubber_band is None:
+            if self.rubber_band is None or self.extent is None:
                 return
             # TODO: validate geom before firing signal
             self.extent.removeDuplicateNodes()
