@@ -470,6 +470,7 @@ class PlanetOrderReviewWidget(QWidget):
         layout.setVerticalSpacing(15)
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(2, 1)
+        self.chkClip = None
         if self.add_clip:
             layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
             layout.addWidget(QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter)
@@ -499,7 +500,10 @@ class PlanetOrderReviewWidget(QWidget):
         return [w.image for w in self.imgWidgets if w.selected()]
 
     def clipping(self):
-        return self.chkClip.isChecked()
+        if self.chkClip is None:
+            return False
+        else:
+            return self.chkClip.isChecked()
 
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
