@@ -65,7 +65,7 @@
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">color: rgb(17, 141, 148);</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>Title</string>

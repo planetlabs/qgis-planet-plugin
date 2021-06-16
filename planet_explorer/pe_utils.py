@@ -589,6 +589,7 @@ def is_planet_url(url):
 
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
 
+
 def plugin_version():
     config = configparser.ConfigParser()
     path = os.path.join(os.path.dirname(__file__), "metadata.txt")

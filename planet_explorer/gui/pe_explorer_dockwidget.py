@@ -247,8 +247,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
                                 "apiKey": user["api_key"],
                                 "organizationId": user["organization_id"],
                                 "programId": user["program_id"],
-                                "qgisVersion": {"version": Qgis.QGIS_VERSION},
-                                "pluginVersion": {"version": plugin_version()}
+                                "qgisVersion": Qgis.QGIS_VERSION,
+                                "pluginVersion": plugin_version()
                                 }
             )
             analytics.track(user["email"], "Log in to Explorer")

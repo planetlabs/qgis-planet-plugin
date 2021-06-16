@@ -390,10 +390,23 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             it += 1
         return selected
 
+    def selected_thumbnails(self):
+        thumbnails = []
+        it = QTreeWidgetItemIterator(self.tree)
+        while it.value():
+            item = it.value()
+            if isinstance(item, SceneItem):
+                w = self.tree.itemWidget(item, 0)
+                w.set_metadata_to_show(self._metadata_to_show)
+                if w.is_selected():
+                    thumbnails.append(w.thumbnail)
+            it += 1
+        return thumbnails
+
     def checked_count_changed(self):
-        hasSelection = bool(len(self.selected_images()))
-        self.btnAddPreview.setEnabled(hasSelection)
-        self.checkedCountChanged.emit(hasSelection)
+        numimages = len(self.selected_images())
+        self.btnAddPreview.setEnabled(numimages)
+        self.checkedCountChanged.emit(numimages)
 
     def item_count_changed(self):
         if self._image_count < self._total_count:

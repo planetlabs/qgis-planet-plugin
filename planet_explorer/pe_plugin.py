@@ -26,12 +26,12 @@ from builtins import object
 import os
 import zipfile
 import sys
-import codecs
 import traceback
-import configparser
+import requests
 
 import analytics
 import sentry_sdk
+
 
 from qgis.core import (
     Qgis,
@@ -65,7 +65,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QSizePolicy,
-    QLabel
+    QLabel,
+    QMessageBox
 )
 
 from qgiscommons2.settings import (
@@ -100,7 +101,8 @@ from planet_explorer.pe_utils import (
     BASE_URL,
     open_link_with_browser,
     add_widget_to_layer,
-    PLANET_COLOR
+    PLANET_COLOR,
+    plugin_version
 )
 
 from planet_explorer.planet_api import PlanetClient
@@ -194,20 +196,26 @@ class PlanetExplorer(object):
                     sentry_sdk.capture_exception(value)
                 except:
                     pass # we swallow all exceptions here, to avoid entering an endless loop
-            self.qgis_hook(t, value, tb)
+                s = ""
+                if issubclass(t, requests.exceptions.Timeout):
+                    s = "Connection to Planet server timed out."
+                elif issubclass(t, requests.exceptions.ConnectionError):
+                    s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
+                elif issubclass(t, requests.exceptions.ProxyError):
+                    s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
+                if s:
+                    QMessageBox.warning(self.iface.mainWindow(), "Error", s)
+                else:
+                    self.qgis_hook(t, value, tb)
+            else:
+                self.qgis_hook(t, value, tb)
 
         sys.excepthook = plugin_hook
 
-        metadataFile = os.path.join(os.path.dirname(__file__), "metadata.txt")
-        cp = configparser.ConfigParser()
-        with codecs.open(metadataFile, "r", "utf8") as f:
-            cp.read_file(f)
-
         if is_sentry_dsn_valid():
-            version = cp["general"]["version"]
             with sentry_sdk.configure_scope() as scope:
-                scope.set_context("plugin_version", version)
-                scope.set_context("qgis_version", Qgis.QGIS_VERSION)
+                scope.set_context("versions", {"plugin_version", plugin_version(),
+                                               "qgis_version", Qgis.QGIS_VERSION})
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -570,27 +578,32 @@ class PlanetExplorer(object):
     def project_saved(self):
         if PlanetClient.getInstance().has_api_key():
             def resave():
-                path = QgsProject.instance().absoluteFilePath()
-                if path.lower().endswith(".qgs"):
-                    with open(path) as f:
-                        s = f.read()
-                    with open(path, "w") as f:
-                        f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
-                else:
-                    tmpfilename = path + ".temp"
-                    qgsfilename = os.path.splitext(os.path.basename(path))[0] + ".qgs"
-                    with zipfile.ZipFile(path, 'r') as zin:
-                        with zipfile.ZipFile(tmpfilename, 'w') as zout:
-                            zout.comment = zin.comment
-                            for item in zin.infolist():
-                                if not item.filename.lower().endswith(".qgs"):
-                                    zout.writestr(item, zin.read(item.filename))
-                                else:
-                                    s = zin.read(item.filename).decode("utf-8")
-                                    s = s.replace(PlanetClient.getInstance().api_key(), "")
-                                    qgsfilename = item.filename
-                    os.remove(path)
-                    os.rename(tmpfilename, path)
-                    with zipfile.ZipFile(path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
-                        zf.writestr(qgsfilename, s)
+                try:
+                    path = QgsProject.instance().absoluteFilePath()
+                    if path.lower().endswith(".qgs"):
+                        with open(path, encoding='utf-8') as f:
+                            s = f.read()
+                        with open(path, "w", encoding='utf-8') as f:
+                            f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
+                    else:
+                        tmpfilename = path + ".temp"
+                        qgsfilename = os.path.splitext(os.path.basename(path))[0] + ".qgs"
+                        with zipfile.ZipFile(path, 'r') as zin:
+                            with zipfile.ZipFile(tmpfilename, 'w') as zout:
+                                zout.comment = zin.comment
+                                for item in zin.infolist():
+                                    if not item.filename.lower().endswith(".qgs"):
+                                        zout.writestr(item, zin.read(item.filename))
+                                    else:
+                                        s = zin.read(item.filename).decode("utf-8")
+                                        s = s.replace(PlanetClient.getInstance().api_key(), "")
+                                        qgsfilename = item.filename
+                        os.remove(path)
+                        os.rename(tmpfilename, path)
+                        with zipfile.ZipFile(path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
+                            zf.writestr(qgsfilename, s)
+                except Exception:
+                    QMessageBox.warning(self.iface.mainWindow("Error saving project",
+                        "There was an error while removing API keys from QGIS project file.\n"
+                        "The project that you have just saved might contain Planet API keys in plain text."))
             QTimer.singleShot(100, resave)
