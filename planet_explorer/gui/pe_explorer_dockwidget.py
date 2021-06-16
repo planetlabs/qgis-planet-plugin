@@ -84,10 +84,10 @@ from ..pe_utils import (
     is_sentry_dsn_valid,
     is_segments_write_key_valid,
     BASE_URL,
-    open_link_with_browser
+    open_link_with_browser,
+    plugin_version
 )
 
-from pyplugin_installer.installer_data import plugins
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -247,8 +247,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
                                 "apiKey": user["api_key"],
                                 "organizationId": user["organization_id"],
                                 "programId": user["program_id"],
-                                "qgisVersion": Qgis.QGIS_VERSION,
-                                "pluginVersion": plugins.all()["planet_explorer"]['version_installed']
+                                "qgisVersion": {"version": Qgis.QGIS_VERSION},
+                                "pluginVersion": {"version": plugin_version()}
                                 }
             )
             analytics.track(user["email"], "Log in to Explorer")
@@ -349,7 +349,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
     def _retrieve_auth_creds(self):
         auth_creds_str = self._auth_man.authSetting(
-            AUTH_CREDS_KEY, defaultValue='', decrypt=True)
+            AUTH_CREDS_KEY, defaultValue='', decrypt=True) or ''
         creds = auth_creds_str.split(AUTH_SEP)
         return {
             'user': creds[0] if len(creds) > 0 else None,

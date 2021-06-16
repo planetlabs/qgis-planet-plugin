@@ -129,7 +129,7 @@ def filters_from_request(request, field_name=None, filter_type=None):
             for subfilter in filterdict["config"]:
                 _add_filter(subfilter)
         elif filterdict["type"] == "NotFilter":
-            _add_filter(filterdict["config"][0])
+            _add_filter(filterdict["config"])
         else:
             if (field_name is not None
                 and "field_name" in filterdict
@@ -141,6 +141,7 @@ def filters_from_request(request, field_name=None, filter_type=None):
     filter_entry = request["filter"] if "filter" in request else request
     _add_filter(filter_entry)
     return filters
+
 
 def filters_as_text_from_request(request):
     slider_filters = {
@@ -296,9 +297,9 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             # TODO: Validate GeoJSON; try planet.api.utils.probably_geojson()
             # noinspection PyBroadException
             try:
-                if qgsgeometry_from_geojson(self.leAOI.text()):
-                    aoi = json.loads(self.leAOI.text())
-                    filters.append(geom_filter(aoi))
+                qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
+                if qgsgeom:
+                    filters.append(geom_filter(qgsgeom.asJson()))
                 else:
                     self._show_message("AOI not valid GeoJSON polygon",
                                        level=Qgis.Warning,
@@ -505,6 +506,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             QgsProject.instance())
 
         canvas_extent: QgsRectangle = canvas.fullExtent()
+        if canvas_extent.isNull(): # Canvas not yet initialized
+            return
         transform_extent = transform.transformBoundingBox(canvas_extent)
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -588,7 +591,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     @pyqtSlot()
     def aoi_from_feature(self):
-        layer: QgsVectorLayer = self._iface.activeLayer()
+        layer = self._iface.activeLayer()
+        if not isinstance(layer, QgsVectorLayer):
+            self._show_message('Active layer must be a vector layer.',
+                               level=Qgis.Warning,
+                               duration=10)
+            return
 
         if layer.selectedFeatureCount() > 1:
             self._show_message('More than 1 feature. Searching by bbox.',
@@ -660,7 +668,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     @pyqtSlot()
     def aoi_from_bound(self):
-        layer: QgsVectorLayer = self._iface.activeLayer()
+        layer = self._iface.activeLayer()
+        if not isinstance(layer, QgsVectorLayer):
+            self._show_message('Active layer must be a vector layer.',
+                               level=Qgis.Warning,
+                               duration=10)
+            return
 
         if layer.selectedFeatureCount() < 1:
             self._show_message('No features selected.',
@@ -750,7 +763,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             log.debug('No AOI defined, skipping zoom to AOI')
             return
 
-        json_geom_txt = json.dumps(json.loads(self.leAOI.text()), indent=2)
+        try:
+            json_obj = json.loads(self.leAOI.text())
+        except ValueError:
+            return
+
+        json_geom_txt = json.dumps(json_obj, indent=2)
 
         cb = QgsApplication.clipboard()
         cb.setText(json_geom_txt)
@@ -783,7 +801,10 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
                                duration=10)
             return
 
-        json_geom = geometry_from_json(json_obj)
+        try:
+            json_geom = geometry_from_json(json_obj)
+        except:
+            json_geom = None
 
         if not json_geom:
             # noinspection PyUnresolvedReferences
@@ -1148,11 +1169,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             instrument_filter = string_filter('instrument', *instruments)
             populated_filters.append(instrument_filter)
 
+        server_filters = []
         if self.chkBxCanDownload.isChecked():
             dl_permission_filter = permission_filter('assets:download')
-            populated_filters.append(dl_permission_filter)
+            server_filters.append(dl_permission_filter)
 
-        server_filters = []
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
         if self.chkBxGroundControl.isChecked():

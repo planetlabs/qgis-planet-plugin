@@ -132,8 +132,6 @@ class DailyImagesWidget(BASE, WIDGET):
         self.btnOrder.clicked.connect(self.order_checked)
         self._setup_actions_button()
 
-        self._checked_queue_set_count = 0
-        self._checked_queue_set = set()
         self._checked_item_type_nodes = {}
 
         self.lblWarning.setHidden(True)
@@ -276,12 +274,14 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot(dict)
     def set_filters_from_request(self, request):
-        self._daily_filters_widget.set_from_request(request)
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._daily_filters_widget.set_from_request(request)
+            self._main_filters.set_from_request(request)
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._main_filters.set_from_request(request)
 
     def _search_saved(self, request):
         self._main_filters.add_saved_search(request)
@@ -293,7 +293,7 @@ class DailyImagesWidget(BASE, WIDGET):
         selected = self.searchResultsWidget.selected_images()
 
         if not selected:
-            self.parent.show_message(f'No checked items to order',
+            self.parent.show_message('No checked items to order',
                               level=Qgis.Warning,
                               duration=10)
             return
@@ -318,13 +318,14 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot()
     def copy_checked_ids(self):
-        if not self._checked_queue_set:
-            self.parent.show_message(f'No checked IDs to copy',
+        selected = self.searchResultsWidget.selected_images()
+        if not selected:
+            self.parent.show_message('No checked IDs to copy',
                               level=Qgis.Warning,
                               duration=10)
             return
 
-        sorted_checked = sorted(self._checked_queue_set)
+        sorted_checked = sorted([img["id"] for img in selected])
         cb = QgsApplication.clipboard()
         cb.setText(','.join(sorted_checked))
         self.parent.show_message('Checked IDs copied to clipboard')

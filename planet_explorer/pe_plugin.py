@@ -512,6 +512,8 @@ class PlanetExplorer(object):
         remove_orders_monitor()
         remove_tasking_widget()
 
+        QgsGui.layerTreeEmbeddedWidgetRegistry().removeProvider(self.provider.id())
+
         sys.excepthook = self.qgis_hook
 
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
@@ -541,7 +543,7 @@ class PlanetExplorer(object):
 
     def enable_buttons(self, loggedin):
         self.btnLogin.setVisible(not loggedin)
-        labelText = (f"<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>")
+        labelText = ("<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>")
         self.labelLoggedIn.setText(labelText)
         self.showdailyimages_act.setEnabled(loggedin)
         self.showbasemaps_act.setEnabled(loggedin)
