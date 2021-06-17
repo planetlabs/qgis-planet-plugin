@@ -126,7 +126,7 @@
               <second>0</second>
               <year>1999</year>
               <month>12</month>
-              <day>27</day>
+              <day>26</day>
              </datetime>
             </property>
             <property name="time">
@@ -314,7 +314,7 @@
             <item>
              <widget class="QCheckBox" name="chkPlanetScopeOrtho">
               <property name="text">
-               <string>PlanetScope Ortho</string>
+               <string>PlanetScope Ortho Tile</string>
               </property>
               <property name="api-name" stdset="0">
                <string>PSOrthoTile</string>
@@ -324,10 +324,10 @@
             <item>
              <widget class="QCheckBox" name="chkPlanetScope3Band">
               <property name="text">
-               <string>PlanetScope 3-band</string>
+               <string>3 Band PlanetScope Scene</string>
               </property>
               <property name="checked">
-               <bool>true</bool>
+               <bool>false</bool>
               </property>
               <property name="api-name" stdset="0">
                <string>PSScene3Band</string>
@@ -337,7 +337,10 @@
             <item>
              <widget class="QCheckBox" name="chkPlanetScope4Band">
               <property name="text">
-               <string>PlanetScope 4-band</string>
+               <string>4 Band PlanetScope Scene</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
               </property>
               <property name="tristate">
                <bool>false</bool>
@@ -350,7 +353,7 @@
             <item>
              <widget class="QCheckBox" name="chkRapidEyeScene">
               <property name="text">
-               <string>RapidEye Scene</string>
+               <string>RapidEye Basic Scene</string>
               </property>
               <property name="api-name" stdset="0">
                <string>REScene</string>
@@ -360,7 +363,7 @@
             <item>
              <widget class="QCheckBox" name="chkRapidEyeOrtho">
               <property name="text">
-               <string>RapidEye Ortho</string>
+               <string>RapidEye Ortho Tile</string>
               </property>
               <property name="api-name" stdset="0">
                <string>REOrthoTile</string>
@@ -384,7 +387,7 @@
             <item>
              <widget class="QCheckBox" name="chkSentinel">
               <property name="text">
-               <string>Sentinel 2 Tile</string>
+               <string>Sentinel-2 Tile</string>
               </property>
               <property name="api-name" stdset="0">
                <string>Sentinel2L1C</string>
