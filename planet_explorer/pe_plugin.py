@@ -28,6 +28,7 @@ import zipfile
 import sys
 import traceback
 import requests
+import planet
 
 import analytics
 import sentry_sdk
@@ -203,6 +204,8 @@ class PlanetExplorer(object):
                     s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
                 elif issubclass(t, requests.exceptions.ProxyError):
                     s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
+                elif issubclass(t, planet.api.exceptions.ServerError):
+                    s = "Server Error.\n Please, try again later"
                 if s:
                     QMessageBox.warning(self.iface.mainWindow(), "Error", s)
                 else:
