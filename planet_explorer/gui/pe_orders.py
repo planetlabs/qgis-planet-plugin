@@ -310,12 +310,12 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayout.setMargin(0)
 
         i = 0
-        for bundleid in item_bundles.keys():
-            bundle = item_bundles[bundleid]
+        for bundle in item_bundles:
+            bundleid = bundle["id"]
             if bundle["rectification"] == "orthorectified":
                 name = bundle["name"]
                 description = bundle["description"]
-                udm = "udm2" in bundle.get("auxiliaryFiles", "")
+                udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
                 w = PlanetOrderBundleWidget(bundleid, name, description, udm)
                 gridlayout.addWidget(w, i // 2, i % 2)
                 w.setSelected(bundleid == default)
@@ -334,12 +334,12 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayoutUnrect.setMargin(0)
 
         i = 0
-        for bundleid in item_bundles.keys():
-            bundle = item_bundles[bundleid]
+        for bundle in item_bundles:
+            bundleid = bundle["id"]
             if bundle["rectification"] != "orthorectified":
                 name = bundle["name"]
                 description = bundle["description"]
-                udm = "udm2" in bundle.get("auxiliaryFiles", "")
+                udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
                 w = PlanetOrderBundleWidget(bundleid, name, description, udm)
                 gridlayoutUnrect.addWidget(w, i // 2, i % 2)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
@@ -555,6 +555,11 @@ class PlanetOrderReviewWidget(QWidget):
             self.btnDetails.setIcon(EXPAND_LESS_ICON)
         self.updateGeometry()
 
+    def expand(self):
+        self.widgetDetails.show()
+        self.btnDetails.setIcon(EXPAND_LESS_ICON)
+        self.updateGeometry()
+
 
 class PlanetOrderSummaryOrderWidget(QWidget):
 
@@ -703,14 +708,17 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         scrollWidget = QWidget()
         layout = QVBoxLayout()
         layout.setMargin(0)
+        first = True
         for item_type, widget in self._item_type_widgets.items():
             bundles = widget.bundles()
             images = widget.images
-            #thumbnails = widget.thumbnails
             for bundle in bundles:
                 w = PlanetOrderReviewWidget(item_type, bundle["name"], images,
                                             self.tool_resources["aoi"] is not None)
                 w.selectedImagesChanged.connect(self.update_summary_items)
+                if first:
+                    w.expand()
+                    first = False
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)
         layout.addStretch()
