@@ -386,6 +386,8 @@ class BasemapLayerWidget(QWidget):
         self.change_source()
 
     def ensure_correct_size(self):
+        if self.layer is None:
+            return
         def findLayerItem(root=None):
             root = root or QgsProject.instance().layerTreeRoot()
             for child in root.children():
