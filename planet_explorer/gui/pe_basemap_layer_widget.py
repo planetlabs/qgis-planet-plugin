@@ -365,7 +365,6 @@ class BasemapLayerWidget(QWidget):
                 zoom.append(token)
         szoom = f"&{'&'.join(zoom)}" if zoom else ""
         uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
-        print(uri)
         provider = self.layer.dataProvider()
         if provider is not None:
             provider.setDataSourceUri(uri)
