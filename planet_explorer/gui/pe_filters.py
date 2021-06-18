@@ -45,7 +45,7 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QMenu,
     QAction,
-    QMessageBox
+    QFileDialog
 )
 
 from qgis.core import (
@@ -295,7 +295,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             # noinspection PyBroadException
             try:
                 qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
-                if qgsgeom:
+                if not qgsgeom.isEmpty():
                     geom_json = json.loads(qgsgeom.asJson())
                     filters.append(geom_filter(geom_json))
                 else:
@@ -398,6 +398,68 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.btnSelection.clicked.connect(self._toggle_selection_tools)
         self.btnSelection.clicked.connect(self.btnSelection.showMenu)
 
+        upload_menu = QMenu(self)
+
+        geojson_act = QAction('GeoJSON file', upload_menu)
+        geojson_act.triggered[bool].connect(self.upload_geojson)
+        upload_menu.addAction(geojson_act)
+
+        shapefile_act = QAction('Shapefile', upload_menu)
+        shapefile_act.triggered[bool].connect(self.upload_shapefile)
+        upload_menu.addAction(shapefile_act)
+
+        self.btnUpload.setMenu(upload_menu)
+        self.btnUpload.clicked.connect(self.btnUpload.showMenu)
+
+    def upload_shapefile(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "*.shp")
+        if filename:
+            layer = QgsVectorLayer(filename, "")
+            self.aoi_from_layer(layer)
+
+    def upload_geojson(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "*.geojson")
+        if filename:
+            layer = QgsVectorLayer(filename, "")
+            self.aoi_from_layer(layer)
+
+    def aoi_from_layer(self, layer):
+        if not layer.isValid():
+            self._show_message("Invalid layer",
+                               level=Qgis.Warning,
+                               duration=10)
+        else:
+            feature = next(layer.getFeatures(), None)
+            if feature is None:
+                self._show_message("Layer contains no features",
+                                   level=Qgis.Warning,
+                                   duration=10)
+            else:
+                geom = feature.geometry()
+
+                transform = QgsCoordinateTransform(
+                    layer.crs(),
+                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsProject.instance())
+
+                try:
+                    geom.transform(transform)
+                except QgsCsException as e:
+                    self._show_message("Could not convert AOI to EPSG:4326",
+                           level=Qgis.Warning,
+                           duration=10)
+                    return
+
+                geom_json = geom.asJson(precision=6)
+
+                self._aoi_box.setToGeometry(geom)
+
+                self.leAOI.setText(geom_json)
+
+                log.debug('AOI set to layer')
+
+                self.zoom_to_aoi()
+
     def _toggle_selection_tools(self):
         active_layer = self._iface.activeLayer()
         is_vector = isinstance(active_layer, QgsVectorLayer)
@@ -490,7 +552,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         extent_json = geom_extent.asJson(precision=6)
 
         # noinspection PyArgumentList,PyCallByClass
-        self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
+        #self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
 
         self.leAOI.setText(extent_json)
 
@@ -579,8 +641,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             aoi_json = aoi_geom.asJson(precision=6)
 
         if isinstance(aoi, QgsGeometry):
-            if aoi.isMultipart():
-                aoi = QgsGeometry.fromPolygonXY(aoi.asMultiPolygon()[0])
             self._aoi_box.setToGeometry(aoi)
             # TODO: validate geom is less than 500 vertices
             aoi.transform(transform)
@@ -627,25 +687,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             return
 
         selected: QgsFeature = layer.selectedFeatures()[0]
-        if selected.geometry().isMultipart():
-            multi_geom = selected.geometry().asGeometryCollection()
-            if len(multi_geom) > 1:
-                self._show_message(
-                                   'More than 1 geometry. Searching by bbox.',
-                                   level=Qgis.Warning,
-                                   duration=10
-                    )
-                self.aoi_from_bound()
-                return
-            elif len(multi_geom) < 1:
-                self._show_message('No geometry selected.',
-                                   level=Qgis.Warning,
-                                   duration=10)
-                return
-            else:
-                geom: QgsGeometry = multi_geom[0]
-        else:
-            geom: QgsGeometry = selected.geometry()
+        geom: QgsGeometry = selected.geometry()
 
         if geom.constGet().vertexCount() > 500:
             self._show_message(
@@ -762,6 +804,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             return
 
         geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.text())
+        if geom.isEmpty():
+            self._show_message('AOI GeoJSON geometry invalid',
+                   level=Qgis.Warning,
+                   duration=10)
+            return
+
         self._aoi_box.setToGeometry(
             geom,
             QgsCoordinateReferenceSystem("EPSG:4326")

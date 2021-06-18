@@ -72,6 +72,8 @@ from qgis.core import (
     QgsApplication,
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
+    QgsJsonUtils,
+    QgsFields
 )
 
 from qgis.gui import QgisInterface
@@ -198,7 +200,7 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     geom_type = json_geom.get('type', '')
-    if geom_type.lower() != 'polygon':
+    if geom_type.lower() not in ['polygon', 'multipolygon']:
         log.debug('JSON geometry type is not polygon')
         return geom
 
@@ -207,10 +209,11 @@ def qgsgeometry_from_geojson(json_type):
         log.debug('JSON geometry contains no coordinates')
         return geom
 
-    polygon = [[QgsPointXY(item[0], item[1]) for item in polyline] for
-               polyline in coords]
-    # noinspection PyArgumentList,PyCallByClass
-    geom = QgsGeometry.fromPolygonXY(polygon)
+    try:
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
+        geom = feats[0].geometry()
+    except Exception:
+        pass # will return an empty geom
 
     return geom
 

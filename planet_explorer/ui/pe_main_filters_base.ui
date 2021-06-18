@@ -104,12 +104,32 @@
       </item>
       <item>
        <widget class="QToolButton" name="btnSelection">
+        <property name="focusPolicy">
+         <enum>Qt::StrongFocus</enum>
+        </property>
         <property name="text">
          <string>Selection</string>
         </property>
         <property name="icon">
          <iconset resource="../resources/resources.qrc">
           <normaloff>:/plugins/planet_explorer/extent-select.svg</normaloff>:/plugins/planet_explorer/extent-select.svg</iconset>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::MenuButtonPopup</enum>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonTextBesideIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="btnUpload">
+        <property name="text">
+         <string>Upload</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../resources/resources.qrc">
+          <normaloff>:/plugins/planet_explorer/external-link.svg</normaloff>:/plugins/planet_explorer/external-link.svg</iconset>
         </property>
         <property name="popupMode">
          <enum>QToolButton::MenuButtonPopup</enum>
