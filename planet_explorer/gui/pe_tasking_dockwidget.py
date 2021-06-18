@@ -287,7 +287,8 @@ def hide_tasking_widget():
 
 def toggle_tasking_widget():
     wdgt = _get_widget_instance()
-    wdgt.setVisible(not wdgt.isVisible())
+    if wdgt is not None:
+        wdgt.setVisible(not wdgt.isVisible())
 
 
 def remove_tasking_widget():
