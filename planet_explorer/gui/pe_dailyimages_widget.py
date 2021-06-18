@@ -205,6 +205,13 @@ class DailyImagesWidget(BASE, WIDGET):
                 return
 
         self.lblWarning.setHidden(True)
+
+        if not self._sources:
+            self.parent.show_message('No item types selected',
+                              level=Qgis.Warning,
+                              duration=10)
+            return
+
         # TODO: Also validate GeoJSON prior to performing search
 
         search_request = build_search_request(
