@@ -374,7 +374,6 @@ class BasemapLayerWidget(QWidget):
         self.ensure_correct_size()
 
     def login_changed(self):
-        client = PlanetClient.getInstance()
         if not bool(self.datatype):
             mosaic = mosaic_name_from_url(self.layer.source())
             datatype = datatype_from_mosaic_name(mosaic)
