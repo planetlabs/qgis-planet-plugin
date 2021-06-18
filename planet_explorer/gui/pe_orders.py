@@ -287,8 +287,8 @@ class PlanetOrderItemTypeWidget(QWidget):
     def populate_details(self):
         self.bundleWidgets = []
 
-        permissions = self.images[0][PERMISSIONS]
-        item_bundles = order_bundles.bundles_per_item_type(
+        permissions = [img[PERMISSIONS] for img in self.images]
+        item_bundles = order_bundles.bundles_for_item_type(
                 self.item_type, permissions=permissions)
         default = order_bundles.item_default_bundle_name(
                 self.item_type)

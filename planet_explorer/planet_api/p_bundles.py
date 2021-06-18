@@ -68,13 +68,9 @@ class PlanetOrdersV2Bundles(object):
                 self._bundles[b["id"]] = b
 
 
-    def bundles_per_item_types(self) -> OrderedDict:
-        """Get bundles per all item types from cache"""
-        return self._bundles_per_item_types
-
-    def bundles_per_item_type(
+    def bundles_for_item_type(
             self, item_type: str,
-            permissions: Optional[List[str]] = None) -> Optional[list]:
+            permissions: List[List[str]]) -> Optional[list]:
         """
         Get bundles per an item type from cache, optionally constrained by
         user's permissions.
@@ -85,61 +81,28 @@ class PlanetOrdersV2Bundles(object):
         bndls_per_it = [b for b in self._bundles_per_item_types.get(item_type)
                         if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "UDM"]
 
-        return bndls_per_it
 
-        #TODO: check permissions
-        '''
-        if not permissions:
-            return bndls_per_it
+        permissions_cleaned = []
+        for img_permissions in permissions:
+            img_permissions_cleaned = []
+            for p in img_permissions:
+                match = ITEM_ASSET_DL_REGEX.match(p)
+                if match is not None:
+                    img_permissions_cleaned.append(match.group(1))
+            permissions_cleaned.append(img_permissions_cleaned)
 
-        bndls_allowed = self.bundles_per_permissions(permissions)
-        if not bndls_allowed:
-            return bndls_per_it
-        constrained_bndls = [b for b in bndls_per_it if b["id"] in bndls_allowed]
+        bndls_allowed = []
+        for b in bndls_per_it:
+            add_bundle = True
+            assets = b.get('assets', [])
+            for asset in assets:
+                for img_permissions in permissions_cleaned:
+                    if asset not in img_permissions:
+                        add_bundle = False
+            if add_bundle:
+                bndls_allowed.append(b)
 
-        return constrained_bndls
-        '''
-
-
-    def bundles_for_permission(
-            self, permission: str, first_found: bool = False) -> List[str]:
-        """
-        Matches bundles in spec order, i.e. general -> specific.
-        Example: matches 'analytic' before 'analytic_udm2'
-        :param permission: e.g. assets.analytic_xml:download
-        :param first_found: Return a single-item list of first found bundle
-        :return: Ordered list of matching bundle names for the given permission
-        """
-        bundles = []
-        match = ITEM_ASSET_DL_REGEX.match(permission)
-        if match is None:
-            return bundles
-        asset = match.group(1)
-        for b_k, b_v in self._bundles.items():
-            assets = b_v.get('assets', [])
-            if asset in assets:
-                bundles.append(b_k)
-                if first_found:
-                    return bundles
-        # Remove dup values, but preserve order
-        return list(OrderedDict.fromkeys(bundles))
-
-    def bundles_per_permissions(self, permissions: List[str]) -> List[str]:
-        """
-        :param permissions: List of permissions, e.g. assets.udm2:download
-        :return: Sorted list of matching bundle names for given permissions
-        """
-        bundles_per_perm = []
-        if not permissions:
-            return bundles_per_perm
-
-        for perm in permissions:
-            bs = self.bundles_for_permission(perm)
-            for b in bs:
-                if b and b not in bundles_per_perm:  # ensure unique
-                    bundles_per_perm.append(b)
-
-        return sorted(bundles_per_perm)
+        return bndls_allowed
 
     def item_default_bundle_name(self, item_type: str) -> str:
         return self.default_bundles().get(item_type, '')
