@@ -400,25 +400,17 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
         upload_menu = QMenu(self)
 
-        geojson_act = QAction('GeoJSON file', upload_menu)
-        geojson_act.triggered[bool].connect(self.upload_geojson)
-        upload_menu.addAction(geojson_act)
+        upload_act = QAction('Upload vector layer file', upload_menu)
+        upload_act.triggered[bool].connect(self.upload_file)
+        upload_menu.addAction(upload_act)
 
-        shapefile_act = QAction('Shapefile', upload_menu)
-        shapefile_act.triggered[bool].connect(self.upload_shapefile)
-        upload_menu.addAction(shapefile_act)
 
         self.btnUpload.setMenu(upload_menu)
         self.btnUpload.clicked.connect(self.btnUpload.showMenu)
 
-    def upload_shapefile(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "*.shp")
-        if filename:
-            layer = QgsVectorLayer(filename, "")
-            self.aoi_from_layer(layer)
-
-    def upload_geojson(self):
-        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "*.geojson")
+    def upload_file(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "",
+                                                  "All files(*.*)")
         if filename:
             layer = QgsVectorLayer(filename, "")
             self.aoi_from_layer(layer)
