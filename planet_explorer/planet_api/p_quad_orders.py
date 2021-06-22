@@ -46,19 +46,22 @@ DOWNLOAD = "download"
 
 def quad_orders():
     if os.path.exists(_quad_orders_file()):
-        with open(_quad_orders_file()) as f:
-            definitions = json.load(f)
-        orders = []
-        for orderdef in definitions:
-            if QUADS in orderdef:
-                order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION],
-                                orderdef[QUADS], orderdef[LOAD_AS_VIRTUAL],
-                                orderdef[DATE])
-            else:
-                order = QuadCompleteOrder(orderdef[NAME], orderdef[DESCRIPTION],
-                                orderdef[MOSAICS], orderdef[LOAD_AS_VIRTUAL],
-                                orderdef[DATE])
-            orders.append(order)
+        try:
+            orders = []
+            with open(_quad_orders_file()) as f:
+                definitions = json.load(f)
+            for orderdef in definitions:
+                if QUADS in orderdef:
+                    order = QuadOrder(orderdef[NAME], orderdef[DESCRIPTION],
+                                    orderdef[QUADS], orderdef[LOAD_AS_VIRTUAL],
+                                    orderdef[DATE])
+                else:
+                    order = QuadCompleteOrder(orderdef[NAME], orderdef[DESCRIPTION],
+                                    orderdef[MOSAICS], orderdef[LOAD_AS_VIRTUAL],
+                                    orderdef[DATE])
+                orders.append(order)
+        except Exception:
+            pass # will return an empty array if the file is corrupted
         return orders
     else:
         return []
@@ -68,7 +71,9 @@ def _add_order(order):
     all_orders = [order]
     all_orders.extend(quad_orders())
     with open(_quad_orders_file(), "w") as f:
-        json.dump(all_orders, f, default=lambda x: x.__dict__)
+        json.dump(all_orders, f,
+            default=lambda x: {k:v for k,v in x.__dict__.items()
+                               if not k.startswith("_")})
 
 
 def create_quad_order_from_quads(name, description, quads, load_as_virtual):
@@ -121,6 +126,7 @@ class QuadCompleteOrder(QuadOrder):
         self.description = description
         self.date = date or (datetime.datetime.now()
                             .replace(microsecond=0).isoformat())
+        self._id = uuid.uuid4()
 
     def locations(self):
         p_client = PlanetClient.getInstance()
@@ -132,3 +138,6 @@ class QuadCompleteOrder(QuadOrder):
                 json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
             locations[mosaic[NAME]] = [(quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads]
         return locations
+
+    def id(self):
+        return self._id
