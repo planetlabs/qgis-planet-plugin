@@ -25,8 +25,6 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 
-import analytics
-
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     pyqtSlot
@@ -75,7 +73,11 @@ from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
 
 from ..pe_utils import (
     add_menu_section_action,
-    is_segments_write_key_valid
+)
+
+from ..pe_analytics import (
+    send_analytics_for_search,
+    analytics_track
 )
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -198,6 +200,8 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self._collect_sources_filters()
 
+        send_analytics_for_search(self._sources)
+
         if not self._main_filters.leAOI.text():
             id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
@@ -218,10 +222,6 @@ class DailyImagesWidget(BASE, WIDGET):
             self._filters, self._sources)
 
         self._request = search_request
-        if is_segments_write_key_valid():
-            analytics.track(self.p_client.user()["email"],
-                            "Daily images search executed",
-                            {"query": search_request})
 
         self.searchResultsWidget.update_request(search_request, self.local_filters)
 
@@ -334,6 +334,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(','.join(sorted_checked))
         self.parent.show_message('Checked IDs copied to clipboard')
+        analytics_track("item_ids_copied")
 
     @pyqtSlot()
     def view_curl(self):
@@ -349,6 +350,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(self.p_client.api_key())
         self.parent.show_message('API key copied to clipboard')
+        analytics_track("api_key_copied")
 
     def clean_up(self):
         self._main_filters.clean_up()

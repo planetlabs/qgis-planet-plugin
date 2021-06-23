@@ -26,8 +26,6 @@ __revision__ = '$Format:%H$'
 import os
 import math
 
-import analytics
-
 from PyQt5.QtWidgets import (
     QApplication,
     QMessageBox,
@@ -94,8 +92,7 @@ from ..pe_utils import (
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,
-    open_link_with_browser,
-    is_segments_write_key_valid
+    open_link_with_browser
 )
 
 from .pe_gui_utils import (
@@ -105,6 +102,10 @@ from .pe_gui_utils import (
 from .pe_orders_monitor_dockwidget import (
     show_orders_monitor,
     refresh_orders
+)
+
+from ..pe_analytics import (
+    analytics_track
 )
 
 from .pe_quads_treewidget import QuadsTreeWidget
@@ -433,13 +434,9 @@ class BasemapsWidget(BASE, WIDGET):
     def explore(self):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
-            if is_segments_write_key_valid():
-                analytics.track(PlanetClient.getInstance().user()["email"],
-                                "Basemaps added to map",
-                                {
-                                "basemaps": [basemap[NAME] for basemap in selected]
-                                }
-                )
+
+            analytics_track("basemap_service_added_to_map")
+
             add_mosaics_to_qgis_project(selected,
                     self.comboSeriesName.currentText() or selected[0][NAME])
 
@@ -707,13 +704,9 @@ class BasemapsWidget(BASE, WIDGET):
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
         proc = self.renderingOptions.process()
         ramp = self.renderingOptions.ramp()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps connection stablished",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in selected]
-                            }
-                )
+
+        analytics_track("basemap_service_connection_established")
+
         for mosaic in selected:
             name = f"{mosaicname} - {mosaic_title(mosaic)}"
             add_mosaics_to_qgis_project([mosaic], name, proc=proc, ramp=ramp,
@@ -732,7 +725,7 @@ class BasemapsWidget(BASE, WIDGET):
     def submit_button_clicked(self):
         name = self.txtOrderName.text()
         if not bool(name.strip()):
-            self.parent.show_message(f'Enter a name for the order',
+            self.parent.show_message('Enter a name for the order',
                               level=Qgis.Warning,
                               duration=10)
             return
@@ -753,13 +746,9 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def order_complete_submit(self):
         selected = self.mosaicsList.selected_mosaics()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps complete order submitted",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in selected]
-                            }
-            )
+
+        analytics_track("basemap_complete_order")
+
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
 
@@ -777,18 +766,16 @@ class BasemapsWidget(BASE, WIDGET):
     def order_partial_submit(self):
         self.grpBoxOrderConfirmation.setTitle("Order Partial Download")
         mosaics = self.mosaicsList.selected_mosaics()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps partial order submitted",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in mosaics]
-                            }
-            )
+        quads_count = len(self.quadsTree.selected_quads())
+
+        analytics_track("basemap_partial_order",
+                        {"count": quads_count})
+
         dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
-        description = f'{len(self.quadsTree.selected_quads())} quads | {dates}'
+        description = f'{quads_count} quads | {dates}'
         create_quad_order_from_quads(name, description, quads, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),

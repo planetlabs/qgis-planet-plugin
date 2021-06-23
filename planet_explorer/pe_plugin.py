@@ -94,16 +94,19 @@ from planet_explorer.gui.pe_explorer_dockwidget import (
 )
 
 from planet_explorer.pe_utils import (
-    sentry_dsn,
-    segments_write_key,
-    is_sentry_dsn_valid,
-    is_segments_write_key_valid,
     add_menu_section_action,
     BASE_URL,
     open_link_with_browser,
     add_widget_to_layer,
     PLANET_COLOR,
     plugin_version
+)
+
+from planet_explorer.pe_analytics import(
+    sentry_dsn,
+    is_sentry_dsn_valid,
+    is_segments_write_key_valid,
+    segments_write_key
 )
 
 from planet_explorer.planet_api import PlanetClient

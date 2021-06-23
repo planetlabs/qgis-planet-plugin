@@ -100,8 +100,7 @@ from ..planet_api.p_specs import (
 )
 
 from planet.api.models import (
-    Mosaics,
-    MosaicQuads
+    Mosaics
 )
 
 from ..pe_utils import (
@@ -110,6 +109,9 @@ from ..pe_utils import (
     add_menu_section_action
 )
 
+from ..pe_analytics import (
+    analytics_track
+)
 
 class PointCaptureMapTool(QgsMapToolEmitPoint):
 
@@ -182,6 +184,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def point_captured(self, point, button):
         self._populate_scenes_from_point(point)
+        analytics_track("basemap_inspected")
 
     @waitcursor
     def _populate_scenes_from_point(self, point):

@@ -83,9 +83,13 @@ from ..gui.pe_results_configuration_dialog import (
 from ..pe_utils import (
     qgsgeometry_from_geojson,
     create_preview_group,
-    is_segments_write_key_valid,
     SEARCH_AOI_COLOR,
     PLANET_COLOR
+)
+
+from ..pe_analytics import(
+    analytics_track,
+    send_analytics_for_preview
 )
 
 from ..planet_api.p_client import (
@@ -210,12 +214,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     @waitcursor
     def add_preview(self):
         imgs = self.selected_images()
-        if is_segments_write_key_valid():
-            item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}"
-                for img in imgs]
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Scene preview added to map",
-                            {"images": item_ids})
+        send_analytics_for_preview(imgs)
         create_preview_group(
             "Selected images",
             imgs
@@ -234,6 +233,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         dlg = SaveSearchDialog(self._request)
         if dlg.exec_():
             self._p_client.create_search(dlg.request_to_save)
+            analytics_track("saved_search_created")
             self.searchSaved.emit(dlg.request_to_save)
 
     def sort_order(self):
@@ -539,12 +539,7 @@ class ItemWidgetBase(QFrame):
 
     @waitcursor
     def add_preview(self):
-        if is_segments_write_key_valid():
-            item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}"
-                for img in self.item.images()]
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Scene preview added to map",
-                            {"images": item_ids})
+        send_analytics_for_preview(self.item.images())
         create_preview_group(
             self.name(),
             self.item.images()

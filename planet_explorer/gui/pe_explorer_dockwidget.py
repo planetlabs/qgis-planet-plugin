@@ -25,7 +25,6 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 
-import analytics
 import sentry_sdk
 
 from qgis.PyQt import uic
@@ -81,11 +80,13 @@ from ..planet_api import (
 
 from ..pe_utils import (
     SETTINGS_NAMESPACE,
-    is_sentry_dsn_valid,
-    is_segments_write_key_valid,
     BASE_URL,
     open_link_with_browser,
-    plugin_version
+)
+
+from ..pe_analytics import(
+    is_sentry_dsn_valid,
+    analytics_track,
 )
 
 
@@ -240,25 +241,17 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.api_key = self.p_client.api_key()
 
         user = self.p_client.user()
-        if is_segments_write_key_valid():
-            analytics.identify(user["email"],
-                                {
-                                "email": user["email"],
-                                "apiKey": user["api_key"],
-                                "organizationId": user["organization_id"],
-                                "programId": user["program_id"],
-                                "qgisVersion": Qgis.QGIS_VERSION,
-                                "pluginVersion": plugin_version()
-                                }
-            )
-            analytics.track(user["email"], "Log in to Explorer")
         if is_sentry_dsn_valid():
             with sentry_sdk.configure_scope() as scope:
                 scope.user = {"email": user["email"]}
 
+        analytics_track("user_login")
+
         # Store settings
         if self.chkBxSaveCreds.isChecked():
             self._store_auth_creds()
+            analytics_track("save_credentials")
+
 
         # For debugging
         specs = f'logged_in={self.logged_in()}\n\n' \

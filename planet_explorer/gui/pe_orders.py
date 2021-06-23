@@ -28,8 +28,6 @@ import json
 from collections import OrderedDict, defaultdict
 from functools import partial
 
-import analytics
-
 from qgis.PyQt import uic
 
 from qgis.PyQt.QtCore import (
@@ -69,9 +67,13 @@ from qgis.gui import (
 from qgis.utils import iface
 
 from ..pe_utils import (
-    is_segments_write_key_valid,
     resource_file
 )
+
+from ..pe_analytics import(
+    send_analytics_for_order
+)
+
 from ..planet_api.p_client import (
     PlanetClient,
 )
@@ -812,15 +814,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for order in orders:
             resp = self._p_client.create_order(order)
             responses_ok = responses_ok and resp
-
-            if is_segments_write_key_valid():
-                analytics.track(self._p_client.user()["email"], "Order placed",
-                                {
-                                "name": order["name"],
-                                "numItems": order["products"][0]["item_ids"],
-                                "clipAoi": aoi
-                                }
-                                )
+            send_analytics_for_order(order)
 
         if responses_ok:
             self.bar.pushMessage("", "All orders correctly processed. Open the Order Monitor to check their status", Qgis.Success)

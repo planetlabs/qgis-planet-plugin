@@ -87,6 +87,11 @@ from ..pe_utils import (
     zoom_canvas_to_aoi,
     MAIN_AOI_COLOR
 )
+
+from ..pe_analytics import(
+    analytics_track
+)
+
 from .pe_range_slider import PlanetExplorerRangeSlider
 
 from .pe_aoi_maptools import (
@@ -276,6 +281,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         if idx == 0:
             return
         request = self.comboSavedSearch.currentData()
+        analytics_track("saved_search_accessed")
         self.savedSearchSelected.emit(request)
 
     def null_out_saved_search(self):

@@ -56,7 +56,6 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgis.core import (
-    QgsPointXY,
     QgsGeometry,
     QgsFeature,
     QgsField,
@@ -72,8 +71,7 @@ from qgis.core import (
     QgsApplication,
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
-    QgsJsonUtils,
-    QgsFields
+    QgsJsonUtils
 )
 
 from qgis.gui import QgisInterface
@@ -162,21 +160,6 @@ PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
 PLANET_BASEMAP_LABEL = "planet/basemapLabel"
 WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
-
-# [set_segments_write_key]
-# [set_sentry_dsn]
-
-def sentry_dsn():
-    return os.environ.get("SENTRY_DSN")
-
-def segments_write_key():
-    return os.environ.get("SEGMENTS_WRITE_KEY")
-
-def is_segments_write_key_valid():
-    return segments_write_key() is not None
-
-def is_sentry_dsn_valid():
-    return sentry_dsn() is not None
 
 def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
         transform = QgsCoordinateTransform(
