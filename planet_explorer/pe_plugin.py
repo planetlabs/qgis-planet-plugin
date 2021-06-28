@@ -219,8 +219,9 @@ class PlanetExplorer(object):
         sys.excepthook = plugin_hook
 
         if is_sentry_dsn_valid():
-            sentry_sdk.set_context("versions", {"plugin_version", plugin_version(),
-                                                "qgis_version", Qgis.QGIS_VERSION})
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_context("versions", {"plugin_version", plugin_version(),
+                                               "qgis_version", Qgis.QGIS_VERSION})
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
