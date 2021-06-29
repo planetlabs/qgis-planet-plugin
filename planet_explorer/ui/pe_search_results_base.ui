@@ -69,7 +69,7 @@
            </size>
           </property>
           <property name="toolTip">
-           <string>Zoom to AOI</string>
+           <string>Change sort order</string>
           </property>
           <property name="iconSize">
            <size>
