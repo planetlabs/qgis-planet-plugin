@@ -82,35 +82,49 @@ Unselect a data element to add another when 4 are selected</string>
      <property name="verticalSpacing">
       <number>20</number>
      </property>
-     <item row="1" column="0">
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="chkAreaCover">
+       <property name="text">
+        <string>Area Cover</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
       <widget class="QCheckBox" name="chkSatelliteId">
        <property name="text">
         <string>Satellite ID</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QCheckBox" name="chkSunElevation">
-       <property name="text">
-        <string>Sun Elevation</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
+     <item row="5" column="0">
       <widget class="QCheckBox" name="chkGroundControl">
        <property name="text">
         <string>Ground Control</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="0">
-      <widget class="QCheckBox" name="chkCloudPercentage">
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="chkSunAzimuth">
        <property name="text">
-        <string>Cloud Percentage</string>
+        <string>Sun Azimuth</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="chkSunElevation">
+       <property name="text">
+        <string>Sun Elevation</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
+      <widget class="QCheckBox" name="chkCloudPercentage">
+       <property name="text">
+        <string>Cloud Cover %</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
       <widget class="QCheckBox" name="chkGroundSampleDistance">
        <property name="text">
         <string>Ground Sample Distance</string>
@@ -125,16 +139,9 @@ Unselect a data element to add another when 4 are selected</string>
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QCheckBox" name="chkSunAzimuth">
+      <widget class="QCheckBox" name="chkInstrument">
        <property name="text">
-        <string>Sun Azimuth</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QCheckBox" name="chkQualityCategory">
-       <property name="text">
-        <string>Quality Category</string>
+        <string>Instrument</string>
        </property>
       </widget>
      </item>

@@ -25,8 +25,6 @@ import os
 import logging
 import iso8601
 
-import analytics
-
 from qgis.PyQt import uic
 
 from qgis.PyQt.QtCore import (
@@ -60,7 +58,9 @@ from qgis.core import (
     QgsProject,
     QgsWkbTypes,
     QgsRectangle,
-    QgsApplication
+    QgsApplication,
+    QgsDistanceArea,
+    QgsUnitTypes
 )
 
 from qgis.gui import (
@@ -800,7 +800,13 @@ class SceneItemWidget(ItemWidgetBase):
         metadata = ""
         for i, value in enumerate(self.metadata_to_show):
             spacer = "<br>" if i == 1 else " "
-            metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
+            if value == PlanetNodeMetadata.AREA_COVER:
+                qgsarea = QgsDistanceArea()
+                area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(self.geom),
+                                                    QgsUnitTypes.AreaSquareKilometers)
+                metadata += f'{value.value}:{area:.3f}{spacer}'
+            else:
+                metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
 
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>

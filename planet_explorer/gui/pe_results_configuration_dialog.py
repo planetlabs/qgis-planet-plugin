@@ -13,7 +13,8 @@ class PlanetNodeMetadata(enum.Enum):
     GROUND_SAMPLE_DISTANCE = "gsd"
     GROUND_CONTROL = "ground_control"
     OFF_NADIR_ANGLE = "view_angle"
-    QUALITY_CATEGORY = "quality_category"
+    INSTRUMENT = "instrument"
+    AREA_COVER = "area_cover"
     SATELLITE_ID = "satellite_id"
     SUN_AZIMUTH = "sun_azimuth"
     SUN_ELEVATION = "sun_elevation"
@@ -36,7 +37,8 @@ class ResultsConfigurationDialog(BASE, WIDGET):
                           PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE: self.chkGroundSampleDistance,
                           PlanetNodeMetadata.GROUND_CONTROL: self.chkGroundControl,
                           PlanetNodeMetadata.OFF_NADIR_ANGLE: self.chkOffNadirAngle,
-                          PlanetNodeMetadata.QUALITY_CATEGORY: self.chkQualityCategory,
+                          PlanetNodeMetadata.INSTRUMENT: self.chkInstrument,
+                          PlanetNodeMetadata.AREA_COVER: self.chkAreaCover,
                           PlanetNodeMetadata.SATELLITE_ID: self.chkSatelliteId,
                           PlanetNodeMetadata.SUN_AZIMUTH: self.chkSunAzimuth,
                           PlanetNodeMetadata.SUN_ELEVATION: self.chkSunElevation}
