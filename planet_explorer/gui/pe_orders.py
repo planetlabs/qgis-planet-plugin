@@ -159,7 +159,8 @@ class PlanetOrderBundleWidget(QFrame):
                  bundleid,
                  name,
                  description,
-                 udm
+                 udm,
+                 rectified
                  ):
         super().__init__()
 
@@ -167,6 +168,7 @@ class PlanetOrderBundleWidget(QFrame):
         self.name = name
         self.description = description
         self.udm = udm
+        self.rectified = rectified
 
         layout = QVBoxLayout()
         hlayout = QHBoxLayout()
@@ -318,7 +320,7 @@ class PlanetOrderItemTypeWidget(QWidget):
                 name = bundle["name"]
                 description = bundle["description"]
                 udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                w = PlanetOrderBundleWidget(bundleid, name, description, udm)
+                w = PlanetOrderBundleWidget(bundleid, name, description, udm, True)
                 gridlayout.addWidget(w, i // 2, i % 2)
                 w.setSelected(bundleid == default)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
@@ -342,7 +344,7 @@ class PlanetOrderItemTypeWidget(QWidget):
                 name = bundle["name"]
                 description = bundle["description"]
                 udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                w = PlanetOrderBundleWidget(bundleid, name, description, udm)
+                w = PlanetOrderBundleWidget(bundleid, name, description, udm, False)
                 gridlayoutUnrect.addWidget(w, i // 2, i % 2)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
                 self.bundleWidgets.append(w)
@@ -399,6 +401,7 @@ class PlanetOrderItemTypeWidget(QWidget):
                 bundle["name"] = w.name
                 bundle["filetype"] = w.filetype()
                 bundle["udm"] = w.udm
+                bundle["rectified"] = w.rectified
                 bundles.append(bundle)
         return bundles
 
@@ -715,8 +718,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             bundles = widget.bundles()
             images = widget.images
             for bundle in bundles:
+                add_clip = (self.tool_resources["aoi"] is not None
+                            and bundle["rectified"])
                 w = PlanetOrderReviewWidget(item_type, bundle["name"], images,
-                                            self.tool_resources["aoi"] is not None)
+                                            add_clip)
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
                     w.expand()
