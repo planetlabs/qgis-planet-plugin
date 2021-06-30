@@ -59,7 +59,8 @@ class PlanetOrdersV2Bundles(object):
             log.debug(f'Bundles file does not exist:\n{self._spec_file}')
             return
 
-        with open(self._spec_file, 'r') as fp:
+        print(1)
+        with open(self._spec_file, 'r', encoding="utf-8") as fp:
             self._bundles_per_item_types = json.load(fp, object_pairs_hook=OrderedDict)
 
         self._bundles = OrderedDict()
