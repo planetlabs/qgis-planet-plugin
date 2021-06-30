@@ -85,7 +85,7 @@ Unselect a data element to add another when 4 are selected</string>
      <item row="0" column="0">
       <widget class="QCheckBox" name="chkAreaCover">
        <property name="text">
-        <string>Area Cover</string>
+        <string>Area Cover %</string>
        </property>
       </widget>
      </item>
@@ -93,13 +93,6 @@ Unselect a data element to add another when 4 are selected</string>
       <widget class="QCheckBox" name="chkSatelliteId">
        <property name="text">
         <string>Satellite ID</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QCheckBox" name="chkGroundControl">
-       <property name="text">
-        <string>Ground Control</string>
        </property>
       </widget>
      </item>
@@ -142,6 +135,20 @@ Unselect a data element to add another when 4 are selected</string>
       <widget class="QCheckBox" name="chkInstrument">
        <property name="text">
         <string>Instrument</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="chkQualityCategory">
+       <property name="text">
+        <string>Quality Category</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QCheckBox" name="chkGroundControl">
+       <property name="text">
+        <string>Ground Control</string>
        </property>
       </widget>
      </item>

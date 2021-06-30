@@ -85,7 +85,8 @@ from .planet_api.p_client import (
 from .planet_api import PlanetClient
 
 from .planet_api.p_utils import (
-    geometry_from_json_str_or_obj
+    geometry_from_json_str_or_obj,
+    geometry_from_request
 )
 
 from .planet_api.p_specs import (
@@ -199,6 +200,16 @@ def qgsgeometry_from_geojson(json_type):
         pass # will return an empty geom
 
     return geom
+
+def area_coverage_for_image(image, request):
+    aoi_geom = geometry_from_request(request)
+    if aoi_geom is None:
+        return None
+    aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
+    image_qgsgeom = qgsgeometry_from_geojson(image["geometry"])
+    intersection = aoi_qgsgeom.intersection(image_qgsgeom)
+    area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
+    return area_coverage
 
 def add_menu_section_action(text, menu, tag='b', pad=0.5):
     """Because QMenu.addSection() fails to render with some UI styles, and

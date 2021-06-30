@@ -58,9 +58,7 @@ from qgis.core import (
     QgsProject,
     QgsWkbTypes,
     QgsRectangle,
-    QgsApplication,
-    QgsDistanceArea,
-    QgsUnitTypes
+    QgsApplication
 )
 
 from qgis.gui import (
@@ -82,6 +80,7 @@ from ..gui.pe_results_configuration_dialog import (
 
 from ..pe_utils import (
     qgsgeometry_from_geojson,
+    area_coverage_for_image,
     create_preview_group,
     SEARCH_AOI_COLOR,
     PLANET_COLOR
@@ -96,9 +95,6 @@ from ..planet_api.p_client import (
     PlanetClient
 )
 
-from ..planet_api.p_utils import (
-    geometry_from_request,
-)
 from ..planet_api.p_specs import (
     DAILY_ITEM_TYPES_DICT,
     ITEM_ASSET_DL_REGEX
@@ -296,7 +292,8 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                     date_widget = self.tree.itemWidget(date_item, 0)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
                     item = SceneItem(image, sort_criteria)
-                    widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item)
+                    widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item,
+                                             self._request)
                     widget.checkedStateChanged.connect(self.checked_count_changed)
                     widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
                     widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
@@ -328,18 +325,14 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                 return f
 
     def _passes_area_coverage_filter(self, image):
-        aoi_geom = geometry_from_request(self._request)
-        if aoi_geom is None:
+        area_coverage = area_coverage_for_image(image, self._request)
+        if area_coverage is None:
             return True # an ID filter is begin used, so it makes no sense to
                         # check for are acoverage
-        aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
-        image_qgsgeom = qgsgeometry_from_geojson(image[GEOMETRY])
         filt = self._local_filter('area_coverage')
         if filt:
             minvalue = filt['config'].get('gte', 0)
             maxvalue = filt['config'].get('lte', 100)
-            intersection = aoi_qgsgeom.intersection(image_qgsgeom)
-            area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
             return area_coverage > minvalue and area_coverage < maxvalue
         return True
 
@@ -758,9 +751,10 @@ class SceneItem(QTreeWidgetItem):
 
 class SceneItemWidget(ItemWidgetBase):
 
-    def __init__(self, image, sort_criteria, metadata_to_show, item):
+    def __init__(self, image, sort_criteria, metadata_to_show, item, request):
         ItemWidgetBase.__init__(self, item)
         self.image = image
+        self.request = request
         self.metadata_to_show = metadata_to_show
         self.properties = image[PROPERTIES]
 
@@ -801,10 +795,8 @@ class SceneItemWidget(ItemWidgetBase):
         for i, value in enumerate(self.metadata_to_show):
             spacer = "<br>" if i == 1 else " "
             if value == PlanetNodeMetadata.AREA_COVER:
-                qgsarea = QgsDistanceArea()
-                area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(self.geom),
-                                                    QgsUnitTypes.AreaSquareKilometers)
-                metadata += f'{value.value}:{area:.3f}{spacer}'
+                area_coverage = area_coverage_for_image(self.image, self.request) or "--"
+                metadata += f'{value.value}:{area_coverage:.0f}{spacer}'
             else:
                 metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
 
