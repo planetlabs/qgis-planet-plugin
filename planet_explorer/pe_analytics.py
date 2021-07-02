@@ -29,6 +29,8 @@ from collections import Counter
 from .planet_api import PlanetClient
 
 ITEM_TYPE = "item_type"
+ITEM_TYPES = "item_types"
+NAME = "name"
 
 # [set_segments_write_key]
 # [set_sentry_dsn]
@@ -54,7 +56,7 @@ def analytics_track(event, properties=None):
         except Exception:
             pass
 
-item_type_names = events = {
+item_type_names = {
         'PSScene4Band': "planetscope_scene",
         'PSScene3Band': "planetscope_scene",
         'PSOrthoTile': "planetscope_ortho",
@@ -66,11 +68,23 @@ item_type_names = events = {
         'Sentinel2L1C': "sentinel_scene",
     }
 
+def basemap_name_for_analytics(basemap):
+    item_type = basemap[ITEM_TYPES][0]
+    if item_type.startswith("PSScene"):
+        if "analytic" in basemap[NAME]:
+            name = "planetscope_sr"
+        else:
+            name = "planetscope_visual"
+    else:
+        name = "skysat"
+    return name
+
 def send_analytics_for_search(sources):
     for source in sources:
         name = item_type_names.get(source)
         if name is not None:
-            analytics_track(f"{name}_search_executed")
+            analytics_track("scene_search_executed",
+                            {"item_type": name})
 
 def send_analytics_for_preview(imgs):
     item_types = [img['properties'][ITEM_TYPE] for img in imgs]
@@ -78,16 +92,19 @@ def send_analytics_for_preview(imgs):
     for item_type in counter.keys():
         name = item_type_names.get(item_type)
         if name is not None:
-            analytics_track(f"{name}_preview_added_to_map",
-                            {"count": counter[item_type]})
+            analytics_track("scene_preview_added_to_map",
+                            {"item_type": name,
+                             "scene_count": counter[item_type]})
 
 def send_analytics_for_order(order):
     product = order["products"][0]
     name = item_type_names.get(product["item_type"])
     if name is not None:
-        analytics_track(f"{name}_order_placed",
-                        {"count":len(product["item_ids"])})
+        analytics_track(f"scene_order_placed",
+                        {"count": len(product["item_ids"]),
+                         "item_type": name})
         clipping = "clip" in [list(tool.keys())[0] for tool in order["tools"]]
         if clipping:
-            analytics_track(f"{name}_order_clipped",
-                            {"count":len(product["item_ids"])})
+            analytics_track(f"scene_order_clipped",
+                            {"scene_count": len(product["item_ids"]),
+                             "item_type": name})

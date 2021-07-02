@@ -105,7 +105,8 @@ from .pe_orders_monitor_dockwidget import (
 )
 
 from ..pe_analytics import (
-    analytics_track
+    analytics_track,
+    basemap_name_for_analytics
 )
 
 from .pe_quads_treewidget import QuadsTreeWidget
@@ -392,7 +393,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.toggle_select_basemap_panel(data is None)
         self.mosaicsList.setVisible(data is not None)
         if data:
-            if data[1]: #it is a series, not a single mosaic
+            if data[1]:  # it is a series, not a single mosaic
                 try:
                     mosaics = self.mosaics_for_serie(data[0])
                 except InvalidAPIKey:
@@ -434,8 +435,9 @@ class BasemapsWidget(BASE, WIDGET):
     def explore(self):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
-
-            analytics_track("basemap_service_added_to_map")
+            for m in selected:
+                analytics_track("basemap_service_added_to_map",
+                                {"mosaic_type": basemap_name_for_analytics(m)})
 
             add_mosaics_to_qgis_project(selected,
                     self.comboSeriesName.currentText() or selected[0][NAME])
@@ -721,7 +723,6 @@ class BasemapsWidget(BASE, WIDGET):
         self.set_order_confirmation_summary(values, base_html)
         self.stackedWidget.setCurrentWidget(self.orderConfirmationPage)
 
-
     def submit_button_clicked(self):
         name = self.txtOrderName.text()
         if not bool(name.strip()):
@@ -746,8 +747,9 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def order_complete_submit(self):
         selected = self.mosaicsList.selected_mosaics()
-
-        analytics_track("basemap_complete_order")
+        for m in selected:
+            analytics_track("basemap_complete_order",
+                            {"mosaic_type": basemap_name_for_analytics(m)})
 
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
@@ -767,9 +769,10 @@ class BasemapsWidget(BASE, WIDGET):
         self.grpBoxOrderConfirmation.setTitle("Order Partial Download")
         mosaics = self.mosaicsList.selected_mosaics()
         quads_count = len(self.quadsTree.selected_quads())
-
-        analytics_track("basemap_partial_order",
-                        {"count": quads_count})
+        for m in mosaics:
+            analytics_track("basemap_partial_order",
+                            {"quads_count": quads_count,
+                            "mosaic_type": basemap_name_for_analytics(m)})
 
         dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()

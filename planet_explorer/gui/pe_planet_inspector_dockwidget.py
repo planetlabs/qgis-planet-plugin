@@ -110,8 +110,10 @@ from ..pe_utils import (
 )
 
 from ..pe_analytics import (
-    analytics_track
+    analytics_track,
+    basemap_name_for_analytics
 )
+
 
 class PointCaptureMapTool(QgsMapToolEmitPoint):
 
@@ -184,7 +186,6 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def point_captured(self, point, button):
         self._populate_scenes_from_point(point)
-        analytics_track("basemap_inspected")
 
     @waitcursor
     def _populate_scenes_from_point(self, point):
@@ -197,6 +198,8 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         if mosaicname:
             client = PlanetClient.getInstance()
             mosaic = client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
+            analytics_track("basemap_inspected",
+                            {"mosaic_type": basemap_name_for_analytics(mosaic)})
             tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic['level'])
             url = 'https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json'
             url = url.format(mosaicname, tile.z, tile.x, tile.y)
