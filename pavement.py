@@ -56,7 +56,7 @@ options(
             'thumbnails',
             'metadata.txt',
             'qgis_resources.py',
-            "pe_utils.py",
+            "pe_analytics.py",
 
         ],
         path_to_settings='Raster --> Planet Explorer --> Settings...',
@@ -215,9 +215,9 @@ def _make_zip(zipfile, options):
                 os.path.relpath(root, options.sphinx.builddir))
             zipfile.write(path(root) / f, path(relpath) / f)
 
-    utils_filename = os.path.join(os.path.dirname(__file__),
+    analytics_filename = os.path.join(os.path.dirname(__file__),
                                   "planet_explorer", "pe_analytics.py")
-    with open(utils_filename) as f:
+    with open(analytics_filename) as f:
         txt = f.read()
         if hasattr(options.package, 'segments'):
             txt = txt.replace("# [set_segments_write_key]",
@@ -230,7 +230,7 @@ def _make_zip(zipfile, options):
         else:
             print("WARNING: No Sentry DSN write key provided.")
 
-        zipfile.writestr("planet_explorer/pe_utils.py", txt)
+        zipfile.writestr("planet_explorer/pe_analytics.py", txt)
 
     metadata_filename = os.path.join(os.path.dirname(__file__),
                                      "planet_explorer", "metadata.txt")
