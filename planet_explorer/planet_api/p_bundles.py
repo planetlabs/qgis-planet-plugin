@@ -51,15 +51,19 @@ class PlanetOrdersV2Bundles(object):
     item types, assets and user permissions.
     """
 
-    def __init__(self, bundles_spec_file):
+    def __init__(self, bundles_spec_file, default_bundles_file):
 
         self._spec_file = bundles_spec_file
+        self._defaults_file = default_bundles_file
 
         if not os.path.exists(self._spec_file):
             log.debug(f'Bundles file does not exist:\n{self._spec_file}')
             return
 
-        print(1)
+        if not os.path.exists(self._defaults_file):
+            log.debug(f'Bundle defaults file does not exist:\n{self._defaults_file}')
+            return
+
         with open(self._spec_file, 'r', encoding="utf-8") as fp:
             self._bundles_per_item_types = json.load(fp, object_pairs_hook=OrderedDict)
 
@@ -68,6 +72,10 @@ class PlanetOrdersV2Bundles(object):
             for b in b_it:
                 self._bundles[b["id"]] = b
 
+        with open(self._defaults_file, 'r', encoding="utf-8") as fp:
+            self._defaults = json.load(fp)
+
+        self._defaults = {k: v[0].split("::")[-1] for k, v in self._defaults.items()}
 
     def bundles_for_item_type(
             self, item_type: str,
@@ -81,7 +89,6 @@ class PlanetOrdersV2Bundles(object):
         """
         bndls_per_it = [b for b in self._bundles_per_item_types.get(item_type)
                         if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "UDM"]
-
 
         permissions_cleaned = []
         for img_permissions in permissions:
@@ -106,19 +113,5 @@ class PlanetOrdersV2Bundles(object):
         return bndls_allowed
 
     def item_default_bundle_name(self, item_type: str) -> str:
-        return self.default_bundles().get(item_type, '')
-
-    @staticmethod
-    def default_bundles():
-        return {
-            'PSScene4Band': 'analytic_sr_udm2',
-            'PSScene3Band': 'visual',
-            'REOrthoTile': 'analytic_sr_udm2',
-            'SkySatCollect': 'pansharpened_udm2',
-            'Landsat8L1G': 'analytic',
-            'SkySatScene': 'pansharpened_udm2',
-            'REScene': 'basic_analytic',
-            'Sentinel2L1C': 'analytic',
-            'PSOrthoTile': 'analytic_sr_udm2',
-        }
+        return self._defaults.get(item_type, '')
 
