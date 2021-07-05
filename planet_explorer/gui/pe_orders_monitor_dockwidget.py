@@ -251,13 +251,15 @@ class OrderItemWidget(QWidget):
         txt = ('<style>h3{margin-bottom: 0px;}</style>'
                f'<b><h3>Order {order.name()}</h3></b>'
                f'<b>Placed on</b>: {order.date()}<br>'
-               f'<b>Id</b>: {order.id()}<br>'
+               f'<b>Id</b>: <a href="https://www.planet.com/account/#/orders/{order.id()}">'
+               f'{order.id()}</a><br>'
                f'<b>Imagery source</b>: {order.item_type()}<br>'
                #f'<b>Assets ordered</b>: {order.assets_ordered()}<br>'
                #f'<b>File format</b>: {order.file_format()}<br>'
                f'<b>Asset count</b>: {order.assets_count()}<br>')
 
         label = QLabel(txt)
+        label.setOpenExternalLinks(True)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
         button = QPushButton('Re-Download' if order.downloaded() else 'Download')
