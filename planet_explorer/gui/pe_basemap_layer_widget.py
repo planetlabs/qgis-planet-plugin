@@ -300,7 +300,10 @@ class BasemapLayerWidget(QWidget):
                 # We don't use the layer source url when there are multiple mosaics.
                 # It will be composed on-the-fly based on the mosaic parameters
                 current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
-                idx = self.mosaicnames.index(current_mosaic_name)
+                try:
+                    idx = self.mosaicnames.index(current_mosaic_name)
+                except ValueError:
+                    idx = 0
                 self.labelId = QLabel()
                 self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
                 self.layout.addWidget(self.labelId)
