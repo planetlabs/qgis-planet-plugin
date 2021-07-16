@@ -24,12 +24,12 @@ __revision__ = '$Format:%H$'
 import os
 import sys
 import fnmatch
-# import shutil
 import zipfile
 import subprocess
-# import requests
 import json
 from collections import defaultdict
+from configparser import SafeConfigParser
+from io import StringIO
 
 # this pulls in the sphinx target
 # noinspection PyPackageRequirements
@@ -54,9 +54,10 @@ options(
             'pe_options.png',
             'request-result-samples',
             'thumbnails',
-            # 'ui/*.py',
+            'metadata.txt',
             'qgis_resources.py',
-            "pe_utils.py"
+            "pe_analytics.py",
+
         ],
         path_to_settings='Raster --> Planet Explorer --> Settings...',
         # skip certain files inadvertently found by exclude pattern globbing
@@ -162,6 +163,7 @@ def read_requirements():
 @task
 @cmdopts([
     ('tests', 't', 'Package tests with plugin'),
+    ('commitid', 'c', 'Add commit id to version'),
     ('segments=', 's', 'Segments write key'),
     ('sentry=', 'd', 'Sentry dns'),
 ])
@@ -213,18 +215,35 @@ def _make_zip(zipfile, options):
                 os.path.relpath(root, options.sphinx.builddir))
             zipfile.write(path(root) / f, path(relpath) / f)
 
-    utils_filename = os.path.join(os.path.dirname(__file__),
-                                  "planet_explorer", "pe_utils.py")
-    with open(utils_filename) as f:
+    analytics_filename = os.path.join(os.path.dirname(__file__),
+                                  "planet_explorer", "pe_analytics.py")
+    with open(analytics_filename) as f:
         txt = f.read()
         if hasattr(options.package, 'segments'):
             txt = txt.replace("# [set_segments_write_key]",
                               f"os.environ['SEGMENTS_WRITE_KEY'] = '{options.package.segments}'")
+        else:
+            print("WARNING: No Segments write key provided.")
         if hasattr(options.package, 'sentry'):
             txt = txt.replace("# [set_sentry_dsn]",
                               f"os.environ['SENTRY_DSN'] = '{options.package.sentry}'")
+        else:
+            print("WARNING: No Sentry DSN write key provided.")
 
-        zipfile.writestr("planet_explorer/pe_utils.py", txt)
+        zipfile.writestr("planet_explorer/pe_analytics.py", txt)
+
+    metadata_filename = os.path.join(os.path.dirname(__file__),
+                                     "planet_explorer", "metadata.txt")
+    cfg = SafeConfigParser()
+    cfg.optionxform = str
+    cfg.read(metadata_filename)
+    if hasattr(options.package, 'commitid'):
+        base_version = cfg.get('general', 'version')
+        ref = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode("utf-8").strip()
+        cfg.set("general", "version", f"{base_version}-{ref}")
+    buf = StringIO()
+    cfg.write(buf)
+    zipfile.writestr("planet_explorer/metadata.txt", buf.getvalue())
 
 
 # noinspection PyShadowingNames

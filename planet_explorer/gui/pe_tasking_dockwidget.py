@@ -75,8 +75,12 @@ from ..planet_api import (
 from ..pe_utils import (
     PLANET_COLOR,
     open_link_with_browser,
-    is_segments_write_key_valid
 )
+
+from ..pe_analytics import (
+    analytics_track
+)
+
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -152,10 +156,7 @@ class WarningDialog(QDialog):
 
     def _link_clicked(self, url):
         if url.toString() == "dashboard":
-            if is_segments_write_key_valid():
-                analytics.track(PlanetClient.getInstance().user()["email"],
-                                "SkySat task created",
-                                {"point": self.pt.asWkt()})
+            analytics_track("skysat_task_created")
             url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
             open_link_with_browser(url)
             self.close()
@@ -287,7 +288,8 @@ def hide_tasking_widget():
 
 def toggle_tasking_widget():
     wdgt = _get_widget_instance()
-    wdgt.setVisible(not wdgt.isVisible())
+    if wdgt is not None:
+        wdgt.setVisible(not wdgt.isVisible())
 
 
 def remove_tasking_widget():

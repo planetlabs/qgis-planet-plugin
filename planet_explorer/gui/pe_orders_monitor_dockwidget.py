@@ -94,6 +94,8 @@ NAME = "name"
 CREATED_ON = "created_on"
 PRODUCTS = "products"
 ITEM_IDS = "item_ids"
+ITEM_TYPE = "item_type"
+PRODUCT_BUNDLE = "product_bundle"
 STATE = "state"
 DELIVERY = "delivery"
 ARCHIVE_TYPE = "archive_type"
@@ -182,6 +184,18 @@ class OrderWrapper():
         datestring = self.order.get(CREATED_ON)
         return (iso8601.parse_date(datestring).date().isoformat())
 
+    def file_format(self):
+        #TODO
+        return ""
+
+    def item_type(self):
+        types = [p.get(ITEM_TYPE) for p in self.order.get(PRODUCTS)]
+        return ", ".join(types)
+
+    def assets_ordered(self):
+        types = [p.get(PRODUCT_BUNDLE) for p in self.order.get(PRODUCTS)]
+        return ", ".join(types)
+
     def is_zipped(self):
         delivery = self.order.get(DELIVERY)
         if delivery is not None:
@@ -234,10 +248,18 @@ class OrderItemWidget(QWidget):
         super().__init__()
         self.dialog = dialog
         self.order = order
-        txt = (f'<b>Order {order.name()}<br>({order.date()})</b><br>'
-              f'{order.assets_count()} assets - state: {order.state()}')
+        txt = ('<style>h3{margin-bottom: 0px;}</style>'
+               f'<b><h3>Order {order.name()}</h3></b>'
+               f'<b>Placed on</b>: {order.date()}<br>'
+               f'<b>Id</b>: <a href="https://www.planet.com/account/#/orders/{order.id()}">'
+               f'{order.id()}</a><br>'
+               f'<b>Imagery source</b>: {order.item_type()}<br>'
+               #f'<b>Assets ordered</b>: {order.assets_ordered()}<br>'
+               #f'<b>File format</b>: {order.file_format()}<br>'
+               f'<b>Asset count</b>: {order.assets_count()}<br>')
 
         label = QLabel(txt)
+        label.setOpenExternalLinks(True)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
         button = QPushButton('Re-Download' if order.downloaded() else 'Download')
@@ -296,9 +318,13 @@ class QuadsOrderItemWidget(QWidget):
         self.dialog = dialog
         self.order = order
 
-        datestring = iso8601.parse_date(self.order.date).date().isoformat()
-        txt = (f'<b>Order {self.order.name}<br>({datestring})</b><br>'
-              f'{self.order.description}')
+        datestring = iso8601.parse_date(order.date).date().isoformat()
+
+        txt = ('<style>h3{margin-bottom: 0px;}</style>'
+               f'<b><h3>Order {order.name}</h3></b>'
+               f'<b>Placed on</b>: {datestring}<br>'
+               f'<b>Id</b>: {order.id()}<br>'
+               f'<b>Quad count</b>: {len(order.quads)}<br>')
         label = QLabel(txt)
 
         button = QPushButton('Re-Download' if self.order.downloaded() else 'Download')

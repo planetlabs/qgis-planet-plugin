@@ -13,11 +13,12 @@ class PlanetNodeMetadata(enum.Enum):
     GROUND_SAMPLE_DISTANCE = "gsd"
     GROUND_CONTROL = "ground_control"
     OFF_NADIR_ANGLE = "view_angle"
-    QUALITY_CATEGORY = "quality_category"
+    INSTRUMENT = "instrument"
+    AREA_COVER = "area_cover"
     SATELLITE_ID = "satellite_id"
     SUN_AZIMUTH = "sun_azimuth"
     SUN_ELEVATION = "sun_elevation"
-
+    QUALITY_CATEGORY = "quality_category"
 
 WIDGET, BASE = uic.loadUiType(os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
@@ -36,10 +37,12 @@ class ResultsConfigurationDialog(BASE, WIDGET):
                           PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE: self.chkGroundSampleDistance,
                           PlanetNodeMetadata.GROUND_CONTROL: self.chkGroundControl,
                           PlanetNodeMetadata.OFF_NADIR_ANGLE: self.chkOffNadirAngle,
-                          PlanetNodeMetadata.QUALITY_CATEGORY: self.chkQualityCategory,
+                          PlanetNodeMetadata.INSTRUMENT: self.chkInstrument,
+                          PlanetNodeMetadata.AREA_COVER: self.chkAreaCover,
                           PlanetNodeMetadata.SATELLITE_ID: self.chkSatelliteId,
                           PlanetNodeMetadata.SUN_AZIMUTH: self.chkSunAzimuth,
-                          PlanetNodeMetadata.SUN_ELEVATION: self.chkSunElevation}
+                          PlanetNodeMetadata.SUN_ELEVATION: self.chkSunElevation,
+                          PlanetNodeMetadata.QUALITY_CATEGORY: self.chkQualityCategory}
 
         for chk in self.checkboxes.values():
             chk.clicked.connect(self.selection_changed)

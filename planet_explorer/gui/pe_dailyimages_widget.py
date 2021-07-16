@@ -25,8 +25,6 @@ __revision__ = '$Format:%H$'
 import os
 import logging
 
-import analytics
-
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     pyqtSlot
@@ -61,7 +59,7 @@ from ..planet_api import (
     PlanetClient
 )
 
-from .pe_orders_v2 import (
+from .pe_orders import (
     PlanetOrdersDialog
 )
 
@@ -75,7 +73,11 @@ from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
 
 from ..pe_utils import (
     add_menu_section_action,
-    is_segments_write_key_valid
+)
+
+from ..pe_analytics import (
+    send_analytics_for_search,
+    analytics_track
 )
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -132,8 +134,6 @@ class DailyImagesWidget(BASE, WIDGET):
         self.btnOrder.clicked.connect(self.order_checked)
         self._setup_actions_button()
 
-        self._checked_queue_set_count = 0
-        self._checked_queue_set = set()
         self._checked_item_type_nodes = {}
 
         self.lblWarning.setHidden(True)
@@ -200,6 +200,8 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self._collect_sources_filters()
 
+        send_analytics_for_search(self._sources)
+
         if not self._main_filters.leAOI.text():
             id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
@@ -207,16 +209,19 @@ class DailyImagesWidget(BASE, WIDGET):
                 return
 
         self.lblWarning.setHidden(True)
+
+        if not self._sources:
+            self.parent.show_message('No item types selected',
+                              level=Qgis.Warning,
+                              duration=10)
+            return
+
         # TODO: Also validate GeoJSON prior to performing search
 
         search_request = build_search_request(
             self._filters, self._sources)
 
         self._request = search_request
-        if is_segments_write_key_valid():
-            analytics.track(self.p_client.user()["email"],
-                            "Daily images search executed",
-                            {"query": search_request})
 
         self.searchResultsWidget.update_request(search_request, self.local_filters)
 
@@ -276,12 +281,14 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot(dict)
     def set_filters_from_request(self, request):
-        self._daily_filters_widget.set_from_request(request)
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._daily_filters_widget.set_from_request(request)
+            self._main_filters.set_from_request(request)
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
-        self._main_filters.set_from_request(request)
+        if request is not None:
+            self._main_filters.set_from_request(request)
 
     def _search_saved(self, request):
         self._main_filters.add_saved_search(request)
@@ -290,10 +297,10 @@ class DailyImagesWidget(BASE, WIDGET):
     def order_checked(self):
         log.debug('Order initiated')
 
-        selected = self.searchResultsWidget.selected_images()
+        images = self.searchResultsWidget.selected_images()
 
-        if not selected:
-            self.parent.show_message(f'No checked items to order',
+        if not images:
+            self.parent.show_message('No checked items to order',
                               level=Qgis.Warning,
                               duration=10)
             return
@@ -305,10 +312,8 @@ class DailyImagesWidget(BASE, WIDGET):
             tool_resources['aoi'] = None
 
         dlg = PlanetOrdersDialog(
-            selected,
-            self.searchResultsWidget.sort_order()[0],
-            tool_resources=tool_resources,
-            parent=self
+            images,
+            tool_resources=tool_resources
         )
 
         dlg.setMinimumWidth(700)
@@ -318,16 +323,18 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot()
     def copy_checked_ids(self):
-        if not self._checked_queue_set:
-            self.parent.show_message(f'No checked IDs to copy',
+        selected = self.searchResultsWidget.selected_images()
+        if not selected:
+            self.parent.show_message('No checked IDs to copy',
                               level=Qgis.Warning,
                               duration=10)
             return
 
-        sorted_checked = sorted(self._checked_queue_set)
+        sorted_checked = sorted([img["id"] for img in selected])
         cb = QgsApplication.clipboard()
         cb.setText(','.join(sorted_checked))
         self.parent.show_message('Checked IDs copied to clipboard')
+        analytics_track("item_ids_copied")
 
     @pyqtSlot()
     def view_curl(self):
@@ -343,6 +350,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(self.p_client.api_key())
         self.parent.show_message('API key copied to clipboard')
+        analytics_track("api_key_copied")
 
     def clean_up(self):
         self._main_filters.clean_up()

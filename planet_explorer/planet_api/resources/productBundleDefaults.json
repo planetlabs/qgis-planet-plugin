@@ -1,0 +1,10 @@
+{
+	"Landsat8L1G": ["Landsat8L1G::analytic"],
+	"REOrthoTile": ["REOrthoTile::analytic_sr"],
+	"Sentinel2L1C": ["Sentinel2L1C::analytic"],
+	"SkySatCollect": ["SkySatCollect::pansharpened_udm2"],
+	"SkySatScene": ["SkySatScene::pansharpened_udm2"],
+	"PSOrthoTile": ["PSOrthoTile::analytic_sr_udm2"],
+	"PSScene3Band": ["PSScene3Band::visual"],
+	"PSScene4Band": ["PSScene4Band::analytic_sr_udm2"]
+}

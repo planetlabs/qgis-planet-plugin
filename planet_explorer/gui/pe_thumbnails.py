@@ -22,6 +22,8 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
+from collections import defaultdict
+
 from PyQt5.QtNetwork import (
     QNetworkAccessManager,
     QNetworkRequest,
@@ -45,10 +47,6 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
 )
 
-from ..planet_api.p_client import (
-    PlanetClient
-)
-
 from ..pe_utils import (
     qgsgeometry_from_geojson
 )
@@ -60,13 +58,13 @@ class ThumbnailManager():
         self.nam = QNetworkAccessManager()
         self.nam.finished.connect(self.thumbnail_downloaded)
         self.thumbnails = {}
-        self.widgets = {}
+        self.widgets = defaultdict(list)
 
     def download_thumbnail(self, url, widget):
         if url in self.thumbnails:
             widget.set_thumbnail(self.thumbnails[url])
         else:
-            self.widgets[url] = widget
+            self.widgets[url].append(widget)
             self.nam.get(QNetworkRequest(QUrl(url)))
 
     def thumbnail_downloaded(self, reply):
@@ -75,12 +73,12 @@ class ThumbnailManager():
             img = QImage()
             img.loadFromData(reply.readAll())
             self.thumbnails[url] = img
-            try:
-                self.widgets[url].set_thumbnail(img)
-                #del self.widgets[url]
-            except Exception:
-                # the widget might have been deleted
-                pass
+            for w in self.widgets[url]:
+                try:
+                    w.set_thumbnail(img)
+                except Exception:
+                    # the widget might have been deleted
+                    pass
 
 
 _thumbnailManager = ThumbnailManager()
@@ -102,30 +100,37 @@ def createCompoundThumbnail(_bboxes, thumbnails):
         bboxes.append([rect.xMinimum(), rect.yMinimum(),
                       rect.xMaximum(), rect.yMaximum()])
     globalbox = (min([v[0] for v in bboxes]),
-                min([v[1] for v in bboxes]),
-                max([v[2] for v in bboxes]),
-                max([v[3] for v in bboxes])
-                )
+                 min([v[1] for v in bboxes]),
+                 max([v[2] for v in bboxes]),
+                 max([v[3] for v in bboxes])
+                 )
     SIZE = 256
     globalwidth = globalbox[2] - globalbox[0]
     globalheight = globalbox[3] - globalbox[1]
     pixmap = QPixmap(SIZE, SIZE)
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
-    for i, thumbnail in enumerate(thumbnails):
-        box = bboxes[i]
-        width = box[2] - box[0]
-        height = box[3] - box[1]
-        if width > height:
-            offsety = (width - height) / 2
-            offsetx = 0
-        else:
-            offsetx = (height - width) / 2
-            offsety = 0
-        x = int((box[0] - offsetx - globalbox[0]) / globalwidth * SIZE)
-        y = int((globalbox[3] - box[3] - offsety) / globalheight * SIZE)
-        outputwidth = int((width + 2 * offsetx) / globalwidth * SIZE)
-        outputheight = int((height + 2 * offsety) / globalheight * SIZE)
-        painter.drawPixmap(x, y, outputwidth, outputheight, thumbnail)
-    painter.end()
+    try:
+        for i, thumbnail in enumerate(thumbnails):
+            box = bboxes[i]
+            width = box[2] - box[0]
+            height = box[3] - box[1]
+            if width > height:
+                offsety = (width - height) / 2
+                offsetx = 0
+            else:
+                offsetx = (height - width) / 2
+                offsety = 0
+            x = int((box[0] - offsetx - globalbox[0]) / globalwidth * SIZE)
+            y = int((globalbox[3] - box[3] - offsety) / globalheight * SIZE)
+            outputwidth = int((width + 2 * offsetx) / globalwidth * SIZE)
+            outputheight = int((height + 2 * offsety) / globalheight * SIZE)
+            painter.drawPixmap(x, y, outputwidth, outputheight, thumbnail)
+    except:
+        '''
+        Unexpected values for bboxes might cause uneexpected errors. We just ignore
+        them and return an empty image in that case
+        '''
+    finally:
+        painter.end()
     return pixmap

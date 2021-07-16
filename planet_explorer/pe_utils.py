@@ -30,6 +30,7 @@ import urllib
 from urllib.parse import quote
 import json
 import iso8601
+import configparser
 
 from typing import (
     Optional,
@@ -55,7 +56,6 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgis.core import (
-    QgsPointXY,
     QgsGeometry,
     QgsFeature,
     QgsField,
@@ -71,6 +71,7 @@ from qgis.core import (
     QgsApplication,
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
+    QgsJsonUtils
 )
 
 from qgis.gui import QgisInterface
@@ -84,7 +85,8 @@ from .planet_api.p_client import (
 from .planet_api import PlanetClient
 
 from .planet_api.p_utils import (
-    geometry_from_json_str_or_obj
+    geometry_from_json_str_or_obj,
+    geometry_from_request
 )
 
 from .planet_api.p_specs import (
@@ -160,21 +162,6 @@ PLANET_BASEMAP_LABEL = "planet/basemapLabel"
 WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
 
-# [set_segments_write_key]
-# [set_sentry_dsn]
-
-def sentry_dsn():
-    return os.environ.get("SEGMENTS_WRITE_KEY")
-
-def segments_write_key():
-    return os.environ.get("SENTRY_DSN")
-
-def is_segments_write_key_valid():
-    return segments_write_key() is not None
-
-def is_sentry_dsn_valid():
-    return sentry_dsn() is not None
-
 def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -197,7 +184,7 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     geom_type = json_geom.get('type', '')
-    if geom_type.lower() != 'polygon':
+    if geom_type.lower() not in ['polygon', 'multipolygon']:
         log.debug('JSON geometry type is not polygon')
         return geom
 
@@ -206,12 +193,23 @@ def qgsgeometry_from_geojson(json_type):
         log.debug('JSON geometry contains no coordinates')
         return geom
 
-    polygon = [[QgsPointXY(item[0], item[1]) for item in polyline] for
-               polyline in coords]
-    # noinspection PyArgumentList,PyCallByClass
-    geom = QgsGeometry.fromPolygonXY(polygon)
+    try:
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
+        geom = feats[0].geometry()
+    except Exception:
+        pass # will return an empty geom
 
     return geom
+
+def area_coverage_for_image(image, request):
+    aoi_geom = geometry_from_request(request)
+    if aoi_geom is None:
+        return None
+    aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
+    image_qgsgeom = qgsgeometry_from_geojson(image["geometry"])
+    intersection = aoi_qgsgeom.intersection(image_qgsgeom)
+    area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
+    return area_coverage
 
 def add_menu_section_action(text, menu, tag='b', pad=0.5):
     """Because QMenu.addSection() fails to render with some UI styles, and
@@ -492,7 +490,7 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     layer.setCustomProperty("embeddedWidgets/count", 1)
     layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
     view = iface.layerTreeView()
-    view.model().refreshLayerLegend(view.currentNode())
+    view.layerTreeModel().refreshLayerLegend(view.currentNode())
     view.currentNode().setExpanded(True)
     if add_xyz_server:
         s = QSettings()
@@ -587,3 +585,10 @@ def is_planet_url(url):
     singleUrl = url.count("&url=") == 1
 
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
+
+
+def plugin_version():
+    config = configparser.ConfigParser()
+    path = os.path.join(os.path.dirname(__file__), "metadata.txt")
+    config.read(path)
+    return config.get("general", "version")

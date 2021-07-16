@@ -35,7 +35,6 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-print(f'plugin_path: {plugin_path}')
 
 try:
     from .range_slider import RangeSlider

@@ -8,6 +8,10 @@ from ..planet_api import (
     PlanetClient
 )
 
+from ..pe_analytics import(
+    analytics_track
+)
+
 python_template = '''
 import os
 import requests
@@ -48,13 +52,14 @@ class ShowCurlDialog(BASE, WIDGET):
 
     def setText(self):
         if self.comboType.currentText() == "cURL":
-            txt = curl_template % (PlanetClient.getInstance().api_key(), 
+            txt = curl_template % (PlanetClient.getInstance().api_key(),
                                     json.dumps(self.request))
         else:
-            txt = python_template % (PlanetClient.getInstance().api_key(), 
+            txt = python_template % (PlanetClient.getInstance().api_key(),
                                     json.dumps(self.request, indent=4))
         self.textBrowser.setPlainText(txt)
 
     def copyClicked(self):
         clipboard = QGuiApplication.clipboard()
         clipboard.setText(self.textBrowser.toPlainText())
+        analytics_track("curl_request_copied")

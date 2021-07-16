@@ -241,8 +241,8 @@ class PlanetClient(QObject, ClientV1):
                 bbox = [-180, -85, 180, 85]
             else:
                 bbox = mosaic['bbox']
-        bbox = (max(-180, bbox[0]), max(-85, bbox[1]),
-                min(180, bbox[2]), min(85, bbox[3]))
+        bbox = (max(-180, bbox[0]), max(-84.99, bbox[1]),
+                min(180, bbox[2]), min(84.99, bbox[3]))
         url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
         if minimal:
             url += "&minimal=true"

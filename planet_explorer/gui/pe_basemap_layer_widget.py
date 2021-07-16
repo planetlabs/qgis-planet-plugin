@@ -68,7 +68,8 @@ from ..pe_utils import (
     PLANET_MOSAIC_DATATYPE,
     WIDGET_PROVIDER_NAME,
     mosaic_name_from_url,
-    datatype_from_mosaic_name
+    datatype_from_mosaic_name,
+    is_planet_url
 )
 
 TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
@@ -288,49 +289,61 @@ class BasemapLayerWidget(QWidget):
         ramp = layer.customProperty(PLANET_MOSAIC_RAMP)
         self.datatype = layer.customProperty(PLANET_MOSAIC_DATATYPE)
         self.layer = layer
-        self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
-        self.mosaicnames = [m[0] for m in self.mosaics]
-        self.mosaicids = [m[1] for m in self.mosaics]
-        self.layout = QVBoxLayout()
-        self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
-        self.layout.addWidget(self.renderingOptionsWidget)
-        if len(self.mosaics) > 1:
-            # We don't use the layer source url when there are multiple mosaics.
-            # It will be composed on-the-fly based on the mosaic parameters
-            current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
-            idx = self.mosaicnames.index(current_mosaic_name)
-            self.labelId = QLabel()
-            self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
-            self.layout.addWidget(self.labelId)
-            self.labelName = QLabel(current_mosaic_name)
-            self.slider = CustomSlider(Qt.Horizontal)
-            self.slider.setRange(0, len(self.mosaics) - 1)
-            self.slider.setTickInterval(1)
-            self.slider.setTickPosition(QSlider.TicksAbove)
-            self.slider.setPageStep(1)
-            self.slider.setTracking(True)
-            self.slider.setEnabled(True)
-            self.slider.setValue(idx)
-            self.slider.valueChanged.connect(self.on_value_changed)
-            self.slider.sliderReleased.connect(self.change_source)
-            self.layout.addWidget(self.labelName)
-            self.layout.addWidget(self.slider)
+        if self.is_planet_basemap():
+            self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
+            self.mosaicnames = [m[0] for m in self.mosaics]
+            self.mosaicids = [m[1] for m in self.mosaics]
+            self.layout = QVBoxLayout()
+            self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
+            self.layout.addWidget(self.renderingOptionsWidget)
+            if len(self.mosaics) > 1:
+                # We don't use the layer source url when there are multiple mosaics.
+                # It will be composed on-the-fly based on the mosaic parameters
+                current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
+                try:
+                    idx = self.mosaicnames.index(current_mosaic_name)
+                except ValueError:
+                    idx = 0
+                self.labelId = QLabel()
+                self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
+                self.layout.addWidget(self.labelId)
+                self.labelName = QLabel(current_mosaic_name)
+                self.slider = CustomSlider(Qt.Horizontal)
+                self.slider.setRange(0, len(self.mosaics) - 1)
+                self.slider.setTickInterval(1)
+                self.slider.setTickPosition(QSlider.TicksAbove)
+                self.slider.setPageStep(1)
+                self.slider.setTracking(True)
+                self.slider.setEnabled(True)
+                self.slider.setValue(idx)
+                self.slider.valueChanged.connect(self.on_value_changed)
+                self.slider.sliderReleased.connect(self.change_source)
+                self.layout.addWidget(self.labelName)
+                self.layout.addWidget(self.slider)
+            else:
+                # if there are no multiple mosaics, we use the original url,
+                # and just add 'proc' and 'color' modifiers to it
+                layerurl = layer.source().split("&url=")[-1]
+                tokens = layerurl.split("?")
+                self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
+            self.renderingOptionsWidget.set_process(proc)
+            self.renderingOptionsWidget.set_ramp(ramp)
+            self.renderingOptionsWidget.values_changed.connect(self.change_source)
+            self.labelWarning = QLabel('<span style="color:red;"><b>No API key available</b></span>')
+            self.layout.addWidget(self.labelWarning)
+            self.setLayout(self.layout)
+
+            PlanetClient.getInstance().loginChanged.connect(self.login_changed)
+
+            self.change_source()
         else:
-            # if there are no multiple mosaics, we use the original url,
-            # and just add 'proc' and 'color' modifiers to it
-            layerurl = layer.source().split("&url=")[-1]
-            tokens = layerurl.split("?")
-            self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
-        self.renderingOptionsWidget.set_process(proc)
-        self.renderingOptionsWidget.set_ramp(ramp)
-        self.renderingOptionsWidget.values_changed.connect(self.change_source)
-        self.labelWarning = QLabel('<span style="color:red;"><b>No API key available</b></span>')
-        self.layout.addWidget(self.labelWarning)
-        self.setLayout(self.layout)
+            self.layout = QVBoxLayout()
+            self.labelWarning = QLabel('<span style="color:red;"><b>Not a valid Planet basemap layer</b></span>')
+            self.layout.addWidget(self.labelWarning)
+            self.setLayout(self.layout)
 
-        PlanetClient.getInstance().loginChanged.connect(self.login_changed)
-
-        self.change_source()
+    def is_planet_basemap(self):
+        return is_planet_url(self.layer.source())
 
     def on_value_changed(self, value):
         self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[value]}</span>')
@@ -365,7 +378,6 @@ class BasemapLayerWidget(QWidget):
                 zoom.append(token)
         szoom = f"&{'&'.join(zoom)}" if zoom else ""
         uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
-        print(uri)
         provider = self.layer.dataProvider()
         if provider is not None:
             provider.setDataSourceUri(uri)
@@ -375,7 +387,6 @@ class BasemapLayerWidget(QWidget):
         self.ensure_correct_size()
 
     def login_changed(self):
-        client = PlanetClient.getInstance()
         if not bool(self.datatype):
             mosaic = mosaic_name_from_url(self.layer.source())
             datatype = datatype_from_mosaic_name(mosaic)
@@ -387,6 +398,8 @@ class BasemapLayerWidget(QWidget):
         self.change_source()
 
     def ensure_correct_size(self):
+        if self.layer is None:
+            return
         def findLayerItem(root=None):
             root = root or QgsProject.instance().layerTreeRoot()
             for child in root.children():

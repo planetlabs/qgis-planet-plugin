@@ -31,8 +31,6 @@ from collections import defaultdict
 
 from osgeo import gdal
 
-import analytics
-
 # noinspection PyPackageRequirements
 from qgis.core import (
     QgsTask,
@@ -57,9 +55,13 @@ from qgis.PyQt.QtGui import (
     QDesktopServices
 )
 
+from qgis.PyQt.QtWidgets import (
+    QPushButton
+)
+
+
 from ..pe_utils import (
     QGIS_LOG_SECTION_NAME,
-    is_segments_write_key_valid
 )
 
 
@@ -148,8 +150,6 @@ class OrderProcessorTask(QgsTask):
                 iface.messageBar().pushMessage("Planet Explorer",
                     f"Order '{self.order.name()}' correctly downloaded and processed",
                     level=Qgis.Success, duration=5)
-            if is_segments_write_key_valid():
-                analytics.track(self.order.p_client.user()["email"], "Order downloaded", self.order.order)
         elif self.exception is not None:
             QgsMessageLog.logMessage(f"Order '{self.order.name()}' could not be downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME, Qgis.Warning)

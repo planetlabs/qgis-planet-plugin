@@ -46,6 +46,7 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QAction,
     QMessageBox
+    QFileDialog
 )
 
 from qgis.core import (
@@ -60,6 +61,7 @@ from qgis.core import (
     QgsRectangle,
     QgsFeature,
     QgsVectorLayer,
+    QgsCsException
 )
 from qgis.gui import (
     QgisInterface,
@@ -86,6 +88,11 @@ from ..pe_utils import (
     zoom_canvas_to_aoi,
     MAIN_AOI_COLOR
 )
+
+from ..pe_analytics import(
+    analytics_track
+)
+
 from .pe_range_slider import PlanetExplorerRangeSlider
 
 from .pe_aoi_maptools import (
@@ -124,7 +131,7 @@ def filters_from_request(request, field_name=None, filter_type=None):
             for subfilter in filterdict["config"]:
                 _add_filter(subfilter)
         elif filterdict["type"] == "NotFilter":
-            _add_filter(filterdict["config"][0])
+            _add_filter(filterdict["config"])
         else:
             if (field_name is not None
                 and "field_name" in filterdict
@@ -136,6 +143,7 @@ def filters_from_request(request, field_name=None, filter_type=None):
     filter_entry = request["filter"] if "filter" in request else request
     _add_filter(filter_entry)
     return filters
+
 
 def filters_as_text_from_request(request):
     slider_filters = {
@@ -287,6 +295,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             if ret == QMessageBox.Yes:
                 PlanetClient.getInstance().update_search(request)
 
+        analytics_track("saved_search_accessed")
         self.savedSearchSelected.emit(request)
 
     def null_out_saved_search(self):
@@ -305,9 +314,10 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             # TODO: Validate GeoJSON; try planet.api.utils.probably_geojson()
             # noinspection PyBroadException
             try:
-                if qgsgeometry_from_geojson(self.leAOI.text()):
-                    aoi = json.loads(self.leAOI.text())
-                    filters.append(geom_filter(aoi))
+                qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
+                if not qgsgeom.isEmpty():
+                    geom_json = json.loads(qgsgeom.asJson())
+                    filters.append(geom_filter(geom_json))
                 else:
                     self._show_message("AOI not valid GeoJSON polygon",
                                        level=Qgis.Warning,
@@ -408,6 +418,60 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         self.btnSelection.clicked.connect(self._toggle_selection_tools)
         self.btnSelection.clicked.connect(self.btnSelection.showMenu)
 
+        upload_menu = QMenu(self)
+
+        upload_act = QAction('Upload vector layer file', upload_menu)
+        upload_act.triggered[bool].connect(self.upload_file)
+        upload_menu.addAction(upload_act)
+
+
+        self.btnUpload.setMenu(upload_menu)
+        self.btnUpload.clicked.connect(self.btnUpload.showMenu)
+
+    def upload_file(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "",
+                                                  "All files(*.*)")
+        if filename:
+            layer = QgsVectorLayer(filename, "")
+            self.aoi_from_layer(layer)
+
+    def aoi_from_layer(self, layer):
+        if not layer.isValid():
+            self._show_message("Invalid layer",
+                               level=Qgis.Warning,
+                               duration=10)
+        else:
+            feature = next(layer.getFeatures(), None)
+            if feature is None:
+                self._show_message("Layer contains no features",
+                                   level=Qgis.Warning,
+                                   duration=10)
+            else:
+                geom = feature.geometry()
+
+                transform = QgsCoordinateTransform(
+                    layer.crs(),
+                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsProject.instance())
+
+                try:
+                    geom.transform(transform)
+                except QgsCsException as e:
+                    self._show_message("Could not convert AOI to EPSG:4326",
+                           level=Qgis.Warning,
+                           duration=10)
+                    return
+
+                geom_json = geom.asJson(precision=6)
+
+                self._aoi_box.setToGeometry(geom)
+
+                self.leAOI.setText(geom_json)
+
+                log.debug('AOI set to layer')
+
+                self.zoom_to_aoi()
+
     def _toggle_selection_tools(self):
         active_layer = self._iface.activeLayer()
         is_vector = isinstance(active_layer, QgsVectorLayer)
@@ -443,7 +507,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
         )
 
         canvas_extent: QgsRectangle = canvas.extent()
-        transform_extent = transform.transformBoundingBox(canvas_extent)
+        try:
+            transform_extent = transform.transformBoundingBox(canvas_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
@@ -482,13 +552,19 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             QgsProject.instance())
 
         ml_extent: QgsRectangle = map_layer.extent()
-        transform_extent = transform.transformBoundingBox(ml_extent)
+        try:
+            transform_extent = transform.transformBoundingBox(ml_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
 
         # noinspection PyArgumentList,PyCallByClass
-        self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
+        #self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
 
         self.leAOI.setText(extent_json)
 
@@ -514,7 +590,15 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             QgsProject.instance())
 
         canvas_extent: QgsRectangle = canvas.fullExtent()
-        transform_extent = transform.transformBoundingBox(canvas_extent)
+        if canvas_extent.isNull(): # Canvas not yet initialized
+            return
+        try:
+            transform_extent = transform.transformBoundingBox(canvas_extent)
+        except QgsCsException as e:
+            self._show_message("Could not convert AOI to EPSG:4326",
+                   level=Qgis.Warning,
+                   duration=10)
+            return
         # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
@@ -569,8 +653,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             aoi_json = aoi_geom.asJson(precision=6)
 
         if isinstance(aoi, QgsGeometry):
-            if aoi.isMultipart():
-                aoi = QgsGeometry.fromPolygonXY(aoi.asMultiPolygon()[0])
             self._aoi_box.setToGeometry(aoi)
             # TODO: validate geom is less than 500 vertices
             aoi.transform(transform)
@@ -597,7 +679,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     @pyqtSlot()
     def aoi_from_feature(self):
-        layer: QgsVectorLayer = self._iface.activeLayer()
+        layer = self._iface.activeLayer()
+        if not isinstance(layer, QgsVectorLayer):
+            self._show_message('Active layer must be a vector layer.',
+                               level=Qgis.Warning,
+                               duration=10)
+            return
 
         if layer.selectedFeatureCount() > 1:
             self._show_message('More than 1 feature. Searching by bbox.',
@@ -612,25 +699,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             return
 
         selected: QgsFeature = layer.selectedFeatures()[0]
-        if selected.geometry().isMultipart():
-            multi_geom = selected.geometry().asGeometryCollection()
-            if len(multi_geom) > 1:
-                self._show_message(
-                                   'More than 1 geometry. Searching by bbox.',
-                                   level=Qgis.Warning,
-                                   duration=10
-                    )
-                self.aoi_from_bound()
-                return
-            elif len(multi_geom) < 1:
-                self._show_message('No geometry selected.',
-                                   level=Qgis.Warning,
-                                   duration=10)
-                return
-            else:
-                geom: QgsGeometry = multi_geom[0]
-        else:
-            geom: QgsGeometry = selected.geometry()
+        geom: QgsGeometry = selected.geometry()
 
         if geom.constGet().vertexCount() > 500:
             self._show_message(
@@ -669,7 +738,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
 
     @pyqtSlot()
     def aoi_from_bound(self):
-        layer: QgsVectorLayer = self._iface.activeLayer()
+        layer = self._iface.activeLayer()
+        if not isinstance(layer, QgsVectorLayer):
+            self._show_message('Active layer must be a vector layer.',
+                               level=Qgis.Warning,
+                               duration=10)
+            return
 
         if layer.selectedFeatureCount() < 1:
             self._show_message('No features selected.',
@@ -742,6 +816,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             return
 
         geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.text())
+        if geom.isEmpty():
+            self._show_message('AOI GeoJSON geometry invalid',
+                   level=Qgis.Warning,
+                   duration=10)
+            return
+
         self._aoi_box.setToGeometry(
             geom,
             QgsCoordinateReferenceSystem("EPSG:4326")
@@ -759,7 +839,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
             log.debug('No AOI defined, skipping zoom to AOI')
             return
 
-        json_geom_txt = json.dumps(json.loads(self.leAOI.text()), indent=2)
+        try:
+            json_obj = json.loads(self.leAOI.text())
+        except ValueError:
+            return
+
+        json_geom_txt = json.dumps(json_obj, indent=2)
 
         cb = QgsApplication.clipboard()
         cb.setText(json_geom_txt)
@@ -792,7 +877,10 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET,
                                duration=10)
             return
 
-        json_geom = geometry_from_json(json_obj)
+        try:
+            json_geom = geometry_from_json(json_obj)
+        except:
+            json_geom = None
 
         if not json_geom:
             # noinspection PyUnresolvedReferences
@@ -851,7 +939,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.chkOrthotiles.stateChanged.connect(self._orthotiles_check_changed)
         self.chkPlanetScopeOrtho.stateChanged.connect(self._update_orthotiles_check)
         self.chkRapidEyeOrtho.stateChanged.connect(self._update_orthotiles_check)
-
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
             apiname = source.property('api-name')
@@ -1096,19 +1183,19 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     def filters(self):
         populated_filters = []
 
+        start_qdate = None
+        end_qdate = None
         start_date = None
         end_date = None
-        start_datetime = None
-        end_datetime = None
         if not self.startDateEdit.dateTime().isNull():
-            start_datetime = self.startDateEdit.dateTime()
-            start_date = start_datetime.toString(Qt.ISODate)
+            start_qdate = self.startDateEdit.date()
+            start_date = start_qdate.toString(Qt.ISODate)
         if not self.endDateEdit.dateTime().isNull():
-            end_datetime = self.endDateEdit.dateTime()
-            end_date = end_datetime.toString(Qt.ISODate)
+            end_qdate = self.endDateEdit.date().addDays(1)
+            end_date = end_qdate.toString(Qt.ISODate)
 
-        if start_datetime and end_datetime:
-            if start_datetime < end_datetime:
+        if start_qdate and end_qdate:
+            if start_qdate < end_qdate:
                 date_filter = date_range(
                     'acquired',
                     gte=start_date,
@@ -1179,17 +1266,18 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             instrument_filter = string_filter('instrument', *instruments)
             populated_filters.append(instrument_filter)
 
+        server_filters = []
         if self.chkBxCanDownload.isChecked():
             dl_permission_filter = permission_filter('assets:download')
-            populated_filters.append(dl_permission_filter)
+            server_filters.append(dl_permission_filter)
 
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
         if self.chkBxGroundControl.isChecked():
             gc_filter = not_filter(string_filter('ground_control', 'false'))
-            populated_filters.append(gc_filter)
+            server_filters.append(gc_filter)
 
-        server_filters = [f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS]
+        server_filters.extend([f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS])
         local_filters = [f for f in populated_filters if f["field_name"] in LOCAL_FILTERS]
         return server_filters, local_filters
 

@@ -26,8 +26,6 @@ __revision__ = '$Format:%H$'
 import os
 import math
 
-import analytics
-
 from PyQt5.QtWidgets import (
     QApplication,
     QMessageBox,
@@ -58,6 +56,9 @@ from planet.api.models import (
     MosaicQuads
 )
 
+from planet.api.exceptions import (
+    InvalidAPIKey
+)
 
 from qgis.core import (
     Qgis,
@@ -91,8 +92,7 @@ from ..pe_utils import (
     add_mosaics_to_qgis_project,
     mosaic_title,
     date_interval_from_mosaics,
-    open_link_with_browser,
-    is_segments_write_key_valid
+    open_link_with_browser
 )
 
 from .pe_gui_utils import (
@@ -102,6 +102,11 @@ from .pe_gui_utils import (
 from .pe_orders_monitor_dockwidget import (
     show_orders_monitor,
     refresh_orders
+)
+
+from ..pe_analytics import (
+    analytics_track,
+    basemap_name_for_analytics
 )
 
 from .pe_quads_treewidget import QuadsTreeWidget
@@ -118,6 +123,7 @@ TIMELAPSE = "timelapse"
 
 QUADS_PER_PAGE = 50
 MAX_QUADS_TO_DOWNLOAD = 100
+MAX_AREA_TO_DOWNLOAD = 100000
 
 PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
 
@@ -387,8 +393,14 @@ class BasemapsWidget(BASE, WIDGET):
         self.toggle_select_basemap_panel(data is None)
         self.mosaicsList.setVisible(data is not None)
         if data:
-            if data[1]: #it is a series, not a single mosaic
-                mosaics = self.mosaics_for_serie(data[0])
+            if data[1]:  # it is a series, not a single mosaic
+                try:
+                    mosaics = self.mosaics_for_serie(data[0])
+                except InvalidAPIKey:
+                    self.parent.show_message('Insufficient privileges. Cannot show mosaics of the selected series',
+                              level=Qgis.Warning,
+                              duration=10)
+                    return
             else:
                 mosaics = [data[0]]
             self.mosaicsList.populate(mosaics)
@@ -423,13 +435,10 @@ class BasemapsWidget(BASE, WIDGET):
     def explore(self):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
-            if is_segments_write_key_valid():
-                analytics.track(PlanetClient.getInstance().user()["email"],
-                                "Basemaps added to map",
-                                {
-                                "basemaps": [basemap[NAME] for basemap in selected]
-                                }
-                )
+            for m in selected:
+                analytics_track("basemap_service_added_to_map",
+                                {"mosaic_type": basemap_name_for_analytics(m)})
+
             add_mosaics_to_qgis_project(selected,
                     self.comboSeriesName.currentText() or selected[0][NAME])
 
@@ -443,6 +452,12 @@ class BasemapsWidget(BASE, WIDGET):
             quad = self.p_client.get_one_quad(mosaics[0])
             quadarea = self._area_from_bbox_coords(quad[BBOX])
             mosaicarea = self._area_from_bbox_coords(mosaics[0][BBOX])
+            if mosaicarea > MAX_AREA_TO_DOWNLOAD:
+                QMessageBox.warning(self, "Complete Download",
+                                    "This area is too big to download from the QGIS Plugin.<br>"
+                                    "To download a large Basemap area, you may want to consult our "
+                                    "<a href='https://developers.planet.com/docs/basemaps/'>developer resources</a>")
+                return
             numquads = int(mosaicarea / quadarea)
             if numquads > MAX_QUADS_TO_DOWNLOAD:
                 ret = QMessageBox.question(self, "Complete Download",
@@ -459,28 +474,43 @@ class BasemapsWidget(BASE, WIDGET):
             self.show_order_streaming_page()
 
     def find_quads_clicked(self):
-        self.find_quads()
-
-    @waitcursor
-    def find_quads(self):
         self.labelWarningQuads.setText("")
         selected = self.mosaicsList.selected_mosaics()
         if not self.aoi_filter.leAOI.text():
             self.labelWarningQuads.setText('⚠️ No area of interest (AOI) defined')
             return
         geom = self.aoi_filter.aoi_as_4326_geom()
+        if geom is None:
+            self.parent.show_message(f'Wrong AOI definition',
+                              level=Qgis.Warning,
+                              duration=10)
+            return
         mosaic_extent = QgsRectangle(*selected[0][BBOX])
         if not geom.intersects(mosaic_extent):
             self.parent.show_message(f'No mosaics in the selected area',
                               level=Qgis.Warning,
                               duration=10)
             return
-
-        quad = self.p_client.get_one_quad(selected[0])
-        quadarea = self._area_from_bbox_coords(quad[BBOX])
         qgsarea = QgsDistanceArea()
         area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
                                         QgsUnitTypes.AreaSquareKilometers)
+        if area > MAX_AREA_TO_DOWNLOAD:
+            QMessageBox.warning(self, "Quad Download",
+                                "This area is too big to download from the QGIS Plugin.<br>"
+                                "To download a large Basemap area, you may want to consult our "
+                                "<a href='https://developers.planet.com/docs/basemaps/'>developer resources</a>")
+            return
+        self.find_quads()
+
+    @waitcursor
+    def find_quads(self):
+        selected = self.mosaicsList.selected_mosaics()
+        geom = self.aoi_filter.aoi_as_4326_geom()
+        qgsarea = QgsDistanceArea()
+        area = qgsarea.convertAreaMeasurement(qgsarea.measureArea(geom),
+                                        QgsUnitTypes.AreaSquareKilometers)
+        quad = self.p_client.get_one_quad(selected[0])
+        quadarea = self._area_from_bbox_coords(quad[BBOX])
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
 
         self.widgetProgressFindQuads.setVisible(True)
@@ -536,6 +566,12 @@ class BasemapsWidget(BASE, WIDGET):
 
     def next_quads_page_clicked(self):
         selected = self.quadsTree.selected_quads()
+        if len(selected) > MAX_QUADS_TO_DOWNLOAD:
+            ret = QMessageBox.question(self, "Quad Download",
+                                f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
+                                "Are your sure you want to proceed?")
+            if ret != QMessageBox.Yes:
+                return
         if selected:
             self.show_order_name_page()
         else:
@@ -670,13 +706,9 @@ class BasemapsWidget(BASE, WIDGET):
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
         proc = self.renderingOptions.process()
         ramp = self.renderingOptions.ramp()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps connection stablished",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in selected]
-                            }
-                )
+
+        analytics_track("basemap_service_connection_established")
+
         for mosaic in selected:
             name = f"{mosaicname} - {mosaic_title(mosaic)}"
             add_mosaics_to_qgis_project([mosaic], name, proc=proc, ramp=ramp,
@@ -691,11 +723,10 @@ class BasemapsWidget(BASE, WIDGET):
         self.set_order_confirmation_summary(values, base_html)
         self.stackedWidget.setCurrentWidget(self.orderConfirmationPage)
 
-
     def submit_button_clicked(self):
         name = self.txtOrderName.text()
         if not bool(name.strip()):
-            self.parent.show_message(f'Enter a name for the order',
+            self.parent.show_message('Enter a name for the order',
                               level=Qgis.Warning,
                               duration=10)
             return
@@ -716,13 +747,10 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def order_complete_submit(self):
         selected = self.mosaicsList.selected_mosaics()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps complete order submitted",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in selected]
-                            }
-            )
+        for m in selected:
+            analytics_track("basemap_complete_order",
+                            {"mosaic_type": basemap_name_for_analytics(m)})
+
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
 
@@ -740,18 +768,17 @@ class BasemapsWidget(BASE, WIDGET):
     def order_partial_submit(self):
         self.grpBoxOrderConfirmation.setTitle("Order Partial Download")
         mosaics = self.mosaicsList.selected_mosaics()
-        if is_segments_write_key_valid():
-            analytics.track(PlanetClient.getInstance().user()["email"],
-                            "Basemaps partial order submitted",
-                            {
-                            "basemaps": [basemap[NAME] for basemap in mosaics]
-                            }
-            )
+        quads_count = len(self.quadsTree.selected_quads())
+        for m in mosaics:
+            analytics_track("basemap_partial_order",
+                            {"quads_count": quads_count,
+                            "mosaic_type": basemap_name_for_analytics(m)})
+
         dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
-        description = f'{len(self.quadsTree.selected_quads())} quads | {dates}'
+        description = f'{quads_count} quads | {dates}'
         create_quad_order_from_quads(name, description, quads, load_as_virtual)
         refresh_orders()
         values = {"Order Name": self.txtOrderName.text(),

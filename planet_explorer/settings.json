@@ -1,13 +1,5 @@
 [
   {
-    "name": "thumbCachePath",
-    "label": "Preview thumbnails cache location for scene images",
-    "description": "Default location of the downloaded preview thumbnails",
-    "type": "folder",
-    "default": "",
-    "group": "Previews"
-  },
-  {
     "name": "ordersPath",
     "label": "Order download location",
     "description": "Default location of the downloaded orders",
