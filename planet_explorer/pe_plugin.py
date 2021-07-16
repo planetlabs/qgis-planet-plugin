@@ -24,6 +24,7 @@ __revision__ = '$Format:%H$'
 from builtins import object
 
 import os
+import platform
 import zipfile
 import sys
 import traceback
@@ -550,6 +551,13 @@ class PlanetExplorer(object):
         self._terms_browser.show()
 
     def login(self):
+        if Qgis.QGIS_VERSION_INT >= 32000 and platform.system() == "Darwin":
+            text = ("WARNING: Your configuration may encounter serious issues with the Planet QGIS Plugin."
+                    " We are actively troubleshooting the issue with the QGIS team, you can track Issue 44182"
+                    " <a href='https://github.com/qgis/QGIS/issues/44182'>here</a>. "
+                    " In the meantime, we recommend that you use a QGIS version between 3.10 and 3.20,"
+                    " such as the 3.16 long term stable release.")
+            QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
 
     def logout(self):
