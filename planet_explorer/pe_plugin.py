@@ -617,7 +617,7 @@ class PlanetExplorer(object):
                         with zipfile.ZipFile(path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
                             zf.writestr(qgsfilename, s)
                 except Exception:
-                    QMessageBox.warning(self.iface.mainWindow("Error saving project",
+                    QMessageBox.warning(self.iface.mainWindow(), "Error saving project",
                         "There was an error while removing API keys from QGIS project file.\n"
-                        "The project that you have just saved might contain Planet API keys in plain text."))
+                        "The project that you have just saved might contain Planet API keys in plain text.")
             QTimer.singleShot(100, resave)
