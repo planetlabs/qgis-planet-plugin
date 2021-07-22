@@ -45,7 +45,7 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QMenu,
     QAction,
-    QMessageBox
+    QMessageBox,
     QFileDialog
 )
 
@@ -936,9 +936,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.emitFiltersChanged = True
 
         self.chkPlanetScope.stateChanged.connect(self._planet_scope_check_changed)
-        self.chkOrthotiles.stateChanged.connect(self._orthotiles_check_changed)
-        self.chkPlanetScopeOrtho.stateChanged.connect(self._update_orthotiles_check)
-        self.chkRapidEyeOrtho.stateChanged.connect(self._update_orthotiles_check)
+
         sources = self.frameSources.findChildren(QCheckBox)
         for source in sources:
             apiname = source.property('api-name')
@@ -1150,9 +1148,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.chkOrthotiles.setCheckState(Qt.Checked)
 
     def _planet_scope_check_changed(self):
-        radio_boxes = [self.radio3Bands, self.radio4Bands, self.radio8Bands]
-        for radio in radio_boxes:
-            radio.setEnabled(self.chkPlanetScope.isChecked())
+        self.widgetBands.setEnabled(self.chkPlanetScope.isChecked())
 
     def sources(self):
         checked_sources = []

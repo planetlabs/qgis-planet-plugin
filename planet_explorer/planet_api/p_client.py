@@ -277,7 +277,7 @@ class PlanetClient(QObject, ClientV1):
                            headers=headers)
         return res.json()
 
-    def create_search(self, request):
+    def update_search(self, request):
         '''Updates a saved search from the specified request.
         The request must contain a ``name`` property.
 
