@@ -194,8 +194,8 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     try:
-        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
-        geom = feats[0].geometry()
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))        
+        geom = QgsGeometry().fromPolygonXY(feats[0].geometry().asPolygon())
     except Exception:
         pass # will return an empty geom
 
