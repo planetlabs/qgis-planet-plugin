@@ -324,7 +324,7 @@ class QuadsOrderItemWidget(QWidget):
                f'<b><h3>Order {order.name}</h3></b>'
                f'<b>Placed on</b>: {datestring}<br>'
                f'<b>Id</b>: {order.id()}<br>'
-               f'<b>Quad count</b>: {len(order.quads)}<br>')
+               f'<b>Quad count</b>: {order.numquads()}<br>')
         label = QLabel(txt)
 
         button = QPushButton('Re-Download' if self.order.downloaded() else 'Download')

@@ -89,7 +89,7 @@ def create_quad_order_from_mosaics(name, description, mosaics, load_as_virtual):
 class QuadOrder():
 
     def __init__(self, name, description, quads,
-                load_as_virtual, date=None):
+                 load_as_virtual, date=None):
         self.quads = quads
         self.load_as_virtual = load_as_virtual
         self.name = name
@@ -114,6 +114,9 @@ class QuadOrder():
 
     def id(self):
         return self._id
+
+    def numquads(self):
+        return sum([len(m) for m in self.quads.values()])
 
 
 class QuadCompleteOrder(QuadOrder):
@@ -141,3 +144,6 @@ class QuadCompleteOrder(QuadOrder):
 
     def id(self):
         return self._id
+
+    def numquads(self):
+        return f"{len(self.mosaics)} complete mosaics"
