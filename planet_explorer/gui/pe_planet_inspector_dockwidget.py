@@ -257,10 +257,10 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         return grid[i][j]
 
     def _mosaic_name_from_current_layer(self):
+        name = None
         layer = iface.activeLayer()
         if layer is not None:
             source = layer.source()
-            name = None
             for prop in source.split("&"):
                 tokens = prop.split("=")
                 if tokens[0] == "url":
