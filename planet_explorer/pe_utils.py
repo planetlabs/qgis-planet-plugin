@@ -206,9 +206,12 @@ def area_coverage_for_image(image, request):
     if aoi_geom is None:
         return None
     aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
+    aoi_area = aoi_qgsgeom.area()
+    if aoi_area == 0:
+        return 100
     image_qgsgeom = qgsgeometry_from_geojson(image["geometry"])
     intersection = aoi_qgsgeom.intersection(image_qgsgeom)
-    area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
+    area_coverage = intersection.area() / aoi_area * 100
     return area_coverage
 
 def add_menu_section_action(text, menu, tag='b', pad=0.5):
