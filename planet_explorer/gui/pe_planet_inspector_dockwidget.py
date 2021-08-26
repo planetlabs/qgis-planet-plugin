@@ -302,7 +302,7 @@ class SceneItemWidget(QFrame):
 
         self.setMouseTracking(True)
 
-        datetime = iso8601.parse_date(self.properties["published"])
+        datetime = iso8601.parse_date(self.properties["acquired"])
         time = datetime.strftime('%H:%M:%S')
         date = datetime.strftime('%b %d, %Y')
 
