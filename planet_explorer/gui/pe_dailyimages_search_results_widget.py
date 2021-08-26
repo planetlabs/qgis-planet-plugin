@@ -795,8 +795,11 @@ class SceneItemWidget(ItemWidgetBase):
         for i, value in enumerate(self.metadata_to_show):
             spacer = "<br>" if i == 1 else " "
             if value == PlanetNodeMetadata.AREA_COVER:
-                area_coverage = area_coverage_for_image(self.image, self.request) or "--"
-                metadata += f'{value.value}:{area_coverage:.0f}{spacer}'
+                area_coverage = area_coverage_for_image(self.image, self.request)
+                if area_coverage is not None:
+                    metadata += f'{value.value}:{area_coverage:.0f}{spacer}'
+                else:
+                    metadata += f'{value.value}:--{spacer}'
             else:
                 metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
 
