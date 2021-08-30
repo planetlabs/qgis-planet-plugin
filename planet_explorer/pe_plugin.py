@@ -221,8 +221,8 @@ class PlanetExplorer(object):
 
         if is_sentry_dsn_valid():
             with sentry_sdk.configure_scope() as scope:
-                scope.set_context("versions", {"plugin_version", plugin_version(),
-                                               "qgis_version", Qgis.QGIS_VERSION})
+                scope.set_context("versions", {"plugin_version": plugin_version(),
+                                               "qgis_version": Qgis.QGIS_VERSION})
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
