@@ -71,7 +71,8 @@ from qgis.core import (
     QgsApplication,
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
-    QgsJsonUtils
+    QgsJsonUtils,
+    QgsFields
 )
 
 from qgis.gui import QgisInterface
@@ -178,7 +179,6 @@ def qgsgeometry_from_geojson(json_type):
     :rtype: QgsGeometry
     """
     geom = QgsGeometry()
-
     json_geom = geometry_from_json_str_or_obj(json_type)
     if not json_geom:
         return geom
@@ -194,7 +194,7 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     try:
-        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom), QgsFields(), None)
         geom = feats[0].geometry()
     except Exception:
         pass # will return an empty geom
