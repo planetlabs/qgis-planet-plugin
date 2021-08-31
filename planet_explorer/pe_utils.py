@@ -100,10 +100,6 @@ from planet.api.exceptions import (
     APIException
 )
 
-from qgiscommons2 import (
-    settings
-)
-
 iface: QgisInterface
 
 LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
@@ -127,7 +123,7 @@ EMPTY_THUMBNAIL = os.path.join(
 
 QGIS_LOG_SECTION_NAME = "Planet"
 
-ORDERS_DOWNLOAD_FOLDER = "ordersPath"
+ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 
 BASE_URL = 'https://www.planet.com'
@@ -437,7 +433,7 @@ def resource_file(f):
 
 
 def orders_download_folder():
-    download_folder = settings.pluginSetting(ORDERS_DOWNLOAD_FOLDER)
+    download_folder = QSettings().value(f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}")
     if not os.path.exists(download_folder):
         try:
             os.makedirs(download_folder)

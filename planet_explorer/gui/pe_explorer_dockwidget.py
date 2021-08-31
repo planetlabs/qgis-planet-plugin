@@ -36,6 +36,11 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import (
     QIcon
 )
+
+from qgis.PyQt.QtCore import (
+    QSettings
+)
+
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
     QStackedWidget,
@@ -59,11 +64,6 @@ from qgis.core import (
 
 from qgis.utils import iface
 
-from qgiscommons2.settings import (
-    pluginSetting,
-    setPluginSetting
-)
-
 from .pe_basemaps_widget import (
     BasemapsWidget
 )
@@ -84,7 +84,7 @@ from ..pe_utils import (
     open_link_with_browser,
 )
 
-from ..pe_analytics import(
+from ..pe_analytics import (
     is_sentry_dsn_valid,
     analytics_track,
 )
@@ -148,8 +148,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         self.p_client = None
         self.api_key = None
-        self._save_creds = bool(pluginSetting(
-            SAVE_CREDS_KEY, namespace=SETTINGS_NAMESPACE, typ='bool'))
+        self._save_creds = bool(QSettings().value(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}"))
 
         self.leUser.addAction(
             QIcon(':/plugins/planet_explorer/envelope-gray.svg'),
@@ -327,8 +326,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if state == 0:
             self._remove_auth_creds()
         self._save_creds = state > 0
-        setPluginSetting(SAVE_CREDS_KEY, self._save_creds,
-                         namespace=SETTINGS_NAMESPACE)
+        QSettings().setValue(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}",
+                             self._save_creds)
 
     def _store_auth_creds(self):
         auth_creds_str = AUTH_STRING.format(

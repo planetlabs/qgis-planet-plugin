@@ -71,18 +71,6 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox
 )
 
-from qgiscommons2.settings import (
-    readSettings
-)
-from qgiscommons2.gui.settings import (
-    addSettingsMenu,
-    removeSettingsMenu,
-)
-from qgiscommons2.gui import (
-    addAboutMenu,
-    removeAboutMenu
-)
-
 # Initialize Qt resources from file resources.py
 # noinspection PyUnresolvedReferences
 from planet_explorer.resources import resources
@@ -114,6 +102,10 @@ from planet_explorer.planet_api import PlanetClient
 
 from planet_explorer.gui.pe_basemap_layer_widget import (
     BasemapLayerWidgetProvider
+)
+
+from planet_explorer.gui.pe_settings_dialog import (
+    SettingsDialog
 )
 
 from planet_explorer.gui.pe_orders_monitor_dockwidget import (
@@ -184,8 +176,6 @@ class PlanetExplorer(object):
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
         self._terms_browser = None
-
-        readSettings()
 
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
@@ -356,8 +346,13 @@ class PlanetExplorer(object):
         self.add_user_button()
         self.add_info_button()
 
-        addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
-        addAboutMenu(P_E, self.iface.addPluginToWebMenu)
+        self.settings_act = self.add_action(
+            os.path.join(plugin_path, "resources", "cog.svg"),
+            text=self.tr("Settings..."),
+            callback=self.show_settings,
+            add_to_menu=True,
+            add_to_toolbar=False,
+            parent=self.iface.mainWindow())
 
         self.provider = BasemapLayerWidgetProvider()
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
@@ -509,10 +504,6 @@ class PlanetExplorer(object):
         PlanetClient.getInstance().log_out()
         self.provider.updateLayerWidgets()
 
-        removeSettingsMenu(P_E, self.iface.removePluginWebMenu)
-        # removeHelpMenu(P_E, self.iface.removePluginWebMenu)
-        removeAboutMenu(P_E, self.iface.removePluginWebMenu)
-
         for action in self.actions:
             self.iface.removePluginWebMenu(
                 self.tr('&{0}'.format(P_E)), action)
@@ -536,6 +527,10 @@ class PlanetExplorer(object):
         QgsProject.instance().layerRemoved.disconnect(self.layer_removed)
 
     # -----------------------------------------------------------
+
+    def show_settings(self):
+        dlg = SettingsDialog()
+        dlg.exec()
 
     def show_terms(self, _):
         if self._terms_browser is None:

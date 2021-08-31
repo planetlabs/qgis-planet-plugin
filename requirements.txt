@@ -2,7 +2,6 @@
 click
 requests-futures
 planet
-qgiscommons
 iso8601
 mercantile
 analytics-python
