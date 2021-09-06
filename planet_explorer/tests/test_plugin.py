@@ -2,11 +2,8 @@
 
 from qgis.testing import unittest, start_app
 from planet_explorer.gui.pe_explorer_dockwidget import show_explorer
-from planet_explorer.tests.utils import set_dummy_iface
 
 start_app()
-set_dummy_iface()
-
 
 class TestPlugin(unittest.TestCase):
     def test_import_planet(self):

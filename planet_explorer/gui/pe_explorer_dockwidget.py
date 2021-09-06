@@ -41,10 +41,9 @@ from qgis.PyQt.QtWidgets import (
     QTabWidget,
     QTextBrowser,
 )
-from qgis.utils import iface
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
-from ..pe_utils import BASE_URL, SETTINGS_NAMESPACE, open_link_with_browser
+from ..pe_utils import BASE_URL, SETTINGS_NAMESPACE, open_link_with_browser, iface
 from ..planet_api import API_KEY_DEFAULT, LoginException, PlanetClient
 from .pe_basemaps_widget import BasemapsWidget
 from .pe_dailyimages_widget import DailyImagesWidget
@@ -99,13 +98,12 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     tabWidgetResourceType: QTabWidget
     _terms_browser: QTextBrowser
 
-    def __init__(self, parent=None, iface=None, visible=False):
+    def __init__(self, parent=None, visible=False):
         super(PlanetExplorerDockWidget, self).__init__(parent)
 
         self.setupUi(self)
         self.setVisible(visible)
 
-        self._iface = iface
         # noinspection PyArgumentList
         self._auth_man = QgsApplication.authManager()
 
@@ -273,7 +271,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def show_message(self, message, level=Qgis.Info, duration=None, show_more=None):
         """Skips bold title, i.e. sets first param (below) to empty string"""
         if duration is None:
-            duration = self._iface.messageTimeout()
+            duration = iface.messageTimeout()
 
         if show_more is not None:
             self.msgBar.pushMessage("", message, show_more, level, duration)
@@ -341,7 +339,7 @@ def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
         dockwidget_instance = PlanetExplorerDockWidget(
-            parent=iface.mainWindow(), iface=iface
+            parent=iface.mainWindow()
         )
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea

@@ -54,18 +54,21 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
-from qgis.gui import QgisInterface
+
 from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
 from qgis.PyQt.QtGui import QColor, QDesktopServices
 from qgis.PyQt.QtWidgets import QLabel, QWidgetAction
-from qgis.utils import iface
+from qgis.utils import iface as _iface
+from qgis.testing.mocked import get_iface
 
 from .planet_api import PlanetClient
 from .planet_api.p_client import tile_service_url
 from .planet_api.p_specs import ITEM_TYPE_SPECS
 from .planet_api.p_utils import geometry_from_json_str_or_obj, geometry_from_request
 
-iface: QgisInterface
+iface = _iface
+if _iface is None:
+    iface = get_iface()
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
