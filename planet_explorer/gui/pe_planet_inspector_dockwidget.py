@@ -31,7 +31,6 @@ from planet.api.filters import build_search_request, string_filter
 from planet.api.models import Mosaics
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-# noinspection PyPackageRequirements
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -42,16 +41,12 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import QSize, Qt, QUrl, pyqtSignal
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import QIcon, QImage, QPixmap
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtWidgets import (
     QAction,
     QFrame,
@@ -63,10 +58,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-# noinspection PyPackageRequirements
 from qgis.utils import iface
 
-from ..pe_analytics import analytics_track
+from ..pe_analytics import analytics_track, basemap_name_for_analytics
 from ..pe_utils import PLANET_COLOR, add_menu_section_action, qgsgeometry_from_geojson
 from ..planet_api import PlanetClient
 from ..planet_api.p_specs import DAILY_ITEM_TYPES_DICT
@@ -147,7 +141,6 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def point_captured(self, point, button):
         self._populate_scenes_from_point(point)
-        analytics_track("basemap_inspected")
 
     @waitcursor
     def _populate_scenes_from_point(self, point):
@@ -162,6 +155,9 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             client = PlanetClient.getInstance()
             mosaic = (
                 client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
+            )
+            analytics_track(
+                "basemap_inspected", {"mosaic_type": basemap_name_for_analytics(mosaic)}
             )
             tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic["level"])
             url = "https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json"
@@ -232,10 +228,10 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         return grid[i][j]
 
     def _mosaic_name_from_current_layer(self):
+        name = None
         layer = iface.activeLayer()
         if layer is not None:
             source = layer.source()
-            name = None
             for prop in source.split("&"):
                 tokens = prop.split("=")
                 if tokens[0] == "url":
@@ -278,7 +274,7 @@ class SceneItemWidget(QFrame):
 
         self.setMouseTracking(True)
 
-        datetime = iso8601.parse_date(self.properties["published"])
+        datetime = iso8601.parse_date(self.properties["acquired"])
         time = datetime.strftime("%H:%M:%S")
         date = datetime.strftime("%b %d, %Y")
 

@@ -22,6 +22,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 import os
+import platform
 import sys
 import traceback
 import zipfile
@@ -55,9 +56,6 @@ from qgis.PyQt.QtWidgets import (
     QToolButton,
     QWidget,
 )
-from qgiscommons2.gui import addAboutMenu, removeAboutMenu
-from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu
-from qgiscommons2.settings import readSettings
 
 from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
 from planet_explorer.gui.pe_explorer_dockwidget import (
@@ -76,6 +74,7 @@ from planet_explorer.gui.pe_planet_inspector_dockwidget import (
     remove_inspector,
     toggle_inspector,
 )
+from planet_explorer.gui.pe_settings_dialog import SettingsDialog
 from planet_explorer.gui.pe_tasking_dockwidget import (
     remove_tasking_widget,
     toggle_tasking_widget,
@@ -97,6 +96,7 @@ from planet_explorer.pe_utils import (
 from planet_explorer.planet_api import PlanetClient
 
 # Initialize Qt resources from file resources.py
+# noinspection PyUnresolvedReferences
 from planet_explorer.resources import resources  # noqa: F401
 
 PLANET_COM = "https://planet.com"
@@ -122,7 +122,6 @@ DOCK_SHOWN_STATE = "dockShownState"
 PLUGIN_NAMESPACE = "planet_explorer"
 
 
-# noinspection PyUnresolvedReferences
 class PlanetExplorer(object):
     def __init__(self, iface):
 
@@ -150,8 +149,6 @@ class PlanetExplorer(object):
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
         self._terms_browser = None
-
-        readSettings()
 
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
@@ -196,10 +193,8 @@ class PlanetExplorer(object):
                 scope.set_context(
                     "versions",
                     {
-                        "plugin_version",
-                        plugin_version(),
-                        "qgis_version",
-                        Qgis.QGIS_VERSION,
+                        "plugin_version": plugin_version(),
+                        "qgis_version": Qgis.QGIS_VERSION,
                     },
                 )
 
@@ -339,8 +334,14 @@ class PlanetExplorer(object):
         self.add_user_button()
         self.add_info_button()
 
-        addSettingsMenu(P_E, self.iface.addPluginToWebMenu)
-        addAboutMenu(P_E, self.iface.addPluginToWebMenu)
+        self.settings_act = self.add_action(
+            os.path.join(plugin_path, "resources", "cog.svg"),
+            text=self.tr("Settings..."),
+            callback=self.show_settings,
+            add_to_menu=True,
+            add_to_toolbar=False,
+            parent=self.iface.mainWindow(),
+        )
 
         self.provider = BasemapLayerWidgetProvider()
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
@@ -489,10 +490,6 @@ class PlanetExplorer(object):
         PlanetClient.getInstance().log_out()
         self.provider.updateLayerWidgets()
 
-        removeSettingsMenu(P_E, self.iface.removePluginWebMenu)
-        # removeHelpMenu(P_E, self.iface.removePluginWebMenu)
-        removeAboutMenu(P_E, self.iface.removePluginWebMenu)
-
         for action in self.actions:
             self.iface.removePluginWebMenu(self.tr("&{0}".format(P_E)), action)
             self.iface.removeToolBarIcon(action)
@@ -516,6 +513,10 @@ class PlanetExplorer(object):
 
     # -----------------------------------------------------------
 
+    def show_settings(self):
+        dlg = SettingsDialog()
+        dlg.exec()
+
     def show_terms(self, _):
         if self._terms_browser is None:
             self._terms_browser = QTextBrowser()
@@ -531,6 +532,20 @@ class PlanetExplorer(object):
         self._terms_browser.show()
 
     def login(self):
+        if Qgis.QGIS_VERSION_INT >= 32000 and platform.system() == "Darwin":
+            text = (
+                "WARNING: Your configuration may encounter serious issues with the"
+                " Planet QGIS Plugin using QGIS V3.20. We are actively troubleshooting"
+                " the issue with the QGIS team, you can track <a"
+                " href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182"
+                " here</a>. In the meantime, we recommend that you use a QGIS version"
+                " between 3.10 and 3.20, such as the 3.16 long term stable release. For"
+                " further information including instructions on how to downgrade QGIS,"
+                " please refer to our <a"
+                " href='https://support.planet.com/hc/en-us/articles/4404372169233'>support"
+                " page here</a>."
+            )
+            QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
 
     def logout(self):
@@ -602,12 +617,11 @@ class PlanetExplorer(object):
                             zf.writestr(qgsfilename, s)
                 except Exception:
                     QMessageBox.warning(
-                        self.iface.mainWindow(
-                            "Error saving project",
-                            "There was an error while removing API keys from QGIS"
-                            " project file.\nThe project that you have just saved might"
-                            " contain Planet API keys in plain text.",
-                        )
+                        self.iface.mainWindow(),
+                        "Error saving project",
+                        "There was an error while removing API keys from QGIS project"
+                        " file.\nThe project that you have just saved might contain"
+                        " Planet API keys in plain text.",
                     )
 
             QTimer.singleShot(100, resave)

@@ -29,12 +29,10 @@ from typing import List, Optional
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
-
 from PyQt5.QtCore import QObject, QSettings, pyqtSignal, pyqtSlot
 from qgis.core import Qgis, QgsApplication, QgsAuthMethodConfig, QgsMessageLog
 
 from ..gui.pe_gui_utils import waitcursor
-
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)

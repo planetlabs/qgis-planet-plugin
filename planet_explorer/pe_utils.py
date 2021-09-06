@@ -41,6 +41,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
     QgsField,
+    QgsFields,
     QgsGeometry,
     QgsJsonUtils,
     QgsLayerTree,
@@ -58,7 +59,6 @@ from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
 from qgis.PyQt.QtGui import QColor, QDesktopServices
 from qgis.PyQt.QtWidgets import QLabel, QWidgetAction
 from qgis.utils import iface
-from qgiscommons2 import settings
 
 from .planet_api import PlanetClient
 from .planet_api.p_client import tile_service_url
@@ -94,7 +94,7 @@ EMPTY_THUMBNAIL = os.path.join(
 
 QGIS_LOG_SECTION_NAME = "Planet"
 
-ORDERS_DOWNLOAD_FOLDER = "ordersPath"
+ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 
 BASE_URL = "https://www.planet.com"
@@ -148,7 +148,6 @@ def qgsgeometry_from_geojson(json_type):
     :rtype: QgsGeometry
     """
     geom = QgsGeometry()
-
     json_geom = geometry_from_json_str_or_obj(json_type)
     if not json_geom:
         return geom
@@ -164,8 +163,10 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     try:
-        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
-        geom = QgsGeometry().fromPolygonXY(feats[0].geometry().asPolygon())
+        feats = QgsJsonUtils.stringToFeatureList(
+            json.dumps(json_geom), QgsFields(), None
+        )
+        geom = feats[0].geometry()
     except Exception:
         pass  # will return an empty geom
 
@@ -177,9 +178,12 @@ def area_coverage_for_image(image, request):
     if aoi_geom is None:
         return None
     aoi_qgsgeom = qgsgeometry_from_geojson(aoi_geom)
+    aoi_area = aoi_qgsgeom.area()
+    if aoi_area == 0:
+        return 100
     image_qgsgeom = qgsgeometry_from_geojson(image["geometry"])
     intersection = aoi_qgsgeom.intersection(image_qgsgeom)
-    area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
+    area_coverage = intersection.area() / aoi_area * 100
     return area_coverage
 
 
@@ -409,7 +413,9 @@ def resource_file(f):
 
 
 def orders_download_folder():
-    download_folder = settings.pluginSetting(ORDERS_DOWNLOAD_FOLDER)
+    download_folder = QSettings().value(
+        f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}"
+    )
     if not os.path.exists(download_folder):
         try:
             os.makedirs(download_folder)

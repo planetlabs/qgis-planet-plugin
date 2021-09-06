@@ -14,12 +14,12 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 import fnmatch
 
@@ -43,52 +43,51 @@ from paver.easy import *
 
 options(
     plugin=Bunch(
-        name='planet_explorer',
-        ext_libs=path('planet_explorer/extlibs'),
-        ext_src=path('planet_explorer/ext-src'),
-        source_dir=path('planet_explorer'),
-        package_dir=path('.'),
-        tests=['test', 'tests'],
+        name="planet_explorer",
+        ext_libs=path("planet_explorer/extlibs"),
+        ext_src=path("planet_explorer/ext-src"),
+        source_dir=path("planet_explorer"),
+        package_dir=path("."),
+        tests=["test", "tests"],
         excludes=[
-            '*.pyc',
-            '.git',
-            '.DS_Store',
-            'bin',
-            'pe_options.png',
-            'request-result-samples',
-            'thumbnails',
+            "*.pyc",
+            ".git",
+            ".DS_Store",
+            "bin",
+            "pe_options.png",
+            "request-result-samples",
+            "thumbnails",
             # 'ui/*.py',
-            'qgis_resources.py',
-            "pe_utils.py"
+            "qgis_resources.py",
+            "pe_utils.py",
         ],
-        path_to_settings='Raster --> Planet Explorer --> Settings...',
+        path_to_settings="Raster --> Planet Explorer --> Settings...",
         # skip certain files inadvertently found by exclude pattern globbing
-        skip_exclude=[]
+        skip_exclude=[],
     ),
-
     sphinx=Bunch(
-        docroot=path('docs'),
-        sourcedir=path('docs/source'),
-        builddir=path('docs/build')
-    )
+        docroot=path("docs"), sourcedir=path("docs/source"), builddir=path("docs/build")
+    ),
 )
 
 
 # noinspection PyUnusedLocal
 @task
-@cmdopts([
-    ('clean', 'c', 'clean out dependencies first'),
-])
+@cmdopts(
+    [
+        ("clean", "c", "clean out dependencies first"),
+    ]
+)
 def setup():
     # noinspection PyBroadException
-    clean = getattr(options, 'clean', False)
+    clean = getattr(options, "clean", False)
     ext_libs = options.plugin.ext_libs
     ext_src = options.plugin.ext_src
     if clean:
         ext_libs.rmtree()
     ext_libs.makedirs()
     runtime, test = read_requirements()
-    os.environ['PYTHONPATH'] = ext_libs.abspath()
+    os.environ["PYTHONPATH"] = ext_libs.abspath()
     for req in runtime + test:
         # sh('python3 -m pip install -U --install-option="--prefix=" '
         #    '-t %(ext_libs)s %(dep)s' % {
@@ -97,8 +96,18 @@ def setup():
         # }, env=os.environ)
         try:
             ret = subprocess.check_call(
-                [sys.executable, '-m', 'pip', 'install', '--upgrade',
-                 '--no-deps', '-t', f'{ext_libs.abspath()}', req])
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "--no-deps",
+                    "-t",
+                    f"{ext_libs.abspath()}",
+                    req,
+                ]
+            )
         except subprocess.CalledProcessError:
             error(f"Error installing {req} with pip.")
             sys.exit(1)
@@ -112,16 +121,18 @@ def install(options):
         builddocs(options)
     plugin_name = options.plugin.name
     src = path(__file__).dirname() / plugin_name
-    if os.name == 'nt':
-        default_profile_plugins = \
+    if os.name == "nt":
+        default_profile_plugins = (
             "~/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins"
-    elif sys.platform == 'darwin':
-        default_profile_plugins = \
-            "~/Library/Application Support/QGIS/QGIS3" \
-            "/profiles/default/python/plugins"
+        )
+    elif sys.platform == "darwin":
+        default_profile_plugins = (
+            "~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins"
+        )
     else:
-        default_profile_plugins = \
+        default_profile_plugins = (
             "~/.local/share/QGIS/QGIS3/profiles/default/python/plugins"
+        )
 
     dst_plugins = path(default_profile_plugins).expanduser()
     if not dst_plugins.exists():
@@ -129,16 +140,16 @@ def install(options):
     dst = dst_plugins / plugin_name
     src = src.abspath()
     dst = dst.abspath()
-    if not hasattr(os, 'symlink'):
+    if not hasattr(os, "symlink"):
         dst.rmtree()
         src.copytree(dst)
     elif not dst.exists():
         src.symlink(dst)
         if options.sphinx.docroot.exists():
             # Symlink the docs build folder to the parent
-            docs = path('..') / '..' / "docs" / 'build' / 'html'
+            docs = path("..") / ".." / "docs" / "build" / "html"
             docs_dest = path(__file__).dirname() / plugin_name / "docs"
-            docs_link = docs_dest / 'html'
+            docs_link = docs_dest / "html"
             if not docs_dest.exists():
                 docs_dest.mkdir()
             if not docs_link.islink():
@@ -147,39 +158,38 @@ def install(options):
 
 def read_requirements():
     """Return a list of runtime and list of test requirements"""
-    lines = open('requirements.txt').readlines()
+    lines = open("requirements.txt").readlines()
     lines = [l for l in [l.strip() for l in lines] if l]
-    divider = '# test requirements'
+    divider = "# test requirements"
 
     try:
         idx = lines.index(divider)
     except ValueError:
-        raise BuildFailure(
-            'Expected to find "%s" in requirements.txt' % divider)
+        raise BuildFailure('Expected to find "%s" in requirements.txt' % divider)
 
-    not_comments = lambda s, e: [l for l in lines[s:e] if l[0] != '#']
+    not_comments = lambda s, e: [l for l in lines[s:e] if l[0] != "#"]
     return not_comments(0, idx), not_comments(idx + 1, None)
 
 
 # noinspection PyShadowingNames
 @task
-@cmdopts([
-    ('tests', 't', 'Package tests with plugin'),
-    ('segments=', 's', 'Segments write key'),
-    ('sentry=', 'd', 'Sentry dns'),
-])
+@cmdopts(
+    [
+        ("tests", "t", "Package tests with plugin"),
+        ("segments=", "s", "Segments write key"),
+        ("sentry=", "d", "Sentry dns"),
+    ]
+)
 def package(options):
-    """Create plugin package
-    """
+    """Create plugin package"""
     print(options.package)
     if options.sphinx.docroot.exists():
         builddocs(options)
-    package_file = options.plugin.package_dir / \
-        ('%s.zip' % options.plugin.name)
+    package_file = options.plugin.package_dir / ("%s.zip" % options.plugin.name)
     if os.path.exists(package_file):
         os.remove(package_file)
-    with zipfile.ZipFile(package_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        if not hasattr(options.package, 'tests'):
+    with zipfile.ZipFile(package_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        if not hasattr(options.package, "tests"):
             options.plugin.excludes.extend(options.plugin.tests)
         _make_zip(zf, options)
 
@@ -205,29 +215,36 @@ def _make_zip(zipfile, options):
 
     for root, dirs, files in os.walk(src_dir):
         for f in filter_excludes(files):
-            relpath = os.path.relpath(root, '.')
+            relpath = os.path.relpath(root, ".")
             zipfile.write(path(root) / f, path(relpath) / f)
         filter_excludes(dirs)
 
     for root, dirs, files in os.walk(options.sphinx.builddir):
         for f in files:
             relpath = os.path.join(
-                options.plugin.name, "docs",
-                os.path.relpath(root, options.sphinx.builddir))
+                options.plugin.name,
+                "docs",
+                os.path.relpath(root, options.sphinx.builddir),
+            )
             zipfile.write(path(root) / f, path(relpath) / f)
 
-    utils_filename = os.path.join(os.path.dirname(__file__),
-                                  "planet_explorer", "pe_utils.py")
+    utils_filename = os.path.join(
+        os.path.dirname(__file__), "planet_explorer", "pe_utils.py"
+    )
     with open(utils_filename) as f:
         txt = f.read()
-        if hasattr(options.package, 'segments'):
-            txt = txt.replace("# [set_segments_write_key]",
-                              f"os.environ['SEGMENTS_WRITE_KEY'] = '{options.package.segments}'")
+        if hasattr(options.package, "segments"):
+            txt = txt.replace(
+                "# [set_segments_write_key]",
+                f"os.environ['SEGMENTS_WRITE_KEY'] = '{options.package.segments}'",
+            )
         else:
             print("WARNING: No Segments write key provided.")
-        if hasattr(options.package, 'sentry'):
-            txt = txt.replace("# [set_sentry_dsn]",
-                              f"os.environ['SENTRY_DSN'] = '{options.package.sentry}'")
+        if hasattr(options.package, "sentry"):
+            txt = txt.replace(
+                "# [set_sentry_dsn]",
+                f"os.environ['SENTRY_DSN'] = '{options.package.sentry}'",
+            )
         else:
             print("WARNING: No Sentry DSN write key provided.")
 
@@ -248,35 +265,42 @@ def create_settings_docs(options):
     for setting in settings:
         grouped[setting["group"]].append(setting)
     with open(doc_file, "w") as f:
-        f.write(".. _{}_plugin_settings:\n\n"
-                "Plugin settings\n===============\n\n"
-                "The plugin can be adjusted using the following settings, "
-                "to be found in its settings dialog "
-                "(:menuselection:`{}`).\n".format(
-                 options.plugin.name, options.plugin.path_to_settings))
+        f.write(
+            ".. _{}_plugin_settings:\n\n"
+            "Plugin settings\n===============\n\n"
+            "The plugin can be adjusted using the following settings, "
+            "to be found in its settings dialog "
+            "(:menuselection:`{}`).\n".format(
+                options.plugin.name, options.plugin.path_to_settings
+            )
+        )
         for groupName, group in grouped.items():
             section_marks = "-" * len(groupName)
-            f.write("\n%s\n%s\n\n"
-                    ".. list-table::\n"
-                    "   :header-rows: 1\n"
-                    "   :stub-columns: 1\n"
-                    "   :widths: 20 80\n"
-                    "   :class: non-responsive\n\n"
-                    "   * - Option\n"
-                    "     - Description\n"
-                    % (groupName, section_marks))
+            f.write(
+                "\n%s\n%s\n\n"
+                ".. list-table::\n"
+                "   :header-rows: 1\n"
+                "   :stub-columns: 1\n"
+                "   :widths: 20 80\n"
+                "   :class: non-responsive\n\n"
+                "   * - Option\n"
+                "     - Description\n" % (groupName, section_marks)
+            )
             for setting in group:
-                f.write("   * - %s\n"
-                        "     - %s\n"
-                        % (setting["label"], setting["description"]))
+                f.write(
+                    "   * - %s\n     - %s\n"
+                    % (setting["label"], setting["description"])
+                )
 
 
 # noinspection PyShadowingNames
 @task
-@cmdopts([
-    ('clean', 'c', 'clean out built artifacts first'),
-    ('sphinx_theme=', 's', 'Sphinx theme to use in documentation'),
-])
+@cmdopts(
+    [
+        ("clean", "c", "clean out built artifacts first"),
+        ("sphinx_theme=", "s", "Sphinx theme to use in documentation"),
+    ]
+)
 def builddocs(options):
     # noinspection PyBroadException
     try:
@@ -286,33 +310,40 @@ def builddocs(options):
     except:
         pass
     create_settings_docs(options)
-    if getattr(options, 'clean', False):
+    if getattr(options, "clean", False):
         options.sphinx.builddir.rmtree()
-    if getattr(options, 'sphinx_theme', False):
+    if getattr(options, "sphinx_theme", False):
         # overrides default theme by the one provided in command line
         set_theme = "-D html_theme='{}'".format(options.sphinx_theme)
     else:
         # Uses default theme defined in conf.py
         set_theme = ""
-    sh("sphinx-build -a {} {} {}/html".format(set_theme,
-                                              options.sphinx.sourcedir,
-                                              options.sphinx.builddir))
+    sh(
+        "sphinx-build -a {} {} {}/html".format(
+            set_theme, options.sphinx.sourcedir, options.sphinx.builddir
+        )
+    )
 
 
 @task
 def install_devtools():
     """Install development tools"""
-    conda_prefix = os.environ.get('CONDA_PREFIX')
+    conda_prefix = os.environ.get("CONDA_PREFIX")
     if not conda_prefix:
-        error('FATAL: Not running from within conda environment. '
-              'Set up conda dev environ.')
+        error(
+            "FATAL: Not running from within conda environment. "
+            "Set up conda dev environ."
+        )
         sys.exit(1)
-    if not conda_prefix.endswith('qgis3-conda-forge'):
-        error('FATAL: Not running from within "qgis3-conda-forge" '
-              'conda environment. Set up conda dev environ.')
+    if not conda_prefix.endswith("qgis3-conda-forge"):
+        error(
+            'FATAL: Not running from within "qgis3-conda-forge" '
+            "conda environment. Set up conda dev environ."
+        )
         sys.exit(1)
-    info('Already appear to be running from within "qgis3-conda-forge" '
-         'conda environment')
+    info(
+        'Already appear to be running from within "qgis3-conda-forge" conda environment'
+    )
 
 
 # noinspection PyPackageRequirements
@@ -324,18 +355,31 @@ def pep8(args):
     try:
         import pep8
     except:
-        error('pep8 not found! Set up conda dev environ.')
+        error("pep8 not found! Set up conda dev environ.")
         sys.exit(1)
 
     # Errors to ignore
-    ignore = ['E203', 'E121', 'E122', 'E123', 'E124', 'E125', 'E126', 'E127',
-              'E128', 'E402']
-    styleguide = pep8.StyleGuide(ignore=ignore,
-                                 exclude=['*/extlibs/*', '*/ext-src/*'],
-                                 repeat=True, max_line_length=79,
-                                 parse_argv=args)
+    ignore = [
+        "E203",
+        "E121",
+        "E122",
+        "E123",
+        "E124",
+        "E125",
+        "E126",
+        "E127",
+        "E128",
+        "E402",
+    ]
+    styleguide = pep8.StyleGuide(
+        ignore=ignore,
+        exclude=["*/extlibs/*", "*/ext-src/*"],
+        repeat=True,
+        max_line_length=79,
+        parse_argv=args,
+    )
     styleguide.input_dir(options.plugin.source_dir)
-    info('===== PEP8 SUMMARY =====')
+    info("===== PEP8 SUMMARY =====")
     styleguide.options.report.print_statistics()
 
 
@@ -348,23 +392,23 @@ def autopep8(args):
     try:
         import autopep8
     except:
-        error('autopep8 not found! Set up conda dev environ.')
+        error("autopep8 not found! Set up conda dev environ.")
         sys.exit(1)
 
-    if any(x not in args for x in ['-i', '--in-place']):
-        args.append('-i')
+    if any(x not in args for x in ["-i", "--in-place"]):
+        args.append("-i")
 
-    args.append('--ignore=E261,E265,E402,E501')
-    args.insert(0, 'dummy')
+    args.append("--ignore=E261,E265,E402,E501")
+    args.insert(0, "dummy")
 
     cmd_args = autopep8.parse_args(args)
 
-    excludes = ('ext-lib', 'ext-src')
+    excludes = ("ext-lib", "ext-src")
     for p in options.plugin.source_dir.walk():
         if any(exclude in p for exclude in excludes):
             continue
 
-        if p.fnmatch('*.py'):
+        if p.fnmatch("*.py"):
             autopep8.fix_file(p, options=cmd_args)
 
 
@@ -377,13 +421,13 @@ def pylint(args):
     try:
         from pylint import lint
     except:
-        error('pylint not found! Set up conda dev environ.')
+        error("pylint not found! Set up conda dev environ.")
         sys.exit(1)
 
-    if 'rcfile' not in args:
-        rcfile = options.plugin.source_dir / 'tests' / 'pylintrc'
+    if "rcfile" not in args:
+        rcfile = options.plugin.source_dir / "tests" / "pylintrc"
         if rcfile.exists():
-            args.append('--rcfile={0}'.format(rcfile))
+            args.append("--rcfile={0}".format(rcfile))
 
     args.append(options.plugin.source_dir)
     lint.Run(args)

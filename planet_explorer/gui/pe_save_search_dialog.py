@@ -132,7 +132,7 @@ class SaveSearchDialog(BASE, WIDGET):
             if filterdict["type"] in ["AndFilter", "OrFilter"]:
                 for subfilter in filterdict["config"]:
                     process_filter(subfilter)
-            elif filterdict["field_name"] == "acquired":
+            elif filterdict.get("field_name") == "acquired":
                 filterdict["config"] == newfilter
 
         process_filter(request["filter"])

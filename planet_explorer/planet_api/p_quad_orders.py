@@ -116,6 +116,9 @@ class QuadOrder:
     def id(self):
         return self._id
 
+    def numquads(self):
+        return sum([len(m) for m in self.quads.values()])
+
 
 class QuadCompleteOrder(QuadOrder):
     def __init__(self, name, description, mosaics, load_as_virtual, date=None):
@@ -141,3 +144,6 @@ class QuadCompleteOrder(QuadOrder):
 
     def id(self):
         return self._id
+
+    def numquads(self):
+        return f"{len(self.mosaics)} complete mosaics"

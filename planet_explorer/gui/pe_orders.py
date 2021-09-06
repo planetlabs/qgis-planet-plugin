@@ -57,7 +57,10 @@ from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 bundles_file = os.path.join(plugin_path, "planet_api", "resources", "bundles.json")
-order_bundles = PlanetOrdersV2Bundles(bundles_file)
+default_bundles_file = os.path.join(
+    plugin_path, "planet_api", "resources", "productBundleDefaults.json"
+)
+order_bundles = PlanetOrdersV2Bundles(bundles_file, default_bundles_file)
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)

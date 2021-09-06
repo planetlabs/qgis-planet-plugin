@@ -1094,19 +1094,19 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     def filters(self):
         populated_filters = []
 
+        start_qdate = None
+        end_qdate = None
         start_date = None
         end_date = None
-        start_datetime = None
-        end_datetime = None
         if not self.startDateEdit.dateTime().isNull():
-            start_datetime = self.startDateEdit.dateTime()
-            start_date = start_datetime.toString(Qt.ISODate)
+            start_qdate = self.startDateEdit.date()
+            start_date = start_qdate.toString(Qt.ISODate)
         if not self.endDateEdit.dateTime().isNull():
-            end_datetime = self.endDateEdit.dateTime()
-            end_date = end_datetime.toString(Qt.ISODate)
+            end_qdate = self.endDateEdit.date().addDays(1)
+            end_date = end_qdate.toString(Qt.ISODate)
 
-        if start_datetime and end_datetime:
-            if start_datetime < end_datetime:
+        if start_qdate and end_qdate:
+            if start_qdate < end_qdate:
                 date_filter = date_range("acquired", gte=start_date, lte=end_date)
                 populated_filters.append(date_filter)
             else:

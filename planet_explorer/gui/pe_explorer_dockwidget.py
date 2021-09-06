@@ -29,7 +29,7 @@ import sentry_sdk
 from qgis.core import Qgis, QgsApplication, QgsAuthManager, QgsMessageLog
 from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt, pyqtSlot
+from qgis.PyQt.QtCore import QSettings, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -42,7 +42,6 @@ from qgis.PyQt.QtWidgets import (
     QTextBrowser,
 )
 from qgis.utils import iface
-from qgiscommons2.settings import pluginSetting, setPluginSetting
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
 from ..pe_utils import BASE_URL, SETTINGS_NAMESPACE, open_link_with_browser
@@ -113,7 +112,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.p_client = None
         self.api_key = None
         self._save_creds = bool(
-            pluginSetting(SAVE_CREDS_KEY, namespace=SETTINGS_NAMESPACE, typ="bool")
+            QSettings().value(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}")
         )
 
         self.leUser.addAction(
@@ -286,7 +285,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if state == 0:
             self._remove_auth_creds()
         self._save_creds = state > 0
-        setPluginSetting(SAVE_CREDS_KEY, self._save_creds, namespace=SETTINGS_NAMESPACE)
+        QSettings().setValue(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}", self._save_creds)
 
     def _store_auth_creds(self):
         auth_creds_str = AUTH_STRING.format(
