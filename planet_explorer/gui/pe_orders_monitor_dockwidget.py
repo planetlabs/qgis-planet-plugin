@@ -37,7 +37,7 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
 
 # noinspection PyPackageRequirements
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtGui import QDesktopServices
 
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtWidgets import (

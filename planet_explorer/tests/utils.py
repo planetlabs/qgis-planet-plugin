@@ -1,4 +1,3 @@
-from qgis.testing import start_app
 from qgis import utils
 
 
@@ -10,6 +9,6 @@ class QgisInterfaceDummy(object):
         return dummy
 
 
-if utils.iface is None:
+def set_dummy_iface():
     utils.iface = QgisInterfaceDummy()
-    start_app()
+
