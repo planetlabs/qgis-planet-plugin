@@ -14,66 +14,48 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2020'
-__copyright__ = '(C) 2020 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2020"
+__copyright__ = "(C) 2020 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
-    QTreeWidget,
-    QTreeWidgetItem,
-    QLabel,
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
     QCheckBox,
     QFrame,
+    QHBoxLayout,
+    QLabel,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
-
-from PyQt5.QtGui import (
-    QPixmap,
-)
-
-from PyQt5 import QtCore
-
-from PyQt5.QtCore import (
-    Qt,
-    pyqtSignal
-)
-
-from qgis.core import (
-    QgsWkbTypes,
-    QgsGeometry
-)
-
-from qgis.gui import (
-    QgsRubberBand
-)
-
+from qgis.core import QgsGeometry, QgsWkbTypes
+from qgis.gui import QgsRubberBand
 from qgis.utils import iface
 
 from ..pe_utils import (
-    QUADS_AOI_COLOR,
-    QUADS_AOI_BODY_COLOR,
-    NAME,
     LINKS,
+    NAME,
+    QUADS_AOI_BODY_COLOR,
+    QUADS_AOI_COLOR,
+    mosaic_title,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
-    mosaic_title
 )
-
 from .pe_thumbnails import download_thumbnail
-
 
 ID = "id"
 THUMBNAIL = "thumbnail"
 PERCENT_COVERED = "percent_covered"
 BBOX = "bbox"
 
-PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
+PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 
 class QuadsTreeWidget(QTreeWidget):
@@ -191,7 +173,6 @@ class QuadsTreeWidget(QTreeWidget):
 
 
 class ParentTreeItemWidget(QFrame):
-
     def __init__(self, text, item):
         QWidget.__init__(self)
         self.setMouseTracking(True)
@@ -241,7 +222,6 @@ class ParentTreeItemWidget(QFrame):
 
 
 class QuadInstanceTreeItem(QTreeWidgetItem):
-
     def __init__(self, quad):
         QTreeWidgetItem.__init__(self)
         self.quad = quad
@@ -255,12 +235,15 @@ class QuadInstanceItemWidget(QFrame):
         QWidget.__init__(self)
         self.setMouseTracking(True)
         self.quad = quad
-        self.nameLabel = QLabel(f'<b>{quad[ID]}</b><br><span style="color:grey;">'
-                            f'{quad[PERCENT_COVERED]} % covered</span>')
+        self.nameLabel = QLabel(
+            f'<b>{quad[ID]}</b><br><span style="color:grey;">'
+            f"{quad[PERCENT_COVERED]} % covered</span>"
+        )
         self.iconLabel = QLabel()
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(48, 48, QtCore.Qt.KeepAspectRatio,
-                            QtCore.Qt.SmoothTransformation)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
+        thumb = pixmap.scaled(
+            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+        )
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.check_box_state_changed)
@@ -280,14 +263,14 @@ class QuadInstanceItemWidget(QFrame):
 
         download_thumbnail(quad[LINKS][THUMBNAIL], self)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self.footprint.setFillColor(QUADS_AOI_COLOR)
         self.footprint.setStrokeColor(QUADS_AOI_COLOR)
         self.footprint.setWidth(2)
 
-        self.footprintfill = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)
+        self.footprintfill = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
+        )
         self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)
         self.footprintfill.setWidth(0)
 
@@ -299,8 +282,7 @@ class QuadInstanceItemWidget(QFrame):
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setStyleSheet("")
 
@@ -328,7 +310,9 @@ class QuadInstanceItemWidget(QFrame):
         self.footprintfill.updateCanvas()
 
     def update_footprint_brush(self):
-        self.footprint.setBrushStyle(Qt.BDiagPattern if self.checkBox.isChecked() else Qt.NoBrush)
+        self.footprint.setBrushStyle(
+            Qt.BDiagPattern if self.checkBox.isChecked() else Qt.NoBrush
+        )
         self.footprint.updateCanvas()
 
     def remove_footprint(self):
@@ -347,7 +331,9 @@ class QuadInstanceItemWidget(QFrame):
             self.checkBox.blockSignals(False)
 
     def enterEvent(self, event):
-        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
+        self.setStyleSheet(
+            "QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}"
+        )
         self.show_solid_interior()
 
     def leaveEvent(self, event):

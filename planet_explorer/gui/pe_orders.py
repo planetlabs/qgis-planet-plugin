@@ -14,103 +14,64 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
-import logging
 import json
-
+import logging
+import os
 from collections import OrderedDict, defaultdict
 from functools import partial
 
+from qgis.core import Qgis, QgsMessageLog
+from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
-
-from qgis.PyQt.QtCore import (
-    pyqtSignal,
-    pyqtSlot,
-    Qt,
-    QSize
-)
-
-from qgis.PyQt.QtGui import (
-    QIcon,
-    QPixmap
-)
-
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
-    QVBoxLayout,
+    QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
-    QWidget,
-    QFrame,
-    QRadioButton,
-    QGridLayout,
     QPushButton,
-    QSizePolicy
+    QRadioButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-
-from qgis.core import (
-    QgsMessageLog,
-    Qgis
-)
-
-from qgis.gui import (
-    QgsMessageBar
-)
-
 from qgis.utils import iface
 
-from ..pe_utils import (
-    resource_file
-)
-
-from ..pe_analytics import(
-    send_analytics_for_order
-)
-
-from ..planet_api.p_client import (
-    PlanetClient,
-)
-from ..planet_api.p_specs import (
-    ITEM_TYPE_SPECS,
-)
-from ..planet_api.p_bundles import (
-    PlanetOrdersV2Bundles,
-)
-from .pe_orders_monitor_dockwidget import (
-    show_orders_monitor
-)
-from .pe_gui_utils import (
-    waitcursor
-)
-
-from .pe_thumbnails import (
-    createCompoundThumbnail,
-    download_thumbnail
-)
+from ..pe_analytics import send_analytics_for_order
+from ..pe_utils import resource_file
+from ..planet_api.p_bundles import PlanetOrdersV2Bundles
+from ..planet_api.p_client import PlanetClient
+from ..planet_api.p_specs import ITEM_TYPE_SPECS
+from .pe_gui_utils import waitcursor
+from .pe_orders_monitor_dockwidget import show_orders_monitor
+from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-bundles_file = os.path.join(plugin_path, 'planet_api', 'resources', 'bundles.json')
+bundles_file = os.path.join(plugin_path, "planet_api", "resources", "bundles.json")
 order_bundles = PlanetOrdersV2Bundles(bundles_file)
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
-LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
+LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_orders.ui'),
-    from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
-    resource_suffix=''
+    os.path.join(plugin_path, "ui", "pe_orders.ui"),
+    from_imports=True,
+    import_from=f"{os.path.basename(plugin_path)}",
+    resource_suffix="",
 )
 
-PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
+PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 ITEM_MAX = 100
 
@@ -133,7 +94,6 @@ EXPAND_LESS_ICON = _icon("expand_less.svg")
 
 
 class IconLabel(QWidget):
-
     def __init__(self, text, icon):
         super().__init__()
 
@@ -155,13 +115,7 @@ class PlanetOrderBundleWidget(QFrame):
 
     selectionChanged = pyqtSignal()
 
-    def __init__(self,
-                 bundleid,
-                 name,
-                 description,
-                 udm,
-                 rectified
-                 ):
+    def __init__(self, bundleid, name, description, udm, rectified):
         super().__init__()
 
         self.bundleid = bundleid
@@ -235,10 +189,7 @@ class PlanetOrderItemTypeWidget(QWidget):
 
     selectionChanged = pyqtSignal()
 
-    def __init__(self,
-                 item_type,
-                 images
-                 ):
+    def __init__(self, item_type, images):
         super().__init__()
 
         self.thumbnails = []
@@ -250,9 +201,8 @@ class PlanetOrderItemTypeWidget(QWidget):
         layout.setMargin(0)
 
         self.labelThumbnail = QLabel()
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
+        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.labelThumbnail.setPixmap(thumb)
         self.labelThumbnail.setFixedSize(96, 96)
         layout.addWidget(self.labelThumbnail, 0, 0, 3, 1)
@@ -261,8 +211,9 @@ class PlanetOrderItemTypeWidget(QWidget):
             url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
             download_thumbnail(url, self)
 
-        labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']}</b>",
-                              SATELLITE_ICON)
+        labelName = IconLabel(
+            f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']}</b>", SATELLITE_ICON
+        )
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
         layout.addWidget(labelNumItems, 0, 1)
         layout.addWidget(labelName, 1, 1)
@@ -293,9 +244,9 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         permissions = [img[PERMISSIONS] for img in self.images]
         item_bundles = order_bundles.bundles_for_item_type(
-                self.item_type, permissions=permissions)
-        default = order_bundles.item_default_bundle_name(
-                self.item_type)
+            self.item_type, permissions=permissions
+        )
+        default = order_bundles.item_default_bundle_name(self.item_type)
 
         def _center(obj):
             hlayout = QHBoxLayout()
@@ -407,8 +358,9 @@ class PlanetOrderItemTypeWidget(QWidget):
 
     def set_thumbnail(self, img):
         thumbnail = QPixmap(img)
-        self.thumbnails.append(thumbnail.scaled(96, 96, Qt.KeepAspectRatio,
-                                                Qt.SmoothTransformation))
+        self.thumbnails.append(
+            thumbnail.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
 
         if len(self.images) == len(self.thumbnails):
             bboxes = [img[GEOMETRY] for img in self.images]
@@ -436,9 +388,8 @@ class ImageReviewWidget(QFrame):
         vlayout.setMargin(0)
         vlayout.addLayout(hlayout)
         self.label = QLabel()
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
+        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.label.setPixmap(thumb)
         self.label.setFixedSize(96, 96)
 
@@ -458,8 +409,9 @@ class ImageReviewWidget(QFrame):
 
     def set_thumbnail(self, img):
         self.thumbnail = QPixmap(img)
-        thumb = self.thumbnail.scaled(96, 96, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        thumb = self.thumbnail.scaled(
+            96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
         self.label.setPixmap(thumb)
 
 
@@ -467,12 +419,7 @@ class PlanetOrderReviewWidget(QWidget):
 
     selectedImagesChanged = pyqtSignal()
 
-    def __init__(self,
-                 item_type,
-                 bundle_type,
-                 images,
-                 add_clip
-                 ):
+    def __init__(self, item_type, bundle_type, images, add_clip):
         super().__init__()
 
         self.item_type = item_type
@@ -482,8 +429,10 @@ class PlanetOrderReviewWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.setMargin(0)
-        labelName = IconLabel(f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {bundle_type}</b>",
-                              SATELLITE_ICON)
+        labelName = IconLabel(
+            f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {bundle_type}</b>",
+            SATELLITE_ICON,
+        )
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
@@ -519,12 +468,19 @@ class PlanetOrderReviewWidget(QWidget):
         self.chkClip = None
         if self.add_clip:
             layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
-            layout.addWidget(QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter)
+            layout.addWidget(
+                QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter
+            )
             self.chkClip = QCheckBox("Clip items to AOI")
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
         layout.addWidget(QLabel("<b>Review Items</b>"), 3, 1, Qt.AlignCenter)
-        layout.addWidget(QLabel("We recommend deselecting items that appear to have no pixels"), 4, 1, Qt.AlignCenter)
+        layout.addWidget(
+            QLabel("We recommend deselecting items that appear to have no pixels"),
+            4,
+            1,
+            Qt.AlignCenter,
+        )
 
         sublayout = QGridLayout()
         sublayout.setMargin(0)
@@ -567,10 +523,7 @@ class PlanetOrderReviewWidget(QWidget):
 
 
 class PlanetOrderSummaryOrderWidget(QWidget):
-
-    def __init__(self,
-                 summary
-                 ):
+    def __init__(self, summary):
         super().__init__()
 
         layout = QVBoxLayout()
@@ -602,9 +555,11 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
-    NAME_HIGHLIGHT = 'QLabel { color: rgb(175, 0, 0); }'
-    PLANET_COLOR_CSS = 'QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}'
-    TRANSPARENT_CSS = ''
+    NAME_HIGHLIGHT = "QLabel { color: rgb(175, 0, 0); }"
+    PLANET_COLOR_CSS = (
+        "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
+    )
+    TRANSPARENT_CSS = ""
 
     def __init__(self, images, tool_resources=None):
         super().__init__(parent=iface.mainWindow())
@@ -627,30 +582,35 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnContinueName.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
-        self.btnContinueAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
-        self.btnBackReview.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
-        self.btnBackAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
+        self.btnContinueName.clicked.connect(
+            lambda: self.stackedWidget.setCurrentIndex(1)
+        )
+        self.btnContinueAssets.clicked.connect(
+            lambda: self.stackedWidget.setCurrentIndex(2)
+        )
+        self.btnBackReview.clicked.connect(
+            lambda: self.stackedWidget.setCurrentIndex(1)
+        )
+        self.btnBackAssets.clicked.connect(
+            lambda: self.stackedWidget.setCurrentIndex(0)
+        )
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
         images_dict = defaultdict(list)
-        #thumbnails_dict = defaultdict(list)
+        # thumbnails_dict = defaultdict(list)
         for img in images:
-            item_type = img['properties']['item_type']
+            item_type = img["properties"]["item_type"]
             images_dict[item_type].append(img)
-            #thumbnails_dict[item_type].append(thumbnail)
+            # thumbnails_dict[item_type].append(thumbnail)
 
         widget = QWidget()
         self._item_type_widgets = {}
         layout = QVBoxLayout()
         layout.setMargin(0)
         for i, item_type in enumerate(images_dict.keys()):
-            w = PlanetOrderItemTypeWidget(
-                item_type,
-                images_dict[item_type]
-            )
+            w = PlanetOrderItemTypeWidget(item_type, images_dict[item_type])
             if i == 0:
                 w.expand()
             w.selectionChanged.connect(self.selectionChanged)
@@ -686,7 +646,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             self.labelOrderName.setStyleSheet(self.NAME_HIGHLIGHT)
             self.labelOrderNameSummary.setText("Undefined")
         else:
-            self.labelOrderName.setStyleSheet('')
+            self.labelOrderName.setStyleSheet("")
             self.labelOrderNameSummary.setText(self.txtOrderName.text())
 
         self.btnPlaceOrder.setEnabled(textOk)
@@ -718,10 +678,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             bundles = widget.bundles()
             images = widget.images
             for bundle in bundles:
-                add_clip = (self.tool_resources["aoi"] is not None
-                            and bundle["rectified"])
-                w = PlanetOrderReviewWidget(item_type, bundle["name"], images,
-                                            add_clip)
+                add_clip = (
+                    self.tool_resources["aoi"] is not None and bundle["rectified"]
+                )
+                w = PlanetOrderReviewWidget(item_type, bundle["name"], images, add_clip)
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
                     w.expand()
@@ -772,8 +732,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         name = self.txtOrderName.text()
 
         aoi = None
-        if self.tool_resources.get('aoi') is not None:
-            aoi = json.loads(self.tool_resources.get('aoi'))
+        if self.tool_resources.get("aoi") is not None:
+            aoi = json.loads(self.tool_resources.get("aoi"))
         orders = []
         for item_type, widget in self._item_type_widgets.items():
             for bundle in widget.bundles():
@@ -783,36 +743,28 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
                 #            their order in Explorer web app
                 order = OrderedDict()  # necessary to maintain toolchain order
-                order['name'] = f'{name.replace(" ", "_")}_{item_type}'
-                order['order_type'] = 'partial'
-                order['products'] = [
-                        {
-                            'item_ids': ids,
-                            'item_type': item_type,
-                            "product_bundle": bundle["id"]
-                        }
-                    ]
-                order['delivery'] = {
-                        'archive_filename': f'{name}_QGIS.zip',
-                        'archive_type': 'zip',
-                        'single_archive': True,
+                order["name"] = f'{name.replace(" ", "_")}_{item_type}'
+                order["order_type"] = "partial"
+                order["products"] = [
+                    {
+                        "item_ids": ids,
+                        "item_type": item_type,
+                        "product_bundle": bundle["id"],
                     }
-                order['notifications'] = {
-                        'email': True
-                    }
+                ]
+                order["delivery"] = {
+                    "archive_filename": f"{name}_QGIS.zip",
+                    "archive_type": "zip",
+                    "single_archive": True,
+                }
+                order["notifications"] = {"email": True}
 
                 tools = []
                 if w.clipping():
-                    tools.append({
-                            'clip': {
-                                'aoi': aoi
-                            }})
+                    tools.append({"clip": {"aoi": aoi}})
                 if bundle["filetype"] == "NITF":
-                    tools.append({
-                            "file_format": {
-                                "format": "PL_NITF"
-                            }})
-                order['tools'] = tools
+                    tools.append({"file_format": {"format": "PL_NITF"}})
+                order["tools"] = tools
                 orders.append(order)
 
         responses_ok = True
@@ -822,27 +774,38 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             send_analytics_for_order(order)
 
         if responses_ok:
-            self.bar.pushMessage("", "All orders correctly processed. Open the Order Monitor to check their status", Qgis.Success)
+            self.bar.pushMessage(
+                "",
+                "All orders correctly processed. Open the Order Monitor to check their"
+                " status",
+                Qgis.Success,
+            )
         else:
-            self.bar.pushMessage("", "Not all orders correctly processed. Open the QGIS log for more information", Qgis.Warning)
+            self.bar.pushMessage(
+                "",
+                "Not all orders correctly processed. Open the QGIS log for more"
+                " information",
+                Qgis.Warning,
+            )
 
     def _log(self, msg):
         QgsMessageLog.logMessage(msg, level=Qgis.Warning)
 
     def _process_response(self, item_type: str, response: dict):
         if not item_type:
-            self._log('Requesting order failed: no item_type')
+            self._log("Requesting order failed: no item_type")
             return False
 
         if not response:
-            self._log(f'Requesting {item_type} order failed: '
-                      f'no response data found')
+            self._log(f"Requesting {item_type} order failed: no response data found")
             return False
 
         if not response.get("id"):
-            self._log(f'Requesting {item_type} order failed: '
-                      f'response data contains no Order ID.\n'
-                      f'Order resp_data:\n{response}')
+            self._log(
+                f"Requesting {item_type} order failed: "
+                "response data contains no Order ID.\n"
+                f"Order resp_data:\n{response}"
+            )
             return False
 
         return True

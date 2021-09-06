@@ -16,120 +16,88 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
+import configparser
+import json
+import logging
 import os
 import re
-import logging
 import urllib
+from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
-import json
+
 import iso8601
-import configparser
-
-from typing import (
-    Optional,
-    # Union,
-    List,
-    Tuple,
-)
-
-from qgis.PyQt.QtCore import (
-    QVariant,
-    QUrl,
-    QSettings
-)
-
-from qgis.PyQt.QtGui import (
-    QColor,
-    QDesktopServices
-)
-
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QWidgetAction,
-)
-
+from planet.api.exceptions import APIException
+from planet.api.models import Mosaics
 from qgis.core import (
-    QgsGeometry,
+    QgsApplication,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsField,
-    QgsCoordinateTransform,
-    QgsRectangle,
-    QgsProject,
-    QgsVectorLayer,
-    QgsRasterLayer,
-    QgsCoordinateReferenceSystem,
-    QgsSimpleLineSymbolLayer,
+    QgsGeometry,
+    QgsJsonUtils,
     QgsLayerTree,
     QgsLayerTreeGroup,
-    QgsApplication,
-    QgsVectorFileWriter,
     QgsLayerTreeLayer,
-    QgsJsonUtils
+    QgsProject,
+    QgsRasterLayer,
+    QgsRectangle,
+    QgsSimpleLineSymbolLayer,
+    QgsVectorFileWriter,
+    QgsVectorLayer,
 )
-
 from qgis.gui import QgisInterface
-
+from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
+from qgis.PyQt.QtGui import QColor, QDesktopServices
+from qgis.PyQt.QtWidgets import QLabel, QWidgetAction
 from qgis.utils import iface
-
-from .planet_api.p_client import (
-    tile_service_url,
-)
+from qgiscommons2 import settings
 
 from .planet_api import PlanetClient
-
-from .planet_api.p_utils import (
-    geometry_from_json_str_or_obj,
-    geometry_from_request
-)
-
-from .planet_api.p_specs import (
-    ITEM_TYPE_SPECS,
-)
-
-from planet.api.models import Mosaics
-
-from planet.api.exceptions import (
-    APIException
-)
-
-from qgiscommons2 import (
-    settings
-)
+from .planet_api.p_client import tile_service_url
+from .planet_api.p_specs import ITEM_TYPE_SPECS
+from .planet_api.p_utils import geometry_from_json_str_or_obj, geometry_from_request
 
 iface: QgisInterface
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 PROPERTIES = [
-    'acquired', 'published', 'strip_id', 'satellite_id',
-    'ground_control', 'item_type', 'quality_category',
+    "acquired",
+    "published",
+    "strip_id",
+    "satellite_id",
+    "ground_control",
+    "item_type",
+    "quality_category",
 ]
 
-PE_PREVIEW = 'PE thumbnail preview'
-PE_PREVIEW_GROUP = 'Planet Explorer temp previews'
+PE_PREVIEW = "PE thumbnail preview"
+PE_PREVIEW_GROUP = "Planet Explorer temp previews"
 
 plugin_path = os.path.dirname(__file__)
 
-SETTINGS_NAMESPACE = 'planet_explorer'
+SETTINGS_NAMESPACE = "planet_explorer"
 
 EMPTY_THUMBNAIL = os.path.join(
-    plugin_path, 'planet_api', 'resources', 'empty_thumb.png')
+    plugin_path, "planet_api", "resources", "empty_thumb.png"
+)
 
 QGIS_LOG_SECTION_NAME = "Planet"
 
 ORDERS_DOWNLOAD_FOLDER = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 
-BASE_URL = 'https://www.planet.com'
+BASE_URL = "https://www.planet.com"
 
 PLANET_COLOR = QColor(0, 157, 165)
 ITEM_BACKGROUND_COLOR = QColor(225, 246, 252)
@@ -163,13 +131,15 @@ WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
 
 def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
-        transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance().crs(),
-            QgsProject.instance())
-        extent = QgsRectangle(*coords)
-        transform_extent = transform.transformBoundingBox(extent)
-        return transform_extent
+    transform = QgsCoordinateTransform(
+        QgsCoordinateReferenceSystem("EPSG:4326"),
+        QgsProject.instance().crs(),
+        QgsProject.instance(),
+    )
+    extent = QgsRectangle(*coords)
+    transform_extent = transform.transformBoundingBox(extent)
+    return transform_extent
+
 
 def qgsgeometry_from_geojson(json_type):
     """
@@ -183,23 +153,24 @@ def qgsgeometry_from_geojson(json_type):
     if not json_geom:
         return geom
 
-    geom_type = json_geom.get('type', '')
-    if geom_type.lower() not in ['polygon', 'multipolygon']:
-        log.debug('JSON geometry type is not polygon')
+    geom_type = json_geom.get("type", "")
+    if geom_type.lower() not in ["polygon", "multipolygon"]:
+        log.debug("JSON geometry type is not polygon")
         return geom
 
-    coords = json_geom.get('coordinates', None)
+    coords = json_geom.get("coordinates", None)
     if not coords:
-        log.debug('JSON geometry contains no coordinates')
+        log.debug("JSON geometry contains no coordinates")
         return geom
 
     try:
-        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))        
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom))
         geom = QgsGeometry().fromPolygonXY(feats[0].geometry().asPolygon())
     except Exception:
-        pass # will return an empty geom
+        pass  # will return an empty geom
 
     return geom
+
 
 def area_coverage_for_image(image, request):
     aoi_geom = geometry_from_request(request)
@@ -211,7 +182,8 @@ def area_coverage_for_image(image, request):
     area_coverage = intersection.area() / aoi_qgsgeom.area() * 100
     return area_coverage
 
-def add_menu_section_action(text, menu, tag='b', pad=0.5):
+
+def add_menu_section_action(text, menu, tag="b", pad=0.5):
     """Because QMenu.addSection() fails to render with some UI styles, and
     QWidgetAction defaults to no padding.
     :param text: Text for action's title
@@ -223,10 +195,11 @@ def add_menu_section_action(text, menu, tag='b', pad=0.5):
     :param pad: Value for QLabel qss em and ex padding
     :type pad: float
     """
-    lbl = QLabel(f'<{tag}>{text}</{tag}>', menu)
+    lbl = QLabel(f"<{tag}>{text}</{tag}>", menu)
     lbl.setStyleSheet(
-        f'QLabel {{ padding-left: {pad}em; padding-right: {pad}em; '
-        f'padding-top: {pad}ex; padding-bottom: {pad}ex;}}')
+        f"QLabel {{ padding-left: {pad}em; padding-right: {pad}em; "
+        f"padding-top: {pad}ex; padding-bottom: {pad}ex;}}"
+    )
     wa = QWidgetAction(menu)
     wa.setDefaultWidget(lbl)
     menu.addAction(wa)
@@ -234,9 +207,8 @@ def add_menu_section_action(text, menu, tag='b', pad=0.5):
 
 
 def tile_service_data_src_uri(
-        item_type_ids: List[str],
-        tile_hash: Optional[str] = None,
-        service: str = 'xyz') -> Optional[str]:
+    item_type_ids: List[str], tile_hash: Optional[str] = None, service: str = "xyz"
+) -> Optional[str]:
     """
     :param item_type_ids: List of item 'Type:IDs'
     :param api_key: Planet API key
@@ -245,68 +217,67 @@ def tile_service_data_src_uri(
     :return: Tile service data source URI
     """
 
-    tile_url = tile_service_url(
-        item_type_ids, tile_hash=tile_hash, service=service)
+    tile_url = tile_service_url(item_type_ids, tile_hash=tile_hash, service=service)
 
     if tile_url:
-        if service.lower() == 'wmts':
-            return '&'.join([
-                'tileMatrixSet=GoogleMapsCompatible23',
-                'crs=EPSG:3857',
-                'layers=Combined scene layer',
-                'styles=',
-                'format=image/png',
-                f'url={tile_url}'
-            ])
-        elif service.lower() == 'xyz':
-            return '&'.join([
-                'type=xyz',
-                'crs=EPSG:3857',
-                # 'zmin=0',
-                # 'zmax=15',
-                # 'format=image/png',
-                'format=',
-                f'url={tile_url}'
-            ])
+        if service.lower() == "wmts":
+            return "&".join(
+                [
+                    "tileMatrixSet=GoogleMapsCompatible23",
+                    "crs=EPSG:3857",
+                    "layers=Combined scene layer",
+                    "styles=",
+                    "format=image/png",
+                    f"url={tile_url}",
+                ]
+            )
+        elif service.lower() == "xyz":
+            return "&".join(
+                [
+                    "type=xyz",
+                    "crs=EPSG:3857",
+                    # 'zmin=0',
+                    # 'zmax=15',
+                    # 'format=image/png',
+                    "format=",
+                    f"url={tile_url}",
+                ]
+            )
     else:
-        log.debug(f'Tile service data source URI failed, '
-                  f'no tile url resolved')
+        log.debug("Tile service data source URI failed, no tile url resolved")
 
     return None
 
 
 def py_to_qvariant_type(py_type: str) -> QVariant.Type:
     type_map = {
-        'str': QVariant.String,
-        'datetime': QVariant.DateTime,
-        'int': QVariant.Int,
-        'float': QVariant.Double,
-        'bool': QVariant.Bool,
+        "str": QVariant.String,
+        "datetime": QVariant.DateTime,
+        "int": QVariant.Int,
+        "float": QVariant.Double,
+        "bool": QVariant.Bool,
     }
     return type_map.get(py_type, QVariant.Invalid)
 
 
 def create_preview_vector_layer(image):
     # noinspection PyArgumentList
-    marker_line = QgsSimpleLineSymbolLayer(
-        color=QColor(110, 88, 232, 100), width=1)
+    marker_line = QgsSimpleLineSymbolLayer(color=QColor(110, 88, 232, 100), width=1)
     # FIXME: Save this to a uuid.gpkg file in user-defined dir or project dir
-    vlayer = QgsVectorLayer(
-        'MultiPolygon?crs=EPSG:4326', 'Footprints', 'memory'
-    )
+    vlayer = QgsVectorLayer("MultiPolygon?crs=EPSG:4326", "Footprints", "memory")
     vlayer.renderer().symbol().changeSymbolLayer(0, marker_line)
     dp = vlayer.dataProvider()
 
     qgs_fields = [
-        QgsField('item_id', QVariant.String),
-        QgsField('item_type', QVariant.String),
-        QgsField('search_query', QVariant.String),
-        QgsField('sort_order', QVariant.String),
+        QgsField("item_id", QVariant.String),
+        QgsField("item_type", QVariant.String),
+        QgsField("search_query", QVariant.String),
+        QgsField("sort_order", QVariant.String),
     ]
 
-    i_specs: dict = ITEM_TYPE_SPECS.get(image['properties']['item_type'], None)
+    i_specs: dict = ITEM_TYPE_SPECS.get(image["properties"]["item_type"], None)
     if i_specs:
-        i_props: dict = i_specs.get('properties', None)
+        i_props: dict = i_specs.get("properties", None)
         if i_props:
             for k, v in i_props.items():
                 qgs_fields.append(QgsField(str(k), py_to_qvariant_type(v)))
@@ -316,39 +287,43 @@ def create_preview_vector_layer(image):
 
 
 def create_preview_group(
-        group_name: str,
-        images: List[dict],
-        footprints_filename = None,
-        catalog_layer_name = None,
-        tile_service: str = 'xyz',
-        search_query: str = None,
-        sort_order: Tuple[str, str] = None) -> None:
+    group_name: str,
+    images: List[dict],
+    footprints_filename=None,
+    catalog_layer_name=None,
+    tile_service: str = "xyz",
+    search_query: str = None,
+    sort_order: Tuple[str, str] = None,
+) -> None:
 
-    if tile_service.lower() not in ['wmts', 'xyz']:
-        log.debug(f'Incorrect tile service passed for preview group: '
-                  f'{tile_service} (must be wmts or xyz)')
+    if tile_service.lower() not in ["wmts", "xyz"]:
+        log.debug(
+            "Incorrect tile service passed for preview group: "
+            f"{tile_service} (must be wmts or xyz)"
+        )
         return
 
     item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}" for img in images]
-    uri = tile_service_data_src_uri(
-        item_ids, service=tile_service)
+    uri = tile_service_data_src_uri(item_ids, service=tile_service)
 
     if uri:
-        log.debug(f'Tile datasource URI:\n{uri}')
+        log.debug(f"Tile datasource URI:\n{uri}")
 
-        rlayer = QgsRasterLayer(uri, 'Image previews', 'wms')
+        rlayer = QgsRasterLayer(uri, "Image previews", "wms")
         rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
 
-        if tile_service == 'xyz' and catalog_layer_name is not None:
+        if tile_service == "xyz" and catalog_layer_name is not None:
             url = uri.split("url=")[-1]
             s = QSettings()
-            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/username', "")
-            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/password', "")
-            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/authcfg', "")
-            s.setValue(f'qgis/connections-xyz/{catalog_layer_name}/url',
-                url.replace(PlanetClient.getInstance().api_key(), ""))
+            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/username", "")
+            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/password", "")
+            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/authcfg", "")
+            s.setValue(
+                f"qgis/connections-xyz/{catalog_layer_name}/url",
+                url.replace(PlanetClient.getInstance().api_key(), ""),
+            )
     else:
-        log.debug('No tile URI for preview group')
+        log.debug("No tile URI for preview group")
         return
 
     vlayer = None
@@ -362,21 +337,20 @@ def create_preview_group(
         for img in images:
             feat = QgsFeature()
             feat.setFields(fields)
-            qgs_geom = qgsgeometry_from_geojson(img['geometry'])
+            qgs_geom = qgsgeometry_from_geojson(img["geometry"])
             feat.setGeometry(qgs_geom)
 
             f_names = [f.name() for f in fields]
 
-            if 'item_id' in f_names:
-                feat['item_id'] = img[ID]
+            if "item_id" in f_names:
+                feat["item_id"] = img[ID]
 
-            if search_query and 'search_query' in f_names:
-                feat['search_query'] = json.dumps(search_query)
-            if (sort_order and 'sort_order' in f_names
-                    and len(sort_order) > 1):
-                feat['sort_order'] = ' '.join(sort_order)
+            if search_query and "search_query" in f_names:
+                feat["search_query"] = json.dumps(search_query)
+            if sort_order and "sort_order" in f_names and len(sort_order) > 1:
+                feat["sort_order"] = " ".join(sort_order)
 
-            props: dict = img['properties']
+            props: dict = img["properties"]
             for k, v in props.items():
                 if k in f_names:
                     feat[k] = v
@@ -386,8 +360,10 @@ def create_preview_group(
         vlayer.commitChanges()
 
         if footprints_filename:
-            QgsVectorFileWriter.writeAsVectorFormat(vlayer, footprints_filename, "UTF-8")
-            gpkglayer = QgsVectorLayer(footprints_filename, 'Footprints')
+            QgsVectorFileWriter.writeAsVectorFormat(
+                vlayer, footprints_filename, "UTF-8"
+            )
+            gpkglayer = QgsVectorLayer(footprints_filename, "Footprints")
             gpkglayer.setRenderer(vlayer.renderer().clone())
             vlayer = gpkglayer
         QgsProject.instance().addMapLayer(vlayer, False)
@@ -397,7 +373,7 @@ def create_preview_group(
 
     # noinspection PyArgumentList
     root: QgsLayerTree = QgsProject.instance().layerTreeRoot()
-    group = root.insertGroup(0, f'{group_name} {tile_service.upper()} preview')
+    group = root.insertGroup(0, f"{group_name} {tile_service.upper()} preview")
     if vlayer:
         group.addLayer(vlayer)
     group.addLayer(rlayer)
@@ -409,10 +385,9 @@ def zoom_canvas_to_geometry(geom):
     transform = QgsCoordinateTransform(
         QgsCoordinateReferenceSystem("EPSG:4326"),
         QgsProject.instance().crs(),
-        QgsProject.instance()
+        QgsProject.instance(),
     )
-    rect: QgsRectangle = transform.transformBoundingBox(
-        geom.boundingBox())
+    rect: QgsRectangle = transform.transformBoundingBox(geom.boundingBox())
 
     if not rect.isEmpty():
         rect.scale(1.05)
@@ -422,7 +397,7 @@ def zoom_canvas_to_geometry(geom):
 
 def zoom_canvas_to_aoi(json_type):
     if not json_type:
-        log.debug('No AOI defined, skipping zoom to AOI')
+        log.debug("No AOI defined, skipping zoom to AOI")
         return
 
     geom: QgsGeometry = qgsgeometry_from_geojson(json_type)
@@ -439,7 +414,9 @@ def orders_download_folder():
         try:
             os.makedirs(download_folder)
         except OSError:
-            download_folder = os.path.join(QgsApplication.qgisSettingsDirPath(), DEFAULT_ORDERS_FOLDERNAME)
+            download_folder = os.path.join(
+                QgsApplication.qgisSettingsDirPath(), DEFAULT_ORDERS_FOLDERNAME
+            )
             if not os.path.exists(download_folder):
                 os.makedirs(download_folder)
 
@@ -447,9 +424,7 @@ def orders_download_folder():
 
 
 def open_orders_download_folder():
-    QDesktopServices.openUrl(
-        QUrl.fromLocalFile(orders_download_folder())
-    )
+    QDesktopServices.openUrl(QUrl.fromLocalFile(orders_download_folder()))
 
 
 def mosaic_title(mosaic):
@@ -475,12 +450,13 @@ def date_interval_from_mosaics(mosaic):
     return dates
 
 
-def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
-                                zmin=0, zmax=22, add_xyz_server=False):
+def add_mosaics_to_qgis_project(
+    mosaics, name, proc="default", ramp="", zmin=0, zmax=22, add_xyz_server=False
+):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
     tile_url = mosaics[0][LINKS][TILES]
-    uri = f'type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}'
-    layer = QgsRasterLayer(uri, name, 'wms')
+    uri = f"type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}"
+    layer = QgsRasterLayer(uri, name, "wms")
     layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
     layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
     layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
@@ -494,16 +470,18 @@ def add_mosaics_to_qgis_project(mosaics, name, proc="default", ramp="",
     view.currentNode().setExpanded(True)
     if add_xyz_server:
         s = QSettings()
-        s.setValue(f'qgis/connections-xyz/{name}/zmin', zmin)
-        s.setValue(f'qgis/connections-xyz/{name}/zmax', zmax)
-        s.setValue(f'qgis/connections-xyz/{name}/username', "")
-        s.setValue(f'qgis/connections-xyz/{name}/password', "")
-        s.setValue(f'qgis/connections-xyz/{name}/authcfg', "")
-        procparam = quote(f'&proc={proc}') if proc != "rgb" else ""
-        rampparam = quote(f'&color={ramp}') if ramp else ""
+        s.setValue(f"qgis/connections-xyz/{name}/zmin", zmin)
+        s.setValue(f"qgis/connections-xyz/{name}/zmax", zmax)
+        s.setValue(f"qgis/connections-xyz/{name}/username", "")
+        s.setValue(f"qgis/connections-xyz/{name}/password", "")
+        s.setValue(f"qgis/connections-xyz/{name}/authcfg", "")
+        procparam = quote(f"&proc={proc}") if proc != "rgb" else ""
+        rampparam = quote(f"&color={ramp}") if ramp else ""
         full_uri = f"{tile_url}{procparam}{rampparam}"
-        s.setValue(f'qgis/connections-xyz/{name}/url',
-            full_uri.replace(PlanetClient.getInstance().api_key(), ""))
+        s.setValue(
+            f"qgis/connections-xyz/{name}/url",
+            full_uri.replace(PlanetClient.getInstance().api_key(), ""),
+        )
 
 
 def layer_tree_node_for_layer(layer):
@@ -515,6 +493,7 @@ def layer_tree_node_for_layer(layer):
             elif isinstance(child, QgsLayerTreeGroup):
                 _nodes.update(_nodes_from_tree(child))
         return _nodes
+
     root = QgsProject.instance().layerTreeRoot()
     nodes = _nodes_from_tree(root)
     return nodes.get(layer, None)
@@ -539,7 +518,9 @@ def datatype_from_mosaic_name(name):
 
 def mosaic_name_from_url(url):
     url = urllib.parse.unquote(url)
-    pattern = re.compile(r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*")
+    pattern = re.compile(
+        r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*"
+    )
     result = pattern.search(url)
     if result is not None:
         mosaic = result.group(1)
@@ -549,7 +530,10 @@ def mosaic_name_from_url(url):
 
 
 def add_widget_to_layer(layer):
-    if is_planet_url(layer.source()) and PLANET_MOSAICS not in layer.customPropertyKeys():
+    if (
+        is_planet_url(layer.source())
+        and PLANET_MOSAICS not in layer.customPropertyKeys()
+    ):
         proc = "default"
         ramp = ""
         mosaic = mosaic_name_from_url(layer.source())
@@ -577,8 +561,12 @@ def add_widget_to_layer(layer):
 
 def is_planet_url(url):
     url = urllib.parse.unquote(url)
-    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*")
-    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*")
+    loggedInPattern = re.compile(
+        r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*"
+    )
+    loggedOutPattern = re.compile(
+        r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*"
+    )
     isloggedInPattern = loggedInPattern.search(url) is not None
     isloggedOutPattern = loggedOutPattern.search(url) is not None
 

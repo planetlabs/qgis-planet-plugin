@@ -3,13 +3,16 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QFileDialog
 
-
-WIDGET, BASE = uic.loadUiType(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                             "ui", "pe_daily_images_preview_config_dialog.ui"))
+WIDGET, BASE = uic.loadUiType(
+    os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "ui",
+        "pe_daily_images_preview_config_dialog.ui",
+    )
+)
 
 
 class DailyImagesPreviewConfigDialog(BASE, WIDGET):
-
     def __init__(self, parent=None):
         super(DailyImagesPreviewConfigDialog, self).__init__(parent)
         self.footprintsFilename = None
@@ -30,7 +33,9 @@ class DailyImagesPreviewConfigDialog(BASE, WIDGET):
         self.txtLayerName.setEnabled(self.chkAddToCatalog.isChecked())
 
     def browse(self):
-        filename, _ = QFileDialog.getSaveFileName(self, "Footprints filename", "", "GPKG Files (*.gpkg)")
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Footprints filename", "", "GPKG Files (*.gpkg)"
+        )
         if filename:
             self.txtFilename.setText(filename)
 
@@ -41,7 +46,8 @@ class DailyImagesPreviewConfigDialog(BASE, WIDGET):
                 self.footprintsFilename = filename
             else:
                 self.txtFilename.setStyleSheet(
-                    "QLineEdit { background: rgba(255, 0, 0, 150); }")
+                    "QLineEdit { background: rgba(255, 0, 0, 150); }"
+                )
                 return
         if self.chkAddToCatalog.isChecked():
             name = self.txtLayerName.text()
@@ -49,6 +55,7 @@ class DailyImagesPreviewConfigDialog(BASE, WIDGET):
                 self.layerName = name
             else:
                 self.txtLayerName.setStyleSheet(
-                    "QLineEdit { background: rgba(255, 0, 0, 150); }")
+                    "QLineEdit { background: rgba(255, 0, 0, 150); }"
+                )
                 return
         super().accept()

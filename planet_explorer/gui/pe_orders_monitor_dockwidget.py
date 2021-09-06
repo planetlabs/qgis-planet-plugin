@@ -14,80 +14,50 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
-import iso8601
 import logging
+import os
 
-from planet.api.models import (
-    Orders,
-    Order
-)
-
-# noinspection PyPackageRequirements
-from qgis.core import (
-    QgsApplication,
-    Qgis
-)
+import iso8601
+from planet.api.models import Order, Orders
 
 # noinspection PyPackageRequirements
-from qgis.utils import (
-    iface
-)
+from qgis.core import Qgis, QgsApplication
 
 # noinspection PyPackageRequirements
 from qgis.PyQt import uic
 
 # noinspection PyPackageRequirements
-from qgis.PyQt.QtCore import (
-    Qt,
-    QCoreApplication,
-    QUrl
-)
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
 
 # noinspection PyPackageRequirements
-from qgis.PyQt.QtGui import (
-    QDesktopServices,
-    QIcon
-)
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 
 # noinspection PyPackageRequirements
 from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QPushButton,
     QHBoxLayout,
+    QLabel,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
     QVBoxLayout,
     QWidget,
-    QListWidgetItem,
-    QMessageBox
 )
 
-from ..pe_utils import (
-    orders_download_folder
-)
+# noinspection PyPackageRequirements
+from qgis.utils import iface
 
-from .pe_gui_utils import (
-    waitcursor
-)
-
-from ..planet_api import (
-    PlanetClient
-)
-
-from ..planet_api.p_quad_orders import (
-    quad_orders
-)
-
-from ..planet_api.p_order_tasks import (
-    QuadsOrderProcessorTask,
-    OrderProcessorTask
-)
+from ..pe_utils import orders_download_folder
+from ..planet_api import PlanetClient
+from ..planet_api.p_order_tasks import OrderProcessorTask, QuadsOrderProcessorTask
+from ..planet_api.p_quad_orders import quad_orders
+from .pe_gui_utils import waitcursor
 
 ID = "id"
 NAME = "name"
@@ -104,24 +74,25 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 INSPECTOR_ICON = QIcon(os.path.join(plugin_path, "resources", "inspector.png"))
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
-LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
+LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 
 ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_orders_monitor_dockwidget.ui'),
-    from_imports=True, import_from=os.path.basename(plugin_path),
-    resource_suffix=''
+    os.path.join(plugin_path, "ui", "pe_orders_monitor_dockwidget.ui"),
+    from_imports=True,
+    import_from=os.path.basename(plugin_path),
+    resource_suffix="",
 )
 
 
 class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
-
-    def __init__(self,
-                 parent=None,
-                 ):
+    def __init__(
+        self,
+        parent=None,
+    ):
         super().__init__(parent=parent)
         self.p_client = PlanetClient.getInstance()
 
@@ -155,8 +126,10 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             item.setSizeHint(widget.sizeHint())
             self.listOrders.addItem(item)
             self.listOrders.setItemWidget(item, widget)
-            item.setHidden((not item.order.is_zipped() or item.order.state() != "success")
-                        and self.chkOnlyDownloadable.isChecked())
+            item.setHidden(
+                (not item.order.is_zipped() or item.order.state() != "success")
+                and self.chkOnlyDownloadable.isChecked()
+            )
         quadorders = quad_orders()
         for order in quadorders:
             item = QuadsOrderItem(order)
@@ -168,8 +141,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         self.listOrders.sortItems(Qt.DescendingOrder)
 
 
-class OrderWrapper():
-
+class OrderWrapper:
     def __init__(self, order, p_client):
         self.order = order
         self.p_client = p_client
@@ -182,10 +154,10 @@ class OrderWrapper():
 
     def date(self):
         datestring = self.order.get(CREATED_ON)
-        return (iso8601.parse_date(datestring).date().isoformat())
+        return iso8601.parse_date(datestring).date().isoformat()
 
     def file_format(self):
-        #TODO
+        # TODO
         return ""
 
     def item_type(self):
@@ -216,7 +188,9 @@ class OrderWrapper():
         return os.path.exists(self.download_folder())
 
     def locations(self):
-        order_detail = self.p_client._get(self.order[Order.LINKS_KEY]["_self"]).get_body()
+        order_detail = self.p_client._get(
+            self.order[Order.LINKS_KEY]["_self"]
+        ).get_body()
         links = order_detail.get()[Order.LINKS_KEY]
         results = links[Order.RESULTS_KEY]
         locations = [(r[Order.LOCATION_KEY], r[NAME]) for r in results]
@@ -224,16 +198,14 @@ class OrderWrapper():
 
 
 class BaseWidgetItem(QListWidgetItem):
-
     def __lt__(self, other):
         try:
             return self.date() < other.date()
-        except Exception as e:
+        except Exception:
             return QListWidgetItem.__lt__(self, other)
 
 
 class OrderItem(BaseWidgetItem):
-
     def __init__(self, order):
         super().__init__()
         self.order = order
@@ -243,26 +215,27 @@ class OrderItem(BaseWidgetItem):
 
 
 class OrderItemWidget(QWidget):
-
     def __init__(self, order, dialog):
         super().__init__()
         self.dialog = dialog
         self.order = order
-        txt = ('<style>h3{margin-bottom: 0px;}</style>'
-               f'<b><h3>Order {order.name()}</h3></b>'
-               f'<b>Placed on</b>: {order.date()}<br>'
-               f'<b>Id</b>: {order.id()}<br>'
-               f'<b>Imagery source</b>: {order.item_type()}<br>'
-               #f'<b>Assets ordered</b>: {order.assets_ordered()}<br>'
-               #f'<b>File format</b>: {order.file_format()}<br>'
-               f'<b>Asset count</b>: {order.assets_count()}<br>')
+        txt = (
+            "<style>h3{margin-bottom: 0px;}</style>"
+            f"<b><h3>Order {order.name()}</h3></b>"
+            f"<b>Placed on</b>: {order.date()}<br>"
+            f"<b>Id</b>: {order.id()}<br>"
+            f"<b>Imagery source</b>: {order.item_type()}<br>"
+            # f'<b>Assets ordered</b>: {order.assets_ordered()}<br>'
+            # f'<b>File format</b>: {order.file_format()}<br>'
+            f"<b>Asset count</b>: {order.assets_count()}<br>"
+        )
 
         label = QLabel(txt)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
-        button = QPushButton('Re-Download' if order.downloaded() else 'Download')
+        button = QPushButton("Re-Download" if order.downloaded() else "Download")
         button.clicked.connect(self.download)
-        button.setEnabled(order.state() == 'success' and order.is_zipped())
+        button.setEnabled(order.state() == "success" and order.is_zipped())
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(button)
@@ -270,8 +243,11 @@ class OrderItemWidget(QWidget):
             labelOpenFolder = QLabel("<a href='#'>Open order folder</a>")
             vlayout.addWidget(labelOpenFolder)
             labelOpenFolder.setOpenExternalLinks(False)
-            labelOpenFolder.linkActivated.connect(lambda: QDesktopServices.openUrl(
-                                    QUrl.fromLocalFile(self.order.download_folder())))
+            labelOpenFolder.linkActivated.connect(
+                lambda: QDesktopServices.openUrl(
+                    QUrl.fromLocalFile(self.order.download_folder())
+                )
+            )
 
         layout = QHBoxLayout()
         layout.addWidget(label)
@@ -282,12 +258,23 @@ class OrderItemWidget(QWidget):
 
     def download(self):
         for task in QgsApplication.taskManager().activeTasks():
-            if isinstance(task, OrderProcessorTask) and task.order.id() == self.order.id():
-                iface.messageBar().pushMessage("", "This order is already being downloaded and processed",
-                                    level=Qgis.Warning, duration=5)
+            if (
+                isinstance(task, OrderProcessorTask)
+                and task.order.id() == self.order.id()
+            ):
+                iface.messageBar().pushMessage(
+                    "",
+                    "This order is already being downloaded and processed",
+                    level=Qgis.Warning,
+                    duration=5,
+                )
                 return
         if self.order.downloaded():
-            ret = QMessageBox.question(self, "Download order", "This order is already downloaded.\nDownload again?")
+            ret = QMessageBox.question(
+                self,
+                "Download order",
+                "This order is already downloaded.\nDownload again?",
+            )
             if ret == QMessageBox.No:
                 return
 
@@ -295,12 +282,15 @@ class OrderItemWidget(QWidget):
         self.task.taskCompleted.connect(self.dialog.refresh_list)
         QgsApplication.taskManager().addTask(self.task)
         QCoreApplication.processEvents()
-        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",
-                            level=Qgis.Info, duration=5)
+        iface.messageBar().pushMessage(
+            "",
+            "Order download task added to QGIS task manager",
+            level=Qgis.Info,
+            duration=5,
+        )
 
 
 class QuadsOrderItem(BaseWidgetItem):
-
     def __init__(self, order):
         super().__init__()
         self.order = order
@@ -310,7 +300,6 @@ class QuadsOrderItem(BaseWidgetItem):
 
 
 class QuadsOrderItemWidget(QWidget):
-
     def __init__(self, order, dialog):
         super().__init__()
         self.dialog = dialog
@@ -318,14 +307,16 @@ class QuadsOrderItemWidget(QWidget):
 
         datestring = iso8601.parse_date(order.date).date().isoformat()
 
-        txt = ('<style>h3{margin-bottom: 0px;}</style>'
-               f'<b><h3>Order {order.name}</h3></b>'
-               f'<b>Placed on</b>: {datestring}<br>'
-               f'<b>Id</b>: {order.id()}<br>'
-               f'<b>Quad count</b>: {len(order.quads)}<br>')
+        txt = (
+            "<style>h3{margin-bottom: 0px;}</style>"
+            f"<b><h3>Order {order.name}</h3></b>"
+            f"<b>Placed on</b>: {datestring}<br>"
+            f"<b>Id</b>: {order.id()}<br>"
+            f"<b>Quad count</b>: {len(order.quads)}<br>"
+        )
         label = QLabel(txt)
 
-        button = QPushButton('Re-Download' if self.order.downloaded() else 'Download')
+        button = QPushButton("Re-Download" if self.order.downloaded() else "Download")
         button.clicked.connect(self.download)
 
         vlayout = QVBoxLayout()
@@ -334,8 +325,11 @@ class QuadsOrderItemWidget(QWidget):
             labelOpenFolder = QLabel("<a href='#'>Open order folder</a>")
             vlayout.addWidget(labelOpenFolder)
             labelOpenFolder.setOpenExternalLinks(False)
-            labelOpenFolder.linkActivated.connect(lambda: QDesktopServices.openUrl(
-                                    QUrl.fromLocalFile(self.order.download_folder())))
+            labelOpenFolder.linkActivated.connect(
+                lambda: QDesktopServices.openUrl(
+                    QUrl.fromLocalFile(self.order.download_folder())
+                )
+            )
 
         layout = QHBoxLayout()
         layout.addWidget(label)
@@ -346,12 +340,23 @@ class QuadsOrderItemWidget(QWidget):
 
     def download(self):
         for task in QgsApplication.taskManager().activeTasks():
-            if isinstance(task, QuadsOrderProcessorTask) and task.order.id() == self.order.id():
-                iface.messageBar().pushMessage("", "This order is already being downloaded and processed",
-                                    level=Qgis.Warning, duration=5)
+            if (
+                isinstance(task, QuadsOrderProcessorTask)
+                and task.order.id() == self.order.id()
+            ):
+                iface.messageBar().pushMessage(
+                    "",
+                    "This order is already being downloaded and processed",
+                    level=Qgis.Warning,
+                    duration=5,
+                )
                 return
         if self.order.downloaded():
-            ret = QMessageBox.question(self, "Download order", "This order is already downloaded.\nDownload again?")
+            ret = QMessageBox.question(
+                self,
+                "Download order",
+                "This order is already downloaded.\nDownload again?",
+            )
             if ret == QMessageBox.No:
                 return
 
@@ -359,8 +364,12 @@ class QuadsOrderItemWidget(QWidget):
         self.task.taskCompleted.connect(self.dialog.refresh_list)
         QgsApplication.taskManager().addTask(self.task)
         QCoreApplication.processEvents()
-        iface.messageBar().pushMessage("", "Order download task added to QGIS task manager",
-                            level=Qgis.Info, duration=5)
+        iface.messageBar().pushMessage(
+            "",
+            "Order download task added to QGIS task manager",
+            level=Qgis.Info,
+            duration=5,
+        )
 
 
 dockwidget_instance = None
@@ -371,10 +380,10 @@ def _get_widget_instance():
     if dockwidget_instance is None:
         if not PlanetClient.getInstance().has_api_key():
             return None
-        dockwidget_instance = PlanetOrdersMonitorDockWidget(
-            parent=iface.mainWindow())
+        dockwidget_instance = PlanetOrdersMonitorDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+        )
 
         iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
 

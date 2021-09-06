@@ -21,19 +21,22 @@ __copyright__ = '(C) 2019 Planet Inc, https://planet.com'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
-import os
-import sys
 import fnmatch
-# import shutil
-import zipfile
-import subprocess
+
 # import requests
 import json
+import os
+import subprocess
+import sys
+
+# import shutil
+import zipfile
 from collections import defaultdict
 
 # this pulls in the sphinx target
 # noinspection PyPackageRequirements
 from paver.easy import *
+
 # noinspection PyPackageRequirements
 # from paver.doctools import html
 

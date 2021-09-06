@@ -57,31 +57,29 @@ Foundation License, which is compatible with the above terms.
 ***************************************************************************
 """
 
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://www.planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://www.planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal, pyqtSlot, QRectF
-from qgis.PyQt.QtGui import QPainter, QBrush, QColor
-from qgis.PyQt.QtWidgets import (
-    QSlider, QStyle, QStyleOptionSlider, QStyleFactory
-)
+from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtGui import QBrush, QColor, QPainter
+from qgis.PyQt.QtWidgets import QSlider, QStyle, QStyleFactory, QStyleOptionSlider
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class RangeSlider(QSlider):
-    """ A slider for ranges.
+    """A slider for ranges.
 
-        This class provides a dual-slider for ranges, where there is a defined
-        maximum and minimum, as is a normal slider, but instead of having a
-        single slider value, there are 2 slider values.
+    This class provides a dual-slider for ranges, where there is a defined
+    maximum and minimum, as is a normal slider, but instead of having a
+    single slider value, there are 2 slider values.
 
-        This class emits the same signals as the QSlider base class, with the
-        exception of valueChanged
+    This class emits the same signals as the QSlider base class, with the
+    exception of valueChanged
     """
 
     activeRangeChanged = pyqtSignal(int, int)
@@ -187,46 +185,52 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
 
         groove_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderGroove, self)
+            style.CC_Slider, opt, QStyle.SC_SliderGroove, self
+        )
         handle_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+            style.CC_Slider, opt, QStyle.SC_SliderHandle, self
+        )
 
         slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
         range_x1 = style.sliderPositionFromValue(
-            self.minimum(), self.maximum(), self._low, slider_space)
+            self.minimum(), self.maximum(), self._low, slider_space
+        )
         range_x2 = style.sliderPositionFromValue(
-            self.minimum(), self.maximum(), self._high, slider_space)
+            self.minimum(), self.maximum(), self._high, slider_space
+        )
         range_height = 4
 
         groove_rect = QRectF(
             groove_rect.x(),
             handle_rect.center().y() - (range_height / 2),
             groove_rect.width(),
-            range_height)
+            range_height,
+        )
 
         range_rect = QRectF(
             groove_rect.x() + (handle_rect.width() / 2) + range_x1,
             handle_rect.center().y() - (range_height / 2),
             range_x2 - range_x1,
-            range_height)
+            range_height,
+        )
 
-        if style.metaObject().className() != 'QMacStyle':
+        if style.metaObject().className() != "QMacStyle":
             # Paint groove for Fusion and Windows styles
             cur_brush = painter.brush()
             cur_pen = painter.pen()
             painter.setBrush(QBrush(QColor(169, 169, 169)))
             painter.setPen(Qt.NoPen)
             # painter.drawRect(groove_rect)
-            painter.drawRoundedRect(groove_rect,
-                                    groove_rect.height() / 2,
-                                    groove_rect.height() / 2)
+            painter.drawRoundedRect(
+                groove_rect, groove_rect.height() / 2, groove_rect.height() / 2
+            )
             painter.setBrush(cur_brush)
             painter.setPen(cur_pen)
 
         cur_brush = painter.brush()
         cur_pen = painter.pen()
-        #painter.setBrush(QBrush(QColor(18, 141, 148)))
-        #painter.setPen(Qt.NoPen)
+        # painter.setBrush(QBrush(QColor(18, 141, 148)))
+        # painter.setPen(Qt.NoPen)
         painter.drawRect(range_rect)
         painter.setBrush(cur_brush)
         painter.setPen(cur_pen)
@@ -258,8 +262,7 @@ class RangeSlider(QSlider):
 
             opt.sliderPosition = value
             opt.sliderValue = value
-            style.drawComplexControl(
-                QStyle.CC_Slider, opt, painter, self)
+            style.drawComplexControl(QStyle.CC_Slider, opt, painter, self)
 
     def mousePressEvent(self, event):
         event.accept()
@@ -284,7 +287,8 @@ class RangeSlider(QSlider):
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
                 hit = style.hitTestComplexControl(
-                    style.CC_Slider, opt, event.pos(), self)
+                    style.CC_Slider, opt, event.pos(), self
+                )
                 if hit == style.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
@@ -297,7 +301,8 @@ class RangeSlider(QSlider):
             if self.active_slider < 0:
                 self.pressed_control = QStyle.SC_SliderHandle
                 self.click_offset = self.__pixelPosToRangeValue(
-                    self.__pick(event.pos()))
+                    self.__pick(event.pos())
+                )
                 self.triggerAction(self.SliderMove)
                 self.setRepeatAction(self.SliderNoAction)
 
@@ -344,8 +349,7 @@ class RangeSlider(QSlider):
         self.activeRangeChanged.emit(self._low, self._high)
 
     def mouseReleaseEvent(self, event):
-        if (self.pressed_control == QStyle.SC_None
-                or event.buttons()):
+        if self.pressed_control == QStyle.SC_None or event.buttons():
             event.ignore()
             return
 
@@ -379,10 +383,8 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
         style = self.style()
 
-        gr = style.subControlRect(
-            style.CC_Slider, opt, style.SC_SliderGroove, self)
-        sr = style.subControlRect(
-            style.CC_Slider, opt, style.SC_SliderHandle, self)
+        gr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderGroove, self)
+        sr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderHandle, self)
 
         if self.orientation() == Qt.Horizontal:
             slider_length = sr.width()
@@ -398,11 +400,13 @@ class RangeSlider(QSlider):
             self.maximum(),
             pos - slider_min,
             slider_max - slider_min,
-            opt.upsideDown)
+            opt.upsideDown,
+        )
 
 
 if __name__ == "__main__":
     import sys
+
     from qgis.PyQt.QtWidgets import QApplication, QDialog, QVBoxLayout
 
     # @pyqtSlot(int)
@@ -411,23 +415,23 @@ if __name__ == "__main__":
 
     @pyqtSlot(int, int)
     def echo_active_range(low, high):
-        print(f'active... low: {low}, high: {high}')
+        print(f"active... low: {low}, high: {high}")
 
     @pyqtSlot(int, int)
     def echo_final_range(low, high):
-        print(f'final... low: {low}, high: {high}')
+        print(f"final... low: {low}, high: {high}")
 
     app = QApplication(sys.argv)
 
     app.setStyle(QStyleFactory.create("Macintosh"))
     # app.setStyle(QStyleFactory.create("Fusion"))
     # app.setStyle(QStyleFactory.create("Windows"))
-    print(f'app styles: {QStyleFactory.keys()}')
-    print(f'app style: {app.style().metaObject().className()}')
+    print(f"app styles: {QStyleFactory.keys()}")
+    print(f"app style: {app.style().metaObject().className()}")
 
     # wrap in dialog
     dlg = QDialog()
-    dlg.setWindowTitle('RangeSlider test')
+    dlg.setWindowTitle("RangeSlider test")
     layout = QVBoxLayout(dlg)
 
     slider = RangeSlider(Qt.Horizontal, parent=dlg)

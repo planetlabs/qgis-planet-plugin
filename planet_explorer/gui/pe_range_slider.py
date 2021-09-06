@@ -14,15 +14,15 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
 import logging
+import os
 import sys
 
 from qgis.PyQt import uic
@@ -30,7 +30,7 @@ from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QFont
 from qgis.PyQt.QtWidgets import QLabel, QStyleFactory
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
@@ -39,14 +39,15 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 try:
     from .range_slider import RangeSlider
 except ModuleNotFoundError:
-    sys.path.insert(0, os.path.abspath(os.path.join(plugin_path, 'gui')))
+    sys.path.insert(0, os.path.abspath(os.path.join(plugin_path, "gui")))
     # noinspection PyUnresolvedReferences
     from range_slider import RangeSlider
 
 SLIDER_WIDGET, SLIDER_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_range_slider_base.ui'),
-    from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
-    resource_suffix=''
+    os.path.join(plugin_path, "ui", "pe_range_slider_base.ui"),
+    from_imports=True,
+    import_from=f"{os.path.basename(plugin_path)}",
+    resource_suffix="",
 )
 
 
@@ -61,10 +62,20 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
 
     rangeChanged = pyqtSignal(float, float)
 
-    def __init__(self,
-                 parent=None, title='', filter_key='', prefix='', suffix='',
-                 minimum=0.0, maximum=100.0, low=None, high=None,
-                 step=None, precision=1):
+    def __init__(
+        self,
+        parent=None,
+        title="",
+        filter_key="",
+        prefix="",
+        suffix="",
+        minimum=0.0,
+        maximum=100.0,
+        low=None,
+        high=None,
+        step=None,
+        precision=1,
+    ):
         """
         Widget that wraps two QSliders (based upon RangeSlider) that produce a
         control widget for defining a value range. Offers visual feedback on
@@ -108,17 +119,14 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         min_test = minimum * self.precision
         max_test = maximum * self.precision
         if not (int(min_test) == min_test and int(max_test) == max_test):
-            self.lblRange.setText('(precision invalid)')
+            self.lblRange.setText("(precision invalid)")
             self.rangeSlider.setEnabled(False)
             return
 
         # noinspection PyUnresolvedReferences
-        self.rangeSlider.rangeChanged[int, int].connect(
-            self.updateMinMaxLabels)
-        self.rangeSlider.activeRangeChanged[int, int].connect(
-            self.updateRangeLabel)
-        self.rangeSlider.finalRangeChanged[int, int].connect(
-            self.emitRangeChanged)
+        self.rangeSlider.rangeChanged[int, int].connect(self.updateMinMaxLabels)
+        self.rangeSlider.activeRangeChanged[int, int].connect(self.updateRangeLabel)
+        self.rangeSlider.finalRangeChanged[int, int].connect(self.emitRangeChanged)
 
         # Set some defaults for low, high
         init_low = low or minimum
@@ -129,9 +137,11 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         self.blockSignals(True)
 
         self.rangeSlider.setSingleStep(
-            int(step * self.precision if step else 1 * self.precision))
+            int(step * self.precision if step else 1 * self.precision)
+        )
         self.rangeSlider.setPageStep(
-            int(step * self.precision if step else 1 * self.precision))
+            int(step * self.precision if step else 1 * self.precision)
+        )
         self.rangeSlider.setMinimum(int(minimum * self.precision))
         self.rangeSlider.setMaximum(int(maximum * self.precision))
         self.rangeSlider.setLow(int(init_low * self.precision))
@@ -144,7 +154,8 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         #   across multiple platforms
         self.rangeSlider.setTickPosition(self.rangeSlider.TicksBelow)
         self.rangeSlider.setTickInterval(
-            int((self.rangeSlider.maximum() - self.rangeSlider.minimum()) / 2))
+            int((self.rangeSlider.maximum() - self.rangeSlider.minimum()) / 2)
+        )
 
         # Scale down min/max and low/high font size
         fnt: QFont = self.lblTitle.font()
@@ -163,7 +174,7 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
     def range(self):
         return (
             int(self.rangeSlider.low() / self.precision),
-            int(self.rangeSlider.high() / self.precision)
+            int(self.rangeSlider.high() / self.precision),
         )
 
     @pyqtSlot(float, float)
@@ -182,43 +193,38 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
     @pyqtSlot(int, int)
     def emitRangeChanged(self, low, high):
         # noinspection PyUnresolvedReferences
-        self.rangeChanged.emit(
-            low / self.precision,
-            high / self.precision
-        )
+        self.rangeChanged.emit(low / self.precision, high / self.precision)
 
     def updateRangeLabel(self):
         # Validate range values
-        invalid = ''
-        if not (self.validRange(self.rangeSlider.low()) and
-                self.validRange(self.rangeSlider.high())):
-            invalid = ' (invalid)'
+        invalid = ""
+        if not (
+            self.validRange(self.rangeSlider.low())
+            and self.validRange(self.rangeSlider.high())
+        ):
+            invalid = " (invalid)"
             self.rangeSlider.blockSignals(True)
             self.rangeSlider.setLow(self.rangeSlider.minimum())
             self.rangeSlider.setHigh(self.rangeSlider.maximum())
             self.rangeSlider.blockSignals(False)
 
         self.lblRange.setText(
-            f'{self.prefix}'
-            f'{self.rangeSlider.low() / self.precision}'
-            f' - '
-            f'{self.rangeSlider.high() / self.precision}'
-            f'{self.suffix}'
-            f'{invalid}'
+            f"{self.prefix}"
+            f"{self.rangeSlider.low() / self.precision}"
+            " - "
+            f"{self.rangeSlider.high() / self.precision}"
+            f"{self.suffix}"
+            f"{invalid}"
         )
 
     def updateMinimumLabel(self):
         self.lblMin.setText(
-            f'{self.prefix}'
-            f'{self.rangeSlider.minimum() / self.precision}'
-            f'{self.suffix}'
+            f"{self.prefix}{self.rangeSlider.minimum() / self.precision}{self.suffix}"
         )
 
     def updateMaximumLabel(self):
         self.lblMax.setText(
-            f'{self.prefix}'
-            f'{self.rangeSlider.maximum() / self.precision}'
-            f'{self.suffix}'
+            f"{self.prefix}{self.rangeSlider.maximum() / self.precision}{self.suffix}"
         )
 
     def updateMinMaxLabels(self):
@@ -233,37 +239,38 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
 
 if __name__ == "__main__":
     import sys
+
     from qgis.PyQt.QtWidgets import QApplication, QDialog, QVBoxLayout
 
     @pyqtSlot(float, float)
     def echo_final_range(low, high):
-        print(f'final... low: {low}, high: {high}')
+        print(f"final... low: {low}, high: {high}")
 
     app = QApplication(sys.argv)
 
     # app.setStyle(QStyleFactory.create("Macintosh"))
     app.setStyle(QStyleFactory.create("Fusion"))
     # app.setStyle(QStyleFactory.create("Windows"))
-    print(f'app styles: {QStyleFactory.keys()}')
-    print(f'app style: {app.style().metaObject().className()}')
+    print(f"app styles: {QStyleFactory.keys()}")
+    print(f"app style: {app.style().metaObject().className()}")
 
     # wrap in dialog
     dlg = QDialog()
-    dlg.setWindowTitle('RangeSlider test')
+    dlg.setWindowTitle("RangeSlider test")
     layout = QVBoxLayout(dlg)
 
     range_slider = PlanetExplorerRangeSlider(
         parent=dlg,
-        title='My value',
-        filter_key='my_value',
-        prefix='',
-        suffix='˚',
+        title="My value",
+        filter_key="my_value",
+        prefix="",
+        suffix="˚",
         minimum=0,
         maximum=360,
         low=0,
         high=360,
         step=1,
-        precision=1
+        precision=1,
     )
 
     # noinspection PyUnresolvedReferences
