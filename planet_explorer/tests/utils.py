@@ -11,4 +11,3 @@ class QgisInterfaceDummy(object):
 
 def set_dummy_iface():
     utils.iface = QgisInterfaceDummy()
-

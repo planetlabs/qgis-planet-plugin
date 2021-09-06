@@ -3,7 +3,7 @@
 Planet Plugin for QGIS
 ===============================
 
-.. image:: https://github.com/stac-utils/pystac/workflows/CI/badge.svg?branch=main
+.. image:: https://github.com/volaya/qgis-planet-plugin/workflows/Testing/badge.svg?branch=main
 
 Browse, filter, preview and download `Planet Inc <https://www.planet.com/>`_ imagery in QGIS.
 
