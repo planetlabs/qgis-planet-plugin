@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from qgis.testing import unittest
-
+from planet_explorer.gui.pe_explorer_dockwidget import show_explorer
 
 class TestPlugin(unittest.TestCase):
     def test_import_planet(self):
