@@ -2,6 +2,7 @@
 
 from qgis.testing import unittest
 
+
 class TestPlugin(unittest.TestCase):
     def test_import_planet(self):
         try:
