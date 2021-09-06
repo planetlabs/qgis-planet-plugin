@@ -72,8 +72,6 @@ ARCHIVE_TYPE = "archive_type"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
-INSPECTOR_ICON = QIcon(os.path.join(plugin_path, "resources", "inspector.png"))
-
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
