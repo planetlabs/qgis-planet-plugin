@@ -24,7 +24,6 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-# noinspection PyPackageRequirements
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -36,21 +35,13 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
-
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
-
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
-# noinspection PyPackageRequirements
-from qgis.utils import iface
-
 from ..pe_analytics import analytics_track
-from ..pe_utils import PLANET_COLOR, open_link_with_browser
+from ..pe_utils import PLANET_COLOR, open_link_with_browser, iface
 from ..planet_api import PlanetClient
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]

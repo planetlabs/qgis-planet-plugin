@@ -18,9 +18,8 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.utils import iface
 
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE
+from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface
 
 BOOL = "bool"
 STRING = "string"

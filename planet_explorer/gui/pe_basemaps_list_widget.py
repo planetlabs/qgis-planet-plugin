@@ -38,9 +38,8 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.core import QgsApplication
-from qgis.utils import iface
 
-from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR
+from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR, iface
 
 from ..pe_utils import (
     FIRST_ACQUIRED,

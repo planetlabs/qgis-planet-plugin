@@ -31,7 +31,6 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
-from qgis.utils import iface
 
 from ..pe_analytics import analytics_track, send_analytics_for_search
 from ..pe_utils import add_menu_section_action
@@ -186,7 +185,7 @@ class DailyImagesWidget(BASE, WIDGET):
     def _setup_main_filter(self):
         """Main filters: AOI visual extent, date range and text"""
         self._main_filters = PlanetMainFilters(
-            parent=self.grpBoxMainFilters, plugin=self.parent, iface=iface
+            parent=self.grpBoxMainFilters, plugin=self.parent
         )
         self.grpBoxMainFilters.layout().addWidget(self._main_filters)
         self._main_filters.filtersChanged.connect(self._filters_have_changed)

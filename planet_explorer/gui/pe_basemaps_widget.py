@@ -35,7 +35,6 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
 from qgis.PyQt import uic
-from qgis.utils import iface
 
 from ..pe_analytics import analytics_track
 from ..pe_utils import (
@@ -115,7 +114,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.frameRenderingOptions.setLayout(layout)
 
         self.aoi_filter = PlanetMainFilters(
-            iface, self, self.parent, True, QUADS_AOI_COLOR
+            self, self.parent, True, QUADS_AOI_COLOR
         )
         self.grpBoxAOI.layout().addWidget(self.aoi_filter)
 

@@ -47,7 +47,6 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
 )
-from qgis.utils import iface
 
 from ..gui.pe_results_configuration_dialog import (
     PlanetNodeMetadata,
@@ -60,6 +59,7 @@ from ..pe_utils import (
     SEARCH_AOI_COLOR,
     area_coverage_for_image,
     create_preview_group,
+    iface,
     qgsgeometry_from_geojson,
 )
 from ..planet_api.p_client import PlanetClient

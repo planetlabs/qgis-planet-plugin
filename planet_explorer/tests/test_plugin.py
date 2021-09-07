@@ -5,6 +5,7 @@ from planet_explorer.gui.pe_explorer_dockwidget import show_explorer
 
 start_app()
 
+
 class TestPlugin(unittest.TestCase):
     def test_import_planet(self):
         try:

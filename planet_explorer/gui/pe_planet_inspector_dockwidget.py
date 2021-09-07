@@ -40,13 +40,9 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
-
 from qgis.PyQt import uic
-
 from qgis.PyQt.QtCore import QSize, Qt, QUrl, pyqtSignal
-
 from qgis.PyQt.QtGui import QIcon, QImage, QPixmap
-
 from qgis.PyQt.QtWidgets import (
     QAction,
     QFrame,
@@ -58,10 +54,13 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from qgis.utils import iface
-
 from ..pe_analytics import analytics_track, basemap_name_for_analytics
-from ..pe_utils import PLANET_COLOR, add_menu_section_action, qgsgeometry_from_geojson
+from ..pe_utils import (
+    PLANET_COLOR,
+    add_menu_section_action,
+    iface,
+    qgsgeometry_from_geojson,
+)
 from ..planet_api import PlanetClient
 from ..planet_api.p_specs import DAILY_ITEM_TYPES_DICT
 from .pe_gui_utils import waitcursor

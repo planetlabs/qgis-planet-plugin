@@ -50,7 +50,6 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import (
-    QgisInterface,
     QgsDateTimeEdit,
     QgsMapCanvas,
     QgsMapTool,
@@ -70,7 +69,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..pe_analytics import analytics_track
-from ..pe_utils import MAIN_AOI_COLOR, qgsgeometry_from_geojson, zoom_canvas_to_aoi
+from ..pe_utils import MAIN_AOI_COLOR, qgsgeometry_from_geojson, zoom_canvas_to_aoi, iface
 from ..planet_api.p_client import PlanetClient
 from .pe_aoi_maptools import PlanetCircleMapTool, PlanetExtentMapTool, PlanetPolyMapTool
 from .pe_range_slider import PlanetExplorerRangeSlider
@@ -201,14 +200,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
     def __init__(
         self,
-        iface,
         parent=None,
         plugin=None,
         no_saved_search=False,
         color=MAIN_AOI_COLOR,
     ):
         super().__init__(parent=parent)
-        self._iface: QgisInterface = iface
         self._plugin = plugin
 
         self.setupUi(self)
@@ -218,20 +215,18 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self.color = color
 
         self._aoi_box = QgsRubberBand(
-            self._iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
+            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
         )
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(color)
         self._aoi_box.setWidth(3)
         self._aoi_box.setLineStyle(Qt.DashLine)
 
-        self._canvas: QgsMapCanvas = self._iface.mapCanvas()
+        self._canvas: QgsMapCanvas = iface.mapCanvas()
         # This may later be a nullptr, if no active tool when queried
         self._cur_maptool = None
 
-        # noinspection PyUnresolvedReferences
         self.leAOI.textChanged["QString"].connect(self.filters_changed)
-        # noinspection PyUnresolvedReferences
         self.leAOI.textEdited["QString"].connect(self.validate_edited_aoi)
 
         self._setup_tool_buttons()
@@ -322,8 +317,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
     @pyqtSlot("QString")
     def filters_changed(self, value):
-        if self.emitFiltersChanged:  # noinspection PyUnresolvedReferences
-            self.filtersChanged.emit()
+        self.filtersChanged.emit()
 
     @pyqtSlot()
     def clean_up(self):
@@ -333,17 +327,14 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         extent_menu = QMenu(self)
 
         canvas_act = QAction("Current visible extent", extent_menu)
-        # noinspection PyUnresolvedReferences
         canvas_act.triggered[bool].connect(self.aoi_from_current_extent)
         extent_menu.addAction(canvas_act)
 
         active_act = QAction("Active map layer extent", extent_menu)
-        # noinspection PyUnresolvedReferences
         active_act.triggered[bool].connect(self.aoi_from_active_layer_extent)
         extent_menu.addAction(active_act)
 
         full_act = QAction("All map layers extent", extent_menu)
-        # noinspection PyUnresolvedReferences
         full_act.triggered[bool].connect(self.aoi_from_full_extent)
         extent_menu.addAction(full_act)
 
@@ -355,17 +346,14 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         draw_menu = QMenu(self)
 
         box_act = QAction("Rectangle", draw_menu)
-        # noinspection PyUnresolvedReferences
         box_act.triggered[bool].connect(self.aoi_from_box)
         draw_menu.addAction(box_act)
 
         circle_act = QAction("Circle", draw_menu)
-        # noinspection PyUnresolvedReferences
         circle_act.triggered[bool].connect(self.aoi_from_circle)
         draw_menu.addAction(circle_act)
 
         polygon_act = QAction("Polygon", draw_menu)
-        # noinspection PyUnresolvedReferences
         polygon_act.triggered[bool].connect(self.aoi_from_polygon)
         draw_menu.addAction(polygon_act)
 
@@ -376,14 +364,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         selection_menu = QMenu(self)
 
         self.single_select_act = QAction("Single feature", selection_menu)
-        # noinspection PyUnresolvedReferences
         self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
         selection_menu.addAction(self.single_select_act)
 
         self.bound_select_act = QAction(
             "Multiple features (bounding box)", selection_menu
         )
-        # noinspection PyUnresolvedReferences
         self.bound_select_act.triggered[bool].connect(self.aoi_from_bound)
         selection_menu.addAction(self.bound_select_act)
 
@@ -448,7 +434,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
                 self.zoom_to_aoi()
 
     def _toggle_selection_tools(self):
-        active_layer = self._iface.activeLayer()
+        active_layer = iface.activeLayer()
         is_vector = isinstance(active_layer, QgsVectorLayer)
         if is_vector and active_layer.selectedFeatureCount():
             if active_layer.selectedFeatureCount() > 1:
@@ -465,15 +451,9 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
             self.bound_select_act.setEnabled(False)
 
     @pyqtSlot()
-    # noinspection PyArgumentList
     def aoi_from_current_extent(self):
         """Return current map extent as geojson transformed to EPSG:4326"""
-        if not self._iface:
-            log.debug("No iface object, skipping AOI extent")
-            return
-
-        canvas = self._iface.mapCanvas()
-        # noinspection PyArgumentList
+        canvas = iface.mapCanvas()
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -488,11 +468,9 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
                 "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
             )
             return
-        # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
 
-        # noinspection PyArgumentList
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas.extent()))
 
         self.leAOI.setText(extent_json)
@@ -502,14 +480,9 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self.zoom_to_aoi()
 
     @pyqtSlot()
-    # noinspection PyArgumentList
     def aoi_from_active_layer_extent(self):
         """Return active map layer extent as geojson transformed to EPSG:4326"""
-        if not self._iface:
-            log.debug("No iface object, skipping AOI extent")
-            return
-
-        map_layer: QgsMapLayer = self._iface.activeLayer()
+        map_layer: QgsMapLayer = iface.activeLayer()
         if map_layer is None:
             log.debug("No active layer selected, skipping AOI extent")
             return
@@ -518,7 +491,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
             log.debug("Active map layer invalid, skipping AOI extent")
             return
 
-        # noinspection PyArgumentList
         transform = QgsCoordinateTransform(
             map_layer.crs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -533,12 +505,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
                 "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
             )
             return
-        # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
-
-        # noinspection PyArgumentList,PyCallByClass
-        # self._aoi_box.setToGeometry(QgsGeometry.fromRect(ml_extent))
 
         self.leAOI.setText(extent_json)
 
@@ -547,16 +515,10 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self.zoom_to_aoi()
 
     @pyqtSlot()
-    # noinspection PyArgumentList
     def aoi_from_full_extent(self):
         """Return full data map extent as geojson transformed to EPSG:4326"""
-        if not self._iface:
-            log.debug("No iface object, skipping AOI extent")
-            return
+        canvas = iface.mapCanvas()
 
-        canvas = self._iface.mapCanvas()
-
-        # noinspection PyArgumentList
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -573,11 +535,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
                 "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
             )
             return
-        # noinspection PyArgumentList
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
-
-        # noinspection PyArgumentList,PyCallByClass
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas_extent))
 
         self.leAOI.setText(extent_json)
@@ -590,29 +549,28 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
     def aoi_from_box(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
         self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
-        aoi_draw = PlanetExtentMapTool(self._iface.mapCanvas())
-        self._iface.mapCanvas().setMapTool(aoi_draw)
+        aoi_draw = PlanetExtentMapTool(iface.mapCanvas())
+        iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.extentSelected.connect(self.set_draw_aoi)
 
     @pyqtSlot()
     def aoi_from_circle(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
         self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
-        aoi_draw = PlanetCircleMapTool(self._iface.mapCanvas())
-        self._iface.mapCanvas().setMapTool(aoi_draw)
+        aoi_draw = PlanetCircleMapTool(iface.mapCanvas())
+        iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.circleSelected.connect(self.set_draw_aoi)
 
     @pyqtSlot()
     def aoi_from_polygon(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
         self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
-        aoi_draw = PlanetPolyMapTool(self._iface.mapCanvas())
-        self._iface.mapCanvas().setMapTool(aoi_draw)
+        aoi_draw = PlanetPolyMapTool(iface.mapCanvas())
+        iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.polygonSelected.connect(self.set_draw_aoi)
 
     @pyqtSlot(object)
     def set_draw_aoi(self, aoi):
-        # noinspection PyArgumentList
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
@@ -636,7 +594,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         if aoi_json:
             self.leAOI.setText(aoi_json)
 
-            # noinspection PyUnresolvedReferences
             self._show_message("AOI set to drawn figure")
             self.zoom_to_aoi()
             if self._cur_maptool is not None:
@@ -645,14 +602,13 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
                 self._cur_maptool = None
             else:
                 # Fallback to activating pan tool
-                self._iface.actionPan().trigger()
+                iface.actionPan().trigger()
         else:
-            # noinspection PyUnresolvedReferences
             self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
 
     @pyqtSlot()
     def aoi_from_feature(self):
-        layer = self._iface.activeLayer()
+        layer = iface.activeLayer()
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
                 "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
@@ -683,14 +639,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
             self.aoi_from_bound()
             return
 
-        # noinspection PyArgumentList
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
 
-        # noinspection PyArgumentList
         trans_canvas = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
@@ -708,7 +662,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
     @pyqtSlot()
     def aoi_from_bound(self):
-        layer = self._iface.activeLayer()
+        layer = iface.activeLayer()
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
                 "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
@@ -721,14 +675,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
         bbox = layer.boundingBoxOfSelected()
 
-        # noinspection PyArgumentList
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
 
-        # noinspection PyArgumentList
         trans_canvas = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
@@ -736,14 +688,12 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         )
 
         transform_bbox = trans_layer.transformBoundingBox(bbox)
-        # noinspection PyArgumentList
         geom_bbox = QgsGeometry.fromRect(transform_bbox)
         bbox_json = geom_bbox.asJson(precision=6)
 
         self.leAOI.setText(bbox_json)
 
         bbox_canvas = trans_canvas.transformBoundingBox(transform_bbox)
-        # noinspection PyArgumentList
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(bbox_canvas))
 
         self.zoom_to_aoi()
@@ -777,10 +727,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
     @pyqtSlot()
     def zoom_to_aoi(self):
-        if not self._iface:
-            log.debug("No iface object, skipping AOI extent")
-            return
-
         if not self.leAOI.text():
             log.debug("No AOI defined, skipping zoom to AOI")
             return
@@ -816,7 +762,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         cb = QgsApplication.clipboard()
         cb.setText(json_geom_txt)
 
-        # noinspection PyUnresolvedReferences
         self._show_message("AOI copied to clipboard")
 
     @pyqtSlot()
@@ -838,7 +783,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         try:
             json_obj = json.loads(json_txt)
         except ValueError:
-            # noinspection PyUnresolvedReferences
             self._show_message(
                 "AOI GeoJSON is invalid", level=Qgis.Warning, duration=10
             )
@@ -850,7 +794,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
             json_geom = None
 
         if not json_geom:
-            # noinspection PyUnresolvedReferences
             self._show_message(
                 "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
             )
@@ -905,17 +848,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
 
-        # noinspection PyUnresolvedReferences
         self.startDateEdit.valueChanged["QDateTime"].connect(self.filtersChanged)
-        # noinspection PyUnresolvedReferences
         self.startDateEdit.valueChanged["QDateTime"].connect(self.set_min_enddate)
-        # noinspection PyUnresolvedReferences
         self.startDateEdit.valueChanged["QDateTime"].connect(self.change_date_vis)
-        # noinspection PyUnresolvedReferences
         self.endDateEdit.valueChanged["QDateTime"].connect(self.filtersChanged)
-        # noinspection PyUnresolvedReferences
         self.endDateEdit.valueChanged["QDateTime"].connect(self.set_max_startdate)
-        # noinspection PyUnresolvedReferences
         self.endDateEdit.valueChanged["QDateTime"].connect(self.change_date_vis)
 
         # Setup datetime boxes
@@ -925,7 +862,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         # TODO: (Eventually) Add multi-field searching, with +/- operation
         #       of adding new field/QLineEdit, without duplicates
-        # noinspection PyUnresolvedReferences
         self.leStringIDs.textChanged["QString"].connect(self.filters_changed)
 
         self.rangeCloudCover = PlanetExplorerRangeSlider(
@@ -1059,11 +995,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         # TODO: Add rest of range sliders
 
         # Ground control filter checkbox
-        # noinspection PyUnresolvedReferences
         self.chkBxGroundControl.stateChanged[int].connect(self.filters_changed)
 
         # Access Filter checkbox
-        # noinspection PyUnresolvedReferences
         self.chkBxCanDownload.stateChanged[int].connect(self.filters_changed)
 
     def sources(self):
@@ -1255,6 +1189,5 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
     @pyqtSlot()
     def filters_changed(self):
-        # noinspection PyUnresolvedReferences
         if self.emitFiltersChanged:
             self.filtersChanged.emit()

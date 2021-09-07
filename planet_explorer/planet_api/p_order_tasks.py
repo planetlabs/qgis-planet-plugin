@@ -31,20 +31,13 @@ from collections import defaultdict
 import requests
 from osgeo import gdal
 
-# noinspection PyPackageRequirements
 from qgis.core import Qgis, QgsMessageLog, QgsProject, QgsRasterLayer, QgsTask
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import QUrl
-
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton
 
-# noinspection PyPackageRequirements
-from qgis.utils import iface
-
-from ..pe_utils import QGIS_LOG_SECTION_NAME
+from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
 
 
 class OrderProcessorTask(QgsTask):

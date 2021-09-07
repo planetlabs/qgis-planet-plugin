@@ -27,19 +27,14 @@ import os
 import iso8601
 from planet.api.models import Order, Orders
 
-# noinspection PyPackageRequirements
 from qgis.core import Qgis, QgsApplication
 
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtGui import QDesktopServices
 
-# noinspection PyPackageRequirements
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -50,10 +45,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-# noinspection PyPackageRequirements
-from qgis.utils import iface
-
-from ..pe_utils import orders_download_folder
+from ..pe_utils import orders_download_folder, iface
 from ..planet_api import PlanetClient
 from ..planet_api.p_order_tasks import OrderProcessorTask, QuadsOrderProcessorTask
 from ..planet_api.p_quad_orders import quad_orders

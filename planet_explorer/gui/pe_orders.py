@@ -44,10 +44,9 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.utils import iface
 
 from ..pe_analytics import send_analytics_for_order
-from ..pe_utils import resource_file
+from ..pe_utils import resource_file, iface
 from ..planet_api.p_bundles import PlanetOrdersV2Bundles
 from ..planet_api.p_client import PlanetClient
 from ..planet_api.p_specs import ITEM_TYPE_SPECS

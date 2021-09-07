@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal  # pyqtSlot,
+from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QMouseEvent
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QToolTip
 
@@ -35,7 +35,6 @@ log = logging.getLogger(__name__)
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 
-# noinspection PyPep8Naming
 class PlanetClickableLabel(QLabel):
 
     clicked = pyqtSignal()
@@ -61,7 +60,6 @@ class PlanetClickableLabel(QLabel):
     def event(self, event: QEvent) -> bool:
         if self._show_tooltip_on_hover and self.toolTip():
             if event.type() == QEvent.HoverEnter:
-                # noinspection PyUnresolvedReferences
                 QToolTip.showText(self.mapToGlobal(event.pos()), self.toolTip(), self)
             event.accept()
 

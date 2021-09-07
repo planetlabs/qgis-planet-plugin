@@ -25,12 +25,6 @@ import logging
 import os
 import re
 
-# from typing import (
-#     Optional,
-#     Union,
-#     List,
-# )
-
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)

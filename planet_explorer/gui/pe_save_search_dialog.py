@@ -7,9 +7,8 @@ from qgis.gui import QgsMapCanvas, QgsMessageBar
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, Qt
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QInputDialog, QSizePolicy, QVBoxLayout
-from qgis.utils import iface
 
-from ..pe_utils import qgsgeometry_from_geojson
+from ..pe_utils import qgsgeometry_from_geojson, iface
 from ..planet_api.p_client import PlanetClient
 from .pe_filters import filters_as_text_from_request, filters_from_request
 

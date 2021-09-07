@@ -38,13 +38,13 @@ from PyQt5.QtWidgets import (
 )
 from qgis.core import QgsGeometry, QgsWkbTypes
 from qgis.gui import QgsRubberBand
-from qgis.utils import iface
 
 from ..pe_utils import (
     LINKS,
     NAME,
     QUADS_AOI_BODY_COLOR,
     QUADS_AOI_COLOR,
+    iface,
     mosaic_title,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
 )

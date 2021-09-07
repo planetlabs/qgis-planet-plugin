@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 import json
 import logging
 import os
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from planet.api.utils import geometry_from_json
 
@@ -78,62 +78,6 @@ def geometry_from_json_str_or_obj(json_type: Union[str, dict]) -> Optional[dict]
         log.debug("GeoJSON geometry invalid")
 
     return json_geom
-
-
-def multipolygon_from_polygon_geojsons(
-    json_types: Union[List[str], List[dict]]
-) -> dict:
-    """
-    :param json_types: List of GeoJSON (as string or `json` object)
-    :type json_types: list(str | dict)
-    :rtype: dict
-    """
-    multi_p = {"type": "MultiPolygon", "coordinates": []}
-    json_geoms = [geometry_from_json_str_or_obj(jt) for jt in json_types]
-    for json_geom in json_geoms:
-        if json_geom is None:
-            continue
-        multi_p["coordinates"].append(json_geom["coordinates"])
-
-    return multi_p
-
-
-def multipolygon_to_polygon_geojsons(
-    json_type: Union[str, dict]
-) -> Optional[List[dict]]:
-    """
-    :param json_type: GeoJSON MultiPolygon feature string or `json` object
-    :type json_type: str | dict
-    :rtype: list(dict) | None
-    """
-    multi_p = None
-    mpoly = "MultiPolygon"
-    spoly = "Polygon"
-    typ = "type"
-    coords = "coordinates"
-
-    json_obj = json_str_or_obj_to_obj(json_type)
-
-    obj_type = json_obj.get(typ, None)
-    if not obj_type:
-        log.debug(f"GeoJSON {typ} is missing")
-        return multi_p
-
-    if obj_type != mpoly:
-        log.debug(f"GeoJSON type is not {mpoly}")
-        return multi_p
-
-    obj_coords = json_obj.get(coords, None)
-    if not obj_coords:
-        log.debug(f"GeoJSON {coords} are missing")
-        return multi_p
-
-    geojson_polygons = []
-    for coord in obj_coords:
-        poly = {typ: spoly, coords: coord}
-        geojson_polygons.append(poly)
-
-    return geojson_polygons
 
 
 def geometry_from_request(request: Union[str, dict]) -> Optional[dict]:
