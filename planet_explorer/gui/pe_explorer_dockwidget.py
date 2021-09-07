@@ -26,20 +26,13 @@ import logging
 import os
 
 import sentry_sdk
-from qgis.core import Qgis, QgsApplication, QgsAuthManager, QgsMessageLog
-from qgis.gui import QgsMessageBar
+from qgis.core import Qgis, QgsApplication, QgsMessageLog
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSettings, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
-    QCheckBox,
     QDialogButtonBox,
-    QDockWidget,
-    QLabel,
-    QLineEdit,
-    QStackedWidget,
-    QTabWidget,
-    QTextBrowser,
+    QLineEdit
 )
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
@@ -70,7 +63,6 @@ SAVE_CREDS_KEY = "saveCreds"
 AUTO_RECOVER_VALUES = "recoverSearchValues"
 
 PLANET_COM = "https://planet.com"
-# TODO: This needs a more general, non-temporal link
 SAT_SPECS_PDF = (
     "https://assets.planet.com/docs/"
     "Planet_Combined_Imagery_Product_Specs_letter_screen.pdf"
@@ -83,20 +75,7 @@ TOS_URL = "https://learn.planet.com/QGIS-terms-conditions.html"
 FORGOT_PASS_URL = f"{BASE_URL}/login?mode=reset-password"
 
 
-# noinspection PyPep8Naming,PyUnresolvedReferences
 class PlanetExplorerDockWidget(BASE, WIDGET):
-    BASE: QDockWidget
-    _auth_man: QgsAuthManager
-    msgBar: QgsMessageBar
-    stckdWidgetViews: QStackedWidget
-    leUser: QLineEdit
-    lePass: QLineEdit
-    chkBxSaveCreds: QCheckBox
-    lblSignUp: QLabel
-    lblTermsOfService: QLabel
-    lblForgotPass: QLabel
-    tabWidgetResourceType: QTabWidget
-    _terms_browser: QTextBrowser
 
     def __init__(self, parent=None, visible=False):
         super(PlanetExplorerDockWidget, self).__init__(parent)
@@ -104,7 +83,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.setupUi(self)
         self.setVisible(visible)
 
-        # noinspection PyArgumentList
         self._auth_man = QgsApplication.authManager()
 
         self.p_client = None
@@ -145,14 +123,12 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         # Set default group type and filter widget
         self.tabWidgetResourceType.setCurrentIndex(0)
 
-        # noinspection PyTypeChecker
         self._terms_browser = None
 
         self.msg_log = QgsMessageLog()
         # Local QgsMessageBar
         self.msgBar.hide()
 
-    # noinspection PyUnusedLocal
     def showEvent(self, event):
         if self.logged_in():
             self.stckdWidgetViews.setCurrentIndex(1)
