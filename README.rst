@@ -10,7 +10,7 @@ Official documentation can be found `here <https://developers.planet.com/integra
 Requirements
 ************
 
-QGIS 3.6 (minimum)
+QGIS 3.10 (minimum)
 
 Development Setup
 *****************
