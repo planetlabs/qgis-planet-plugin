@@ -433,7 +433,10 @@ def resource_file(f):
 
 
 def orders_download_folder():
-    download_folder = QSettings().value(f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}")
+    download_folder = QSettings().value(
+        f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}",
+        ""
+    )
     if not os.path.exists(download_folder):
         try:
             os.makedirs(download_folder)
