@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  release:
+    name: "Release on tag"
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Get source code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Setup
+      run: |
+        pip install paver
+        paver setup
+
+    - name: Build package
+      env:
+        SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
+        SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
+      run: |
+        paver package sentry=${SENTRY_KEY} segments=${SEGMENTS_KEY}
+
+    - name: Create/update release on GitHub
+      uses: ncipollo/release-action@v1.8.8
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        allowUpdates: true
+        omitNameDuringUpdate: true
+        artifacts: "dist/*.tar.gz"
