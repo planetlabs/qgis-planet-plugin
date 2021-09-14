@@ -1,3 +1,2 @@
-# these are explicitly listed, i.e. NO dependencies will be installed
 pytest
 
