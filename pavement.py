@@ -80,6 +80,7 @@ def setup():
                     "-m",
                     "pip",
                     "install",
+                    "--no-deps",
                     "--upgrade",
                     "-t",
                     f"{ext_libs.abspath()}",
@@ -121,15 +122,6 @@ def install(options):
         src.copytree(dst)
     elif not dst.exists():
         src.symlink(dst)
-        if options.sphinx.docroot.exists():
-            # Symlink the docs build folder to the parent
-            docs = path("..") / ".." / "docs" / "build" / "html"
-            docs_dest = path(__file__).dirname() / plugin_name / "docs"
-            docs_link = docs_dest / "html"
-            if not docs_dest.exists():
-                docs_dest.mkdir()
-            if not docs_link.islink():
-                docs.symlink(docs_link)
 
 
 def read_requirements():
@@ -182,15 +174,6 @@ def _make_zip(zipfile, options):
             relpath = os.path.relpath(root, ".")
             zipfile.write(path(root) / f, path(relpath) / f)
         filter_excludes(dirs)
-
-    for root, dirs, files in os.walk(options.sphinx.builddir):
-        for f in files:
-            relpath = os.path.join(
-                options.plugin.name,
-                "docs",
-                os.path.relpath(root, options.sphinx.builddir),
-            )
-            zipfile.write(path(root) / f, path(relpath) / f)
 
     analytics_filename = os.path.join(
         os.path.dirname(__file__), "planet_explorer", "pe_analytics.py"
