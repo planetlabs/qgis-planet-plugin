@@ -38,4 +38,4 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         allowUpdates: true
         omitNameDuringUpdate: true
-        artifacts: "dist/*.tar.gz"
+        artifacts: "planet_explorer.zip"
