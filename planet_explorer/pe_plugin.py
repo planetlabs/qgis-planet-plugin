@@ -180,7 +180,7 @@ class PlanetExplorer(object):
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
-            sentry_sdk.init(sentry_dsn(), default_integrations=False)
+            sentry_sdk.init(sentry_dsn())
 
         self.qgis_hook = sys.excepthook
 
@@ -210,9 +210,11 @@ class PlanetExplorer(object):
         sys.excepthook = plugin_hook
 
         if is_sentry_dsn_valid():
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_context("versions", {"plugin_version": plugin_version(),
-                                               "qgis_version": Qgis.QGIS_VERSION})
+            sentry_sdk.set_context("qgis", {
+                "type": "runtime",
+                "name": Qgis.QGIS_RELEASE_NAME,
+                "version": Qgis.QGIS_VERSION,
+            })
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
