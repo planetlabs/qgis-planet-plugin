@@ -180,7 +180,7 @@ class PlanetExplorer(object):
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
-            sentry_sdk.init(sentry_dsn(), default_integrations=False)
+            sentry_sdk.init(sentry_dsn())
 
         self.qgis_hook = sys.excepthook
 
@@ -210,9 +210,33 @@ class PlanetExplorer(object):
         sys.excepthook = plugin_hook
 
         if is_sentry_dsn_valid():
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_context("versions", {"plugin_version": plugin_version(),
-                                               "qgis_version": Qgis.QGIS_VERSION})
+            sentry_sdk.set_context("qgis", {
+                "type": "runtime",
+                "name": Qgis.QGIS_RELEASE_NAME,
+                "version": Qgis.QGIS_VERSION,
+            })
+            system = platform.system()
+            if system == 'Darwin':
+                sentry_sdk.set_context('mac',{
+                    "type": "os",
+                    "name": "macOS",
+                    "version": platform.mac_ver()[0],
+                    "build": os.popen("sw_vers -buildVersion").read().strip(),
+                    "kernel_version": platform.uname().release,
+                })
+            if system == 'Linux':
+                sentry_sdk.set_context('linux', {
+                    "type": "os",
+                    "name": "Linux",
+                    "version": platform.release(),
+                    "build": platform.version(),
+                })
+            if system == 'Windows':
+                sentry_sdk.set_context('windows', {
+                    "type": "os",
+                    "name": "Windows",
+                    "version": platform.version(),
+                })
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -557,6 +581,7 @@ class PlanetExplorer(object):
                     )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
+        1 / 0
 
     def logout(self):
         PlanetClient.getInstance().log_out()
