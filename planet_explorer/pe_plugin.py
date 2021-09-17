@@ -187,10 +187,6 @@ class PlanetExplorer(object):
         def plugin_hook(t, value, tb):
             trace = "".join(traceback.format_exception(t, value, tb))
             if PLUGIN_NAMESPACE in trace.lower():
-                try:
-                    sentry_sdk.capture_exception(value)
-                except:
-                    pass # we swallow all exceptions here, to avoid entering an endless loop
                 s = ""
                 if issubclass(t, requests.exceptions.Timeout):
                     s = "Connection to Planet server timed out."
@@ -203,6 +199,10 @@ class PlanetExplorer(object):
                 if s:
                     QMessageBox.warning(self.iface.mainWindow(), "Error", s)
                 else:
+                    try:
+                        sentry_sdk.capture_exception(value)
+                    except Exception:
+                        pass  # we swallow all exceptions here, to avoid entering an endless loop
                     self.qgis_hook(t, value, tb)
             else:
                 self.qgis_hook(t, value, tb)
