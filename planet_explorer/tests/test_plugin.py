@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
+from qgis.PyQt.QtTest import QTest
+from qgis.PyQt.QtCore import Qt
+from qgis.core import QgsProject
 from qgis.testing import unittest, start_app
 from planet_explorer.gui.pe_explorer_dockwidget import PlanetExplorerDockWidget
 from planet_explorer.pe_utils import iface
@@ -23,7 +25,6 @@ class TestPlugin(unittest.TestCase):
     def test_import_planet(self):
         try:
             import planet  # noqa: F401
-
             assert True
         except ImportError:
             assert False
@@ -83,3 +84,29 @@ class TestPlugin(unittest.TestCase):
         assert self.dockwidget.basemaps_widget.comboSeriesName.count() > 1
         self.dockwidget.basemaps_widget.comboSeriesName.setCurrentIndex(1)
         assert self.dockwidget.basemaps_widget.mosaicsList.count() > 0
+
+    def test_can_explore_basemaps(self):
+        user, password = get_testing_credentials()
+        PlanetClient.getInstance().log_in(user, password)
+        current = self.dockwidget.stckdWidgetViews.currentIndex()
+        assert current == 1
+        self.dockwidget.show_mosaics_panel()
+        current = self.dockwidget.tabWidgetResourceType.currentIndex()
+        assert current == 1
+        assert self.dockwidget.basemaps_widget.mosaicsList.count() == 0
+        assert self.dockwidget.basemaps_widget.comboSeriesName.count() > 1
+        self.dockwidget.basemaps_widget.comboSeriesName.setCurrentIndex(1)
+        mosaicsList = self.dockwidget.basemaps_widget.mosaicsList
+        assert mosaicsList.count() > 0
+        item = mosaicsList.item(0)
+        widget = mosaicsList.itemWidget(item)
+        widget.checkBox.setChecked(True)
+        assert "1 items" in self.dockwidget.basemaps_widget.btnOrder.text()
+        QTest.mouseClick(self.dockwidget.basemaps_widget.btnExplore, Qt.LeftButton)
+        layers = QgsProject.instance().mapLayers().values()
+        assert len(layers) == 1
+
+    def test_correctly_handle_wrong_aoi(self):
+        user, password = get_testing_credentials()
+        PlanetClient.getInstance().log_in(user, password)
+        self.dockwidget.daily_images_widget._main_filters.leAOI.setText("wrong")
