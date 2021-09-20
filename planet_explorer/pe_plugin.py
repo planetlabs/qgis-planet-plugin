@@ -584,7 +584,6 @@ class PlanetExplorer(object):
                     )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
-        1 / 0
 
     def logout(self):
         PlanetClient.getInstance().log_out()
