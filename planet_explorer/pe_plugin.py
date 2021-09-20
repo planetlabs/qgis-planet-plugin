@@ -28,6 +28,7 @@ import platform
 import zipfile
 import sys
 import traceback
+import urllib3
 import requests
 import planet
 
@@ -87,11 +88,10 @@ from planet_explorer.pe_utils import (
     BASE_URL,
     open_link_with_browser,
     add_widget_to_layer,
-    PLANET_COLOR,
-    plugin_version
+    PLANET_COLOR
 )
 
-from planet_explorer.pe_analytics import(
+from planet_explorer.pe_analytics import (
     sentry_dsn,
     is_sentry_dsn_valid,
     is_segments_write_key_valid,
@@ -196,6 +196,9 @@ class PlanetExplorer(object):
                     s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
                 elif issubclass(t, planet.api.exceptions.ServerError):
                     s = "Server Error.\n Please, try again later"
+                elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
+                    s = "Proxy Error\n Proxy URL must start with 'http://' or 'https://'"
+
                 if s:
                     QMessageBox.warning(self.iface.mainWindow(), "Error", s)
                 else:
