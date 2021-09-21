@@ -83,7 +83,7 @@ ITEM_TYPE_SPECS = {
             "visible_confidence_percent": "float",
             "visible_percent": "float",
         },
-        "bands": {"1": "Red", "2": "Green", "3": "Blue", "4": "Near-infrared",},
+        "bands": {"1": "Red", "2": "Green", "3": "Blue", "4": "Near-infrared", },
     },
     "PSScene3Band": {
         "name": "PlanetScope 3-band Scene",
@@ -112,7 +112,7 @@ ITEM_TYPE_SPECS = {
             "updated": "datetime",
             "view_angle": "float",
         },
-        "bands": {"1": "Red", "2": "Green", "3": "Blue",},
+        "bands": {"1": "Red", "2": "Green", "3": "Blue", },
     },
     "REOrthoTile": {
         "name": "RapidEye Ortho Tile",

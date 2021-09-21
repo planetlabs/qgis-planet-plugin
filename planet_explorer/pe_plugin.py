@@ -66,8 +66,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 # Initialize Qt resources from file resources.py
-# noinspection PyUnresolvedReferences
-from planet_explorer.resources import resources
+from planet_explorer.resources import resources  # noqa: F401
 
 from planet_explorer.gui.pe_explorer_dockwidget import (
     show_explorer,
