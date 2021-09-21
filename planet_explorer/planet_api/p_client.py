@@ -43,12 +43,12 @@ from qgis.core import (QgsAuthMethodConfig,
                         Qgis
 )
 
-# noinspection PyPackageRequirements
-# from PyQt5.QtGui import QPixmap
 
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
+
+from ..pe_utils import user_agent
 
 from ..gui.pe_gui_utils import (
     waitcursor
@@ -464,6 +464,7 @@ def tile_service_url(
         tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
         url = \
             f'{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?' \
-            f'api_key={api_key}'
+            f'api_key={api_key}&' \
+            f'ua={user_agent()}'
 
     return url

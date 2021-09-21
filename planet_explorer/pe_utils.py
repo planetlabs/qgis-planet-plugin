@@ -34,7 +34,6 @@ import configparser
 
 from typing import (
     Optional,
-    # Union,
     List,
     Tuple,
 )
@@ -72,7 +71,8 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsLayerTreeLayer,
     QgsJsonUtils,
-    QgsFields
+    QgsFields,
+    Qgis
 )
 
 from qgis.gui import QgisInterface
@@ -594,3 +594,7 @@ def plugin_version():
     path = os.path.join(os.path.dirname(__file__), "metadata.txt")
     config.read(path)
     return config.get("general", "version")
+
+
+def user_agent_parameter():
+    return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"
