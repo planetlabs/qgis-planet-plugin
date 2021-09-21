@@ -50,6 +50,7 @@ options(
             "metadata.txt",
             "qgis_resources.py",
             "pe_analytics.py",
+            "pe_utils.py",
         ],
         path_to_settings="Raster --> Planet Explorer --> Settings...",
         # skip certain files inadvertently found by exclude pattern globbing
@@ -135,7 +136,6 @@ def read_requirements():
 @cmdopts(
     [
         ("tests", "t", "Package tests with plugin"),
-        ("commitid", "c", "Add commit id to version"),
         ("segments=", "s", "Segments write key"),
         ("sentry=", "d", "Sentry dns"),
         ("version=", "v", "Plugin version number"),
@@ -207,14 +207,23 @@ def _make_zip(zipfile, options):
     if hasattr(options.package, "version"):
         version = ''.join(c for c in options.package.version if c.isdigit() or c == '.')
         cfg.set("general", "version", version)
-    if hasattr(options.package, "commitid"):
-        base_version = cfg.get("general", "version")
-        ref = (
+    buf = StringIO()
+    cfg.write(buf)
+    zipfile.writestr("planet_explorer/metadata.txt", buf.getvalue())
+
+    utils_filename = os.path.join(
+        os.path.dirname(__file__), "planet_explorer", "pe_utils.py"
+    )
+    with open(utils_filename) as f:
+        txt = f.read()
+        commitid = (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
             .decode("utf-8")
             .strip()
         )
-        cfg.set("general", "version", f"{base_version}-{ref}")
-    buf = StringIO()
-    cfg.write(buf)
-    zipfile.writestr("planet_explorer/metadata.txt", buf.getvalue())
+        txt = txt.replace(
+            'COMMIT_ID = ""',
+            f'COMMIT_ID = "{commitid}"',
+        )
+
+        zipfile.writestr("planet_explorer/pe_utils.py", txt)

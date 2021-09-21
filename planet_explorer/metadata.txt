@@ -7,7 +7,7 @@
 name=Planet_Explorer
 qgisMinimumVersion=3.10
 description=The Planet Plugin enables QGIS users to quickly discover, stream, and download Planet imagery and Planet Basemaps. The plug-in provides an imagery discovery interface that allows users to search for, stream, and download Planet imagery within QGIS.<br><br>Full documentation for the Plugin is available <a href="https://developers.planet.com/docs/integrations/qgis/">here</a>.
-version=2.1
+version=dev
 author=Planet Inc
 email=support@planet.com
 
