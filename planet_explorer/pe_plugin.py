@@ -82,6 +82,7 @@ from planet_explorer.pe_utils import (
     open_link_with_browser,
     add_widget_to_layer,
     PLANET_COLOR,
+    plugin_version,
 )
 
 from planet_explorer.pe_analytics import (
@@ -136,7 +137,7 @@ DOCK_SHOWN_STATE = "dockShownState"
 
 PLUGIN_NAMESPACE = "planet_explorer"
 
-# noinspection PyUnresolvedReferences
+
 class PlanetExplorer(object):
     def __init__(self, iface):
 
@@ -179,13 +180,22 @@ class PlanetExplorer(object):
                 if issubclass(t, requests.exceptions.Timeout):
                     s = "Connection to Planet server timed out."
                 elif issubclass(t, requests.exceptions.ConnectionError):
-                    s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
+                    s = (
+                        "Connection error.\n Verify that your computer is correctly"
+                        " connected to the Internet"
+                    )
                 elif issubclass(t, requests.exceptions.ProxyError):
-                    s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
+                    s = (
+                        "ProxyError.\n Verify that your proxy is correctly configured"
+                        " in the QGIS settings"
+                    )
                 elif issubclass(t, planet.api.exceptions.ServerError):
                     s = "Server Error.\n Please, try again later"
                 elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
-                    s = "Proxy Error\n Proxy URL must start with 'http://' or 'https://'"
+                    s = (
+                        "Proxy Error\n Proxy URL must start with 'http://' or"
+                        " 'https://'"
+                    )
 
                 if s:
                     QMessageBox.warning(self.iface.mainWindow(), "Error", s)
@@ -234,10 +244,13 @@ class PlanetExplorer(object):
             if system == "Windows":
                 sentry_sdk.set_context(
                     "windows",
-                    {"type": "os", "name": "Windows", "version": platform.version(),},
+                    {
+                        "type": "os",
+                        "name": "Windows",
+                        "version": platform.version(),
+                    },
                 )
 
-    # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -441,7 +454,7 @@ class PlanetExplorer(object):
     def add_info_button(self):
         info_menu = QMenu()
 
-        p_sec_act = add_menu_section_action("Planet", info_menu)
+        add_menu_section_action("Planet", info_menu)
 
         p_com_act = QAction(QIcon(EXT_LINK), "planet.com", info_menu)
         p_com_act.triggered[bool].connect(lambda: open_link_with_browser(PLANET_COM))
@@ -482,7 +495,11 @@ class PlanetExplorer(object):
         info_menu.addAction(terms_act)
 
         btn = QToolButton()
-        btn.setIcon(QIcon(os.path.join(plugin_path, "resources", "info.svg"),))
+        btn.setIcon(
+            QIcon(
+                os.path.join(plugin_path, "resources", "info.svg"),
+            )
+        )
         btn.setMenu(info_menu)
 
         btn.setPopupMode(QToolButton.MenuButtonPopup)
@@ -507,7 +524,9 @@ class PlanetExplorer(object):
         self.user_button = QToolButton()
         self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.user_button.setIcon(
-            QIcon(os.path.join(plugin_path, "resources", "account.svg"),)
+            QIcon(
+                os.path.join(plugin_path, "resources", "account.svg"),
+            )
         )
         self.user_button.setMenu(user_menu)
 
@@ -567,13 +586,16 @@ class PlanetExplorer(object):
     def login(self):
         if Qgis.QGIS_VERSION_INT >= 32000 and platform.system() == "Darwin":
             text = (
-                "WARNING: Your configuration may encounter serious issues with the Planet QGIS Plugin "
-                "using QGIS V3.20. We are actively troubleshooting the issue with the QGIS team, you "
-                "can track <a href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182 here</a>. "
-                "In the meantime, we recommend that you use a QGIS version between 3.10 and 3.20, "
-                "such as the 3.16 long term stable release. For further information including instructions "
-                "on how to downgrade QGIS, please refer to our "
-                "<a href='https://support.planet.com/hc/en-us/articles/4404372169233'>support page here</a>."
+                "WARNING: Your configuration may encounter serious issues with the"
+                " Planet QGIS Plugin using QGIS V3.20. We are actively troubleshooting"
+                " the issue with the QGIS team, you can track <a"
+                " href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182"
+                " here</a>. In the meantime, we recommend that you use a QGIS version"
+                " between 3.10 and 3.20, such as the 3.16 long term stable release. For"
+                " further information including instructions on how to downgrade QGIS,"
+                " please refer to our <a"
+                " href='https://support.planet.com/hc/en-us/articles/4404372169233'>support"
+                " page here</a>."
             )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
@@ -649,8 +671,9 @@ class PlanetExplorer(object):
                     QMessageBox.warning(
                         self.iface.mainWindow(),
                         "Error saving project",
-                        "There was an error while removing API keys from QGIS project file.\n"
-                        "The project that you have just saved might contain Planet API keys in plain text.",
+                        "There was an error while removing API keys from QGIS project"
+                        " file.\nThe project that you have just saved might contain"
+                        " Planet API keys in plain text.",
                     )
 
             QTimer.singleShot(100, resave)

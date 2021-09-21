@@ -39,8 +39,6 @@ from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
 
-from ..pe_utils import user_agent
-
 from ..gui.pe_gui_utils import waitcursor
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
@@ -453,6 +451,7 @@ def tile_service_url(
         log.debug("No tile URL hash passed, skipping tile URL")
         return None
 
+    from ..pe_utils import user_agent
     url = None
     if service.lower() == "wmts":
         tile_url = TILE_SERVICE_URL.format("")
@@ -461,8 +460,8 @@ def tile_service_url(
         tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
         url = (
             f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
-            f"api_key={api_key}&"
-            f"ua={user_agent()}"
+            f"api_key={api_key}"
+            f"&ua={user_agent()}"
         )
 
     return url

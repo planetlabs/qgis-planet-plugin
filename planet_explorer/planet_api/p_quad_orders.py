@@ -6,7 +6,7 @@ import uuid
 from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
-from ..pe_utils import orders_download_folder
+from ..pe_utils import orders_download_folder, user_agent
 from .p_client import PlanetClient
 
 
@@ -103,7 +103,8 @@ class QuadOrder:
         for mosaic, mosaicquads in self.quads.items():
             mosaiclocations = []
             for quad in mosaicquads:
-                mosaiclocations.append((quad[LINKS][DOWNLOAD], quad[ID]))
+                mosaiclocations.append((f"{quad[LINKS][DOWNLOAD]}&ua={user_agent()}",
+                                        quad[ID]))
             locations[mosaic] = mosaiclocations
         return locations
 

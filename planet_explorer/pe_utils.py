@@ -33,13 +33,9 @@ from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
 
 import iso8601
-import configparser
 
-from typing import (
-    Optional,
-    List,
-    Tuple,
-)
+from planet.api.exceptions import APIException
+from planet.api.models import Mosaics
 
 from qgis.PyQt.QtCore import QVariant, QUrl, QSettings
 
@@ -51,6 +47,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -67,15 +64,9 @@ from qgis.core import (
     QgsRectangle,
     QgsSimpleLineSymbolLayer,
     QgsVectorFileWriter,
-    QgsLayerTreeLayer,
-    QgsJsonUtils,
-    QgsFields,
-    Qgis,
+    QgsVectorLayer
 )
 
-from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
-from qgis.PyQt.QtGui import QColor, QDesktopServices
-from qgis.PyQt.QtWidgets import QLabel, QWidgetAction
 from qgis.utils import iface as qgisiface
 from qgis.testing.mocked import get_iface
 
@@ -486,7 +477,7 @@ def add_mosaics_to_qgis_project(
     mosaics, name, proc="default", ramp="", zmin=0, zmax=22, add_xyz_server=False
 ):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
-    tile_url = mosaics[0][LINKS][TILES]
+    tile_url = f"{mosaics[0][LINKS][TILES]}?ua={user_agent()}"
     uri = f"type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}"
     layer = QgsRasterLayer(uri, name, "wms")
     layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
@@ -617,5 +608,5 @@ def plugin_version(add_commit=False):
     return version
 
 
-def user_agent_parameter():
+def user_agent():
     return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"

@@ -45,7 +45,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..pe_utils import orders_download_folder, iface
+from ..pe_utils import orders_download_folder, iface, user_agent
 from ..planet_api import PlanetClient
 from ..planet_api.p_order_tasks import OrderProcessorTask, QuadsOrderProcessorTask
 from ..planet_api.p_quad_orders import quad_orders
@@ -182,7 +182,8 @@ class OrderWrapper:
         ).get_body()
         links = order_detail.get()[Order.LINKS_KEY]
         results = links[Order.RESULTS_KEY]
-        locations = [(r[Order.LOCATION_KEY], r[NAME]) for r in results]
+        locations = [(f"{r[Order.LOCATION_KEY]}&ua={user_agent()}", r[NAME])
+                     for r in results]
         return locations
 
 
