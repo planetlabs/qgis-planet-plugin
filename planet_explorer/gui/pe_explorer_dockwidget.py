@@ -30,13 +30,16 @@ from qgis.core import Qgis, QgsApplication, QgsMessageLog
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSettings, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import (
-    QDialogButtonBox,
-    QLineEdit
-)
+from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
-from ..pe_utils import BASE_URL, SETTINGS_NAMESPACE, open_link_with_browser, iface, plugin_version
+from ..pe_utils import (
+    BASE_URL,
+    SETTINGS_NAMESPACE,
+    open_link_with_browser,
+    iface,
+    plugin_version,
+)
 from ..planet_api import API_KEY_DEFAULT, LoginException, PlanetClient
 from .pe_basemaps_widget import BasemapsWidget
 from .pe_dailyimages_widget import DailyImagesWidget
@@ -76,7 +79,6 @@ FORGOT_PASS_URL = f"{BASE_URL}/login?mode=reset-password"
 
 
 class PlanetExplorerDockWidget(BASE, WIDGET):
-
     def __init__(self, parent=None, visible=False):
         super(PlanetExplorerDockWidget, self).__init__(parent)
 
@@ -316,9 +318,7 @@ dockwidget_instance = None
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
-        dockwidget_instance = PlanetExplorerDockWidget(
-            parent=iface.mainWindow()
-        )
+        dockwidget_instance = PlanetExplorerDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
         )

@@ -113,9 +113,7 @@ class BasemapsWidget(BASE, WIDGET):
         layout.addWidget(self.renderingOptions)
         self.frameRenderingOptions.setLayout(layout)
 
-        self.aoi_filter = PlanetMainFilters(
-            self, self.parent, True, QUADS_AOI_COLOR
-        )
+        self.aoi_filter = PlanetMainFilters(self, self.parent, True, QUADS_AOI_COLOR)
         self.grpBoxAOI.layout().addWidget(self.aoi_filter)
 
         self.radioDownloadComplete.setChecked(True)

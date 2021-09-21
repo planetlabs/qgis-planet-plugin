@@ -33,8 +33,23 @@ from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
 
 import iso8601
-from planet.api.exceptions import APIException
-from planet.api.models import Mosaics
+import configparser
+
+from typing import (
+    Optional,
+    List,
+    Tuple,
+)
+
+from qgis.PyQt.QtCore import QVariant, QUrl, QSettings
+
+from qgis.PyQt.QtGui import QColor, QDesktopServices
+
+from qgis.PyQt.QtWidgets import (
+    QLabel,
+    QWidgetAction,
+)
+
 from qgis.core import (
     QgsApplication,
     QgsCoordinateReferenceSystem,
@@ -52,7 +67,10 @@ from qgis.core import (
     QgsRectangle,
     QgsSimpleLineSymbolLayer,
     QgsVectorFileWriter,
-    QgsVectorLayer,
+    QgsLayerTreeLayer,
+    QgsJsonUtils,
+    QgsFields,
+    Qgis,
 )
 
 from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
@@ -422,8 +440,7 @@ def resource_file(f):
 
 def orders_download_folder():
     download_folder = QSettings().value(
-        f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}",
-        ""
+        f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}", ""
     )
     if not os.path.exists(download_folder):
         try:
@@ -598,3 +615,7 @@ def plugin_version(add_commit=False):
     if add_commit:
         version = f"{version}-{COMMIT_ID}"
     return version
+
+
+def user_agent_parameter():
+    return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"

@@ -21,16 +21,25 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-import logging
 import os
+import logging
 import random
-from typing import List, Optional
+
+from typing import (
+    Optional,
+    List,
+)
+
+# noinspection PyPackageRequirements
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
+from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
+
 
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
-from PyQt5.QtCore import QObject, QSettings, pyqtSignal, pyqtSlot
-from qgis.core import Qgis, QgsApplication, QgsAuthMethodConfig, QgsMessageLog
+
+from ..pe_utils import user_agent
 
 from ..gui.pe_gui_utils import waitcursor
 
@@ -40,7 +49,7 @@ log = logging.getLogger(__name__)
 
 API_KEY_DEFAULT = "SKIP_ENVIRON"
 
-QUOTA_URL = "https://api.planet.com/auth/v1/experimental/public/my/subscriptions"
+QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscriptions"
 
 TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 
@@ -414,7 +423,7 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
             return res_json["name"]
     else:
         log.debug(
-            "Tile service hash request failed:\n"
+            f"Tile service hash request failed:\n"
             f"status_code: {res.status_code}\n"
             f"reason: {res.reason}"
         )
@@ -450,6 +459,10 @@ def tile_service_url(
         url = f"{tile_url}/wmts/{tile_hash}?api_key={api_key}"
     elif service.lower() == "xyz":
         tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
-        url = f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?api_key={api_key}"
+        url = (
+            f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
+            f"api_key={api_key}&"
+            f"ua={user_agent()}"
+        )
 
     return url

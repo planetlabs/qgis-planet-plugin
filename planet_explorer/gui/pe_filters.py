@@ -69,7 +69,12 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..pe_analytics import analytics_track
-from ..pe_utils import MAIN_AOI_COLOR, qgsgeometry_from_geojson, zoom_canvas_to_aoi, iface
+from ..pe_utils import (
+    MAIN_AOI_COLOR,
+    qgsgeometry_from_geojson,
+    zoom_canvas_to_aoi,
+    iface,
+)
 from ..planet_api.p_client import PlanetClient
 from .pe_aoi_maptools import PlanetCircleMapTool, PlanetExtentMapTool, PlanetPolyMapTool
 from .pe_range_slider import PlanetExplorerRangeSlider
@@ -199,11 +204,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
     zoomToAOIRequested = pyqtSignal()
 
     def __init__(
-        self,
-        parent=None,
-        plugin=None,
-        no_saved_search=False,
-        color=MAIN_AOI_COLOR,
+        self, parent=None, plugin=None, no_saved_search=False, color=MAIN_AOI_COLOR,
     ):
         super().__init__(parent=parent)
         self._plugin = plugin
@@ -214,9 +215,7 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
         self.color = color
 
-        self._aoi_box = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
-        )
+        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(color)
         self._aoi_box.setWidth(3)

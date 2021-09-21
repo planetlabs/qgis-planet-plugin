@@ -25,6 +25,7 @@ class TestPlugin(unittest.TestCase):
     def test_import_planet(self):
         try:
             import planet  # noqa: F401
+
             assert True
         except ImportError:
             assert False

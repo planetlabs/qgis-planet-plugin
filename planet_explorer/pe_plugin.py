@@ -21,83 +21,98 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-import os
-import platform
-import sys
-import traceback
-import zipfile
 from builtins import object
 
-import analytics
-import planet
+import os
+import platform
+import zipfile
+import sys
+import traceback
+import urllib3
 import requests
+import planet
+
+import analytics
 import sentry_sdk
+
+
 from qgis.core import Qgis, QgsProject
+
 from qgis.gui import QgsGui
+
 from qgis.PyQt.QtCore import (
-    QCoreApplication,
     QSettings,
-    QSize,
+    QTranslator,
+    QCoreApplication,
     Qt,
     QTimer,
-    QTranslator,
     QUrl,
-)
-from qgis.PyQt.QtGui import QDesktopServices, QIcon, QPalette
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QHBoxLayout,
-    QLabel,
-    QMenu,
-    QMessageBox,
-    QPushButton,
-    QSizePolicy,
-    QTextBrowser,
-    QToolButton,
-    QWidget,
+    QSize,
 )
 
-from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
-from planet_explorer.gui.pe_explorer_dockwidget import (
-    remove_explorer,
-    show_explorer,
-    toggle_images_search,
-    toggle_mosaics_search,
+from qgis.PyQt.QtGui import QIcon, QDesktopServices, QPalette
+
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QToolButton,
+    QPushButton,
+    QMenu,
+    QTextBrowser,
+    QWidget,
+    QHBoxLayout,
+    QSizePolicy,
+    QLabel,
+    QMessageBox,
 )
-from planet_explorer.gui.pe_orders_monitor_dockwidget import (
-    hide_orders_monitor,
-    remove_orders_monitor,
-    toggle_orders_monitor,
-)
-from planet_explorer.gui.pe_planet_inspector_dockwidget import (
-    hide_inspector,
-    remove_inspector,
-    toggle_inspector,
-)
-from planet_explorer.gui.pe_settings_dialog import SettingsDialog
-from planet_explorer.gui.pe_tasking_dockwidget import (
-    remove_tasking_widget,
-    toggle_tasking_widget,
-)
-from planet_explorer.pe_analytics import (
-    is_segments_write_key_valid,
-    is_sentry_dsn_valid,
-    segments_write_key,
-    sentry_dsn,
-)
-from planet_explorer.pe_utils import (
-    BASE_URL,
-    PLANET_COLOR,
-    add_menu_section_action,
-    add_widget_to_layer,
-    open_link_with_browser,
-    plugin_version,
-)
-from planet_explorer.planet_api import PlanetClient
 
 # Initialize Qt resources from file resources.py
 # noinspection PyUnresolvedReferences
-from planet_explorer.resources import resources  # noqa: F401
+from planet_explorer.resources import resources
+
+from planet_explorer.gui.pe_explorer_dockwidget import (
+    show_explorer,
+    remove_explorer,
+    toggle_mosaics_search,
+    toggle_images_search,
+)
+
+from planet_explorer.pe_utils import (
+    add_menu_section_action,
+    BASE_URL,
+    open_link_with_browser,
+    add_widget_to_layer,
+    PLANET_COLOR,
+)
+
+from planet_explorer.pe_analytics import (
+    sentry_dsn,
+    is_sentry_dsn_valid,
+    is_segments_write_key_valid,
+    segments_write_key,
+)
+
+from planet_explorer.planet_api import PlanetClient
+
+from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
+
+from planet_explorer.gui.pe_settings_dialog import SettingsDialog
+
+from planet_explorer.gui.pe_orders_monitor_dockwidget import (
+    toggle_orders_monitor,
+    hide_orders_monitor,
+    remove_orders_monitor,
+)
+
+from planet_explorer.gui.pe_planet_inspector_dockwidget import (
+    toggle_inspector,
+    hide_inspector,
+    remove_inspector,
+)
+
+from planet_explorer.gui.pe_tasking_dockwidget import (
+    toggle_tasking_widget,
+    remove_tasking_widget,
+)
 
 PLANET_COM = "https://planet.com"
 SAT_SPECS_PDF = (
@@ -121,7 +136,7 @@ DOCK_SHOWN_STATE = "dockShownState"
 
 PLUGIN_NAMESPACE = "planet_explorer"
 
-
+# noinspection PyUnresolvedReferences
 class PlanetExplorer(object):
     def __init__(self, iface):
 
@@ -160,28 +175,25 @@ class PlanetExplorer(object):
         def plugin_hook(t, value, tb):
             trace = "".join(traceback.format_exception(t, value, tb))
             if PLUGIN_NAMESPACE in trace.lower():
-                try:
-                    sentry_sdk.capture_exception(value)
-                except Exception:
-                    pass  # we swallow all exceptions here, to avoid entering an endless loop
                 s = ""
                 if issubclass(t, requests.exceptions.Timeout):
                     s = "Connection to Planet server timed out."
                 elif issubclass(t, requests.exceptions.ConnectionError):
-                    s = (
-                        "Connection error.\n Verify that your computer is correctly"
-                        " connected to the Internet"
-                    )
+                    s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
                 elif issubclass(t, requests.exceptions.ProxyError):
-                    s = (
-                        "ProxyError.\n Verify that your proxy is correctly configured"
-                        " in the QGIS settings"
-                    )
+                    s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
                 elif issubclass(t, planet.api.exceptions.ServerError):
                     s = "Server Error.\n Please, try again later"
+                elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
+                    s = "Proxy Error\n Proxy URL must start with 'http://' or 'https://'"
+
                 if s:
                     QMessageBox.warning(self.iface.mainWindow(), "Error", s)
                 else:
+                    try:
+                        sentry_sdk.capture_exception(value)
+                    except Exception:
+                        pass  # we swallow all exceptions here, to avoid entering an endless loop
                     self.qgis_hook(t, value, tb)
             else:
                 self.qgis_hook(t, value, tb)
@@ -189,13 +201,40 @@ class PlanetExplorer(object):
         sys.excepthook = plugin_hook
 
         if is_sentry_dsn_valid():
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_context(
-                    "versions",
+            sentry_sdk.set_context(
+                "qgis",
+                {
+                    "type": "runtime",
+                    "name": Qgis.QGIS_RELEASE_NAME,
+                    "version": Qgis.QGIS_VERSION,
+                },
+            )
+            system = platform.system()
+            if system == "Darwin":
+                sentry_sdk.set_context(
+                    "mac",
                     {
-                        "plugin_version": plugin_version(),
-                        "qgis_version": Qgis.QGIS_VERSION,
+                        "type": "os",
+                        "name": "macOS",
+                        "version": platform.mac_ver()[0],
+                        "build": os.popen("sw_vers -buildVersion").read().strip(),
+                        "kernel_version": platform.uname().release,
                     },
+                )
+            if system == "Linux":
+                sentry_sdk.set_context(
+                    "linux",
+                    {
+                        "type": "os",
+                        "name": "Linux",
+                        "version": platform.release(),
+                        "build": platform.version(),
+                    },
+                )
+            if system == "Windows":
+                sentry_sdk.set_context(
+                    "windows",
+                    {"type": "os", "name": "Windows", "version": platform.version(),},
                 )
 
     # noinspection PyMethodMayBeStatic
@@ -402,7 +441,7 @@ class PlanetExplorer(object):
     def add_info_button(self):
         info_menu = QMenu()
 
-        add_menu_section_action("Planet", info_menu)
+        p_sec_act = add_menu_section_action("Planet", info_menu)
 
         p_com_act = QAction(QIcon(EXT_LINK), "planet.com", info_menu)
         p_com_act.triggered[bool].connect(lambda: open_link_with_browser(PLANET_COM))
@@ -443,11 +482,7 @@ class PlanetExplorer(object):
         info_menu.addAction(terms_act)
 
         btn = QToolButton()
-        btn.setIcon(
-            QIcon(
-                os.path.join(plugin_path, "resources", "info.svg"),
-            )
-        )
+        btn.setIcon(QIcon(os.path.join(plugin_path, "resources", "info.svg"),))
         btn.setMenu(info_menu)
 
         btn.setPopupMode(QToolButton.MenuButtonPopup)
@@ -472,9 +507,7 @@ class PlanetExplorer(object):
         self.user_button = QToolButton()
         self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.user_button.setIcon(
-            QIcon(
-                os.path.join(plugin_path, "resources", "account.svg"),
-            )
+            QIcon(os.path.join(plugin_path, "resources", "account.svg"),)
         )
         self.user_button.setMenu(user_menu)
 
@@ -534,16 +567,13 @@ class PlanetExplorer(object):
     def login(self):
         if Qgis.QGIS_VERSION_INT >= 32000 and platform.system() == "Darwin":
             text = (
-                "WARNING: Your configuration may encounter serious issues with the"
-                " Planet QGIS Plugin using QGIS V3.20. We are actively troubleshooting"
-                " the issue with the QGIS team, you can track <a"
-                " href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182"
-                " here</a>. In the meantime, we recommend that you use a QGIS version"
-                " between 3.10 and 3.20, such as the 3.16 long term stable release. For"
-                " further information including instructions on how to downgrade QGIS,"
-                " please refer to our <a"
-                " href='https://support.planet.com/hc/en-us/articles/4404372169233'>support"
-                " page here</a>."
+                "WARNING: Your configuration may encounter serious issues with the Planet QGIS Plugin "
+                "using QGIS V3.20. We are actively troubleshooting the issue with the QGIS team, you "
+                "can track <a href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182 here</a>. "
+                "In the meantime, we recommend that you use a QGIS version between 3.10 and 3.20, "
+                "such as the 3.16 long term stable release. For further information including instructions "
+                "on how to downgrade QGIS, please refer to our "
+                "<a href='https://support.planet.com/hc/en-us/articles/4404372169233'>support page here</a>."
             )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
         show_explorer()
@@ -619,9 +649,8 @@ class PlanetExplorer(object):
                     QMessageBox.warning(
                         self.iface.mainWindow(),
                         "Error saving project",
-                        "There was an error while removing API keys from QGIS project"
-                        " file.\nThe project that you have just saved might contain"
-                        " Planet API keys in plain text.",
+                        "There was an error while removing API keys from QGIS project file.\n"
+                        "The project that you have just saved might contain Planet API keys in plain text.",
                     )
 
             QTimer.singleShot(100, resave)

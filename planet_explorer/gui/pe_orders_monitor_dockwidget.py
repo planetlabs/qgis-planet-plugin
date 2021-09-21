@@ -80,8 +80,7 @@ ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
 
 class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
     def __init__(
-        self,
-        parent=None,
+        self, parent=None,
     ):
         super().__init__(parent=parent)
         self.p_client = PlanetClient.getInstance()

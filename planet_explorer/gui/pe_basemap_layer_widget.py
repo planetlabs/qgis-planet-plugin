@@ -242,7 +242,7 @@ class BasemapRenderingOptionsWidget(QFrame):
 
         self.ramp_pixmaps = {}
         for k, v in self.ramps["colors"].items():
-            base64 = v["icon"][len("data:image/png;base64,"):].encode()
+            base64 = v["icon"][len("data:image/png;base64,") :].encode()
             byte_array = QByteArray.fromBase64(base64)
             image = QImage.fromData(byte_array, "PNG")
             scaled = image.scaled(100, 20)
