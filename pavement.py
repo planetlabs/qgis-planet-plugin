@@ -61,7 +61,9 @@ options(
 
 @task
 @cmdopts(
-    [("clean", "c", "clean out dependencies first"),]
+    [
+        ("clean", "c", "clean out dependencies first"),
+    ]
 )
 def setup():
     clean = getattr(options, "clean", False)
@@ -203,7 +205,7 @@ def _make_zip(zipfile, options):
     cfg.optionxform = str
     cfg.read(metadata_filename)
     if hasattr(options.package, "version"):
-        version = "".join(c for c in options.package.version if c.isdigit() or c == ".")
+        version = ''.join(c for c in options.package.version if c.isdigit() or c == '.')
         cfg.set("general", "version", version)
     buf = StringIO()
     cfg.write(buf)
@@ -219,6 +221,9 @@ def _make_zip(zipfile, options):
             .decode("utf-8")
             .strip()
         )
-        txt = txt.replace('COMMIT_ID = ""', f'COMMIT_ID = "{commitid}"',)
+        txt = txt.replace(
+            'COMMIT_ID = ""',
+            f'COMMIT_ID = "{commitid}"',
+        )
 
         zipfile.writestr("planet_explorer/pe_utils.py", txt)
