@@ -158,6 +158,8 @@ PLANET_MOSAIC_DATATYPE = "planet/mosaicDatatype"
 PLANET_BASEMAP_LABEL = "planet/basemapLabel"
 WIDGET_PROVIDER_NAME = "planetmosaiclayerwidget"
 
+COMMIT_ID = ""
+
 
 def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
         transform = QgsCoordinateTransform(
@@ -589,8 +591,11 @@ def is_planet_url(url):
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
 
 
-def plugin_version():
+def plugin_version(add_commit=False):
     config = configparser.ConfigParser()
     path = os.path.join(os.path.dirname(__file__), "metadata.txt")
     config.read(path)
-    return config.get("general", "version")
+    version = config.get("general", "version")
+    if add_commit:
+        version = f"{version}-{COMMIT_ID}"
+    return version
