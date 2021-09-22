@@ -181,7 +181,7 @@ class PlanetExplorer(object):
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
-            sentry_sdk.init(sentry_dsn())
+            sentry_sdk.init(sentry_dsn(), version=plugin_version(True))
 
         self.qgis_hook = sys.excepthook
 
