@@ -88,7 +88,8 @@ from planet_explorer.pe_utils import (
     BASE_URL,
     open_link_with_browser,
     add_widget_to_layer,
-    PLANET_COLOR
+    PLANET_COLOR,
+    plugin_version
 )
 
 from planet_explorer.pe_analytics import (
