@@ -1,15 +1,9 @@
-# these are explicitly listed, i.e. NO dependencies will be installed
 click
 requests-futures
 planet
-qgiscommons
 iso8601
 mercantile
 analytics-python
 sentry-sdk
 monotonic
 backoff
-
-# typing
-
-# test requirements

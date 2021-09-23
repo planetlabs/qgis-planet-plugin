@@ -1,18 +1,13 @@
-import os
 import json
+import os
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtGui import QGuiApplication
 
-from ..planet_api import (
-    PlanetClient
-)
+from ..pe_analytics import analytics_track
+from ..planet_api import PlanetClient
 
-from ..pe_analytics import(
-    analytics_track
-)
-
-python_template = '''
+python_template = """
 import os
 import requests
 from requests.auth import HTTPBasicAuth
@@ -28,17 +23,21 @@ search_result = \
     auth=HTTPBasicAuth(PLANET_API_KEY, ''),
     json=request)
 
-'''
+"""
 
-curl_template = '''
-$ curl -u '%s: ' -d '%s' -H "Content-Type: application/json" -X POST https://api.planet.com/data/v1/quick-search
-'''
+curl_template = (
+    """$ curl -u '%s: ' -d '%s' -H "Content-Type: application/json" """
+    """-X POST https://api.planet.com/data/v1/quick-search"""
+)
 
-WIDGET, BASE = uic.loadUiType(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "show_curl_dialog.ui"))
+WIDGET, BASE = uic.loadUiType(
+    os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "ui", "show_curl_dialog.ui"
+    )
+)
 
 
 class ShowCurlDialog(BASE, WIDGET):
-
     def __init__(self, request, parent=None):
         super(ShowCurlDialog, self).__init__(parent)
         self.request = request
@@ -52,11 +51,15 @@ class ShowCurlDialog(BASE, WIDGET):
 
     def setText(self):
         if self.comboType.currentText() == "cURL":
-            txt = curl_template % (PlanetClient.getInstance().api_key(),
-                                    json.dumps(self.request))
+            txt = curl_template % (
+                PlanetClient.getInstance().api_key(),
+                json.dumps(self.request),
+            )
         else:
-            txt = python_template % (PlanetClient.getInstance().api_key(),
-                                    json.dumps(self.request, indent=4))
+            txt = python_template % (
+                PlanetClient.getInstance().api_key(),
+                json.dumps(self.request, indent=4),
+            )
         self.textBrowser.setPlainText(txt)
 
     def copyClicked(self):

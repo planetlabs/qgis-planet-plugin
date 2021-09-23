@@ -14,32 +14,23 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
-import logging
 import json
-
+import logging
+import os
 from builtins import object
 from collections import OrderedDict
+from typing import List, Optional  # Tuple,
 
-from typing import (
-    Optional,
-    List,
-    # Tuple,
-)
+from .p_specs import ITEM_ASSET_DL_REGEX
 
-from .p_specs import (
-    ITEM_ASSET_DL_REGEX
-)
-
-
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
@@ -57,14 +48,14 @@ class PlanetOrdersV2Bundles(object):
         self._defaults_file = default_bundles_file
 
         if not os.path.exists(self._spec_file):
-            log.debug(f'Bundles file does not exist:\n{self._spec_file}')
+            log.debug(f"Bundles file does not exist:\n{self._spec_file}")
             return
 
         if not os.path.exists(self._defaults_file):
-            log.debug(f'Bundle defaults file does not exist:\n{self._defaults_file}')
+            log.debug(f"Bundle defaults file does not exist:\n{self._defaults_file}")
             return
 
-        with open(self._spec_file, 'r', encoding="utf-8") as fp:
+        with open(self._spec_file, "r", encoding="utf-8") as fp:
             self._bundles_per_item_types = json.load(fp, object_pairs_hook=OrderedDict)
 
         self._bundles = OrderedDict()
@@ -72,14 +63,14 @@ class PlanetOrdersV2Bundles(object):
             for b in b_it:
                 self._bundles[b["id"]] = b
 
-        with open(self._defaults_file, 'r', encoding="utf-8") as fp:
+        with open(self._defaults_file, "r", encoding="utf-8") as fp:
             self._defaults = json.load(fp)
 
         self._defaults = {k: v[0].split("::")[-1] for k, v in self._defaults.items()}
 
     def bundles_for_item_type(
-            self, item_type: str,
-            permissions: List[List[str]]) -> Optional[list]:
+        self, item_type: str, permissions: List[List[str]]
+    ) -> Optional[list]:
         """
         Get bundles per an item type from cache, optionally constrained by
         user's permissions.
@@ -87,8 +78,11 @@ class PlanetOrdersV2Bundles(object):
         :param permissions: List of permissions, e.g. assets.udm2:download
         :return: Dict of bundles or None
         """
-        bndls_per_it = [b for b in self._bundles_per_item_types.get(item_type)
-                        if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "UDM"]
+        bndls_per_it = [
+            b
+            for b in self._bundles_per_item_types.get(item_type)
+            if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "UDM"
+        ]
 
         permissions_cleaned = []
         for img_permissions in permissions:
@@ -102,7 +96,7 @@ class PlanetOrdersV2Bundles(object):
         bndls_allowed = []
         for b in bndls_per_it:
             add_bundle = True
-            assets = b.get('assets', [])
+            assets = b.get("assets", [])
             for asset in assets:
                 for img_permissions in permissions_cleaned:
                     if asset not in img_permissions:
@@ -113,5 +107,4 @@ class PlanetOrdersV2Bundles(object):
         return bndls_allowed
 
     def item_default_bundle_name(self, item_type: str) -> str:
-        return self._defaults.get(item_type, '')
-
+        return self._defaults.get(item_type, "")

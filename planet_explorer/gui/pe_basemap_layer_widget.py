@@ -14,69 +14,48 @@
 *                                                                         *
 ***************************************************************************
 """
-import os
 import json
+import os
 from urllib.parse import quote
 
-from PyQt5.QtCore import (
-    Qt,
-    QRectF,
-    pyqtSignal,
-    QByteArray,
-    QSize
-)
-
-from PyQt5.QtGui import (
-    QPainter,
-    QBrush,
-    QColor,
-    QImage,
-    QPixmap
-)
-
+from PyQt5.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
 from PyQt5.QtWidgets import (
-    QWidget,
-    QSlider,
-    QVBoxLayout,
-    QGridLayout,
     QComboBox,
+    QFrame,
+    QGridLayout,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QSlider,
     QStyle,
     QStyleOptionSlider,
-    QFrame,
-    QListWidget,
-    QListWidgetItem
+    QVBoxLayout,
+    QWidget,
 )
-
-from qgis.core import (
-    QgsLayerTreeLayer,
-    QgsLayerTreeGroup,
-    QgsProject,
-)
-
-from qgis.gui import (
-    QgsLayerTreeEmbeddedWidgetProvider
-)
-
-from ..planet_api import PlanetClient
+from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsProject
+from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 
 from ..pe_utils import (
-    PLANET_MOSAICS,
     PLANET_CURRENT_MOSAIC,
+    PLANET_MOSAIC_DATATYPE,
     PLANET_MOSAIC_PROC,
     PLANET_MOSAIC_RAMP,
-    PLANET_MOSAIC_DATATYPE,
+    PLANET_MOSAICS,
     WIDGET_PROVIDER_NAME,
-    mosaic_name_from_url,
     datatype_from_mosaic_name,
-    is_planet_url
+    is_planet_url,
+    mosaic_name_from_url,
 )
+from ..planet_api import PlanetClient
 
-TILE_URL_TEMPLATE = "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png?api_key=%s"
+TILE_URL_TEMPLATE = (
+    "https://tiles.planet.com/basemaps/v1/planet-tiles/"
+    "%s/gmap/{z}/{x}/{y}.png?api_key=%s"
+)
 
 
 class CustomSlider(QSlider):
-
     def paintEvent(self, event):
         # based on
         # http://qt.gitorious.org/qt/qt/blobs/master/src/gui/widgets/qslider.cpp
@@ -87,37 +66,42 @@ class CustomSlider(QSlider):
         self.initStyleOption(opt)
 
         groove_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderGroove, self)
+            style.CC_Slider, opt, QStyle.SC_SliderGroove, self
+        )
         handle_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+            style.CC_Slider, opt, QStyle.SC_SliderHandle, self
+        )
 
         slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
         range_x = style.sliderPositionFromValue(
-            self.minimum(), self.maximum(), self.value(), slider_space)
+            self.minimum(), self.maximum(), self.value(), slider_space
+        )
         range_height = 4
 
         groove_rect = QRectF(
             groove_rect.x(),
             handle_rect.center().y() - (range_height / 2),
             groove_rect.width(),
-            range_height)
+            range_height,
+        )
 
         range_rect = QRectF(
             groove_rect.x(),
             handle_rect.center().y() - (range_height / 2),
             range_x,
-            range_height)
+            range_height,
+        )
 
-        if style.metaObject().className() != 'QMacStyle':
+        if style.metaObject().className() != "QMacStyle":
             # Paint groove for Fusion and Windows styles
             cur_brush = painter.brush()
             cur_pen = painter.pen()
             painter.setBrush(QBrush(QColor(169, 169, 169)))
             painter.setPen(Qt.NoPen)
             # painter.drawRect(groove_rect)
-            painter.drawRoundedRect(groove_rect,
-                                    groove_rect.height() / 2,
-                                    groove_rect.height() / 2)
+            painter.drawRoundedRect(
+                groove_rect, groove_rect.height() / 2, groove_rect.height() / 2
+            )
             painter.setBrush(cur_brush)
             painter.setPen(cur_pen)
 
@@ -146,8 +130,7 @@ class CustomSlider(QSlider):
 
         opt.sliderPosition = self.value()
         opt.sliderValue = self.value()
-        style.drawComplexControl(
-            QStyle.CC_Slider, opt, painter, self)
+        style.drawComplexControl(QStyle.CC_Slider, opt, painter, self)
 
 
 class BasemapRenderingOptionsWidget(QFrame):
@@ -208,12 +191,16 @@ class BasemapRenderingOptionsWidget(QFrame):
                 for name in ramps:
                     icon = self.ramp_pixmaps[name]
                     self.comboRamp.addItem(name)
-                    self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+                    self.comboRamp.setItemData(
+                        self.comboRamp.count() - 1, icon, Qt.DecorationRole
+                    )
                 self.comboRamp.setCurrentText(default)
                 if len(ramps) != len(list(self.ramps["colors"].keys())):
                     item = QListWidgetItem()
                     self.listWidget.addItem(item)
-                    label = QLabel("<a href='#' style='color: grey;'>Show all ramps</a>")
+                    label = QLabel(
+                        "<a href='#' style='color: grey;'>Show all ramps</a>"
+                    )
                     label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                     label.linkActivated.connect(self._show_all_ramps)
                     self.listWidget.setItemWidget(item, label)
@@ -231,20 +218,25 @@ class BasemapRenderingOptionsWidget(QFrame):
         for name in ramps:
             icon = self.ramp_pixmaps[name]
             self.comboRamp.addItem(name)
-            self.comboRamp.setItemData(self.comboRamp.count() - 1, icon, Qt.DecorationRole)
+            self.comboRamp.setItemData(
+                self.comboRamp.count() - 1, icon, Qt.DecorationRole
+            )
         self.comboRamp.showPopup()
 
     def ramps_for_current_process(self):
         process = self.comboProc.currentText()
         if process in self.ramps["indices"]:
-            pref_colors = self.ramps["indices"][process]["pref-colors"] or list(self.ramps["colors"].keys())
+            pref_colors = self.ramps["indices"][process]["pref-colors"] or list(
+                self.ramps["colors"].keys()
+            )
             return self.ramps["indices"][process]["color"], pref_colors
         else:
             return None, []
 
     def load_ramps(self):
-        path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                            "resources", "mosaics_caps.json")
+        path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "resources", "mosaics_caps.json"
+        )
         with open(path) as f:
             self.ramps = json.load(f)
 
@@ -259,8 +251,7 @@ class BasemapRenderingOptionsWidget(QFrame):
 
     def processes_for_datatype(self):
         if self.datatype == "uint16":
-            return ["rgb", "cir", "ndvi", "mtvi2", "ndwi",
-                    "msavi2", "tgi", "vari"]
+            return ["rgb", "cir", "ndvi", "mtvi2", "ndwi", "msavi2", "tgi", "vari"]
         else:
             return []
 
@@ -282,7 +273,6 @@ class BasemapRenderingOptionsWidget(QFrame):
 
 
 class BasemapLayerWidget(QWidget):
-
     def __init__(self, layer):
         super().__init__()
         proc = layer.customProperty(PLANET_MOSAIC_PROC)
@@ -305,7 +295,9 @@ class BasemapLayerWidget(QWidget):
                 except ValueError:
                     idx = 0
                 self.labelId = QLabel()
-                self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[idx]}</span>')
+                self.labelId.setText(
+                    f'<span style="color: grey;">{self.mosaicids[idx]}</span>'
+                )
                 self.layout.addWidget(self.labelId)
                 self.labelName = QLabel(current_mosaic_name)
                 self.slider = CustomSlider(Qt.Horizontal)
@@ -329,7 +321,9 @@ class BasemapLayerWidget(QWidget):
             self.renderingOptionsWidget.set_process(proc)
             self.renderingOptionsWidget.set_ramp(ramp)
             self.renderingOptionsWidget.values_changed.connect(self.change_source)
-            self.labelWarning = QLabel('<span style="color:red;"><b>No API key available</b></span>')
+            self.labelWarning = QLabel(
+                '<span style="color:red;"><b>No API key available</b></span>'
+            )
             self.layout.addWidget(self.labelWarning)
             self.setLayout(self.layout)
 
@@ -338,7 +332,10 @@ class BasemapLayerWidget(QWidget):
             self.change_source()
         else:
             self.layout = QVBoxLayout()
-            self.labelWarning = QLabel('<span style="color:red;"><b>Not a valid Planet basemap layer</b></span>')
+            self.labelWarning = QLabel(
+                '<span style="color:red;"><b>Not a valid Planet basemap'
+                " layer</b></span>"
+            )
             self.layout.addWidget(self.labelWarning)
             self.setLayout(self.layout)
 
@@ -346,7 +343,9 @@ class BasemapLayerWidget(QWidget):
         return is_planet_url(self.layer.source())
 
     def on_value_changed(self, value):
-        self.labelId.setText(f'<span style="color: grey;">{self.mosaicids[value]}</span>')
+        self.labelId.setText(
+            f'<span style="color: grey;">{self.mosaicids[value]}</span>'
+        )
         self.labelName.setText(f"{self.mosaicnames[value]}")
         if not self.slider.isSliderDown():
             self.change_source()
@@ -361,14 +360,20 @@ class BasemapLayerWidget(QWidget):
             self.slider.setVisible(has_api_key)
             value = self.slider.value() if len(self.mosaics) > 1 else 0
             name, mosaicid = self.mosaics[value]
-            tile_url = TILE_URL_TEMPLATE % (mosaicid, str(PlanetClient.getInstance().api_key()))
+            tile_url = TILE_URL_TEMPLATE % (
+                mosaicid,
+                str(PlanetClient.getInstance().api_key()),
+            )
             self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
         else:
-            tile_url = f"{self.layerurl}/{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
+            tile_url = (
+                f"{self.layerurl}/"
+                f"{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
+            )
         proc = self.renderingOptionsWidget.process()
         ramp = self.renderingOptionsWidget.ramp()
-        procparam = quote(f'&proc={proc}') if proc != "default" else ""
-        rampparam = quote(f'&color={ramp}') if ramp else ""
+        procparam = quote(f"&proc={proc}") if proc != "default" else ""
+        rampparam = quote(f"&color={ramp}") if ramp else ""
         tokens = self.layer.source().split("&")
         zoom = []
         for token in tokens:
@@ -400,6 +405,7 @@ class BasemapLayerWidget(QWidget):
     def ensure_correct_size(self):
         if self.layer is None:
             return
+
         def findLayerItem(root=None):
             root = root or QgsProject.instance().layerTreeRoot()
             for child in root.children():
@@ -408,6 +414,7 @@ class BasemapLayerWidget(QWidget):
                         return child
                 elif isinstance(child, QgsLayerTreeGroup):
                     return findLayerItem(child)
+
         item = findLayerItem()
         if item is not None:
             if not PlanetClient.getInstance().has_api_key():
@@ -416,8 +423,8 @@ class BasemapLayerWidget(QWidget):
             item.setExpanded(not isExpanded)
             item.setExpanded(isExpanded)
 
-class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
 
+class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
     def __init__(self):
         QgsLayerTreeEmbeddedWidgetProvider.__init__(self)
         self.widgets = {}

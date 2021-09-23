@@ -14,100 +14,58 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
 import logging
+import os
+
 import iso8601
-
-from qgis.PyQt import uic
-
-from qgis.PyQt.QtCore import (
-    pyqtSignal,
-    pyqtSlot,
-    Qt,
-    QSize,
-)
-
-from qgis.PyQt.QtGui import (
-    QIcon,
-    QColor,
-    QPixmap,
-)
-
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QFrame,
-    QListWidgetItem,
-    QCheckBox,
-    QHBoxLayout,
-    QTreeWidgetItem,
-    QTreeWidgetItemIterator
-)
-
-
 from qgis.core import (
-    QgsGeometry,
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsGeometry,
     QgsProject,
-    QgsWkbTypes,
     QgsRectangle,
-    QgsApplication
+    QgsWkbTypes,
 )
-
-from qgis.gui import (
-    QgsRubberBand
-)
-
-from qgis.utils import (
-    iface
-)
-
-from ..gui.pe_save_search_dialog import (
-    SaveSearchDialog
+from qgis.gui import QgsRubberBand
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
+from qgis.PyQt.QtWidgets import (
+    QCheckBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QListWidgetItem,
+    QTreeWidgetItem,
+    QTreeWidgetItemIterator,
 )
 
 from ..gui.pe_results_configuration_dialog import (
+    PlanetNodeMetadata,
     ResultsConfigurationDialog,
-    PlanetNodeMetadata
 )
-
+from ..gui.pe_save_search_dialog import SaveSearchDialog
+from ..pe_analytics import analytics_track, send_analytics_for_preview
 from ..pe_utils import (
-    qgsgeometry_from_geojson,
+    PLANET_COLOR,
+    SEARCH_AOI_COLOR,
     area_coverage_for_image,
     create_preview_group,
-    SEARCH_AOI_COLOR,
-    PLANET_COLOR
+    iface,
+    qgsgeometry_from_geojson,
 )
-
-from ..pe_analytics import(
-    analytics_track,
-    send_analytics_for_preview
-)
-
-from ..planet_api.p_client import (
-    PlanetClient
-)
-
-from ..planet_api.p_specs import (
-    DAILY_ITEM_TYPES_DICT,
-    ITEM_ASSET_DL_REGEX
-)
-
-from .pe_gui_utils import (
-    waitcursor
-)
-
-from .pe_thumbnails import (
-    createCompoundThumbnail,
-    download_thumbnail
-)
+from ..planet_api.p_client import PlanetClient
+from ..planet_api.p_specs import DAILY_ITEM_TYPES_DICT, ITEM_ASSET_DL_REGEX
+from .pe_gui_utils import waitcursor
+from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -126,25 +84,26 @@ GEOMETRY = "geometry"
 ITEM_TYPE = "item_type"
 PERMISSIONS = "_permissions"
 
-SUBTEXT_STYLE = 'color: rgb(100,100,100);'
-SUBTEXT_STYLE_WITH_NEW_CHILDREN = 'color: rgb(157,0,165);'
+SUBTEXT_STYLE = "color: rgb(100,100,100);"
+SUBTEXT_STYLE_WITH_NEW_CHILDREN = "color: rgb(157,0,165);"
 
 ADD_PREVIEW_ICON = QIcon(iconPath("mActionAddXyzLayer.svg"))
 SAVE_ICON = QgsApplication.getThemeIcon("/mActionFileSave.svg")
-ZOOMTO_ICON = QIcon(':/plugins/planet_explorer/zoom-target.svg')
+ZOOMTO_ICON = QIcon(":/plugins/planet_explorer/zoom-target.svg")
 SORT_ICON = QIcon(iconPath("sort.svg"))
-LOCK_ICON = QIcon(':/plugins/planet_explorer/lock-light.svg')
-PLACEHOLDER_THUMB = ':/plugins/planet_explorer/thumb-placeholder-128.svg'
+LOCK_ICON = QIcon(":/plugins/planet_explorer/lock-light.svg")
+PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
-LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
+LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_search_results_base.ui'),
-    from_imports=True, import_from=f'{os.path.basename(plugin_path)}',
-    resource_suffix=''
+    os.path.join(plugin_path, "ui", "pe_search_results_base.ui"),
+    from_imports=True,
+    import_from=f"{os.path.basename(plugin_path)}",
+    resource_suffix="",
 )
 
 
@@ -163,8 +122,10 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
         self._has_more = True
 
-        self._metadata_to_show = [PlanetNodeMetadata.CLOUD_PERCENTAGE,
-                                  PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE]
+        self._metadata_to_show = [
+            PlanetNodeMetadata.CLOUD_PERCENTAGE,
+            PlanetNodeMetadata.GROUND_SAMPLE_DISTANCE,
+        ]
 
         self._image_count = 0
         self._total_count = 0
@@ -211,10 +172,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def add_preview(self):
         imgs = self.selected_images()
         send_analytics_for_preview(imgs)
-        create_preview_group(
-            "Selected images",
-            imgs
-        )
+        create_preview_group("Selected images", imgs)
 
     def update_image_items(self):
         it = QTreeWidgetItemIterator(self.tree)
@@ -260,7 +218,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             response = self._p_client.quick_search(
                 self._request,
                 page_size=TOP_ITEMS_BATCH,
-                sort=' '.join(self.sort_order())
+                sort=" ".join(self.sort_order()),
             )
             self._response_iterator = response.iter()
             self.load_more()
@@ -292,8 +250,13 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                     date_widget = self.tree.itemWidget(date_item, 0)
                     satellite_widget = self.tree.itemWidget(satellite_item, 0)
                     item = SceneItem(image, sort_criteria)
-                    widget = SceneItemWidget(image, sort_criteria, self._metadata_to_show, item,
-                                             self._request)
+                    widget = SceneItemWidget(
+                        image,
+                        sort_criteria,
+                        self._metadata_to_show,
+                        item,
+                        self._request,
+                    )
                     widget.checkedStateChanged.connect(self.checked_count_changed)
                     widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
                     widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
@@ -301,7 +264,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                     satellite_item.addChild(item)
                     self.tree.setItemWidget(item, 0, widget)
                     date_widget.update_for_children()
-                    self._image_count +=1
+                    self._image_count += 1
 
             for i in range(self.tree.topLevelItemCount()):
                 date_item = self.tree.topLevelItem(i)
@@ -327,12 +290,12 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def _passes_area_coverage_filter(self, image):
         area_coverage = area_coverage_for_image(image, self._request)
         if area_coverage is None:
-            return True # an ID filter is begin used, so it makes no sense to
-                        # check for are acoverage
-        filt = self._local_filter('area_coverage')
+            return True  # an ID filter is begin used, so it makes no sense to
+            # check for are acoverage
+        filt = self._local_filter("area_coverage")
         if filt:
-            minvalue = filt['config'].get('gte', 0)
-            maxvalue = filt['config'].get('lte', 100)
+            minvalue = filt["config"].get("gte", 0)
+            maxvalue = filt["config"].get("lte", 100)
             return area_coverage > minvalue and area_coverage < maxvalue
         return True
 
@@ -383,7 +346,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
             it += 1
         return selected
 
-
     def checked_count_changed(self):
         numimages = len(self.selected_images())
         self.btnAddPreview.setEnabled(numimages)
@@ -392,14 +354,13 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def item_count_changed(self):
         if self._image_count < self._total_count:
             self.lblImageCount.setText(
-                f"{self._image_count} images. <a href='#'>Load more</a>")
+                f"{self._image_count} images. <a href='#'>Load more</a>"
+            )
         else:
-            self.lblImageCount.setText(
-                f"{self._image_count} images")
+            self.lblImageCount.setText(f"{self._image_count} images")
 
     def _setup_request_aoi_box(self):
-        self._aoi_box = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(SEARCH_AOI_COLOR)
         self._aoi_box.setWidth(2)
@@ -458,10 +419,9 @@ class ItemWidgetBase(QFrame):
         layout.setMargin(0)
         layout.addWidget(self.checkBox)
         layout.addWidget(self.lockLabel)
-        pixmap = QPixmap(PLACEHOLDER_THUMB, 'SVG')
+        pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
         self.thumbnail = None
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setFixedSize(48, 48)
         layout.addWidget(self.iconLabel)
@@ -474,15 +434,15 @@ class ItemWidgetBase(QFrame):
         layout.addSpacing(10)
         self.setLayout(layout)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
     def set_thumbnail(self, img):
         self.thumbnail = QPixmap(img)
-        thumb = self.thumbnail.scaled(48, 48, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+        thumb = self.thumbnail.scaled(
+            48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
         self.iconLabel.setPixmap(thumb)
         self.thumbnailChanged.emit()
 
@@ -493,7 +453,7 @@ class ItemWidgetBase(QFrame):
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
-            QgsProject.instance()
+            QgsProject.instance(),
         )
         return transform.transformBoundingBox(self.geom.boundingBox())
 
@@ -501,7 +461,7 @@ class ItemWidgetBase(QFrame):
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
-            QgsProject.instance()
+            QgsProject.instance(),
         )
         geom = QgsGeometry(self.geom)
         geom.transform(transform)
@@ -533,10 +493,7 @@ class ItemWidgetBase(QFrame):
     @waitcursor
     def add_preview(self):
         send_analytics_for_preview(self.item.images())
-        create_preview_group(
-            self.name(),
-            self.item.images()
-        )
+        create_preview_group(self.name(), self.item.images())
 
     def check_box_state_changed(self):
         self.checkedStateChanged.emit()
@@ -577,12 +534,11 @@ class ItemWidgetBase(QFrame):
         self.checkBox.setChecked(checked)
 
     def update_thumbnail(self):
-        thumbnails =self.scene_thumbnails()
+        thumbnails = self.scene_thumbnails()
         if thumbnails and None not in thumbnails:
             bboxes = [img[GEOMETRY] for img in self.item.images()]
             pixmap = createCompoundThumbnail(bboxes, thumbnails)
-            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio,
-                            Qt.SmoothTransformation)
+            thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.iconLabel.setPixmap(thumb)
             self.thumbnailChanged.emit()
 
@@ -600,7 +556,6 @@ class ItemWidgetBase(QFrame):
 
 
 class DateItem(QTreeWidgetItem):
-
     def __init__(self, image, sort_criteria):
         QListWidgetItem.__init__(self)
         properties = image[PROPERTIES]
@@ -616,14 +571,13 @@ class DateItem(QTreeWidgetItem):
 
 
 class DateItemWidget(ItemWidgetBase):
-
     def __init__(self, image, sort_criteria, item):
         ItemWidgetBase.__init__(self, item)
         self.has_new = True
         self.image = image
         self.properties = image[PROPERTIES]
         datetime = iso8601.parse_date(self.properties[sort_criteria])
-        self.date = datetime.strftime('%b %d, %Y')
+        self.date = datetime.strftime("%b %d, %Y")
 
         self._setup_ui("", None)
         self.update_for_children()
@@ -633,7 +587,9 @@ class DateItemWidget(ItemWidgetBase):
         for i in range(self.item.childCount()):
             child = self.item.child(i)
             size += child.childCount()
-        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        count_style = (
+            SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        )
         self.children_count = size
         text = f"""{self.date}<br>
                     <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
@@ -659,22 +615,25 @@ class DateItemWidget(ItemWidgetBase):
 
         self.setToolTip("")
         if not self.downloadable:
-            self.labelAddPreview.setToolTip("Contact sales to purchase access.\nUse the link in the ⓘ menu.")
-            self.setToolTip("Contact sales to purchase access.\nUse the link in the ⓘ menu.")
+            self.labelAddPreview.setToolTip(
+                "Contact sales to purchase access.\nUse the link in the ⓘ menu."
+            )
+            self.setToolTip(
+                "Contact sales to purchase access.\nUse the link in the ⓘ menu."
+            )
         elif nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
         else:
             self.labelAddPreview.setToolTip("Add preview layer to map")
 
-        #self._update_thumbnail()
+        # self._update_thumbnail()
 
     def name(self):
         return f"{self.date} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
 
 
 class SatelliteItem(QTreeWidgetItem):
-
     def __init__(self, satellite):
         QListWidgetItem.__init__(self)
         self.satellite = satellite
@@ -688,7 +647,6 @@ class SatelliteItem(QTreeWidgetItem):
 
 
 class SatelliteItemWidget(ItemWidgetBase):
-
     def __init__(self, satellite, item):
         ItemWidgetBase.__init__(self, item)
         self.has_new = True
@@ -698,10 +656,12 @@ class SatelliteItemWidget(ItemWidgetBase):
 
     def update_for_children(self):
         size = self.item.childCount()
-        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        count_style = (
+            SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
+        )
         self.children_count = size
-        text = f'''<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite}</span>
-                    <span style="{count_style}">({size} images)</span>'''
+        text = f"""<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite}</span>
+                    <span style="{count_style}">({size} images)</span>"""
         self.nameLabel.setText(text)
 
         geoms = []
@@ -733,14 +693,13 @@ class SatelliteItemWidget(ItemWidgetBase):
 
 
 class SceneItem(QTreeWidgetItem):
-
     def __init__(self, image, sort_criteria):
         QListWidgetItem.__init__(self)
         self.image = image
         self.date = iso8601.parse_date(image[PROPERTIES][sort_criteria])
 
     def __lt__(self, other):
-        if (not isinstance(other, SceneItem)):
+        if not isinstance(other, SceneItem):
             return super(SceneItem, self).__lt__(other)
 
         return self.date < other.date
@@ -750,7 +709,6 @@ class SceneItem(QTreeWidgetItem):
 
 
 class SceneItemWidget(ItemWidgetBase):
-
     def __init__(self, image, sort_criteria, metadata_to_show, item, request):
         ItemWidgetBase.__init__(self, item)
         self.image = image
@@ -759,8 +717,8 @@ class SceneItemWidget(ItemWidgetBase):
         self.properties = image[PROPERTIES]
 
         datetime = iso8601.parse_date(self.properties[sort_criteria])
-        self.time = datetime.strftime('%H:%M:%S')
-        self.date = datetime.strftime('%b %d, %Y')
+        self.time = datetime.strftime("%H:%M:%S")
+        self.date = datetime.strftime("%b %d, %Y")
 
         text = self._get_text()
         url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
@@ -771,8 +729,7 @@ class SceneItemWidget(ItemWidgetBase):
         if len(permissions) == 0:
             self.downloadable = False
         else:
-            matches = [ITEM_ASSET_DL_REGEX.match(s) is not None
-                       for s in permissions]
+            matches = [ITEM_ASSET_DL_REGEX.match(s) is not None for s in permissions]
             self.downloadable = any(matches)
 
         self.lockLabel.setVisible(not self.downloadable)
@@ -795,10 +752,15 @@ class SceneItemWidget(ItemWidgetBase):
         for i, value in enumerate(self.metadata_to_show):
             spacer = "<br>" if i == 1 else " "
             if value == PlanetNodeMetadata.AREA_COVER:
-                area_coverage = area_coverage_for_image(self.image, self.request) or "--"
-                metadata += f'{value.value}:{area_coverage:.0f}{spacer}'
+                area_coverage = area_coverage_for_image(self.image, self.request)
+                if area_coverage is not None:
+                    metadata += f"{value.value}:{area_coverage:.0f}{spacer}"
+                else:
+                    metadata += f"{value.value}:--{spacer}"
             else:
-                metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
+                metadata += (
+                    f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
+                )
 
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
@@ -808,7 +770,10 @@ class SceneItemWidget(ItemWidgetBase):
         return text
 
     def name(self):
-        return f"{self.date} {self.time} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+        return (
+            f"{self.date} {self.time} |"
+            f" {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+        )
 
     def scene_thumbnails(self):
         return [self.thumbnail]

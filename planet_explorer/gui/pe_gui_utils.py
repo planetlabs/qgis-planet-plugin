@@ -14,39 +14,27 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
 import logging
+import os
 
-from qgis.PyQt.QtCore import (
-    pyqtSignal,
-    # pyqtSlot,
-    Qt,
-    QEvent,
-)
-from qgis.PyQt.QtGui import (
-    QMouseEvent,
-)
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QToolTip,
-    QApplication
-)
+from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QMouseEvent
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QToolTip
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 
-# noinspection PyPep8Naming
 class PlanetClickableLabel(QLabel):
 
     clicked = pyqtSignal()
@@ -72,9 +60,7 @@ class PlanetClickableLabel(QLabel):
     def event(self, event: QEvent) -> bool:
         if self._show_tooltip_on_hover and self.toolTip():
             if event.type() == QEvent.HoverEnter:
-                # noinspection PyUnresolvedReferences
-                QToolTip.showText(self.mapToGlobal(event.pos()),
-                                  self.toolTip(), self)
+                QToolTip.showText(self.mapToGlobal(event.pos()), self.toolTip(), self)
             event.accept()
 
         return QLabel.event(self, event)
