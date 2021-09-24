@@ -47,19 +47,18 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_analytics import send_analytics_for_order
 from ..pe_utils import resource_file, iface
-from ..planet_api.p_bundles import PlanetOrdersV2Bundles
 from ..planet_api.p_client import PlanetClient
-from ..planet_api.p_specs import ITEM_TYPE_SPECS
 from .pe_gui_utils import waitcursor
 from .pe_orders_monitor_dockwidget import show_orders_monitor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-bundles_file = os.path.join(plugin_path, "planet_api", "resources", "bundles.json")
 default_bundles_file = os.path.join(
     plugin_path, "planet_api", "resources", "productBundleDefaults.json"
 )
-order_bundles = PlanetOrdersV2Bundles(bundles_file, default_bundles_file)
+with open(default_bundles_file, "r", encoding="utf-8") as fp:
+    default_bundles = json.load(fp)
+default_bundles = {k: v[0].split("::")[-1] for k, v in default_bundles.items()}
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -91,6 +90,7 @@ FILETYPE_ICON = _icon("filetype.svg")
 NITEMS_ICON = _icon("nitems.svg")
 SATELLITE_ICON = _icon("satellite.svg")
 CLIP_ICON = _icon("crop.svg")
+HARMONIZE_ICON = _icon("nitems.svg")
 EXPAND_MORE_ICON = _icon("expand_more.svg")
 EXPAND_LESS_ICON = _icon("expand_less.svg")
 
@@ -117,13 +117,14 @@ class PlanetOrderBundleWidget(QFrame):
 
     selectionChanged = pyqtSignal()
 
-    def __init__(self, bundleid, name, description, udm, rectified):
+    def __init__(self, bundleid, name, description, udm, can_harmonize, rectified):
         super().__init__()
 
         self.bundleid = bundleid
         self.name = name
         self.description = description
         self.udm = udm
+        self.can_harmonize = can_harmonize
         self.rectified = rectified
 
         layout = QVBoxLayout()
@@ -214,7 +215,8 @@ class PlanetOrderItemTypeWidget(QWidget):
             download_thumbnail(url, self)
 
         labelName = IconLabel(
-            f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']}</b>", SATELLITE_ICON
+            f"<b>{PlanetClient.getInstance().item_types_names()[self.item_type]}</b>",
+            SATELLITE_ICON,
         )
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
         layout.addWidget(labelNumItems, 0, 1)
@@ -244,11 +246,12 @@ class PlanetOrderItemTypeWidget(QWidget):
     def populate_details(self):
         self.bundleWidgets = []
 
+        client = PlanetClient.getInstance()
         permissions = [img[PERMISSIONS] for img in self.images]
-        item_bundles = order_bundles.bundles_for_item_type(
+        item_bundles = client.bundles_for_item_type(
             self.item_type, permissions=permissions
         )
-        default = order_bundles.item_default_bundle_name(self.item_type)
+        default = default_bundles.get(self.item_type, "")
 
         def _center(obj):
             hlayout = QHBoxLayout()
@@ -267,13 +270,18 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayout.setMargin(0)
 
         i = 0
-        for bundle in item_bundles:
-            bundleid = bundle["id"]
+        for bundleid, bundle in item_bundles.items():
             if bundle["rectification"] == "orthorectified":
                 name = bundle["name"]
                 description = bundle["description"]
                 udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                w = PlanetOrderBundleWidget(bundleid, name, description, udm, True)
+                assets = bundle["assets"][self.item_type]
+                can_harmonize = (
+                    "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
+                )
+                w = PlanetOrderBundleWidget(
+                    bundleid, name, description, udm, can_harmonize, True
+                )
                 gridlayout.addWidget(w, i // 2, i % 2)
                 w.setSelected(bundleid == default)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
@@ -291,13 +299,18 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayoutUnrect.setMargin(0)
 
         i = 0
-        for bundle in item_bundles:
-            bundleid = bundle["id"]
+        for bundleid, bundle in item_bundles.items():
             if bundle["rectification"] != "orthorectified":
                 name = bundle["name"]
                 description = bundle["description"]
                 udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                w = PlanetOrderBundleWidget(bundleid, name, description, udm, False)
+                assets = bundle["assets"][self.item_type]
+                can_harmonize = (
+                    "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
+                )
+                w = PlanetOrderBundleWidget(
+                    bundleid, name, description, udm, can_harmonize, False
+                )
                 gridlayoutUnrect.addWidget(w, i // 2, i % 2)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
                 self.bundleWidgets.append(w)
@@ -355,6 +368,7 @@ class PlanetOrderItemTypeWidget(QWidget):
                 bundle["filetype"] = w.filetype()
                 bundle["udm"] = w.udm
                 bundle["rectified"] = w.rectified
+                bundle["canharmonize"] = w.can_harmonize
                 bundles.append(bundle)
         return bundles
 
@@ -421,18 +435,19 @@ class PlanetOrderReviewWidget(QWidget):
 
     selectedImagesChanged = pyqtSignal()
 
-    def __init__(self, item_type, bundle_type, images, add_clip):
+    def __init__(self, item_type, bundle_type, images, add_clip, add_harmonize):
         super().__init__()
 
         self.item_type = item_type
         self.bundle_type = bundle_type
         self.images = images
         self.add_clip = add_clip
+        self.add_harmonize = add_harmonize
 
         layout = QVBoxLayout()
         layout.setMargin(0)
         labelName = IconLabel(
-            f"<b>{ITEM_TYPE_SPECS[self.item_type]['name']} - {bundle_type}</b>",
+            f"<b>{PlanetClient.getInstance().item_types_names()[self.item_type]} - {bundle_type}</b>",
             SATELLITE_ICON,
         )
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
@@ -468,6 +483,7 @@ class PlanetOrderReviewWidget(QWidget):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(2, 1)
         self.chkClip = None
+        self.chkHarmonize = None
         if self.add_clip:
             layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
             layout.addWidget(
@@ -476,10 +492,24 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkClip = QCheckBox("Clip items to AOI")
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
-        layout.addWidget(QLabel("<b>Review Items</b>"), 3, 1, Qt.AlignCenter)
+        if self.add_harmonize:
+            layout.addWidget(QLabel("<b>Harmonization</b>"), 3, 1, Qt.AlignCenter)
+            layout.addWidget(
+                QLabel(
+                    "Radiometrically harmonize imagery captured by one satellite instrument type to imagery capture by another"
+                ),
+                4,
+                1,
+                Qt.AlignCenter,
+            )
+            self.chkHarmonize = QCheckBox("Harmonize")
+            self.chkHarmonize.setChecked(True)
+            self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
+            layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
+        layout.addWidget(QLabel("<b>Review Items</b>"), 6, 1, Qt.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
-            4,
+            7,
             1,
             Qt.AlignCenter,
         )
@@ -493,7 +523,7 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 5, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 8, 1, Qt.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
@@ -508,6 +538,12 @@ class PlanetOrderReviewWidget(QWidget):
             return False
         else:
             return self.chkClip.isChecked()
+
+    def harmonize(self):
+        if self.chkHarmonize is None:
+            return False
+        else:
+            return self.chkHarmonize.isChecked()
 
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
@@ -530,7 +566,11 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.setMargin(0)
-        layout.addWidget(QLabel(f"<h3>{ITEM_TYPE_SPECS[summary['type']]['name']}</h3>"))
+        layout.addWidget(
+            QLabel(
+                f"<h3>{PlanetClient.getInstance().item_types_names()[summary['type']]}</h3>"
+            )
+        )
         for bundle in summary["bundles"]:
             frame = QFrame()
             framelayout = QVBoxLayout()
@@ -546,6 +586,9 @@ class PlanetOrderSummaryOrderWidget(QWidget):
             if bundle["clipping"]:
                 clipLabel = IconLabel("", CLIP_ICON)
                 hlayout.addWidget(clipLabel)
+            if bundle["harmonize"]:
+                harmonizeLabel = IconLabel("", HARMONIZE_ICON)
+                hlayout.addWidget(harmonizeLabel)
             hlayout.addStretch()
             framelayout.addLayout(hlayout)
             frame.setLayout(framelayout)
@@ -683,7 +726,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 add_clip = (
                     self.tool_resources["aoi"] is not None and bundle["rectified"]
                 )
-                w = PlanetOrderReviewWidget(item_type, bundle["name"], images, add_clip)
+                w = PlanetOrderReviewWidget(
+                    item_type, bundle["name"], images, add_clip, bundle["canharmonize"]
+                )
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
                     w.expand()
@@ -716,6 +761,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 images = w.selected_images()
                 bundle["numitems"] = len(images)
                 bundle["clipping"] = w.clipping()
+                bundle["harmonize"] = w.harmonize()
                 norders += 1
             w = PlanetOrderSummaryOrderWidget(summary)
             layout.addWidget(w)
@@ -764,6 +810,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})
+                if w.harmonize():
+                    tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
                 if bundle["filetype"] == "NITF":
                     tools.append({"file_format": {"format": "PL_NITF"}})
                 order["tools"] = tools

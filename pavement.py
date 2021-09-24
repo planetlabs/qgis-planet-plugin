@@ -205,7 +205,7 @@ def _make_zip(zipfile, options):
     cfg.optionxform = str
     cfg.read(metadata_filename)
     if hasattr(options.package, "version"):
-        version = ''.join(c for c in options.package.version if c.isdigit() or c == '.')
+        version = "".join(c for c in options.package.version if c.isdigit() or c == ".")
         cfg.set("general", "version", version)
     buf = StringIO()
     cfg.write(buf)

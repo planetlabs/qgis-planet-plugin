@@ -111,7 +111,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.btn_ok = self.buttonBoxLogin.button(QDialogButtonBox.Ok)
         self.btn_ok.setText("Sign In")
         self.btn_api_key = self.buttonBoxLogin.button(QDialogButtonBox.Abort)
-        """:type: QPushButton"""
         self.btn_api_key.setText("Use API key")
         self.btn_api_key.hide()
         self.buttonBoxLogin.accepted.connect(self.login)
@@ -121,16 +120,15 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         self.setWindowTitle(f"Planet Explorer [{plugin_version()}]")
 
-        self._setup_daily_images_panel()
+        self.daily_images_widget = None
+        # self._setup_daily_images_panel()
         self._setup_mosaics_panel()
 
         # Set default group type and filter widget
         self.tabWidgetResourceType.setCurrentIndex(0)
 
         self._terms_browser = None
-
         self.msg_log = QgsMessageLog()
-        # Local QgsMessageBar
         self.msgBar.hide()
 
     def showEvent(self, event):
@@ -212,6 +210,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     @pyqtSlot()
     def login_changed(self):
         if self.logged_in():
+            self._setup_daily_images_panel()
             self.lePass.setText("")
             self.leUser.setText("")
             self.clean_up()
@@ -235,8 +234,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             self.basemaps_widget.init()
 
     def _setup_daily_images_panel(self):
-        self.daily_images_widget = DailyImagesWidget(self)
-        self.tabWidgetResourceTypePage1.layout().addWidget(self.daily_images_widget)
+        if self.daily_images_widget is None:
+            self.daily_images_widget = DailyImagesWidget(self)
+            self.tabWidgetResourceTypePage1.layout().addWidget(self.daily_images_widget)
 
     def _setup_mosaics_panel(self):
         self.basemaps_widget = BasemapsWidget(self)

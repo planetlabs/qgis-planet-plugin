@@ -49,19 +49,17 @@
         <height>878</height>
        </rect>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_10">
-       <property name="leftMargin">
-        <number>10</number>
-       </property>
-       <property name="topMargin">
-        <number>10</number>
-       </property>
-       <property name="rightMargin">
-        <number>10</number>
-       </property>
-       <property name="bottomMargin">
-        <number>10</number>
-       </property>
+      <layout class="QVBoxLayout" name="verticalLayout_9">
+       <item>
+        <widget class="QFrame" name="frameWarningLegacySearch">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QLabel" name="lblDatetime">
          <property name="font">
@@ -126,7 +124,7 @@
               <second>0</second>
               <year>1999</year>
               <month>12</month>
-              <day>25</day>
+              <day>22</day>
              </datetime>
             </property>
             <property name="time">
@@ -248,208 +246,202 @@
         </widget>
        </item>
        <item>
-        <widget class="QFrame" name="frameSources">
+        <widget class="QStackedWidget" name="stackedWidgetSources">
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_5">
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;High resolution (&amp;lt; 2 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_4">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="leftMargin">
-             <number>10</number>
-            </property>
-            <item>
-             <widget class="QCheckBox" name="chkSkySatScene">
-              <property name="text">
-               <string>SkySat Scene</string>
-              </property>
-              <property name="api-name" stdset="0">
-               <string>SkySatScene</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="chkSkySatCollect">
-              <property name="text">
-               <string>SkySat Collect</string>
-              </property>
-              <property name="api-name" stdset="0">
-               <string>SkySatCollect</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Medium resolution (2-10 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="chkPlanetScopeOrtho">
-            <property name="text">
-             <string>PlanetScope Ortho Tile</string>
-            </property>
-            <property name="api-name" stdset="0">
-             <string>PSOrthoTile</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="chkPlanetScope">
-            <property name="text">
-             <string>PlanetScope Scene</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="api-name" stdset="0">
-             <string>PSScene</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QWidget" name="widgetBands" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="newSourcesWidget">
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;High resolution (&amp;lt; 2 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <property name="spacing">
+              <number>6</number>
+             </property>
              <property name="leftMargin">
-              <number>20</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
+              <number>10</number>
              </property>
              <item>
-              <layout class="QVBoxLayout" name="verticalLayout_7">
-               <item>
-                <widget class="QRadioButton" name="radio3Bands">
-                 <property name="text">
-                  <string>3-Band</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radio4Bands">
-                 <property name="text">
-                  <string>4-Band</string>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QRadioButton" name="radio8Bands">
-                 <property name="text">
-                  <string>8-band</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+              <widget class="QCheckBox" name="chkSkySatScene">
+               <property name="text">
+                <string>SkySat Scene</string>
+               </property>
+               <property name="api-name" stdset="0">
+                <string>SkySatScene</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="chkSkySatCollect">
+               <property name="text">
+                <string>SkySat Collect</string>
+               </property>
+               <property name="api-name" stdset="0">
+                <string>SkySatCollect</string>
+               </property>
+              </widget>
              </item>
             </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="chkRapidEyeScene">
-            <property name="text">
-             <string>RapidEye Basic Scene</string>
-            </property>
-            <property name="api-name" stdset="0">
-             <string>REScene</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="chkRapidEyeOrtho">
-            <property name="text">
-             <string>RapidEye Ortho Tile</string>
-            </property>
-            <property name="api-name" stdset="0">
-             <string>REOrthoTile</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Low resolution (&amp;gt;10 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_8">
-            <property name="leftMargin">
-             <number>10</number>
-            </property>
-            <item>
-             <widget class="QCheckBox" name="chkSentinel">
-              <property name="text">
-               <string>Sentinel-2 Tile</string>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Medium resolution (2-10 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkPlanetScopeOrtho">
+             <property name="text">
+              <string>PlanetScope Ortho Tile</string>
+             </property>
+             <property name="api-name" stdset="0">
+              <string>PSOrthoTile</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkPlanetScope">
+             <property name="text">
+              <string>PlanetScope Scene</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="api-name" stdset="0">
+              <string>PSScene</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="widgetBands" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <property name="leftMargin">
+               <number>20</number>
               </property>
-              <property name="api-name" stdset="0">
-               <string>Sentinel2L1C</string>
+              <property name="topMargin">
+               <number>0</number>
               </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="chkLandsat">
-              <property name="text">
-               <string>Landsat 8</string>
+              <property name="bottomMargin">
+               <number>0</number>
               </property>
-              <property name="api-name" stdset="0">
-               <string>Landsat8L1G</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_7">
+                <item>
+                 <widget class="QRadioButton" name="radio3Bands">
+                  <property name="text">
+                   <string>3-Band</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radio4Bands">
+                  <property name="text">
+                   <string>4-Band</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radio8Bands">
+                  <property name="text">
+                   <string>8-band</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkRapidEyeScene">
+             <property name="text">
+              <string>RapidEye Basic Scene</string>
+             </property>
+             <property name="api-name" stdset="0">
+              <string>REScene</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="chkRapidEyeOrtho">
+             <property name="text">
+              <string>RapidEye Ortho Tile</string>
+             </property>
+             <property name="api-name" stdset="0">
+              <string>REOrthoTile</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Low resolution (&amp;gt;10 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_8">
+             <property name="leftMargin">
+              <number>10</number>
+             </property>
+             <item>
+              <widget class="QCheckBox" name="chkSentinel">
+               <property name="text">
+                <string>Sentinel-2 Tile</string>
+               </property>
+               <property name="api-name" stdset="0">
+                <string>Sentinel2L1C</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="chkLandsat">
+               <property name="text">
+                <string>Landsat 8</string>
+               </property>
+               <property name="api-name" stdset="0">
+                <string>Landsat8L1G</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="oldSourcesWidget">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_3">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(17, 141, 148);</string>
-         </property>
-         <property name="text">
-          <string>Environmental conditions</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QFrame" name="frameRangeSliders">
+        <widget class="QFrame" name="frameFilters">
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
          </property>
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QVBoxLayout" name="verticalLayout_6">
           <property name="leftMargin">
-           <number>10</number>
+           <number>0</number>
           </property>
           <property name="topMargin">
            <number>0</number>
@@ -460,149 +452,189 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
+          <item>
+           <widget class="QLabel" name="label_3">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: rgb(17, 141, 148);</string>
+            </property>
+            <property name="text">
+             <string>Environmental conditions</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frameRangeSliders">
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <property name="leftMargin">
+              <number>10</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="styleSheet">
+             <string notr="true">color: rgb(17, 141, 148);</string>
+            </property>
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Other attributes&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="leftMargin">
+             <number>10</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblString">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="text">
+               <string>Item IDs (comma-separated)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="leStringIDs">
+              <property name="clearButtonEnabled">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_3">
+              <item>
+               <widget class="QLabel" name="lblInstrumentFilter">
+                <property name="styleSheet">
+                 <string notr="true"/>
+                </property>
+                <property name="text">
+                 <string>&lt;b&gt;Instrument filter&lt;/b&gt;</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="lblLearnMore">
+                <property name="text">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://developers.planet.com/docs/data/sensors/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn More&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="openExternalLinks">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <widget class="QCheckBox" name="chkPs2">
+                <property name="text">
+                 <string>PS2</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="chkPs2Sd">
+                <property name="text">
+                 <string>PS2.SD</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="chkPsbSd">
+                <property name="text">
+                 <string>PSB.SD</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QLabel" name="lblOnlyShow">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="text">
+               <string>Only show images...</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="chkBxGroundControl">
+              <property name="text">
+               <string>with ground control</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="chkBxCanDownload">
+              <property name="text">
+               <string>you can download</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_5">
-         <property name="styleSheet">
-          <string notr="true">color: rgb(17, 141, 148);</string>
-         </property>
-         <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Other attributes&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <property name="leftMargin">
-          <number>10</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="lblString">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="font">
-            <font>
-             <weight>75</weight>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string>Item IDs (comma-separated)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="leStringIDs">
-           <property name="clearButtonEnabled">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <item>
-            <widget class="QLabel" name="lblInstrumentFilter">
-             <property name="styleSheet">
-              <string notr="true"/>
-             </property>
-             <property name="text">
-              <string>&lt;b&gt;Instrument filter&lt;/b&gt;</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="lblLearnMore">
-             <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://developers.planet.com/docs/data/sensors/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn More&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="openExternalLinks">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
-           <item>
-            <widget class="QCheckBox" name="chkPs2">
-             <property name="text">
-              <string>PS2</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="chkPs2Sd">
-             <property name="text">
-              <string>PS2.SD</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="chkPsbSd">
-             <property name="text">
-              <string>PSB.SD</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <widget class="QLabel" name="lblOnlyShow">
-           <property name="font">
-            <font>
-             <weight>75</weight>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string>Only show images...</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="chkBxGroundControl">
-           <property name="text">
-            <string>with ground control</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="chkBxCanDownload">
-           <property name="text">
-            <string>you can download</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
        </item>
        <item>
         <spacer name="bottomSpacer">

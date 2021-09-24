@@ -62,8 +62,7 @@ from ..pe_utils import (
     iface,
     qgsgeometry_from_geojson,
 )
-from ..planet_api.p_client import PlanetClient
-from ..planet_api.p_specs import DAILY_ITEM_TYPES_DICT, ITEM_ASSET_DL_REGEX
+from ..planet_api.p_client import PlanetClient, ITEM_ASSET_DL_REGEX
 from .pe_gui_utils import waitcursor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
@@ -592,7 +591,7 @@ class DateItemWidget(ItemWidgetBase):
         )
         self.children_count = size
         text = f"""{self.date}<br>
-                    <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
+                    <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                     <span style="{count_style}">{size} images</span>"""
         self.nameLabel.setText(text)
 
@@ -630,7 +629,7 @@ class DateItemWidget(ItemWidgetBase):
         # self._update_thumbnail()
 
     def name(self):
-        return f"{self.date} | {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+        return f"{self.date} | {PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}"
 
 
 class SatelliteItem(QTreeWidgetItem):
@@ -763,7 +762,7 @@ class SceneItemWidget(ItemWidgetBase):
                 )
 
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
-                        <b>{DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}</b><br>
+                        <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>
                     """
 
@@ -772,7 +771,7 @@ class SceneItemWidget(ItemWidgetBase):
     def name(self):
         return (
             f"{self.date} {self.time} |"
-            f" {DAILY_ITEM_TYPES_DICT[self.properties[ITEM_TYPE]]}"
+            f" {PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}"
         )
 
     def scene_thumbnails(self):

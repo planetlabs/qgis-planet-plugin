@@ -21,7 +21,6 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-
 import logging
 import os
 
@@ -39,6 +38,8 @@ from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
 from .pe_filters import PlanetDailyFilter, PlanetMainFilters, filters_from_request
 from .pe_orders import PlanetOrdersDialog
 from .pe_show_curl_dialog import ShowCurlDialog
+from .pe_legacy_warning_widget import LegacyWarningWidget
+from .pe_gui_utils import waitcursor
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -61,7 +62,7 @@ class DailyImagesWidget(BASE, WIDGET):
         super(DailyImagesWidget, self).__init__()
         self.parent = parent
 
-        self.p_client = PlanetClient.getInstance()
+        self._reset_saved_search_combo = True
 
         self.setupUi(self)
 
@@ -82,6 +83,14 @@ class DailyImagesWidget(BASE, WIDGET):
         self.searchResultsWidget.setAOIRequested.connect(self.set_aoi_from_request)
         self.searchResultsWidget.searchSaved.connect(self._search_saved)
 
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        self.legacyWarningWidget = LegacyWarningWidget()
+        self.legacyWarningWidget.updateLegacySearch.connect(self.update_legacy_search)
+        layout.addWidget(self.legacyWarningWidget)
+        self.frameWarningLegacySearch.setLayout(layout)
+        self.frameWarningLegacySearch.setVisible(False)
+
         self._toggle_search_highlight(True)
         self.btnSearch.clicked[bool].connect(self.perform_search)
 
@@ -90,6 +99,8 @@ class DailyImagesWidget(BASE, WIDGET):
         self._filters = None
         self.local_filters = None
         self._request = None
+        self.legacy_request = None
+        self.current_saved_search = None
 
         self.btnOrder.clicked.connect(self.order_checked)
         self._setup_actions_button()
@@ -100,6 +111,24 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self._collect_sources_filters()
         self._default_filter_values = build_search_request(self._filters, self._sources)
+
+    @waitcursor
+    def update_legacy_search(self):
+        if self.legacy_request is not None and self.current_saved_search is not None:
+            self.legacy_request = None
+            self._collect_sources_filters()
+            request = build_search_request(self._filters, self._sources)
+            request["name"] = self.current_saved_search["name"]
+            PlanetClient.getInstance().update_search(
+                request, self.current_saved_search["id"]
+            )
+            self.frameWarningLegacySearch.setVisible(False)
+            self._daily_filters_widget.hide_legacy_search_elements()
+            self._main_filters.populate_saved_searches(True)
+        else:
+            self.frameWarningLegacySearch.setVisible(False)
+            self._daily_filters_widget.hide_legacy_search_elements()
+            self._daily_filters_widget.clear_id_filter()
 
     def show_filters(self):
         self.stackedWidgetDailyImagery.setCurrentIndex(1)
@@ -122,14 +151,13 @@ class DailyImagesWidget(BASE, WIDGET):
     def _update_orders_button(self, count):
         self.btnOrder.setText(f"Order ({count} items)")
 
-    # noinspection PyUnusedLocal
     @pyqtSlot()
     def _collect_sources_filters(self):
         main_filters = self._main_filters.filters()
         if not main_filters:
             main_filters = []
 
-        self._sources = self._daily_filters_widget.sources()
+        sources = self._daily_filters_widget.sources()
 
         item_filters, self.local_filters = self._daily_filters_widget.filters()
         if not item_filters:
@@ -142,19 +170,43 @@ class DailyImagesWidget(BASE, WIDGET):
         ]
 
         if id_filters:
-            self._filters = id_filters[0]
-        else:
-            self._filters = and_filter(*all_filters)
+            all_filters = [id_filters[0]]
 
-        # TODO: Validate filters
+        for item_type, options in sources.items():
+            # check for PSScene
+            if options in [4, 8] and PlanetClient.getInstance().has_api_key():
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(
+                    options
+                )
+                psscene_filter = {
+                    "config": [
+                        {"config": assets, "type": "AssetFilter"},
+                        {
+                            "config": ["PSScene"],
+                            "type": "StringInFilter",
+                            "field_name": "item_type",
+                        },
+                    ],
+                    "type": "AndFilter",
+                }
 
-    # noinspection PyUnusedLocal
+                all_filters.append(psscene_filter)
+
+        self._filters = and_filter(*all_filters)
+        self._sources = list(sources.keys())
+
     @pyqtSlot(bool)
     def perform_search(self, clicked=True):
         log.debug("Search initiated")
 
         # Remove highlight on search button
         self._toggle_search_highlight(False)
+
+        if self.legacy_request is not None:
+            search_request = self.legacy_request
+            self.local_filters = []
+            self.searchResultsWidget.update_request(search_request, self.local_filters)
+            return
 
         self._collect_sources_filters()
 
@@ -174,8 +226,6 @@ class DailyImagesWidget(BASE, WIDGET):
             )
             return
 
-        # TODO: Also validate GeoJSON prior to performing search
-
         search_request = build_search_request(self._filters, self._sources)
 
         self._request = search_request
@@ -185,11 +235,14 @@ class DailyImagesWidget(BASE, WIDGET):
     def _setup_main_filter(self):
         """Main filters: AOI visual extent, date range and text"""
         self._main_filters = PlanetMainFilters(
-            parent=self.grpBoxMainFilters, plugin=self.parent
+            parent=self.frameMainFilters, plugin=self.parent
         )
-        self.grpBoxMainFilters.layout().addWidget(self._main_filters)
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        layout.addWidget(self._main_filters)
+        self.frameMainFilters.setLayout(layout)
         self._main_filters.filtersChanged.connect(self._filters_have_changed)
-        self._main_filters.savedSearchSelected.connect(self.set_filters_from_request)
+        self._main_filters.savedSearchSelected.connect(self.saved_search_selected)
 
     def _setup_daily_filters_widget(self):
         self._daily_filters_widget = PlanetDailyFilter(
@@ -199,6 +252,8 @@ class DailyImagesWidget(BASE, WIDGET):
         layout.setMargin(0)
         layout.addWidget(self._daily_filters_widget)
         self.widgetFilters.setLayout(layout)
+        self._daily_filters_widget.updateLegacySearch.connect(self.update_legacy_search)
+        self._daily_filters_widget.filtersChanged.connect(self._filters_have_changed)
 
     def _setup_actions_button(self):
         actions_menu = QMenu(self)
@@ -231,14 +286,40 @@ class DailyImagesWidget(BASE, WIDGET):
         :return:
         """
         self._toggle_search_highlight(True)
-        self._main_filters.null_out_saved_search()
+        if self._reset_saved_search_combo:
+            self._main_filters.null_out_saved_search()
+            self._daily_filters_widget.hide_legacy_search_elements()
+            self.frameWarningLegacySearch.setVisible(False)
         log.debug("Filters have changed")
+
+    def saved_search_selected(self, saved_search_request):
+        self._reset_saved_search_combo = False
+        request = {}
+        if saved_search_request:
+            if "filter" in saved_search_request:
+                request["filter"] = saved_search_request["filter"]
+            if "item_types" in saved_search_request:
+                request["item_types"] = saved_search_request["item_types"]
+            self.current_saved_search = saved_search_request
+        self.set_filters_from_request(request)
+        self._reset_saved_search_combo = True
 
     @pyqtSlot(dict)
     def set_filters_from_request(self, request):
         if request is not None:
             self._daily_filters_widget.set_from_request(request)
             self._main_filters.set_from_request(request)
+            sources = request["item_types"]
+            legacy = "PSScene3Band" in sources or "PSScene4Band" in sources
+            self.frameWarningLegacySearch.setVisible(legacy)
+            self.legacyWarningWidget.set_has_image_id(
+                bool(self._daily_filters_widget.leStringIDs.text())
+            )
+            if legacy:
+                self.legacy_request = request
+            else:
+                self.legacy_request = None
+            # self._request = request
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
@@ -300,7 +381,7 @@ class DailyImagesWidget(BASE, WIDGET):
     @pyqtSlot()
     def copy_api_key(self):
         cb = QgsApplication.clipboard()
-        cb.setText(self.p_client.api_key())
+        cb.setText(PlanetClient.getInstance().api_key())
         self.parent.show_message("API key copied to clipboard")
         analytics_track("api_key_copied")
 

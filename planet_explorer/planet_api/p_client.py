@@ -22,6 +22,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 import os
+import re
 import logging
 import random
 import json
@@ -45,6 +46,8 @@ from ..gui.pe_gui_utils import waitcursor
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
+
+ITEM_ASSET_DL_REGEX = re.compile(r"^assets\.(.*):download$")
 
 API_KEY_DEFAULT = "SKIP_ENVIRON"
 
@@ -94,6 +97,10 @@ class PlanetClient(QObject, ClientV1):
             "sqkm": 0.0,
             "used": 0.0,
         }
+
+        self._psscene_asset_types = None
+        self._item_types = None
+        self._bundles = None
 
     def set_proxy_values(self):
         settings = QSettings()
@@ -272,18 +279,24 @@ class PlanetClient(QObject, ClientV1):
         res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
         return res.json()
 
-    def update_search(self, request):
-        '''Updates a saved search from the specified request.
+    def update_search(self, request, searchid):
+        """Updates a saved search from the specified request.
         The request must contain a ``name`` property.
 
         :param request: see :ref:`api-search-request`
         :returns: :py:class:`planet.api.models.JSON`
         :raises planet.api.exceptions.APIException: On API error.
-        '''
+        """
         body = json.dumps(request)
-        return self.dispatcher.response(api_models.Request(
-            self._url('data/v1/searches/'), self.auth,
-            body_type=api_models.JSON, data=body, method='PUT')).get_body()
+        return self.dispatcher.response(
+            api_models.Request(
+                self._url(f"data/v1/searches/{searchid}"),
+                self.auth,
+                body_type=api_models.JSON,
+                data=body,
+                method="PUT",
+            )
+        ).get_body()
 
     @pyqtSlot(result=bool)
     def update_user_quota(self):
@@ -408,6 +421,91 @@ class PlanetClient(QObject, ClientV1):
 
         return area_total >= quota_remaining
 
+    def psscene_asset_types(self):
+        if self._psscene_asset_types is None:
+            url = self._url("data/v1/item-types/PSScene/asset-types")
+            self._psscene_asset_types = (
+                self._get(url, api_models.JSON).get_body().get()["asset_types"]
+            )
+        return self._psscene_asset_types
+
+    def psscene_asset_types_for_nbands(self, nbands):
+        asset_types = self.psscene_asset_types()
+        return [
+            asset["id"]
+            for asset in asset_types
+            if len(asset.get("bands", [])) >= nbands
+        ]
+
+    def psscene_bandnum_from_assets(self, assets):
+        if not assets:
+            return 3
+        minbands = 8
+        asset_types = self.psscene_asset_types()
+
+        def _asset_type_from_id(assetid):
+            for psscene_asset in asset_types:
+                if psscene_asset["id"] == assetid:
+                    return psscene_asset
+
+        for asset in assets:
+            assetdef = _asset_type_from_id(asset)
+            if assetdef:
+                bands = assetdef.get("bands")
+                if bands is not None:
+                    minbands = min(len(bands), minbands)
+        return minbands
+
+    def item_types(self):
+        if self._item_types is None:
+            url = self._url("data/v1/item-types/")
+            self._item_types = (
+                self._get(url, api_models.JSON).get_body().get()["item_types"]
+            )
+        return self._item_types
+
+    def item_types_names(self):
+        item_types = self.item_types()
+        return {t["id"]: t["display_name"] for t in item_types}
+
+    def bundles(self):
+        if self._bundles is None:
+            url = "https://developers.planet.com/theme/js/2021-04-06.json"
+            self._bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
+        return self._bundles
+
+    def bundles_for_item_type(self, item_type, permissions):
+        bundles = self.bundles()
+        bndls_per_it = {
+            name: b
+            for name, b in bundles.items()
+            if item_type in b["assets"]
+            and b.get("fileType") != "NITF"
+            and b.get("auxiliaryFiles") != "udm"
+        }
+
+        permissions_cleaned = []
+        for img_permissions in permissions:
+            img_permissions_cleaned = []
+            for p in img_permissions:
+                match = ITEM_ASSET_DL_REGEX.match(p)
+                if match is not None:
+                    img_permissions_cleaned.append(match.group(1))
+            permissions_cleaned.append(img_permissions_cleaned)
+
+        allowed_bundles = {}
+        for name, b in bndls_per_it.items():
+            add_bundle = True
+            assets = b["assets"].get(item_type, [])
+            for asset in assets:
+                for img_permissions in permissions_cleaned:
+                    if asset not in img_permissions:
+                        add_bundle = False
+            if add_bundle:
+                allowed_bundles[name] = b
+
+        return allowed_bundles
+
 
 def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
     """
@@ -466,6 +564,7 @@ def tile_service_url(
         return None
 
     from ..pe_utils import user_agent
+
     url = None
     if service.lower() == "wmts":
         tile_url = TILE_SERVICE_URL.format("")

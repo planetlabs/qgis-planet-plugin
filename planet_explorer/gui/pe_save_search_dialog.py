@@ -119,9 +119,9 @@ class SaveSearchDialog(BASE, WIDGET):
         filters = filters_from_request(self.request, "acquired")
         if filters:
             config = filters[0]["config"]
-            if self.chkExcludeStart.isChecked():
+            if self.chkExcludeStart.isChecked() and "gte" in config:
                 del config["gte"]
-            if self.chkExcludeEnd.isChecked():
+            if self.chkExcludeEnd.isChecked() and "lte" in config:
                 del config["lte"]
             self.replace_date_filter(self.request_to_save, config)
         self.accept()

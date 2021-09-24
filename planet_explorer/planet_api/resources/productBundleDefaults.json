@@ -6,5 +6,6 @@
 	"SkySatScene": ["SkySatScene::pansharpened_udm2"],
 	"PSOrthoTile": ["PSOrthoTile::analytic_sr_udm2"],
 	"PSScene3Band": ["PSScene3Band::visual"],
-	"PSScene4Band": ["PSScene4Band::analytic_sr_udm2"]
+	"PSScene4Band": ["PSScene4Band::analytic_sr_udm2"],
+	"PSScene": ["PSScene::analytic_sr_udm2"]
 }
