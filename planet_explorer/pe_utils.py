@@ -107,6 +107,7 @@ EMPTY_THUMBNAIL = os.path.join(
 
 QGIS_LOG_SECTION_NAME = "Planet"
 
+SHOW_UPDATE_WARNING_SETTING = "showUpdateWarning"
 ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 
@@ -429,10 +430,16 @@ def resource_file(f):
     return os.path.join(os.path.dirname(__file__), "resources", f)
 
 
+def setting(name, default=None):
+    return QSettings().value(f"{SETTINGS_NAMESPACE}/{name}", default)
+
+
+def set_setting(name, value):
+    QSettings().setValue(f"{SETTINGS_NAMESPACE}/{name}", value)
+
+
 def orders_download_folder():
-    download_folder = QSettings().value(
-        f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}", ""
-    )
+    download_folder = setting(ORDERS_DOWNLOAD_FOLDER_SETTING, "")
     if not os.path.exists(download_folder):
         try:
             os.makedirs(download_folder)

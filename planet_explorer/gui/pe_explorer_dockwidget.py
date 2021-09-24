@@ -28,17 +28,21 @@ import os
 import sentry_sdk
 from qgis.core import Qgis, QgsApplication, QgsMessageLog
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSettings, Qt, pyqtSlot
+from qgis.PyQt.QtCore import Qt, pyqtSlot, QUrl
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit
+from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit, QPushButton
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
+from qgis.PyQt.QtXml import QDomDocument
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
 from ..pe_utils import (
     BASE_URL,
-    SETTINGS_NAMESPACE,
     open_link_with_browser,
     iface,
     plugin_version,
+    setting,
+    set_setting,
+    SHOW_UPDATE_WARNING_SETTING
 )
 from ..planet_api import API_KEY_DEFAULT, LoginException, PlanetClient
 from .pe_basemaps_widget import BasemapsWidget
@@ -89,9 +93,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         self.p_client = None
         self.api_key = None
-        self._save_creds = bool(
-            QSettings().value(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}")
-        )
+        self._save_creds = bool(setting(SAVE_CREDS_KEY, True))
 
         self.leUser.addAction(
             QIcon(":/plugins/planet_explorer/envelope-gray.svg"),
@@ -111,7 +113,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.btn_ok = self.buttonBoxLogin.button(QDialogButtonBox.Ok)
         self.btn_ok.setText("Sign In")
         self.btn_api_key = self.buttonBoxLogin.button(QDialogButtonBox.Abort)
-        """:type: QPushButton"""
         self.btn_api_key.setText("Use API key")
         self.btn_api_key.hide()
         self.buttonBoxLogin.accepted.connect(self.login)
@@ -130,8 +131,42 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self._terms_browser = None
 
         self.msg_log = QgsMessageLog()
-        # Local QgsMessageBar
+
+        self._first_time = True
         self.msgBar.hide()
+        self.check_version()
+
+    def check_version(self):
+        show_update_info = setting(SHOW_UPDATE_WARNING_SETTING, True)
+        if show_update_info and self._first_time:
+            self.nam = QNetworkAccessManager()
+            self.nam.finished.connect(self._version_info_downloaded)
+            version = ".".join(Qgis.QGIS_VERSION.split(".")[:2])
+            url = f"https://plugins.qgis.org/plugins/plugins.xml?qgis={version}"
+            self.nam.get(QNetworkRequest(QUrl(url)))
+
+    def _version_info_downloaded(self, reply):
+        if reply.error() == QNetworkReply.NoError:
+            xml = reply.readAll().data().decode('utf8')
+            reposXML = QDomDocument()
+            reposXML.setContent(xml)
+            pluginNodes = reposXML.elementsByTagName("pyqgis_plugin")
+            for i in range(pluginNodes.size()):
+                filename = pluginNodes.item(i).firstChildElement("file_name").text().strip()
+                if filename.startswith("planet_explorer"):
+                    current_version = plugin_version()
+                    available_version = pluginNodes.item(i).toElement().attribute("version")
+                    if available_version > current_version:
+                        mb = self.msgBar.createMessage("A new version is available")
+                        button = QPushButton("Update")
+                        button.clicked.connect(self.open_plugin_manager)
+                        mb.layout().addWidget(button)
+                        self.update_warning_widget = self.msgBar.pushWidget(mb, Qgis.Info, duration=0)
+            self._first_time = False
+
+    def open_plugin_manager(self):
+        self.msgBar.popWidget(self.update_warning_widget)
+        iface.pluginManagerInterface().showPluginManager(3)
 
     def showEvent(self, event):
         if self.logged_in():
@@ -263,7 +298,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if state == 0:
             self._remove_auth_creds()
         self._save_creds = state > 0
-        QSettings().setValue(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}", self._save_creds)
+        set_setting(SAVE_CREDS_KEY, self._save_creds)
 
     def _store_auth_creds(self):
         auth_creds_str = AUTH_STRING.format(

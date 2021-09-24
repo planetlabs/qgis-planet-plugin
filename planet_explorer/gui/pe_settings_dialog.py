@@ -3,7 +3,7 @@ import os
 
 from qgis.core import QgsMapLayerProxyModel
 from qgis.gui import QgsMapLayerComboBox
-from qgis.PyQt.QtCore import QSettings, Qt
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -19,7 +19,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface
+from planet_explorer.pe_utils import (
+    iface,
+    setting,
+    set_setting
+)
 
 BOOL = "bool"
 STRING = "string"
@@ -95,7 +99,7 @@ class SettingsDialog(QDialog):
                 horizontalLayout.addWidget(QLabel(param["label"]))
             self.widgets[name] = self.widgetFromParameter(param)
             horizontalLayout.addWidget(self.widgets[name])
-            value = QSettings().value(f"{SETTINGS_NAMESPACE}/{name}", None)
+            value = setting(name)
             if value:
                 self.setValueInWidget(self.widgets[name], param["type"], value)
             verticalLayout.addLayout(horizontalLayout)
@@ -210,7 +214,7 @@ class SettingsDialog(QDialog):
                 value = self.valueFromWidget(
                     widget, parameterFromName(self.params, name)["type"]
                 )
-                QSettings().setValue(f"{SETTINGS_NAMESPACE}/{name}", value)
+                set_setting(name, value)
             except WrongValueException:
                 # show warning
                 return

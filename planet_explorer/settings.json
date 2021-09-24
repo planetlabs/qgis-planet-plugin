@@ -6,5 +6,13 @@
     "type": "folder",
     "default": "",
     "group": "Orders"
+  },
+  {
+    "name": "showUpdateWarning",
+    "label": "Show update message",
+    "description": "Show a message when a newer version is available",
+    "type": "bool",
+    "default": true,
+    "group": "General"
   }
 ]
