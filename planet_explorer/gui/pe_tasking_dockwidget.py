@@ -14,88 +14,51 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'September 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "September 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os
 import logging
+import os
 
-import analytics
-
-# noinspection PyPackageRequirements
 from qgis.core import (
-    QgsProject,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
-    QgsWkbTypes,
-    QgsRectangle,
     QgsGeometry,
-    QgsPointXY
+    QgsPointXY,
+    QgsProject,
+    QgsRectangle,
+    QgsWkbTypes,
 )
+from qgis.gui import QgsMapTool, QgsRubberBand
 
-from qgis.gui import (
-    QgsRubberBand,
-    QgsMapTool
-)
-
-# noinspection PyPackageRequirements
-from qgis.utils import (
-    iface
-)
-
-# noinspection PyPackageRequirements
 from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QIcon
+from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
-# noinspection PyPackageRequirements
-from qgis.PyQt.QtCore import (
-    Qt,
-    pyqtSignal,
-    QPoint
-)
-
-# noinspection PyPackageRequirements
-from qgis.PyQt.QtGui import (
-    QIcon,
-    QColor
-)
-
-from qgis.PyQt.QtWidgets import (
-    QVBoxLayout,
-    QDialog,
-    QTextBrowser)
-
-from ..planet_api import (
-    PlanetClient
-)
-
-from ..pe_utils import (
-    PLANET_COLOR,
-    open_link_with_browser,
-)
-
-from ..pe_analytics import (
-    analytics_track
-)
-
+from ..pe_analytics import analytics_track
+from ..pe_utils import PLANET_COLOR, open_link_with_browser, iface
+from ..planet_api import PlanetClient
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 TASKING_ICON = QIcon(os.path.join(plugin_path, "resources", "tasking.png"))
 SVG_ICON = os.path.join(plugin_path, "resources", "pin.svg")
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
-LOG_VERBOSE = os.environ.get('PYTHON_LOG_VERBOSE', None)
+LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, 'ui', 'pe_tasking_dockwidget.ui'),
-    from_imports=True, import_from=os.path.basename(plugin_path),
-    resource_suffix=''
+    os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui"),
+    from_imports=True,
+    import_from=os.path.basename(plugin_path),
+    resource_suffix="",
 )
 
 
@@ -117,24 +80,29 @@ class AOICaptureMapTool(QgsMapTool):
         transform3857 = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:3857"),
-            QgsProject.instance()
+            QgsProject.instance(),
         )
         transform4326 = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance()
+            QgsProject.instance(),
         )
         pt4326 = transform4326.transform(pt)
         pt3857 = transform3857.transform(pt)
         SIZE = 5000
-        rect3857 = QgsRectangle(pt3857.x() - SIZE / 2, pt3857.y() - SIZE / 2,
-                            pt3857.x() + SIZE / 2, pt3857.y() + SIZE / 2)
-        rect = transform3857.transform(rect3857, QgsCoordinateTransform.ReverseTransform)
+        rect3857 = QgsRectangle(
+            pt3857.x() - SIZE / 2,
+            pt3857.y() - SIZE / 2,
+            pt3857.x() + SIZE / 2,
+            pt3857.y() + SIZE / 2,
+        )
+        rect = transform3857.transform(
+            rect3857, QgsCoordinateTransform.ReverseTransform
+        )
         self.aoi_captured.emit(rect, pt4326)
 
 
 class WarningDialog(QDialog):
-
     def __init__(self, pt):
         super().__init__(iface.mainWindow())
         self.pt = pt
@@ -143,12 +111,22 @@ class WarningDialog(QDialog):
         textbrowser.setOpenLinks(False)
         textbrowser.setOpenExternalLinks(False)
         textbrowser.anchorClicked.connect(self._link_clicked)
-        text = '''<p><strong>Complete your high resolution imagery order</strong></p>
-                <p><br />Your custom high resolution imagery order can be completed using Planet&rsquo;s Tasking Dashboard. The dashboard allows you to place an order to task our SkySat satellite and get high-resolution imagery for your area and time of interest.</p>
-                <p>If you have not yet purchased the ability to order high-resolution imagery, you may download samples
-                <a href="https://learn.planet.com/sample-skysat.html?utm_source=defense-and-intelligence&amp;amp;utm_medium=website&amp;amp;utm_campaign=skysat-sample-imagery&amp;amp;utm_content=skysat-sample-imagery">here</a> and contact our sales team <a href="https://www.planet.com/contact-sales/">here</a>.</p>
+        url = (
+            "https://learn.planet.com/sample-skysat.html?utm_source=defense-and-intelligence&amp;"
+            "amp;utm_medium=website&amp;amp;utm_campaign=skysat-sample-imagery&amp;amp;"
+            "utm_content=skysat-sample-imagery"
+        )
+        text = f"""<p><strong>Complete your high resolution imagery order</strong></p>
+                <p><br/>Your custom high resolution imagery order can be completed using
+                Planet&rsquo;s Tasking Dashboard. The dashboard allows you to place an order
+                to task our SkySat satellite and get high-resolution imagery for your area
+                and time of interest.</p>
+                <p>If you have not yet purchased the ability to order high-resolution imagery,
+                you may download samples<a href="{url}"> here</a>
+                and contact our sales team <a href="https://www.planet.com/contact-sales/">
+                here</a>.</p>
                 <p>&nbsp;</p>
-                <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>'''
+                <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>"""
         textbrowser.setHtml(text)
         layout.addWidget(textbrowser)
         self.setLayout(layout)
@@ -163,11 +141,11 @@ class WarningDialog(QDialog):
         else:
             open_link_with_browser(url.toString())
 
-class TaskingDockWidget(BASE, WIDGET):
 
-    def __init__(self,
-                 parent=None,
-                 ):
+class TaskingDockWidget(BASE, WIDGET):
+    def __init__(
+        self, parent=None,
+    ):
         super().__init__(parent=parent)
 
         self.setupUi(self)
@@ -178,13 +156,11 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnMapTool.setIcon(TASKING_ICON)
         self.btnMapTool.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.marker = QgsRubberBand(iface.mapCanvas(),
-                              QgsWkbTypes.PointGeometry)
+        self.marker = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PointGeometry)
         self.marker.setIcon(QgsRubberBand.ICON_SVG)
         self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 
@@ -210,16 +186,16 @@ class TaskingDockWidget(BASE, WIDGET):
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance().crs(),
-            QgsProject.instance()
+            QgsProject.instance(),
         )
         transformed = transform.transform(pt)
         self.marker.setToGeometry(QgsGeometry.fromPointXY(transformed))
         self._set_map_tool(False)
-        text = f'''
+        text = f"""
                 <p><b>Selected Point Coordinates</b></p>
                 <p align="center">Latitude : {pt.x():.4f}</p>
                 <p align="center">Longitude : {pt.y():.4f}</p>
-                '''
+                """
         self.textBrowserPoint.setHtml(text)
         self.btnCancel.setEnabled(True)
         self.btnOpenDashboard.setEnabled(True)
@@ -263,10 +239,10 @@ def _get_widget_instance():
     if dockwidget_instance is None:
         if not PlanetClient.getInstance().has_api_key():
             return None
-        dockwidget_instance = TaskingDockWidget(
-            parent=iface.mainWindow())
+        dockwidget_instance = TaskingDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+        )
 
         iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
 

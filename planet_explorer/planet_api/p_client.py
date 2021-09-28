@@ -14,12 +14,12 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 import os
 import logging
@@ -31,43 +31,30 @@ from typing import (
 )
 
 # noinspection PyPackageRequirements
-from PyQt5.QtCore import (
-    pyqtSignal,
-    pyqtSlot,
-    QObject,
-    QSettings
-)
-from qgis.core import (QgsAuthMethodConfig,
-                        QgsApplication,
-                        QgsMessageLog,
-                        Qgis
-)
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
+from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
 
-# noinspection PyPackageRequirements
-# from PyQt5.QtGui import QPixmap
 
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
 
-from ..gui.pe_gui_utils import (
-    waitcursor
-)
+from ..gui.pe_gui_utils import waitcursor
 
-LOG_LEVEL = os.environ.get('PYTHON_LOG_LEVEL', 'WARNING').upper()
+LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
-API_KEY_DEFAULT = 'SKIP_ENVIRON'
+API_KEY_DEFAULT = "SKIP_ENVIRON"
 
-QUOTA_URL = 'https://api.planet.com/auth/v1/experimental' \
-            '/public/my/subscriptions'
+QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscriptions"
 
-TILE_SERVICE_URL = 'https://tiles{0}.planet.com/data/v1/layers'
+TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 
 
 class LoginException(Exception):
     """Issues raised during client login"""
+
     pass
 
 
@@ -81,6 +68,7 @@ class PlanetClient(QObject, ClientV1):
     loginChanged = pyqtSignal(bool)
 
     __instance = None
+
     @staticmethod
     def getInstance():
         if PlanetClient.__instance is None:
@@ -101,9 +89,9 @@ class PlanetClient(QObject, ClientV1):
         PlanetClient.__instance = self
 
         self._user_quota = {
-            'enabled': False,
-            'sqkm': 0.0,
-            'used': 0.0,
+            "enabled": False,
+            "sqkm": 0.0,
+            "used": 0.0,
         }
 
     def set_proxy_values(self):
@@ -116,9 +104,11 @@ class PlanetClient(QObject, ClientV1):
         if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
             if proxyType != "HttpProxy":
-                QgsMessageLog.logMessage("Planet Explorer: Only HttpProxy is supported "
-                                         "for connecting to the Planet API",
-                                         level=Qgis.Warning)
+                QgsMessageLog.logMessage(
+                    "Planet Explorer: Only HttpProxy is supported "
+                    "for connecting to the Planet API",
+                    level=Qgis.Warning,
+                )
                 return
 
             proxyHost = settings.value("proxy/proxyHost")
@@ -128,9 +118,10 @@ class PlanetClient(QObject, ClientV1):
             if authid:
                 authConfig = QgsAuthMethodConfig()
                 QgsApplication.authManager().loadAuthenticationConfig(
-                    authid, authConfig, True)
-                username = authConfig.config('username')
-                password = authConfig.config('password')
+                    authid, authConfig, True
+                )
+                username = authConfig.config("username")
+                password = authConfig.config("password")
             else:
                 username = settings.value("proxy/proxyUser")
                 password = settings.value("proxy/proxyPassword")
@@ -161,9 +152,9 @@ class PlanetClient(QObject, ClientV1):
             except (APIException, InvalidIdentity) as exc:
                 raise LoginException from exc
 
-            if 'user_id' in res:
+            if "user_id" in res:
                 self.p_user = res
-                self.auth = auth.APIKey(self.p_user['api_key'])
+                self.auth = auth.APIKey(self.p_user["api_key"])
                 self.update_user_quota()
             else:
                 raise LoginException()
@@ -185,63 +176,69 @@ class PlanetClient(QObject, ClientV1):
         return self.p_user
 
     def api_key(self):
-        if hasattr(self.auth, 'value'):
+        if hasattr(self.auth, "value"):
             return self.auth.value
         return None
 
     def has_api_key(self):
-        if hasattr(self.auth, 'value'):
-            return self.auth.value not in [None, '', API_KEY_DEFAULT]
+        if hasattr(self.auth, "value"):
+            return self.auth.value not in [None, "", API_KEY_DEFAULT]
         return False
 
     def has_access_to_mosaics(self):
-        url = self._url('basemaps/v1/mosaics')
-        params = {'_page_size': 1}
+        url = self._url("basemaps/v1/mosaics")
+        params = {"_page_size": 1}
         response = self._get(url, api_models.Mosaics, params=params).get_body().get()
         return len(response) > 0
 
     def list_mosaic_series(self, name_contains=None):
-        '''List all available mosaic series
+        """List all available mosaic series
         :returns: :py:Class:`planet.api.models.JSON`
-        '''
+        """
         params = {}
         if name_contains:
-            params['name__contains'] = name_contains
-        url = self._url('basemaps/v1/series/')
+            params["name__contains"] = name_contains
+        url = self._url("basemaps/v1/series/")
         return self._get(url, api_models.Mosaics, params=params).get_body()
 
     @waitcursor
     def get_mosaics(self, name_contains=None):
-        '''List all available mosaics
+        """List all available mosaics
         :returns: :py:Class:`planet.api.models.JSON`
-        '''
-        params = {"v":"1.5", "_page_size": 10000}
+        """
+        params = {"v": "1.5", "_page_size": 10000}
         if name_contains:
-            params['name__contains'] = name_contains
-        url = self._url('basemaps/v1/mosaics')
+            params["name__contains"] = name_contains
+        url = self._url("basemaps/v1/mosaics")
         return self._get(url, api_models.Mosaics, params=params).get_body()
 
     def get_mosaics_for_series(self, series_id):
-        url = self._url('basemaps/v1/series/{}/mosaics?v=1.5'.format(series_id))
+        url = self._url("basemaps/v1/series/{}/mosaics?v=1.5".format(series_id))
         return self._get(url, api_models.Mosaics).get_body()
 
     def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
-        '''List all available quad for a given mosaic
+        """List all available quad for a given mosaic
         :returns: :py:Class:`planet.api.models.JSON`
-        '''
+        """
         if isinstance(mosaic, str):
             mosaicid = mosaic
         else:
             mosaicid = mosaic["id"]
 
-        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads?bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}')
+        url = self._url(
+            f"basemaps/v1/mosaics/{mosaicid}/quads?bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
+        )
         if bbox is None:
             if isinstance(mosaic, str):
                 bbox = [-180, -85, 180, 85]
             else:
-                bbox = mosaic['bbox']
-        bbox = (max(-180, bbox[0]), max(-84.99, bbox[1]),
-                min(180, bbox[2]), min(84.99, bbox[3]))
+                bbox = mosaic["bbox"]
+        bbox = (
+            max(-180, bbox[0]),
+            max(-84.99, bbox[1]),
+            min(180, bbox[2]),
+            min(84.99, bbox[3]),
+        )
         url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
         if minimal:
             url += "&minimal=true"
@@ -249,19 +246,18 @@ class PlanetClient(QObject, ClientV1):
 
     def get_one_quad(self, mosaic):
         url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
-        params = {"_page_size":1,
-                    "bbox": ",".join(str(v) for v in mosaic['bbox'])}
+        params = {"_page_size": 1, "bbox": ",".join(str(v) for v in mosaic["bbox"])}
         response = self._get(url, api_models.MosaicQuads, params=params)
         quad = response.get_body().get().get("items")[0]
         return quad
 
     def get_items_for_quad(self, mosaicid, quadid):
-        url = self._url(f'basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items')
+        url = self._url(f"basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items")
         response = self._get(url, api_models.JSON)
         item_descriptions = []
         items = response.get_body().get().get("items")
         for item in items:
-            if item['link'].startswith("https://api.planet.com"):
+            if item["link"].startswith("https://api.planet.com"):
                 response = self._get(item["link"], api_models.JSON)
                 item_descriptions.append(response.get_body().get())
 
@@ -269,11 +265,10 @@ class PlanetClient(QObject, ClientV1):
 
     def create_order(self, request):
         api_key = PlanetClient.getInstance().api_key()
-        url = self._url('compute/ops/orders/v2')
+        url = self._url("compute/ops/orders/v2")
         headers = {"X-Planet-App": "qgis"}
         session = PlanetClient.getInstance().dispatcher.session
-        res = session.post(url, auth=(api_key, ''), json=request,
-                           headers=headers)
+        res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
         return res.json()
 
     @pyqtSlot(result=bool)
@@ -322,7 +317,7 @@ class PlanetClient(QObject, ClientV1):
         ]
         """
         if not self.api_key():
-            log.warning('No API key found for getting quota')
+            log.warning("No API key found for getting quota")
             return False
 
         # TODO: Catch errors
@@ -332,54 +327,53 @@ class PlanetClient(QObject, ClientV1):
 
         resp: api_models.JSON = self.dispatcher.response(
             api_models.Request(
-                QUOTA_URL,
-                auth=self.auth,
-                body_type=api_models.JSON,
-                method='GET')
+                QUOTA_URL, auth=self.auth, body_type=api_models.JSON, method="GET"
+            )
         ).get_body()
 
         resp_data = resp.get()
-        log.debug(f'resp_data:\n{resp_data}')
+        log.debug(f"resp_data:\n{resp_data}")
         if not resp_data:
-            log.warning('No response data found for getting quota')
+            log.warning("No response data found for getting quota")
             return False
 
-        quota_keys = ['quota_enabled', 'quota_sqkm', 'quota_used']
+        quota_keys = ["quota_enabled", "quota_sqkm", "quota_used"]
         has_quota_data = all([q in resp_data for q in quota_keys])
 
         if has_quota_data:
-            quota_enabled = bool(resp_data['quota_enabled'])
-            self._user_quota['enabled'] = quota_enabled
-            self._user_quota['sqkm'] = resp_data['quota_sqkm']
-            self._user_quota['used'] = resp_data['quota_used']
-            log.debug(f""" Quota (sqkm)
+            quota_enabled = bool(resp_data["quota_enabled"])
+            self._user_quota["enabled"] = quota_enabled
+            self._user_quota["sqkm"] = resp_data["quota_sqkm"]
+            self._user_quota["used"] = resp_data["quota_used"]
+            log.debug(
+                f""" Quota (sqkm)
               Enabled: {str(self.user_quota_enabled())}
               Size: {str(self.user_quota_size())}
               Used: {str(self.user_quota_used())}
               Remaining: {str(self.user_quota_remaining())}
-            """)
+            """
+            )
         else:
-            log.warning('No quota keys found in response for getting quota')
+            log.warning("No quota keys found in response for getting quota")
             return False
 
         return True
 
     def user_quota_enabled(self):
-        return bool(self._user_quota['enabled'])
+        return bool(self._user_quota["enabled"])
 
     def user_quota_size(self):
-        return bool(self._user_quota['sqkm'])
+        return bool(self._user_quota["sqkm"])
 
     def user_quota_used(self):
-        return bool(self._user_quota['used'])
+        return bool(self._user_quota["used"])
 
     def user_quota_remaining(self):
         # if not self.update_user_quota():
         #     return None
 
         if self.user_quota_enabled():
-            return float(self._user_quota['sqkm']) - \
-                   float(self._user_quota['used'])
+            return float(self._user_quota["sqkm"]) - float(self._user_quota["used"])
 
         return None
 
@@ -411,32 +405,33 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
     api_key = PlanetClient.getInstance().api_key()
 
     if not item_type_ids:
-        log.debug('No item type:ids passed, skipping tile hash')
+        log.debug("No item type:ids passed, skipping tile hash")
         return None
 
     item_type_ids.reverse()
-    data = {'ids': ','.join(item_type_ids)}
+    data = {"ids": ",".join(item_type_ids)}
 
-    tile_url = TILE_SERVICE_URL.format('')
+    tile_url = TILE_SERVICE_URL.format("")
 
     session = PlanetClient.getInstance().dispatcher.session
-    res = session.post(tile_url, auth=(api_key, ''), data=data)
+    res = session.post(tile_url, auth=(api_key, ""), data=data)
     if res.ok:
         res_json = res.json()
-        if 'name' in res_json:
-            return res_json['name']
+        if "name" in res_json:
+            return res_json["name"]
     else:
-        log.debug(f'Tile service hash request failed:\n'
-                  f'status_code: {res.status_code}\n'
-                  f'reason: {res.reason}')
+        log.debug(
+            f"Tile service hash request failed:\n"
+            f"status_code: {res.status_code}\n"
+            f"reason: {res.reason}"
+        )
 
     return None
 
 
 def tile_service_url(
-        item_type_ids: List[str],
-        tile_hash: Optional[str] = None,
-        service: str = 'xyz') -> Optional[str]:
+    item_type_ids: List[str], tile_hash: Optional[str] = None, service: str = "xyz"
+) -> Optional[str]:
     """
     :param item_type_ids: List of item 'Type:IDs'
     :param api_key: Planet API key
@@ -448,22 +443,25 @@ def tile_service_url(
 
     if not tile_hash:
         if not item_type_ids:
-            log.debug('No item type:ids passed, skipping tile URL')
+            log.debug("No item type:ids passed, skipping tile URL")
             return None
         tile_hash = tile_service_hash(item_type_ids)
 
     if not tile_hash:
-        log.debug('No tile URL hash passed, skipping tile URL')
+        log.debug("No tile URL hash passed, skipping tile URL")
         return None
 
+    from ..pe_utils import user_agent
     url = None
-    if service.lower() == 'wmts':
-        tile_url = TILE_SERVICE_URL.format('')
-        url = f'{tile_url}/wmts/{tile_hash}?api_key={api_key}'
-    elif service.lower() == 'xyz':
+    if service.lower() == "wmts":
+        tile_url = TILE_SERVICE_URL.format("")
+        url = f"{tile_url}/wmts/{tile_hash}?api_key={api_key}"
+    elif service.lower() == "xyz":
         tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
-        url = \
-            f'{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?' \
-            f'api_key={api_key}'
+        url = (
+            f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
+            f"api_key={api_key}"
+            f"&ua={user_agent()}"
+        )
 
     return url

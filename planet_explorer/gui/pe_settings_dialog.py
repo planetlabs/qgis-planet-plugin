@@ -1,26 +1,25 @@
-import os
 import json
+import os
 
-from qgis.PyQt.QtCore import Qt, QSettings
+from qgis.core import QgsMapLayerProxyModel
+from qgis.gui import QgsMapLayerComboBox
+from qgis.PyQt.QtCore import QSettings, Qt
 from qgis.PyQt.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
     QCheckBox,
     QComboBox,
-    QLabel,
-    QLineEdit,
+    QDialog,
     QDialogButtonBox,
     QFileDialog,
-    QWidget,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QSizePolicy,
     QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from qgis.gui import QgsMapLayerComboBox
-from qgis.core import QgsMapLayerProxyModel
-from qgis.utils import iface
 
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE
+from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface
 
 BOOL = "bool"
 STRING = "string"
@@ -185,7 +184,7 @@ class SettingsDialog(QDialog):
                 return widget.currentLayer()
             else:
                 return widget.text()
-        except:
+        except Exception:
             raise  # WrongValueException()
 
     def setValueInWidget(self, widget, paramtype, value):
@@ -202,7 +201,7 @@ class SettingsDialog(QDialog):
                 widget.currentLayer()  # TODO
             else:
                 widget.setText(str(value))
-        except:
+        except Exception:
             pass
 
     def accept(self):

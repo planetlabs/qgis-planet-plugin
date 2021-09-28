@@ -1,41 +1,25 @@
-import os
-import json
 import copy
+import json
+import os
 
-from qgis.core import Qgis
-
-from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt, QDateTime
-from qgis.PyQt.QtWidgets import (
-    QVBoxLayout,
-    QDialogButtonBox,
-    QSizePolicy,
-    QInputDialog
-)
-
+from qgis.core import Qgis, QgsCoordinateReferenceSystem
 from qgis.gui import QgsMapCanvas, QgsMessageBar
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QDateTime, Qt
+from qgis.PyQt.QtWidgets import QDialogButtonBox, QInputDialog, QSizePolicy, QVBoxLayout
 
-from qgis.core import QgsCoordinateReferenceSystem
+from ..pe_utils import qgsgeometry_from_geojson, iface
+from ..planet_api.p_client import PlanetClient
+from .pe_filters import filters_as_text_from_request, filters_from_request
 
-from qgis.utils import iface
-
-from ..pe_utils import (
-    qgsgeometry_from_geojson
+WIDGET, BASE = uic.loadUiType(
+    os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "ui", "save_search_dialog.ui"
+    )
 )
-
-from ..planet_api.p_client import (
-        PlanetClient
-)
-
-from .pe_filters import filters_from_request, filters_as_text_from_request
-
-WIDGET, BASE = uic.loadUiType(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "ui", "save_search_dialog.ui"))
 
 
 class SaveSearchDialog(BASE, WIDGET):
-
     def __init__(self, request, parent=None):
         super(SaveSearchDialog, self).__init__(parent)
         self.request = request
@@ -100,17 +84,21 @@ class SaveSearchDialog(BASE, WIDGET):
         layout.addWidget(self.canvas)
         self.widgetAOI.setLayout(layout)
 
-        filters = filters_from_request(self.request, 'acquired')
+        filters = filters_from_request(self.request, "acquired")
         if filters:
-            gte = filters[0]['config'].get('gte')
+            gte = filters[0]["config"].get("gte")
             if gte is not None:
-                self.lblStartDate.setText(QDateTime.fromString(gte, Qt.ISODate).date().toString())
+                self.lblStartDate.setText(
+                    QDateTime.fromString(gte, Qt.ISODate).date().toString()
+                )
             else:
                 self.lblStartDate.setText("---")
                 self.chkExcludeStart.setEnabled(False)
-            lte = filters[0]['config'].get('lte')
+            lte = filters[0]["config"].get("lte")
             if lte is not None:
-                self.lblEndDate.setText(QDateTime.fromString(lte, Qt.ISODate).date().toString())
+                self.lblEndDate.setText(
+                    QDateTime.fromString(lte, Qt.ISODate).date().toString()
+                )
             else:
                 self.lblEndDate.setText("---")
                 self.chkExcludeEnd.setEnabled(False)
@@ -128,13 +116,13 @@ class SaveSearchDialog(BASE, WIDGET):
 
         self.request_to_save = copy.deepcopy(self.request)
         self.request_to_save["name"] = name
-        filters = filters_from_request(self.request, 'acquired')
+        filters = filters_from_request(self.request, "acquired")
         if filters:
-            config = filters[0]['config']
+            config = filters[0]["config"]
             if self.chkExcludeStart.isChecked():
-                del config['gte']
+                del config["gte"]
             if self.chkExcludeEnd.isChecked():
-                del config['lte']
+                del config["lte"]
             self.replace_date_filter(self.request_to_save, config)
         self.accept()
 
@@ -143,7 +131,7 @@ class SaveSearchDialog(BASE, WIDGET):
             if filterdict["type"] in ["AndFilter", "OrFilter"]:
                 for subfilter in filterdict["config"]:
                     process_filter(subfilter)
-            elif (filterdict.get("field_name") == "acquired"):
-                    filterdict["config"] == newfilter
+            elif filterdict.get("field_name") == "acquired":
+                filterdict["config"] == newfilter
 
         process_filter(request["filter"])

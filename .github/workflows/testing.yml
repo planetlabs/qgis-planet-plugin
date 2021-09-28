@@ -1,0 +1,29 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  # Run unit tests
+  test:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        qgis_version: [release-3_10, release-3_16, latest]
+    env:
+      QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Test on QGIS
+        env:
+          PLANET_USER: ${{ secrets.PLANET_USER }}
+          PLANET_PASSWORD: ${{ secrets.PLANET_PASSWORD }}
+        run: docker-compose -f .docker/docker-compose.gh.yml run -e PLANET_USER=${PLANET_USER} -e PLANET_PASSWORD=${PLANET_PASSWORD} qgis /usr/src/.docker/run-docker-tests.sh

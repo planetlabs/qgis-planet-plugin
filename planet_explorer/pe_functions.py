@@ -16,15 +16,15 @@
 *                                                                         *
 ***************************************************************************
 """
-__author__ = 'Planet Federal'
-__date__ = 'August 2019'
-__copyright__ = '(C) 2019 Planet Inc, https://planet.com'
+__author__ = "Planet Federal"
+__date__ = "August 2019"
+__copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-from qgis.utils import qgsfunction
 from qgis.core import QgsExpression
+from qgis.utils import qgsfunction
 
 
 # noinspection PyPep8Naming,PyBroadException
@@ -45,8 +45,7 @@ def metadataValue(values, feature, parent):
     fieldName = "metadata"
     idx = feature.fieldNameIndex(fieldName)
     if idx == -1:
-        parent.setEvalErrorString(
-            "Required '{0}' field not found".format(fieldName))
+        parent.setEvalErrorString("Required '{0}' field not found".format(fieldName))
         return None
 
     text = feature[fieldName]
@@ -62,11 +61,7 @@ def metadataValue(values, feature, parent):
         v = int(value)
         return v
     except ValueError:
-        try:
-            v = int(value)
-            return v
-        except:
-            return value
+        return value
 
 
 functions = [metadataValue]
