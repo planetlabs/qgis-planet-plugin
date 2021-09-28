@@ -22,6 +22,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 
+import json
 import logging
 import os
 
@@ -32,7 +33,6 @@ from qgis.PyQt.QtCore import Qt, pyqtSlot, QUrl
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit, QPushButton
 from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply, QNetworkAccessManager
-from qgis.PyQt.QtXml import QDomDocument
 
 from ..pe_analytics import analytics_track, is_sentry_dsn_valid
 from ..pe_utils import (
@@ -141,27 +141,21 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         if show_update_info and self._first_time:
             self.nam = QNetworkAccessManager()
             self.nam.finished.connect(self._version_info_downloaded)
-            version = ".".join(Qgis.QGIS_VERSION.split(".")[:2])
-            url = f"https://plugins.qgis.org/plugins/plugins.xml?qgis={version}"
+            url = "https://api.github.com/repos/planetlabs/qgis-planet-plugin/tags"
             self.nam.get(QNetworkRequest(QUrl(url)))
 
     def _version_info_downloaded(self, reply):
         if reply.error() == QNetworkReply.NoError:
-            xml = reply.readAll().data().decode('utf8')
-            reposXML = QDomDocument()
-            reposXML.setContent(xml)
-            pluginNodes = reposXML.elementsByTagName("pyqgis_plugin")
-            for i in range(pluginNodes.size()):
-                filename = pluginNodes.item(i).firstChildElement("file_name").text().strip()
-                if filename.startswith("planet_explorer"):
-                    current_version = plugin_version()
-                    available_version = pluginNodes.item(i).toElement().attribute("version")
-                    if available_version > current_version:
-                        mb = self.msgBar.createMessage("A new version is available")
-                        button = QPushButton("Update")
-                        button.clicked.connect(self.open_plugin_manager)
-                        mb.layout().addWidget(button)
-                        self.update_warning_widget = self.msgBar.pushWidget(mb, Qgis.Info, duration=0)
+            tags_txt = reply.readAll().data().decode('utf8')
+            tags_list = json.loads(tags_txt)
+            current_version = plugin_version()
+            available_version = tags_list[0]["name"][1:]  # remove the "v" from the tag name
+            if available_version > current_version:
+                mb = self.msgBar.createMessage("A new version is available")
+                button = QPushButton("Update")
+                button.clicked.connect(self.open_plugin_manager)
+                mb.layout().addWidget(button)
+                self.update_warning_widget = self.msgBar.pushWidget(mb, Qgis.Info, duration=0)
             self._first_time = False
 
     def open_plugin_manager(self):
