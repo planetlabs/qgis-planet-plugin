@@ -29,7 +29,7 @@ import zipfile
 import sys
 import traceback
 import urllib3
-import requests
+from requests import exceptions
 import planet
 
 import analytics
@@ -189,11 +189,11 @@ class PlanetExplorer(object):
             trace = "".join(traceback.format_exception(t, value, tb))
             if PLUGIN_NAMESPACE in trace.lower():
                 s = ""
-                if issubclass(t, requests.exceptions.Timeout):
+                if issubclass(t, exceptions.Timeout):
                     s = "Connection to Planet server timed out."
-                elif issubclass(t, requests.exceptions.ConnectionError):
+                elif issubclass(t, exceptions.ConnectionError):
                     s = "Connection error.\n Verify that your computer is correctly connected to the Internet"
-                elif issubclass(t, requests.exceptions.ProxyError):
+                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyUrl)):
                     s = "ProxyError.\n Verify that your proxy is correctly configured in the QGIS settings"
                 elif issubclass(t, planet.api.exceptions.ServerError):
                     s = "Server Error.\n Please, try again later"
