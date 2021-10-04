@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+jobs:
+  release:
+    name: "Build"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get source code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Setup
+      run: |
+        pip install paver
+        paver setup
+
+    - name: Build package
+      env:
+        SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
+        SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
+        GITHUB_REF: ${{ github.ref }}
+      run: |
+        paver package.sentry=${SENTRY_KEY} package.segments=$SEGMENTS_KEY package.version=${GITHUB_REF##*/} package
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: plugin_package
+        path: planet_explorer.zip
