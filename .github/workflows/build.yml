@@ -1,4 +1,4 @@
-name: Release
+name: Build
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     branches:
       - '**'
 jobs:
-  release:
+  build:
     name: "Build"
     runs-on: ubuntu-latest
 
@@ -36,5 +36,5 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: plugin_package
+        name: planet_explorer.zip
         path: planet_explorer.zip
