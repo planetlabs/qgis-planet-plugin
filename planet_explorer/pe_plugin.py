@@ -232,7 +232,6 @@ class PlanetExplorer(object):
                     "type": "os",
                     "name": "macOS",
                     "version": platform.mac_ver()[0],
-                    "build": os.popen("sw_vers -buildVersion").read().strip(),
                     "kernel_version": platform.uname().release,
                 })
             if system == 'Linux':
