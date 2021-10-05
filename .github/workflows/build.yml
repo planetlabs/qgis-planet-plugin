@@ -33,8 +33,10 @@ jobs:
         GITHUB_REF: ${{ github.ref }}
       run: |
         paver package.sentry=${SENTRY_KEY} package.segments=$SEGMENTS_KEY package.version=${GITHUB_REF##*/} package
+        mkdir tmp
+        unzip planet_explorer.zip -d tmp
 
     - uses: actions/upload-artifact@v2
       with:
-        name: planet_explorer.zip
-        path: planet_explorer.zip
+        name: planet_explorer
+        path: tmp
