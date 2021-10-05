@@ -95,6 +95,7 @@ from planet_explorer.pe_utils import (
 from planet_explorer.pe_analytics import (
     sentry_dsn,
     is_sentry_dsn_valid,
+    sentry_integrations,
     is_segments_write_key_valid,
     segments_write_key
 )
@@ -182,7 +183,8 @@ class PlanetExplorer(object):
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
             try:
-                sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+                sentry_sdk.init(sentry_dsn(), release=plugin_version(True),
+                                integrations=sentry_integrations())
             except Exception:
                 QMessageBox.warning(self.iface.mainWindow(), "Error",
                                     "Error initializing Planet Explorer.\n"
