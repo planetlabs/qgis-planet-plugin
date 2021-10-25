@@ -29,7 +29,7 @@ import zipfile
 import sys
 import traceback
 import urllib3
-import requests
+from requests import exceptions
 import planet
 
 import analytics
@@ -87,6 +87,7 @@ from planet_explorer.pe_utils import (
 from planet_explorer.pe_analytics import (
     sentry_dsn,
     is_sentry_dsn_valid,
+    sentry_integrations,
     is_segments_write_key_valid,
     segments_write_key,
 )
@@ -168,7 +169,13 @@ class PlanetExplorer(object):
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
-            sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+            try:
+                sentry_sdk.init(sentry_dsn(), release=plugin_version(True),
+                                integrations=sentry_integrations())
+            except Exception:
+                QMessageBox.warning(self.iface.mainWindow(), "Error",
+                                    "Error initializing Planet Explorer.\n"
+                                    "Please restart QGIS to load updated libraries.")
 
         self.qgis_hook = sys.excepthook
 
@@ -176,14 +183,14 @@ class PlanetExplorer(object):
             trace = "".join(traceback.format_exception(t, value, tb))
             if PLUGIN_NAMESPACE in trace.lower():
                 s = ""
-                if issubclass(t, requests.exceptions.Timeout):
+                if issubclass(t, exceptions.Timeout):
                     s = "Connection to Planet server timed out."
-                elif issubclass(t, requests.exceptions.ConnectionError):
+                elif issubclass(t, exceptions.ConnectionError):
                     s = (
                         "Connection error.\n Verify that your computer is correctly"
                         " connected to the Internet"
                     )
-                elif issubclass(t, requests.exceptions.ProxyError):
+                elif issubclass(t, exceptions.ProxyError, exceptions.InvalidProxyUrl):
                     s = (
                         "ProxyError.\n Verify that your proxy is correctly configured"
                         " in the QGIS settings"
@@ -226,7 +233,6 @@ class PlanetExplorer(object):
                         "type": "os",
                         "name": "macOS",
                         "version": platform.mac_ver()[0],
-                        "build": os.popen("sw_vers -buildVersion").read().strip(),
                         "kernel_version": platform.uname().release,
                     },
                 )

@@ -22,6 +22,8 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v2.1.1 (2021-10-01)
+  * This patch addresses a number of quality improvements, including a time-stamp discrepancy issue impacting the image search results from the Planet inspector tool, compared to the timestamp on results returned by the image search panel. These time stamps are now consistent and accurate.
   v2.0.1 (2020-05-21)
   * Show acquired date instead of publish date for images
   * Do not show proc options for 8 bit basemaps
