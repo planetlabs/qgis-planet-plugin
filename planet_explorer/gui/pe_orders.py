@@ -446,8 +446,9 @@ class PlanetOrderReviewWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.setMargin(0)
+        item_types_names = PlanetClient.getInstance().item_types_names()
         labelName = IconLabel(
-            f"<b>{PlanetClient.getInstance().item_types_names()[self.item_type]} - {bundle_type}</b>",
+            f"<b>{item_types_names[self.item_type]} - {bundle_type}</b>",
             SATELLITE_ICON,
         )
         labelNumItems = IconLabel(f"{len(images)} items", NITEMS_ICON)
@@ -496,7 +497,8 @@ class PlanetOrderReviewWidget(QWidget):
             layout.addWidget(QLabel("<b>Harmonization</b>"), 3, 1, Qt.AlignCenter)
             layout.addWidget(
                 QLabel(
-                    "Radiometrically harmonize imagery captured by one satellite instrument type to imagery capture by another"
+                    "Radiometrically harmonize imagery captured by one satellite "
+                    "instrument type to imagery capture by another"
                 ),
                 4,
                 1,

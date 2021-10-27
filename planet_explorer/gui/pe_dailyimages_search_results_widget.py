@@ -627,7 +627,8 @@ class DateItemWidget(ItemWidgetBase):
         # self._update_thumbnail()
 
     def name(self):
-        return f"{self.date} | {PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}"
+        item_types_names = PlanetClient.getInstance().item_types_names()
+        return f"{self.date} | {item_types_names[self.properties[ITEM_TYPE]]}"
 
 
 class SatelliteItem(QTreeWidgetItem):
