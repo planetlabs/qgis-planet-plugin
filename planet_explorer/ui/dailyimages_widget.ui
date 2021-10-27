@@ -32,7 +32,7 @@
       <number>0</number>
      </property>
      <widget class="QWidget" name="stackedWidgetDailyImageryPage1">
-      <layout class="QVBoxLayout" name="verticalLayout_6">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -46,7 +46,14 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QFrame" name="frameMainFilters">
+        <widget class="QLabel" name="labelSavedSearches">
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select an area of interest or &lt;a href=&quot;load&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;load a saved search&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frameAOIFilter">
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
          </property>
@@ -268,8 +275,8 @@ color: rgb(255, 0, 0);}</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>28</height>
+            <width>398</width>
+            <height>238</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">

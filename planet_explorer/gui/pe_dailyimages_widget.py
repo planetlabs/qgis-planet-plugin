@@ -35,10 +35,11 @@ from ..pe_analytics import analytics_track, send_analytics_for_search
 from ..pe_utils import add_menu_section_action
 from ..planet_api import PlanetClient
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
-from .pe_filters import PlanetDailyFilter, PlanetMainFilters, filters_from_request
+from .pe_filters import PlanetDailyFilter, PlanetAOIFilter, filters_from_request
 from .pe_orders import PlanetOrdersDialog
 from .pe_show_curl_dialog import ShowCurlDialog
 from .pe_legacy_warning_widget import LegacyWarningWidget
+from .pe_open_saved_search_dialog import OpenSavedSearchDialog
 from .pe_gui_utils import waitcursor
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
@@ -62,11 +63,9 @@ class DailyImagesWidget(BASE, WIDGET):
         super(DailyImagesWidget, self).__init__()
         self.parent = parent
 
-        self._reset_saved_search_combo = True
-
         self.setupUi(self)
 
-        self._setup_main_filter()
+        self._setup_aoi_filter()
 
         self._setup_daily_filters_widget()
 
@@ -81,7 +80,6 @@ class DailyImagesWidget(BASE, WIDGET):
         self.grpBoxResults.layout().addWidget(self.searchResultsWidget)
         self.searchResultsWidget.checkedCountChanged.connect(self._update_orders_button)
         self.searchResultsWidget.setAOIRequested.connect(self.set_aoi_from_request)
-        self.searchResultsWidget.searchSaved.connect(self._search_saved)
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -92,7 +90,9 @@ class DailyImagesWidget(BASE, WIDGET):
         self.frameWarningLegacySearch.setVisible(False)
 
         self._toggle_search_highlight(True)
-        self.btnSearch.clicked[bool].connect(self.perform_search)
+        self.btnSearch.clicked.connect(self.perform_search)
+
+        self.labelSavedSearches.linkActivated.connect(self.open_saved_searches)
 
         # Collected sources/filters, upon search request
         self._sources = None
@@ -112,6 +112,20 @@ class DailyImagesWidget(BASE, WIDGET):
         self._collect_sources_filters()
         self._default_filter_values = build_search_request(self._filters, self._sources)
 
+    def open_saved_searches(self):
+        dlg = OpenSavedSearchDialog()
+        if dlg.exec() == OpenSavedSearchDialog.Accepted:
+            saved_search_request = dlg.saved_search
+            request = {}
+            if saved_search_request:
+                if "filter" in saved_search_request:
+                    request["filter"] = saved_search_request["filter"]
+                if "item_types" in saved_search_request:
+                    request["item_types"] = saved_search_request["item_types"]
+                self.current_saved_search = saved_search_request
+            self.set_filters_from_request(request)
+            self.perform_search()
+
     @waitcursor
     def update_legacy_search(self):
         if self.legacy_request is not None and self.current_saved_search is not None:
@@ -124,7 +138,6 @@ class DailyImagesWidget(BASE, WIDGET):
             )
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
-            self._main_filters.populate_saved_searches(True)
         else:
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
@@ -153,7 +166,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
     @pyqtSlot()
     def _collect_sources_filters(self):
-        main_filters = self._main_filters.filters()
+        main_filters = self._aoi_filter.filters()
         if not main_filters:
             main_filters = []
 
@@ -212,7 +225,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         send_analytics_for_search(self._sources)
 
-        if not self._main_filters.leAOI.text():
+        if not self._aoi_filter.leAOI.text():
             id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
                 self.lblWarning.setHidden(False)
@@ -232,17 +245,15 @@ class DailyImagesWidget(BASE, WIDGET):
 
         self.searchResultsWidget.update_request(search_request, self.local_filters)
 
-    def _setup_main_filter(self):
-        """Main filters: AOI visual extent, date range and text"""
-        self._main_filters = PlanetMainFilters(
-            parent=self.frameMainFilters, plugin=self.parent
+    def _setup_aoi_filter(self):
+        self._aoi_filter = PlanetAOIFilter(
+            parent=self.frameAOIFilter, plugin=self.parent
         )
         layout = QVBoxLayout()
         layout.setMargin(0)
-        layout.addWidget(self._main_filters)
-        self.frameMainFilters.setLayout(layout)
-        self._main_filters.filtersChanged.connect(self._filters_have_changed)
-        self._main_filters.savedSearchSelected.connect(self.saved_search_selected)
+        layout.addWidget(self._aoi_filter)
+        self.frameAOIFilter.setLayout(layout)
+        self._aoi_filter.filtersChanged.connect(self._filters_have_changed)
 
     def _setup_daily_filters_widget(self):
         self._daily_filters_widget = PlanetDailyFilter(
@@ -286,29 +297,15 @@ class DailyImagesWidget(BASE, WIDGET):
         :return:
         """
         self._toggle_search_highlight(True)
-        if self._reset_saved_search_combo:
-            self._main_filters.null_out_saved_search()
-            self._daily_filters_widget.hide_legacy_search_elements()
-            self.frameWarningLegacySearch.setVisible(False)
+        self._daily_filters_widget.hide_legacy_search_elements()
+        self.frameWarningLegacySearch.setVisible(False)
         log.debug("Filters have changed")
-
-    def saved_search_selected(self, saved_search_request):
-        self._reset_saved_search_combo = False
-        request = {}
-        if saved_search_request:
-            if "filter" in saved_search_request:
-                request["filter"] = saved_search_request["filter"]
-            if "item_types" in saved_search_request:
-                request["item_types"] = saved_search_request["item_types"]
-            self.current_saved_search = saved_search_request
-        self.set_filters_from_request(request)
-        self._reset_saved_search_combo = True
 
     @pyqtSlot(dict)
     def set_filters_from_request(self, request):
         if request is not None:
             self._daily_filters_widget.set_from_request(request)
-            self._main_filters.set_from_request(request)
+            self._aoi_filter.set_from_request(request)
             sources = request["item_types"]
             legacy = "PSScene3Band" in sources or "PSScene4Band" in sources
             self.frameWarningLegacySearch.setVisible(legacy)
@@ -319,15 +316,11 @@ class DailyImagesWidget(BASE, WIDGET):
                 self.legacy_request = request
             else:
                 self.legacy_request = None
-            # self._request = request
 
     @pyqtSlot(dict)
     def set_aoi_from_request(self, request):
         if request is not None:
-            self._main_filters.set_from_request(request)
-
-    def _search_saved(self, request):
-        self._main_filters.add_saved_search(request)
+            self._aoi_filter.set_from_request(request)
 
     @pyqtSlot()
     def order_checked(self):
@@ -342,8 +335,8 @@ class DailyImagesWidget(BASE, WIDGET):
             return
 
         tool_resources = {}
-        if self._main_filters.leAOI.text():
-            tool_resources["aoi"] = self._main_filters.leAOI.text()
+        if self._aoi_filter.leAOI.text():
+            tool_resources["aoi"] = self._aoi_filter.leAOI.text()
         else:
             tool_resources["aoi"] = None
 
@@ -386,6 +379,6 @@ class DailyImagesWidget(BASE, WIDGET):
         analytics_track("api_key_copied")
 
     def clean_up(self):
-        self._main_filters.clean_up()
+        self._aoi_filter.clean_up()
         if self.searchResultsWidget.search_has_been_performed():
             self.searchResultsWidget.clean_up()

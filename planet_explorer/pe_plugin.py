@@ -189,7 +189,7 @@ class PlanetExplorer(object):
                         "Connection error.\n Verify that your computer is correctly"
                         " connected to the Internet"
                     )
-                elif issubclass(t, exceptions.ProxyError, exceptions.InvalidProxyUrl):
+                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
                     s = (
                         "ProxyError.\n Verify that your proxy is correctly configured"
                         " in the QGIS settings"

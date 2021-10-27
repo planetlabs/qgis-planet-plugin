@@ -20,8 +20,8 @@ WIDGET, BASE = uic.loadUiType(
 
 
 class SaveSearchDialog(BASE, WIDGET):
-    def __init__(self, request, parent=None):
-        super(SaveSearchDialog, self).__init__(parent)
+    def __init__(self, request):
+        super(SaveSearchDialog, self).__init__(iface.mainWindow())
         self.request = request
         self.request_to_save = None
 
