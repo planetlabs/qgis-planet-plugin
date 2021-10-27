@@ -87,7 +87,6 @@ from planet_explorer.pe_utils import (
 from planet_explorer.pe_analytics import (
     sentry_dsn,
     is_sentry_dsn_valid,
-    sentry_integrations,
     is_segments_write_key_valid,
     segments_write_key,
 )
