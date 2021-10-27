@@ -40,6 +40,7 @@ NAME = "name"
 def sentry_dsn():
     return os.environ.get("SENTRY_DSN")
 
+
 def sentry_integrations():
     from sentry_sdk.integrations import (
         argv,
@@ -50,6 +51,7 @@ def sentry_integrations():
         stdlib,
         threading,
     )
+
     return [
         argv.ArgvIntegration,
         atexit.AtexitIntegration,
@@ -59,6 +61,7 @@ def sentry_integrations():
         stdlib.StdlibIntegration,
         threading.ThreadingIntegration,
     ]
+
 
 def segments_write_key():
     return os.environ.get("SEGMENTS_WRITE_KEY")

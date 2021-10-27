@@ -144,7 +144,8 @@ class WarningDialog(QDialog):
 
 class TaskingDockWidget(BASE, WIDGET):
     def __init__(
-        self, parent=None,
+        self,
+        parent=None,
     ):
         super().__init__(parent=parent)
 

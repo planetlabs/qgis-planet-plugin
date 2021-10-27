@@ -103,8 +103,9 @@ class QuadOrder:
         for mosaic, mosaicquads in self.quads.items():
             mosaiclocations = []
             for quad in mosaicquads:
-                mosaiclocations.append((f"{quad[LINKS][DOWNLOAD]}&ua={user_agent()}",
-                                        quad[ID]))
+                mosaiclocations.append(
+                    (f"{quad[LINKS][DOWNLOAD]}&ua={user_agent()}", quad[ID])
+                )
             locations[mosaic] = mosaiclocations
         return locations
 
