@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>612</width>
-    <height>117</height>
+    <height>85</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -268,22 +268,6 @@
          </item>
         </layout>
        </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="comboSavedSearch"/>
-      </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>0</width>
-          <height>2</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>

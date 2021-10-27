@@ -87,7 +87,6 @@ from planet_explorer.pe_utils import (
 from planet_explorer.pe_analytics import (
     sentry_dsn,
     is_sentry_dsn_valid,
-    sentry_integrations,
     is_segments_write_key_valid,
     segments_write_key,
 )
@@ -170,11 +169,7 @@ class PlanetExplorer(object):
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
             try:
-                sentry_sdk.init(
-                    sentry_dsn(),
-                    release=plugin_version(True),
-                    integrations=sentry_integrations(),
-                )
+                sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
             except Exception:
                 QMessageBox.warning(
                     self.iface.mainWindow(),
@@ -196,7 +191,7 @@ class PlanetExplorer(object):
                         "Connection error.\n Verify that your computer is correctly"
                         " connected to the Internet"
                     )
-                elif issubclass(t, exceptions.ProxyError, exceptions.InvalidProxyUrl):
+                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
                     s = (
                         "ProxyError.\n Verify that your proxy is correctly configured"
                         " in the QGIS settings"

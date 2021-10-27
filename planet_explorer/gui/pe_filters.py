@@ -69,7 +69,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..pe_analytics import analytics_track
 from ..pe_utils import (
     MAIN_AOI_COLOR,
     qgsgeometry_from_geojson,
@@ -88,8 +87,8 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-MAIN_FILTERS_WIDGET, MAIN_FILTERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_main_filters_base.ui"),
+AOI_FILTER_WIDGET, AOI_FILTER_BASE = uic.loadUiType(
+    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui"),
     from_imports=True,
     import_from=f"{os.path.basename(plugin_path)}",
     resource_suffix="",
@@ -197,9 +196,7 @@ class PlanetFilterMixin(QObject):
         self._plugin.show_message(message, level, duration, show_more)
 
 
-class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixin):
-
-    leAOI: QLineEdit
+class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
     filtersChanged = pyqtSignal()
     savedSearchSelected = pyqtSignal(object)
@@ -209,7 +206,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self,
         parent=None,
         plugin=None,
-        no_saved_search=False,
         color=MAIN_AOI_COLOR,
     ):
         super().__init__(parent=parent)
@@ -241,42 +237,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self.btnCopyAOI.clicked.connect(self.copy_aoi_to_clipboard)
 
         self.p_client = PlanetClient.getInstance()
-        self.p_client.loginChanged.connect(self.populate_saved_searches)
-
-        self.comboSavedSearch.currentIndexChanged.connect(self.saved_search_selected)
-
-        if no_saved_search:
-            self.comboSavedSearch.setVisible(False)
-        else:
-            self.populate_saved_searches(True)
-
-    def populate_saved_searches(self, is_logged):
-        if is_logged:
-            self.comboSavedSearch.blockSignals(True)
-            self.comboSavedSearch.clear()
-            self.comboSavedSearch.addItem("[Select a Saved Search]")
-            res = self.p_client.get_searches().get()
-            for search in res["searches"]:
-                self.comboSavedSearch.addItem(search["name"], search)
-            self.comboSavedSearch.blockSignals(False)
-
-    def add_saved_search(self, request):
-        self.comboSavedSearch.blockSignals(True)
-        self.comboSavedSearch.addItem(request["name"], request)
-        self.comboSavedSearch.setCurrentIndex(self.comboSavedSearch.count() - 1)
-        self.comboSavedSearch.blockSignals(False)
-
-    def saved_search_selected(self, idx):
-        if idx == 0:
-            return
-        request = self.comboSavedSearch.currentData()
-        analytics_track("saved_search_accessed")
-        self.savedSearchSelected.emit(request)
-
-    def null_out_saved_search(self):
-        self.comboSavedSearch.blockSignals(True)
-        self.comboSavedSearch.setCurrentIndex(0)
-        self.comboSavedSearch.blockSignals(False)
 
     def reset_aoi_box(self):
         self.leAOI.setText("")

@@ -268,17 +268,6 @@ def tile_service_data_src_uri(
     return None
 
 
-def py_to_qvariant_type(py_type: str) -> QVariant.Type:
-    type_map = {
-        "str": QVariant.String,
-        "datetime": QVariant.DateTime,
-        "int": QVariant.Int,
-        "float": QVariant.Double,
-        "bool": QVariant.Bool,
-    }
-    return type_map.get(py_type, QVariant.Invalid)
-
-
 def create_preview_vector_layer(image):
     marker_line = QgsSimpleLineSymbolLayer(color=QColor(110, 88, 232, 100), width=1)
     # FIXME: Save this to a uuid.gpkg file in user-defined dir or project dir

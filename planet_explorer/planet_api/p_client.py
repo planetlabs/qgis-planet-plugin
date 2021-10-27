@@ -32,7 +32,6 @@ from typing import (
     List,
 )
 
-# noinspection PyPackageRequirements
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
 from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
 
@@ -62,7 +61,6 @@ class LoginException(Exception):
     pass
 
 
-# noinspection PyPep8Naming,PyUnresolvedReferences
 class PlanetClient(QObject, ClientV1):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
@@ -280,13 +278,6 @@ class PlanetClient(QObject, ClientV1):
         return res.json()
 
     def update_search(self, request, searchid):
-        """Updates a saved search from the specified request.
-        The request must contain a ``name`` property.
-
-        :param request: see :ref:`api-search-request`
-        :returns: :py:class:`planet.api.models.JSON`
-        :raises planet.api.exceptions.APIException: On API error.
-        """
         body = json.dumps(request)
         return self.dispatcher.response(
             api_models.Request(
@@ -295,6 +286,16 @@ class PlanetClient(QObject, ClientV1):
                 body_type=api_models.JSON,
                 data=body,
                 method="PUT",
+            )
+        ).get_body()
+
+    def delete_search(self, searchid):
+        return self.dispatcher.response(
+            api_models.Request(
+                self._url(f"data/v1/searches/{searchid}"),
+                self.auth,
+                body_type=api_models.JSON,
+                method="DELETE",
             )
         ).get_body()
 

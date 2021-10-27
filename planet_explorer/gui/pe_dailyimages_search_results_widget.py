@@ -110,7 +110,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     setAOIRequested = pyqtSignal(dict)
     checkedCountChanged = pyqtSignal(int)
-    searchSaved = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
@@ -187,7 +186,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         if dlg.exec_():
             self._p_client.create_search(dlg.request_to_save)
             analytics_track("saved_search_created")
-            self.searchSaved.emit(dlg.request_to_save)
 
     def sort_order(self):
         order = ["acquired"]
