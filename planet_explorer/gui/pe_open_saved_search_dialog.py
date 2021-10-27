@@ -17,7 +17,9 @@ from qgis.gui import QgsMessageBar
 
 WIDGET, BASE = uic.loadUiType(
     os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "ui", "pe_open_saved_search_dialog.ui"
+        os.path.dirname(os.path.dirname(__file__)),
+        "ui",
+        "pe_open_saved_search_dialog.ui",
     )
 )
 
@@ -34,9 +36,7 @@ class OpenSavedSearchDialog(BASE, WIDGET):
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.legacyWarningWidget = LegacyWarningWidget()
-        self.legacyWarningWidget.updateLegacySearch.connect(
-            self.update_legacy_search
-        )
+        self.legacyWarningWidget.updateLegacySearch.connect(self.update_legacy_search)
         layout.addWidget(self.legacyWarningWidget)
         self.frameWarningLegacySearch.setLayout(layout)
         self.frameWarningLegacySearch.setVisible(False)
@@ -76,15 +76,24 @@ class OpenSavedSearchDialog(BASE, WIDGET):
         if request:
             PlanetClient.getInstance().delete_search(request["id"])
             self.comboSavedSearch.removeItem(self.comboSavedSearch.currentIndex())
-            self.bar.pushMessage("Delete search", "Search was correctly deleted", Qgis.Success, 5)
+            self.bar.pushMessage(
+                "Delete search", "Search was correctly deleted", Qgis.Success, 5
+            )
         else:
-            self.bar.pushMessage("Delete search", "No search has been selected", Qgis.Warning, 5)
+            self.bar.pushMessage(
+                "Delete search", "No search has been selected", Qgis.Warning, 5
+            )
 
     def update_legacy_search(self):
         request = self.comboSavedSearch.currentData()
         cleared_request = {}
         cleared_request["filter"] = request["filter"]
-        cleared_request["item_types"] = list(set(t if t not in ["PSScene3Band", "PSScene4Band"] else "PSScene" for t in request["item_types"]))
+        cleared_request["item_types"] = list(
+            set(
+                t if t not in ["PSScene3Band", "PSScene4Band"] else "PSScene"
+                for t in request["item_types"]
+            )
+        )
         if "PSScene4Band" in request["item_types"]:
             assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
             psscene_filter = {
@@ -96,22 +105,21 @@ class OpenSavedSearchDialog(BASE, WIDGET):
                         "field_name": "item_type",
                     },
                 ],
-                "type": "AndFilter"
+                "type": "AndFilter",
             }
             cleared_request["filter"] = {
-                "config": [
-                    psscene_filter,
-                    request["filter"]
-                ],
-                "type": "AndFilter"
+                "config": [psscene_filter, request["filter"]],
+                "type": "AndFilter",
             }
         cleared_request["name"] = request["name"]
-        PlanetClient.getInstance().update_search(
-            cleared_request, request["id"]
+        PlanetClient.getInstance().update_search(cleared_request, request["id"])
+        self.comboSavedSearch.setItemData(
+            self.comboSavedSearch.currentIndex(), cleared_request
         )
-        self.comboSavedSearch.setItemData(self.comboSavedSearch.currentIndex(), cleared_request)
         self.frameWarningLegacySearch.setVisible(False)
-        self.bar.pushMessage("Delete search", "Search was correctly updated", Qgis.Success, 5)
+        self.bar.pushMessage(
+            "Delete search", "Search was correctly updated", Qgis.Success, 5
+        )
 
     def check_for_legacy_request(self, request):
         sources = request["item_types"]
@@ -124,16 +132,12 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             tokens = []
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                tokens.append(
-                    QDateTime.fromString(gte, Qt.ISODate).date().toString()
-                )
+                tokens.append(QDateTime.fromString(gte, Qt.ISODate).date().toString())
             else:
                 tokens.append("---")
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                tokens.append(
-                    QDateTime.fromString(lte, Qt.ISODate).date().toString()
-                )
+                tokens.append(QDateTime.fromString(lte, Qt.ISODate).date().toString())
             else:
                 tokens.append("---")
             self.labelDateRange.setText(" / ".join(tokens))
@@ -146,4 +150,6 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             self.saved_search = request
             self.accept()
         else:
-            self.bar.pushMessage("Saved search", "No search has been selected", Qgis.Warning, 5)
+            self.bar.pushMessage(
+                "Saved search", "No search has been selected", Qgis.Warning, 5
+            )

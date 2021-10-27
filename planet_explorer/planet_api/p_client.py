@@ -291,13 +291,13 @@ class PlanetClient(QObject, ClientV1):
 
     def delete_search(self, searchid):
         return self.dispatcher.response(
-                api_models.Request(
-                    self._url(f"data/v1/searches/{searchid}"),
-                    self.auth,
-                    body_type=api_models.JSON,
-                    method="DELETE",
-                )
-            ).get_body()
+            api_models.Request(
+                self._url(f"data/v1/searches/{searchid}"),
+                self.auth,
+                body_type=api_models.JSON,
+                method="DELETE",
+            )
+        ).get_body()
 
     @pyqtSlot(result=bool)
     def update_user_quota(self):

@@ -172,9 +172,12 @@ class PlanetExplorer(object):
             try:
                 sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
             except Exception:
-                QMessageBox.warning(self.iface.mainWindow(), "Error",
-                                    "Error initializing Planet Explorer.\n"
-                                    "Please restart QGIS to load updated libraries.")
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    "Error",
+                    "Error initializing Planet Explorer.\n"
+                    "Please restart QGIS to load updated libraries.",
+                )
 
         self.qgis_hook = sys.excepthook
 
