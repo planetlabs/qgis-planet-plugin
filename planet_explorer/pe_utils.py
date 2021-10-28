@@ -57,14 +57,12 @@ from qgis.core import (
     QgsGeometry,
     QgsJsonUtils,
     QgsLayerTree,
-    QgsLayerTreeGroup,
-    QgsLayerTreeLayer,
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
     QgsSimpleLineSymbolLayer,
     QgsVectorFileWriter,
-    QgsVectorLayer
+    QgsVectorLayer,
 )
 
 from qgis.utils import iface as qgisiface
@@ -72,7 +70,6 @@ from qgis.testing.mocked import get_iface
 
 from .planet_api import PlanetClient
 from .planet_api.p_client import tile_service_url
-from .planet_api.p_specs import ITEM_TYPE_SPECS
 from .planet_api.p_utils import geometry_from_json_str_or_obj, geometry_from_request
 
 # This can be further patched using the test.utils module
@@ -133,6 +130,7 @@ LAST_ACQUIRED = "last_acquired"
 DATATYPE = "datatype"
 ID = "id"
 ITEM_TYPE = "item_type"
+ITEM_TYPES = "item_types"
 
 PLANET_CURRENT_MOSAIC = "planet/currentMosaic"
 PLANET_MOSAICS = "planet/mosaics"
@@ -270,19 +268,7 @@ def tile_service_data_src_uri(
     return None
 
 
-def py_to_qvariant_type(py_type: str) -> QVariant.Type:
-    type_map = {
-        "str": QVariant.String,
-        "datetime": QVariant.DateTime,
-        "int": QVariant.Int,
-        "float": QVariant.Double,
-        "bool": QVariant.Bool,
-    }
-    return type_map.get(py_type, QVariant.Invalid)
-
-
 def create_preview_vector_layer(image):
-    # noinspection PyArgumentList
     marker_line = QgsSimpleLineSymbolLayer(color=QColor(110, 88, 232, 100), width=1)
     # FIXME: Save this to a uuid.gpkg file in user-defined dir or project dir
     vlayer = QgsVectorLayer("MultiPolygon?crs=EPSG:4326", "Footprints", "memory")
@@ -296,12 +282,8 @@ def create_preview_vector_layer(image):
         QgsField("sort_order", QVariant.String),
     ]
 
-    i_specs: dict = ITEM_TYPE_SPECS.get(image["properties"]["item_type"], None)
-    if i_specs:
-        i_props: dict = i_specs.get("properties", None)
-        if i_props:
-            for k, v in i_props.items():
-                qgs_fields.append(QgsField(str(k), py_to_qvariant_type(v)))
+    for prop in image["properties"]:
+        qgs_fields.append(QgsField(str(prop), QVariant.String))
 
     dp.addAttributes(qgs_fields)
     return vlayer
@@ -446,10 +428,6 @@ def orders_download_folder():
     return download_folder
 
 
-def open_orders_download_folder():
-    QDesktopServices.openUrl(QUrl.fromLocalFile(orders_download_folder()))
-
-
 def mosaic_title(mosaic):
     date = iso8601.parse_date(mosaic[FIRST_ACQUIRED])
     if INTERVAL in mosaic:
@@ -477,7 +455,7 @@ def add_mosaics_to_qgis_project(
     mosaics, name, proc="default", ramp="", zmin=0, zmax=22, add_xyz_server=False
 ):
     mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
-    tile_url = f"{mosaics[0][LINKS][TILES]}?ua={user_agent()}"
+    tile_url = f"{mosaics[0][LINKS][TILES]}&ua={user_agent()}"
     uri = f"type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}"
     layer = QgsRasterLayer(uri, name, "wms")
     layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
@@ -505,21 +483,6 @@ def add_mosaics_to_qgis_project(
             f"qgis/connections-xyz/{name}/url",
             full_uri.replace(PlanetClient.getInstance().api_key(), ""),
         )
-
-
-def layer_tree_node_for_layer(layer):
-    def _nodes_from_tree(layerTreeGroup):
-        _nodes = {}
-        for child in layerTreeGroup.children():
-            if isinstance(child, QgsLayerTreeLayer):
-                _nodes[child.layer()] = child
-            elif isinstance(child, QgsLayerTreeGroup):
-                _nodes.update(_nodes_from_tree(child))
-        return _nodes
-
-    root = QgsProject.instance().layerTreeRoot()
-    nodes = _nodes_from_tree(root)
-    return nodes.get(layer, None)
 
 
 def open_link_with_browser(url):

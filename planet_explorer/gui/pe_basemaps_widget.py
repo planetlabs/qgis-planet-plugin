@@ -54,7 +54,7 @@ from ..planet_api.p_quad_orders import (
 )
 from .pe_basemap_layer_widget import BasemapRenderingOptionsWidget
 from .pe_basemaps_list_widget import BasemapsListWidget
-from .pe_filters import PlanetMainFilters
+from .pe_filters import PlanetAOIFilter
 from .pe_gui_utils import waitcursor
 from .pe_orders_monitor_dockwidget import refresh_orders, show_orders_monitor
 from .pe_quads_treewidget import QuadsTreeWidget
@@ -113,7 +113,7 @@ class BasemapsWidget(BASE, WIDGET):
         layout.addWidget(self.renderingOptions)
         self.frameRenderingOptions.setLayout(layout)
 
-        self.aoi_filter = PlanetMainFilters(self, self.parent, True, QUADS_AOI_COLOR)
+        self.aoi_filter = PlanetAOIFilter(self, self.parent, QUADS_AOI_COLOR)
         self.grpBoxAOI.layout().addWidget(self.aoi_filter)
 
         self.radioDownloadComplete.setChecked(True)

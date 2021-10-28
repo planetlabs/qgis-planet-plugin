@@ -20,8 +20,8 @@ WIDGET, BASE = uic.loadUiType(
 
 
 class SaveSearchDialog(BASE, WIDGET):
-    def __init__(self, request, parent=None):
-        super(SaveSearchDialog, self).__init__(parent)
+    def __init__(self, request):
+        super(SaveSearchDialog, self).__init__(iface.mainWindow())
         self.request = request
         self.request_to_save = None
 
@@ -119,9 +119,9 @@ class SaveSearchDialog(BASE, WIDGET):
         filters = filters_from_request(self.request, "acquired")
         if filters:
             config = filters[0]["config"]
-            if self.chkExcludeStart.isChecked():
+            if self.chkExcludeStart.isChecked() and "gte" in config:
                 del config["gte"]
-            if self.chkExcludeEnd.isChecked():
+            if self.chkExcludeEnd.isChecked() and "lte" in config:
                 del config["lte"]
             self.replace_date_filter(self.request_to_save, config)
         self.accept()

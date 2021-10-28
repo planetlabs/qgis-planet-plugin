@@ -168,7 +168,15 @@ class PlanetExplorer(object):
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
         if is_sentry_dsn_valid():
-            sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+            try:
+                sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+            except Exception:
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    "Error",
+                    "Error initializing Planet Explorer.\n"
+                    "Please restart QGIS to load updated libraries.",
+                )
 
         self.qgis_hook = sys.excepthook
 
@@ -183,7 +191,7 @@ class PlanetExplorer(object):
                         "Connection error.\n Verify that your computer is correctly"
                         " connected to the Internet"
                     )
-                elif issubclass(t, exceptions.ProxyError, exceptions.InvalidProxyUrl):
+                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
                     s = (
                         "ProxyError.\n Verify that your proxy is correctly configured"
                         " in the QGIS settings"
@@ -226,7 +234,6 @@ class PlanetExplorer(object):
                         "type": "os",
                         "name": "macOS",
                         "version": platform.mac_ver()[0],
-                        "build": os.popen("sw_vers -buildVersion").read().strip(),
                         "kernel_version": platform.uname().release,
                     },
                 )

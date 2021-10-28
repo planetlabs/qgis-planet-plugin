@@ -62,7 +62,6 @@ from ..pe_utils import (
     qgsgeometry_from_geojson,
 )
 from ..planet_api import PlanetClient
-from ..planet_api.p_specs import DAILY_ITEM_TYPES_DICT
 from .pe_gui_utils import waitcursor
 
 
@@ -112,7 +111,8 @@ ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
 
 class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
     def __init__(
-        self, parent=None,
+        self,
+        parent=None,
     ):
         super().__init__(parent=parent)
         self.p_client = PlanetClient.getInstance()
@@ -277,7 +277,7 @@ class SceneItemWidget(QFrame):
         date = datetime.strftime("%b %d, %Y")
 
         text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
-                        <b>{DAILY_ITEM_TYPES_DICT[self.properties['item_type']]}</b>
+                        <b>{PlanetClient.getInstance().item_types_names()[self.properties['item_type']]}</b>
                     """
 
         self.nameLabel = QLabel(text)

@@ -80,7 +80,8 @@ ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
 
 class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
     def __init__(
-        self, parent=None,
+        self,
+        parent=None,
     ):
         super().__init__(parent=parent)
         self.p_client = PlanetClient.getInstance()
@@ -182,8 +183,9 @@ class OrderWrapper:
         ).get_body()
         links = order_detail.get()[Order.LINKS_KEY]
         results = links[Order.RESULTS_KEY]
-        locations = [(f"{r[Order.LOCATION_KEY]}&ua={user_agent()}", r[NAME])
-                     for r in results]
+        locations = [
+            (f"{r[Order.LOCATION_KEY]}&ua={user_agent()}", r[NAME]) for r in results
+        ]
         return locations
 
 

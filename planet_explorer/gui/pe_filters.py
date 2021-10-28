@@ -23,6 +23,7 @@ __revision__ = "$Format:%H$"
 
 import json
 import logging
+from math import floor
 import os
 import re
 
@@ -61,14 +62,13 @@ from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QAction,
     QCheckBox,
-    QComboBox,
     QFileDialog,
-    QFrame,
+    QGridLayout,
     QLineEdit,
     QMenu,
+    QVBoxLayout,
 )
 
-from ..pe_analytics import analytics_track
 from ..pe_utils import (
     MAIN_AOI_COLOR,
     qgsgeometry_from_geojson,
@@ -78,6 +78,7 @@ from ..pe_utils import (
 from ..planet_api.p_client import PlanetClient
 from .pe_aoi_maptools import PlanetCircleMapTool, PlanetExtentMapTool, PlanetPolyMapTool
 from .pe_range_slider import PlanetExplorerRangeSlider
+from .pe_legacy_warning_widget import LegacyWarningWidget
 
 LOCAL_FILTERS = ["area_coverage"]
 
@@ -86,8 +87,8 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-MAIN_FILTERS_WIDGET, MAIN_FILTERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_main_filters_base.ui"),
+AOI_FILTER_WIDGET, AOI_FILTER_BASE = uic.loadUiType(
+    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui"),
     from_imports=True,
     import_from=f"{os.path.basename(plugin_path)}",
     resource_suffix="",
@@ -195,16 +196,17 @@ class PlanetFilterMixin(QObject):
         self._plugin.show_message(message, level, duration, show_more)
 
 
-class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixin):
-
-    leAOI: QLineEdit
+class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
     filtersChanged = pyqtSignal()
     savedSearchSelected = pyqtSignal(object)
     zoomToAOIRequested = pyqtSignal()
 
     def __init__(
-        self, parent=None, plugin=None, no_saved_search=False, color=MAIN_AOI_COLOR,
+        self,
+        parent=None,
+        plugin=None,
+        color=MAIN_AOI_COLOR,
     ):
         super().__init__(parent=parent)
         self._plugin = plugin
@@ -235,40 +237,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self.btnCopyAOI.clicked.connect(self.copy_aoi_to_clipboard)
 
         self.p_client = PlanetClient.getInstance()
-        self.p_client.loginChanged.connect(self.populate_saved_searches)
-
-        self.comboSavedSearch.currentIndexChanged.connect(self.saved_search_selected)
-
-        if no_saved_search:
-            self.comboSavedSearch.setVisible(False)
-
-    def populate_saved_searches(self, is_logged):
-        if is_logged:
-            self.comboSavedSearch.clear()
-            self.comboSavedSearch.blockSignals(True)
-            self.comboSavedSearch.addItem("[Select a Saved Search]")
-            res = self.p_client.get_searches().get()
-            for search in res["searches"]:
-                self.comboSavedSearch.addItem(search["name"], search)
-            self.comboSavedSearch.blockSignals(False)
-
-    def add_saved_search(self, request):
-        self.comboSavedSearch.blockSignals(True)
-        self.comboSavedSearch.addItem(request["name"], request)
-        self.comboSavedSearch.setCurrentIndex(self.comboSavedSearch.count() - 1)
-        self.comboSavedSearch.blockSignals(False)
-
-    def saved_search_selected(self, idx):
-        if idx == 0:
-            return
-        request = self.comboSavedSearch.currentData()
-        analytics_track("saved_search_accessed")
-        self.savedSearchSelected.emit(request)
-
-    def null_out_saved_search(self):
-        self.comboSavedSearch.blockSignals(True)
-        self.comboSavedSearch.setCurrentIndex(0)
-        self.comboSavedSearch.blockSignals(False)
 
     def reset_aoi_box(self):
         self.leAOI.setText("")
@@ -278,8 +246,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
     def filters(self):
         filters = []
         if self.leAOI.text():
-            # TODO: Validate GeoJSON; try planet.api.utils.probably_geojson()
-            # noinspection PyBroadException
             try:
                 qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
                 if not qgsgeom.isEmpty():
@@ -316,7 +282,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 
     @pyqtSlot("QString")
     def filters_changed(self, value):
-        self.filtersChanged.emit()
+        if self.emitFiltersChanged:
+            self.filtersChanged.emit()
 
     @pyqtSlot()
     def clean_up(self):
@@ -764,14 +731,6 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
         self._show_message("AOI copied to clipboard")
 
     @pyqtSlot()
-    def validate_aoi(self):
-        # TODO:gather existing validation logic here
-        # TODO: Check for valid json.loads
-
-        # TODO: Check API verticie limit of 500
-        pass
-
-    @pyqtSlot()
     def validate_edited_aoi(self):
         json_txt = self.leAOI.text()
         if not json_txt:
@@ -811,19 +770,8 @@ class PlanetMainFilters(MAIN_FILTERS_BASE, MAIN_FILTERS_WIDGET, PlanetFilterMixi
 class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     """ """
 
-    frameSources: QFrame
-    frameDates: QFrame
-    leStringIDs: QLineEdit
-    endDateEdit: QgsDateTimeEdit
-    startDateEdit: QgsDateTimeEdit
-    cmbBoxDateSort: QComboBox
-    frameRangeSliders: QFrame
-    rangeCloudCover: PlanetExplorerRangeSlider
-
-    chkBxGroundControl: QCheckBox
-    chkBxCanDownload: QCheckBox
-
     filtersChanged = pyqtSignal()
+    updateLegacySearch = pyqtSignal()
 
     ID_PATTERN = [
         r"\d{8,8}_\d{6,6}",
@@ -841,11 +789,45 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.emitFiltersChanged = True
 
-        sources = self.frameSources.findChildren(QCheckBox)
+        # Set up checkboxes for old sources (for legacy saved searches)
+        item_types = {
+            k: v
+            for k, v in PlanetClient.getInstance().item_types_names().items()
+            if k != "PSScene"
+        }
+        row_total = floor(len(item_types) / 2)
+        row = col = 0
+        gl = QGridLayout(self.oldSourcesWidget)
+        gl.setContentsMargins(0, 0, 0, 0)
+        for a, b in item_types.items():
+            # Strip ' Scene' to reduce horizontal width of 2-column layout, except for SkySat
+            name = b.replace(" Scene", "") if b != "SkySat Scene" else b
+            cb = QCheckBox(name, parent=self.oldSourcesWidget)
+            cb.setProperty("api-name", a)
+            gl.addWidget(cb, row, col)
+            row += 1
+            if row > row_total:
+                row = 0
+                col += 1
+        self.oldSourcesWidget.setLayout(gl)
+
+        sources = self.newSourcesWidget.findChildren(QCheckBox)
         for source in sources:
             apiname = source.property("api-name")
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
+
+        self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
+
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        self.legacyWarningWidget = LegacyWarningWidget()
+        self.legacyWarningWidget.updateLegacySearch.connect(
+            self.updateLegacySearch.emit
+        )
+        layout.addWidget(self.legacyWarningWidget)
+        self.frameWarningLegacySearch.setLayout(layout)
+        self.frameWarningLegacySearch.setVisible(False)
 
         self.startDateEdit.valueChanged["QDateTime"].connect(self.filtersChanged)
         self.startDateEdit.valueChanged["QDateTime"].connect(self.set_min_enddate)
@@ -854,14 +836,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.endDateEdit.valueChanged["QDateTime"].connect(self.set_max_startdate)
         self.endDateEdit.valueChanged["QDateTime"].connect(self.change_date_vis)
 
-        # Setup datetime boxes
         current_day = QDateTime().currentDateTimeUtc()
         self.startDateEdit.setDateTime(current_day.addMonths(-3))
         self.endDateEdit.setDateTime(current_day)
 
-        # TODO: (Eventually) Add multi-field searching, with +/- operation
-        #       of adding new field/QLineEdit, without duplicates
-        self.leStringIDs.textChanged["QString"].connect(self.filters_changed)
+        self.leStringIDs.textChanged.connect(self.filters_changed)
 
         self.rangeCloudCover = PlanetExplorerRangeSlider(
             title="Cloud cover",
@@ -875,7 +854,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1,
         )
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeCloudCover)
         self.rangeCloudCover.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -891,7 +869,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1,
         )
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeAzimuth)
         self.rangeAzimuth.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -907,7 +884,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1,
         )
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeElevation)
         self.rangeElevation.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -923,7 +899,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1,
         )
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeViewAngle)
         self.rangeViewAngle.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -939,7 +914,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             step=1,
             precision=1,
         )
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeGsd)
         self.rangeGsd.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -956,7 +930,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             precision=1,
         )
 
-        # Layout's parent widget takes ownership
         self.frameRangeSliders.layout().addWidget(self.rangeAnomalousPx)
         self.rangeAnomalousPx.rangeChanged[float, float].connect(self.filters_changed)
 
@@ -991,22 +964,32 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.frameRangeSliders.layout().addWidget(self.rangeAreaCoverage)
         self.rangeAreaCoverage.rangeChanged[float, float].connect(self.filters_changed)
 
-        # TODO: Add rest of range sliders
-
-        # Ground control filter checkbox
         self.chkBxGroundControl.stateChanged[int].connect(self.filters_changed)
 
-        # Access Filter checkbox
         self.chkBxCanDownload.stateChanged[int].connect(self.filters_changed)
 
+    def _pssceneToggled(self):
+        self.radio3Bands.setEnabled(self.chkPlanetScope.isChecked())
+        self.radio4Bands.setEnabled(self.chkPlanetScope.isChecked())
+        self.radio8Bands.setEnabled(self.chkPlanetScope.isChecked())
+
     def sources(self):
-        checked_sources = []
-        sources = self.frameSources.findChildren(QCheckBox)
+        checked_sources = {}
+        sources = self.newSourcesWidget.findChildren(QCheckBox)
         for source in sources:
             if source.isChecked():
                 apiname = source.property("api-name")
                 if apiname is not None:
-                    checked_sources.append(apiname)
+                    if apiname == "PSScene":
+                        if self.radio3Bands.isChecked():
+                            options = 3
+                        elif self.radio4Bands.isChecked():
+                            options = 4
+                        else:
+                            options = 8
+                    else:
+                        options = None
+                    checked_sources[apiname] = options
         return checked_sources
 
     def set_min_enddate(self):
@@ -1129,10 +1112,32 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         but instead making that assumption to simplify things.
         """
         self.emitFiltersChanged = False
-        checked_sources = request["item_types"]
-        sources = self.frameSources.findChildren(QCheckBox)
-        for source in sources:
-            source.setChecked(source.property("api-name") in checked_sources)
+        sources = request["item_types"]
+        checkboxes = self.newSourcesWidget.findChildren(QCheckBox)
+        for checkbox in checkboxes:
+            checkbox.setChecked(checkbox.property("api-name") in sources)
+        #  Handle the particular case of PSScene
+        if "PSScene" in sources:
+            self.chkPlanetScope.setChecked(True)
+            asset_filters = filters_from_request(request, filter_type="AssetFilter")
+            bands = 3
+            if asset_filters:
+                # We assume here that Assetfilter is only being used for the case of PSScene
+                assets = asset_filters[0].get("config", [])
+                bands = PlanetClient.getInstance().psscene_bandnum_from_assets(assets)
+            if bands == 3:
+                self.radio3Bands.setChecked(True)
+            elif bands == 4:
+                self.radio4Bands.setChecked(True)
+            elif bands == 8:
+                self.radio8Bands.setChecked(True)
+        if "PSScene3Band" in sources:
+            self.chkPlanetScope.setChecked(True)
+            self.radio3Bands.setChecked(True)
+        if "PSScene4Band" in sources:
+            self.chkPlanetScope.setChecked(True)
+            self.radio4Bands.setChecked(True)
+
         filters = filters_from_request(request, "acquired")
         if filters:
             gte = filters[0]["config"].get("gte")
@@ -1184,7 +1189,34 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.leStringIDs.setText(",".join(filters[0]["config"]))
         else:
             self.leStringIDs.setText("")
+
+        self.check_for_legacy_request(request)
         self.emitFiltersChanged = True
+
+    def check_for_legacy_request(self, request):
+        sources = request["item_types"]
+        if "PSScene3Band" in sources or "PSScene4Band" in sources:
+            self.frameWarningLegacySearch.setVisible(True)
+            self.stackedWidgetSources.setCurrentWidget(self.oldSourcesWidget)
+            source_boxes = self.oldSourcesWidget.findChildren(QCheckBox)
+            for checkbox in source_boxes:
+                checkbox.setChecked(checkbox.property("api-name") in sources)
+            self.frameFilters.setEnabled(False)
+            self.startDateEdit.setEnabled(False)
+            self.endDateEdit.setEnabled(False)
+            self.legacyWarningWidget.set_has_image_id(bool(self.leStringIDs.text()))
+        else:
+            self.hide_legacy_search_elements()
+
+    def hide_legacy_search_elements(self):
+        self.frameFilters.setEnabled(True)
+        self.startDateEdit.setEnabled(True)
+        self.endDateEdit.setEnabled(True)
+        self.frameWarningLegacySearch.setVisible(False)
+        self.stackedWidgetSources.setCurrentWidget(self.newSourcesWidget)
+
+    def clear_id_filter(self):
+        self.leStringIDs.setText("")
 
     @pyqtSlot()
     def filters_changed(self):
