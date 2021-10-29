@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Harmonize</title>
+    <g id="Harmonize" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g fill="#001F23" fill-rule="nonzero" id="Rectangle">
+            <path d="M20,6 L6,6 L6,20 L20,20 L20,6 Z M19,7 L19,19 L7,19 L7,7 L19,7 Z"></path>
+            <polygon transform="translate(9.750000, 9.750000) rotate(-90.000000) translate(-9.750000, -9.750000) " points="16.5 3 16.5 16.5 15.5 16.5 15.5 4 3 4 3 3"></polygon>
+            <polygon transform="translate(6.750000, 6.750000) rotate(-90.000000) translate(-6.750000, -6.750000) " points="13.5 0 13.5 13.5 12.5 13.5 12.5 1 0 1 0 0"></polygon>
+        </g>
+    </g>
+</svg>

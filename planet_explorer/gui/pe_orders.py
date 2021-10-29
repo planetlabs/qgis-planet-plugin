@@ -90,7 +90,7 @@ FILETYPE_ICON = _icon("filetype.svg")
 NITEMS_ICON = _icon("nitems.svg")
 SATELLITE_ICON = _icon("satellite.svg")
 CLIP_ICON = _icon("crop.svg")
-HARMONIZE_ICON = _icon("nitems.svg")
+HARMONIZE_ICON = _icon("harmonize.svg")
 EXPAND_MORE_ICON = _icon("expand_more.svg")
 EXPAND_LESS_ICON = _icon("expand_less.svg")
 
