@@ -471,7 +471,7 @@ class PlanetClient(QObject, ClientV1):
 
     def bundles(self):
         if self._bundles is None:
-            url = "https://storage.googleapis.com/integrations-config/productBundles.json"
+            url = "https://developers.planet.com/theme/js/2021-04-06.json"
             self._bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
         return self._bundles
 
