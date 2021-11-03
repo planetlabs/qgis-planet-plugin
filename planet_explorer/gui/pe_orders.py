@@ -491,6 +491,7 @@ class PlanetOrderReviewWidget(QWidget):
                 QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter
             )
             self.chkClip = QCheckBox("Clip items to AOI")
+            self.chkClip.setChecked(True)
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
         if self.add_harmonize:
