@@ -82,6 +82,105 @@ from .pe_legacy_warning_widget import LegacyWarningWidget
 
 LOCAL_FILTERS = ["area_coverage"]
 
+slider_filters = [
+ dict(
+            title="Cloud cover",
+            filter_key="cloud_cover",
+            prefix="",
+            suffix="%",
+            minimum=0,
+            maximum=100,
+            low=0,
+            high=100,
+            step=1,
+            precision=1
+        ),
+ dict(
+            title="Sun Azimuth",
+            filter_key="sun_azimuth",
+            prefix="",
+            suffix="°",
+            minimum=0,
+            maximum=360,
+            low=0,
+            high=360,
+            step=1,
+            precision=1
+        ),
+ dict(
+            title="Sun Elevation",
+            filter_key="sun_elevation",
+            prefix="",
+            suffix="°",
+            minimum=0,
+            maximum=90,
+            low=0,
+            high=90,
+            step=1,
+            precision=1
+        ),
+ dict(
+            title="View Angle",
+            filter_key="view_angle",
+            prefix="",
+            suffix="°",
+            minimum=-25,
+            maximum=25,
+            low=0,
+            high=25,
+            step=1,
+            precision=1
+        ),
+ dict(
+            title="Ground Sample Distance",
+            filter_key="gsd",
+            prefix="",
+            suffix="m",
+            minimum=0,
+            maximum=50,
+            low=0,
+            high=50,
+            step=1,
+            precision=1
+        ),
+ dict(
+            title="Anomalous Pixels",
+            filter_key="anomalous_pixels",
+            prefix="",
+            suffix="%",
+            minimum=0,
+            maximum=100,
+            low=0,
+            high=100,
+            step=1,
+            precision=1
+        ),
+dict(
+            title="Usable Pixels",
+            filter_key="usable_data",
+            prefix="",
+            suffix="%",
+            minimum=0,
+            maximum=100,
+            low=0,
+            high=100,
+            step=1,
+            precision=1
+        ),
+dict(
+            title="Area Coverage",
+            filter_key="area_coverage",
+            prefix="",
+            suffix="%",
+            minimum=0,
+            maximum=100,
+            low=0,
+            high=100,
+            step=1,
+            precision=1
+)
+]
+
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -126,32 +225,28 @@ def filters_from_request(request, field_name=None, filter_type=None):
 
 
 def filters_as_text_from_request(request):
-    slider_filters = {
-        "cloud_cover": "Cloud cover",
-        "sun_azimuth": "Sun Azimuth",
-        "sun_elevation": "Sun Elevation",
-        "view_angle": "View Angle",
-        "gsd": "Ground Sample Distance",
-        "anomalous_pixels": "Anomalous Pixels",
-        "usable_data": "Usable Pixels",
-    }
     s = ""
-    for k, v in slider_filters.items():
+    for slider_filter in slider_filters:
+        k = slider_filter["filter_key"]
         filters = filters_from_request(request, k)
         if filters:
             minvalue = filters[0]["config"].get("gte")
             if minvalue is None:
-                minvalue = "---"
+                minvalue = slider_filter["minimum"]
             elif k == "cloud_cover":
                 minvalue *= 100.0
             maxvalue = filters[0]["config"].get("lte")
             if maxvalue is None:
-                maxvalue = "---"
+                maxvalue = slider_filter["maximum"]
             elif k == "cloud_cover":
                 maxvalue *= 100.0
         else:
-            minvalue = maxvalue = "---"
-        s += f"{k}: {minvalue}, {maxvalue}\n"
+            minvalue = slider_filter["minimum"]
+            maxvalue = slider_filter["maximum"]
+        s += (
+            f'{slider_filter["title"]}: {minvalue}{slider_filter["suffix"]}'
+            f' - {maxvalue}{slider_filter["suffix"]}\n'
+        )
 
     filters = filters_from_request(request, filter_type="PermissionFilter")
     if filters:
@@ -842,130 +937,12 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.leStringIDs.textChanged.connect(self.filters_changed)
 
-        self.rangeCloudCover = PlanetExplorerRangeSlider(
-            title="Cloud cover",
-            filter_key="cloud_cover",
-            prefix="",
-            suffix="%",
-            minimum=0,
-            maximum=100,
-            low=0,
-            high=100,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeCloudCover)
-        self.rangeCloudCover.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeAzimuth = PlanetExplorerRangeSlider(
-            title="Sun Azimuth",
-            filter_key="sun_azimuth",
-            prefix="",
-            suffix="°",
-            minimum=0,
-            maximum=360,
-            low=0,
-            high=360,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeAzimuth)
-        self.rangeAzimuth.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeElevation = PlanetExplorerRangeSlider(
-            title="Sun Elevation",
-            filter_key="sun_elevation",
-            prefix="",
-            suffix="°",
-            minimum=0,
-            maximum=90,
-            low=0,
-            high=90,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeElevation)
-        self.rangeElevation.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeViewAngle = PlanetExplorerRangeSlider(
-            title="View Angle",
-            filter_key="view_angle",
-            prefix="",
-            suffix="°",
-            minimum=-25,
-            maximum=25,
-            low=0,
-            high=25,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeViewAngle)
-        self.rangeViewAngle.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeGsd = PlanetExplorerRangeSlider(
-            title="Ground Sample Distance",
-            filter_key="gsd",
-            prefix="",
-            suffix="m",
-            minimum=0,
-            maximum=50,
-            low=0,
-            high=50,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeGsd)
-        self.rangeGsd.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeAnomalousPx = PlanetExplorerRangeSlider(
-            title="Anomalous Pixels",
-            filter_key="anomalous_pixels",
-            prefix="",
-            suffix="%",
-            minimum=0,
-            maximum=100,
-            low=0,
-            high=100,
-            step=1,
-            precision=1,
-        )
-
-        self.frameRangeSliders.layout().addWidget(self.rangeAnomalousPx)
-        self.rangeAnomalousPx.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeUsable = PlanetExplorerRangeSlider(
-            title="Usable Pixels",
-            filter_key="usable_data",
-            prefix="",
-            suffix="%",
-            minimum=0,
-            maximum=100,
-            low=0,
-            high=100,
-            step=1,
-            precision=1,
-        )
-        # Layout's parent widget takes ownership
-        self.frameRangeSliders.layout().addWidget(self.rangeUsable)
-        self.rangeUsable.rangeChanged[float, float].connect(self.filters_changed)
-
-        self.rangeAreaCoverage = PlanetExplorerRangeSlider(
-            title="Area Coverage",
-            filter_key="area_coverage",
-            prefix="",
-            suffix="%",
-            minimum=0,
-            maximum=100,
-            low=0,
-            high=100,
-            step=1,
-            precision=1,
-        )
-        self.frameRangeSliders.layout().addWidget(self.rangeAreaCoverage)
-        self.rangeAreaCoverage.rangeChanged[float, float].connect(self.filters_changed)
+        for slider in slider_filters:
+            sliderWidget = PlanetExplorerRangeSlider(**slider)
+            self.frameRangeSliders.layout().addWidget(sliderWidget)
+            sliderWidget.rangeChanged.connect(self.filters_changed)
 
         self.chkBxGroundControl.stateChanged[int].connect(self.filters_changed)
-
         self.chkBxCanDownload.stateChanged[int].connect(self.filters_changed)
 
     def _pssceneToggled(self):
