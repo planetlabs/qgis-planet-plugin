@@ -146,13 +146,8 @@ class PlanetClient(QObject, ClientV1):
         old_api_key = self.api_key()
 
         if api_key:
-            # TODO: Sanitize?
             self.auth = auth.APIKey(api_key)
         else:
-            # Do login. Propogate captured errors to caller
-            # TODO: swap with new auth endpoint?
-            #       auth/v1/experimental/public/users/authenticate
-
             try:
                 res = self.login(user, password)
             except (APIException, InvalidIdentity) as exc:
@@ -404,23 +399,6 @@ class PlanetClient(QObject, ClientV1):
             return float(self._user_quota["sqkm"]) - float(self._user_quota["used"])
 
         return None
-
-    def exceedes_quota(self, geometries):
-        """
-        :param geometries: List of JSON geometries (as string or `json` object)
-        :type geometries: list[str|dict]
-        :rtype: bool
-        """
-
-        area_total = 0.0
-        quota_remaining = self.user_quota_remaining()
-
-        if quota_remaining is None:
-            return False
-
-        area_total = self.area_km_from_geometry(geometries)
-
-        return area_total >= quota_remaining
 
     def psscene_asset_types(self):
         if self._psscene_asset_types is None:
