@@ -170,6 +170,44 @@ class PlanetExplorer(object):
         if is_sentry_dsn_valid():
             try:
                 sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+                sentry_sdk.set_context(
+                    "qgis",
+                    {
+                        "type": "runtime",
+                        "name": Qgis.QGIS_RELEASE_NAME,
+                        "version": Qgis.QGIS_VERSION,
+                    },
+                )
+                system = platform.system()
+                if system == "Darwin":
+                    sentry_sdk.set_context(
+                        "mac",
+                        {
+                            "type": "os",
+                            "name": "macOS",
+                            "version": platform.mac_ver()[0],
+                            "kernel_version": platform.uname().release,
+                        },
+                    )
+                if system == "Linux":
+                    sentry_sdk.set_context(
+                        "linux",
+                        {
+                            "type": "os",
+                            "name": "Linux",
+                            "version": platform.release(),
+                            "build": platform.version(),
+                        },
+                    )
+                if system == "Windows":
+                    sentry_sdk.set_context(
+                        "windows",
+                        {
+                            "type": "os",
+                            "name": "Windows",
+                            "version": platform.version(),
+                        },
+                    )
             except Exception:
                 QMessageBox.warning(
                     self.iface.mainWindow(),
@@ -216,46 +254,6 @@ class PlanetExplorer(object):
                 self.qgis_hook(t, value, tb)
 
         sys.excepthook = plugin_hook
-
-        if is_sentry_dsn_valid():
-            sentry_sdk.set_context(
-                "qgis",
-                {
-                    "type": "runtime",
-                    "name": Qgis.QGIS_RELEASE_NAME,
-                    "version": Qgis.QGIS_VERSION,
-                },
-            )
-            system = platform.system()
-            if system == "Darwin":
-                sentry_sdk.set_context(
-                    "mac",
-                    {
-                        "type": "os",
-                        "name": "macOS",
-                        "version": platform.mac_ver()[0],
-                        "kernel_version": platform.uname().release,
-                    },
-                )
-            if system == "Linux":
-                sentry_sdk.set_context(
-                    "linux",
-                    {
-                        "type": "os",
-                        "name": "Linux",
-                        "version": platform.release(),
-                        "build": platform.version(),
-                    },
-                )
-            if system == "Windows":
-                sentry_sdk.set_context(
-                    "windows",
-                    {
-                        "type": "os",
-                        "name": "Windows",
-                        "version": platform.version(),
-                    },
-                )
 
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
