@@ -6,5 +6,13 @@
     "type": "folder",
     "default": "",
     "group": "Orders"
+  },
+  {
+  	"name": "enableClip",
+  	"label": "Enable Clip tool by default",
+  	"description": "Enable Clip tool by default in orders panel",
+  	"type": "bool",
+  	"default": false,
+  	"group": "Orders"
   }
 ]

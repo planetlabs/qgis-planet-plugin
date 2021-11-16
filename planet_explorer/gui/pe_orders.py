@@ -30,7 +30,7 @@ from functools import partial
 from qgis.core import Qgis, QgsMessageLog
 from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot, QSettings
 from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -46,7 +46,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..pe_analytics import send_analytics_for_order
-from ..pe_utils import resource_file, iface
+from ..pe_utils import resource_file, iface, ENABLE_CLIP_SETTING, SETTINGS_NAMESPACE
 from ..planet_api.p_client import PlanetClient
 from .pe_gui_utils import waitcursor
 from .pe_orders_monitor_dockwidget import show_orders_monitor
@@ -491,7 +491,10 @@ class PlanetOrderReviewWidget(QWidget):
                 QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter
             )
             self.chkClip = QCheckBox("Clip items to AOI")
-            self.chkClip.setChecked(True)
+            enabled = QSettings().value(
+                f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", False
+            )
+            self.chkClip.setChecked(enabled)
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
         if self.add_harmonize:
