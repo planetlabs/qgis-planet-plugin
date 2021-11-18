@@ -344,7 +344,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         return selected
 
     def checked_count_changed(self):
-        print(1)
         numimages = len(self.selected_images())
         self.btnAddPreview.setEnabled(numimages)
         self.checkedCountChanged.emit(numimages)
@@ -533,7 +532,6 @@ class ItemWidgetBase(QFrame):
     def set_checked(self, checked):
         self.checkBox.setChecked(checked)
         self.update_children_items()
-        # self.update_checkbox()
 
     def update_thumbnail(self):
         thumbnails = self.scene_thumbnails()
