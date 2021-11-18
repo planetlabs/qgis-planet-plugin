@@ -46,7 +46,13 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..pe_analytics import send_analytics_for_order
-from ..pe_utils import resource_file, iface, ENABLE_CLIP_SETTING, SETTINGS_NAMESPACE
+from ..pe_utils import (
+    resource_file,
+    iface,
+    ENABLE_CLIP_SETTING,
+    ENABLE_HARMONIZATION_SETTING,
+    SETTINGS_NAMESPACE,
+)
 from ..planet_api.p_client import PlanetClient
 from .pe_gui_utils import waitcursor
 from .pe_orders_monitor_dockwidget import show_orders_monitor
@@ -494,7 +500,7 @@ class PlanetOrderReviewWidget(QWidget):
             enabled = QSettings().value(
                 f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", False
             )
-            self.chkClip.setChecked(enabled)
+            self.chkClip.setChecked(str(enabled).lower() == str(True).lower())
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
         if self.add_harmonize:
@@ -509,7 +515,10 @@ class PlanetOrderReviewWidget(QWidget):
                 Qt.AlignCenter,
             )
             self.chkHarmonize = QCheckBox("Harmonize")
-            self.chkHarmonize.setChecked(True)
+            enabled = QSettings().value(
+                f"{SETTINGS_NAMESPACE}/{ENABLE_HARMONIZATION_SETTING}", False
+            )
+            self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
         layout.addWidget(QLabel("<b>Review Items</b>"), 6, 1, Qt.AlignCenter)

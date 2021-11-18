@@ -107,6 +107,7 @@ QGIS_LOG_SECTION_NAME = "Planet"
 ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 ENABLE_CLIP_SETTING = "enableClip"
+ENABLE_HARMONIZATION_SETTING = "enableHarmonization"
 
 BASE_URL = "https://www.planet.com"
 

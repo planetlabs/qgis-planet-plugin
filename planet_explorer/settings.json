@@ -14,5 +14,13 @@
   	"type": "bool",
   	"default": false,
   	"group": "Orders"
+  },
+  {
+    "name": "enableHarmonization",
+    "label": "Enable Harmonization tool by default",
+    "description": "Enable Harmonization tool by default in orders panel",
+    "type": "bool",
+    "default": false,
+    "group": "Orders"
   }
 ]
