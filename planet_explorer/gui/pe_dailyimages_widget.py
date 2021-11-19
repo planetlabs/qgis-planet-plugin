@@ -309,6 +309,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self._toggle_search_highlight(True)
         self._daily_filters_widget.hide_legacy_search_elements()
         self.frameWarningLegacySearch.setVisible(False)
+        self.legacy_request = None
         log.debug("Filters have changed")
 
     @pyqtSlot(dict)
