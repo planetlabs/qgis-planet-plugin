@@ -96,7 +96,7 @@ class QuadOrder:
         self.name = name
         self.description = description
         self.date = date or (datetime.date.today().isoformat())
-        self._id = uuid.uuid4()
+        self._id = uuid.uuid3(uuid.NAMESPACE_DNS, name)
 
     def locations(self):
         locations = {}
