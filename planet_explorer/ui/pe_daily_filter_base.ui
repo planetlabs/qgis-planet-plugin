@@ -124,7 +124,7 @@
               <second>0</second>
               <year>1999</year>
               <month>12</month>
-              <day>22</day>
+              <day>21</day>
              </datetime>
             </property>
             <property name="time">
@@ -342,14 +342,14 @@
                 <item>
                  <widget class="QRadioButton" name="radio3Bands">
                   <property name="text">
-                   <string>3-Band</string>
+                   <string>PlanetScope 3-Band</string>
                   </property>
                  </widget>
                 </item>
                 <item>
                  <widget class="QRadioButton" name="radio4Bands">
                   <property name="text">
-                   <string>4-Band</string>
+                   <string>PlanetScope 4-Band</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
@@ -359,7 +359,7 @@
                 <item>
                  <widget class="QRadioButton" name="radio8Bands">
                   <property name="text">
-                   <string>8-band</string>
+                   <string>PlanetScope 8-band</string>
                   </property>
                  </widget>
                 </item>
