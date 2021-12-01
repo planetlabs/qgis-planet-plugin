@@ -116,9 +116,9 @@ class OrderProcessorTask(QgsTask):
             layers = []
             for filename, image_type in self.images:
                 layers.append(
-                    (QgsRasterLayer(filename, os.path.basename(filename)), image_type)
+                    QgsRasterLayer(filename, os.path.basename(filename))
                 )
-            validity = [lay.isValid() for lay, _ in layers]
+            validity = [lay.isValid() for lay in layers]
             if False in validity:
                 widget = iface.messageBar().createMessage(
                     "Planet Explorer",
@@ -134,8 +134,8 @@ class OrderProcessorTask(QgsTask):
                 widget.layout().addWidget(button)
                 iface.messageBar().pushWidget(widget, level=Qgis.Success)
             else:
-                for layer, image_type in layers:
-                    QgsProject.instance().addMapLayer(layer)
+                for layer in layers:
+                    self.load_layer(layer)
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name()}' correctly downloaded and processed",
@@ -156,6 +156,22 @@ class OrderProcessorTask(QgsTask):
                 level=Qgis.Warning,
                 duration=5,
             )
+
+    def _find_band(self, layer, name, default):
+        name = name.lower()
+        for i in range(layer.bandCount()):
+            if name == layer.bandName(i).lower().split(": ")[-1]:
+                return i
+        return default
+
+    def load_layer(self, layer):
+        r = layer.renderer().clone()
+        r.setRedBand(self._find_band(layer, "red", 0))
+        r.setGreenBand(self._find_band(layer, "green", 1))
+        r.setBlueBand(self._find_band(layer, "blue", 2))
+        layer.setRenderer(r)
+
+        QgsProject.instance().addMapLayer(layer)
 
 
 class QuadsOrderProcessorTask(QgsTask):
