@@ -255,7 +255,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                         self._request,
                     )
                     widget.checkedStateChanged.connect(self.checked_count_changed)
-                    widget.checkedStateChanged.connect(satellite_widget.update_checkbox)
                     widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
                     item.setSizeHint(0, widget.sizeHint())
                     satellite_item.addChild(item)
@@ -307,6 +306,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                 return child
         date_item = DateItem(image, sort_criteria)
         widget = DateItemWidget(image, sort_criteria, date_item)
+        widget.checkedStateChanged.connect(self.checked_count_changed)
         date_item.setSizeHint(0, widget.sizeHint())
         self.tree.addTopLevelItem(date_item)
         self.tree.setItemWidget(date_item, 0, widget)
@@ -323,8 +323,8 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                 return date_item, child
         satellite_item = SatelliteItem(satellite)
         widget = SatelliteItemWidget(satellite, satellite_item)
-        widget.checkedStateChanged.connect(date_widget.update_checkbox)
         widget.thumbnailChanged.connect(date_widget.update_thumbnail)
+        widget.checkedStateChanged.connect(self.checked_count_changed)
         satellite_item.setSizeHint(0, widget.sizeHint())
         date_item.addChild(satellite_item)
         self.tree.setItemWidget(satellite_item, 0, widget)
@@ -400,7 +400,7 @@ class ItemWidgetBase(QFrame):
         iconSize = QSize(16, 16)
         self.lockLabel.setPixmap(LOCK_ICON.pixmap(iconSize))
         self.checkBox = QCheckBox("")
-        self.checkBox.stateChanged.connect(self.check_box_state_changed)
+        self.checkBox.clicked.connect(self.check_box_state_changed)
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
         self.labelZoomTo = QLabel()
@@ -444,7 +444,7 @@ class ItemWidgetBase(QFrame):
         self.thumbnailChanged.emit()
 
     def is_selected(self):
-        return self.checkBox.isChecked()
+        return self.checkBox.checkState() == Qt.Checked
 
     def _geom_bbox_in_project_crs(self):
         transform = QgsCoordinateTransform(
@@ -493,28 +493,32 @@ class ItemWidgetBase(QFrame):
         create_preview_group(self.name(), self.item.images())
 
     def check_box_state_changed(self):
+        self.update_children_items()
+        self.update_parent_item()
         self.checkedStateChanged.emit()
-        self.is_updating_checkbox = True
+
+    def update_parent_item(self):
+        parent = self.item.parent()
+        if parent is not None:
+            w = parent.treeWidget().itemWidget(parent, 0)
+            w.update_checkbox()
+
+    def update_children_items(self):
         total = self.item.childCount()
         if self.checkBox.isTristate():
             self.checkBox.setTristate(False)
             self.checkBox.setChecked(False)
-        else:
-            for i in range(total):
-                w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
-                w.set_checked(self.checkBox.isChecked())
-        self.is_updating_checkbox = False
+        for i in range(total):
+            w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
+            w.set_checked(self.checkBox.isChecked())
 
     def update_checkbox(self):
-        if self.is_updating_checkbox:
-            return
         selected = 0
         total = self.item.childCount()
         for i in range(total):
             w = self.item.treeWidget().itemWidget(self.item.child(i), 0)
             if w.is_selected():
                 selected += 1
-        self.checkBox.blockSignals(True)
         if selected == total:
             self.checkBox.setTristate(False)
             self.checkBox.setCheckState(Qt.Checked)
@@ -524,11 +528,10 @@ class ItemWidgetBase(QFrame):
         else:
             self.checkBox.setTristate(True)
             self.checkBox.setCheckState(Qt.PartiallyChecked)
-        self.checkBox.blockSignals(False)
-        self.checkedStateChanged.emit()
 
     def set_checked(self, checked):
         self.checkBox.setChecked(checked)
+        self.update_children_items()
 
     def update_thumbnail(self):
         thumbnails = self.scene_thumbnails()

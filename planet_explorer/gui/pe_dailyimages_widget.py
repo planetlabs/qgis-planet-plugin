@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from planet.api.filters import and_filter, build_search_request
+from planet.api.filters import and_filter, or_filter, build_search_request
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
@@ -183,16 +183,14 @@ class DailyImagesWidget(BASE, WIDGET):
             f for f in all_filters if "field_name" in f and f["field_name"] == "id"
         ]
 
-        if id_filters:
-            all_filters = [id_filters[0]]
-
+        item_type_filters = []
         for item_type, options in sources.items():
             # check for PSScene
             if options in [4, 8] and PlanetClient.getInstance().has_api_key():
                 assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(
                     options
                 )
-                psscene_filter = {
+                item_type_filter = {
                     "config": [
                         {"config": assets, "type": "AssetFilter"},
                         {
@@ -203,8 +201,19 @@ class DailyImagesWidget(BASE, WIDGET):
                     ],
                     "type": "AndFilter",
                 }
+            else:
+                item_type_filter = {
+                    "config": [item_type],
+                    "type": "StringInFilter",
+                    "field_name": "item_type",
+                }
 
-                all_filters.append(psscene_filter)
+            item_type_filters.append(item_type_filter)
+
+        all_filters.append(or_filter(*item_type_filters))
+
+        if id_filters:
+            all_filters = [id_filters[0]]
 
         self._filters = and_filter(*all_filters)
         self._sources = list(sources.keys())
@@ -300,6 +309,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self._toggle_search_highlight(True)
         self._daily_filters_widget.hide_legacy_search_elements()
         self.frameWarningLegacySearch.setVisible(False)
+        self.legacy_request = None
         log.debug("Filters have changed")
 
     @pyqtSlot(dict)
