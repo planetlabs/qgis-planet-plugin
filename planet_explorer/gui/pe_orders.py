@@ -64,7 +64,7 @@ default_bundles_file = os.path.join(
 )
 with open(default_bundles_file, "r", encoding="utf-8") as fp:
     default_bundles = json.load(fp)
-default_bundles = {k: v[0].split("::")[-1] for k, v in default_bundles.items()}
+#default_bundles = {k: v.split("::")[-1] for k, v in default_bundles.items()}
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -275,6 +275,7 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
 
+        widgets = {}
         i = 0
         for bundleid, bundle in item_bundles.items():
             if bundle["rectification"] == "orthorectified":
@@ -289,10 +290,21 @@ class PlanetOrderItemTypeWidget(QWidget):
                     bundleid, name, description, udm, can_harmonize, True
                 )
                 gridlayout.addWidget(w, i // 2, i % 2)
-                w.setSelected(bundleid == default)
+                w.setSelected(False)
+                widgets[bundleid] = w
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
                 self.bundleWidgets.append(w)
                 i += 1
+
+        selected = False
+        for defaultid in default:
+            for bundleid, w in widgets.items():
+                if defaultid == bundleid:
+                    w.setSelected(True)
+                    selected = True
+                    break
+            if selected:
+                break
 
         layout.addLayout(gridlayout)
 
@@ -835,6 +847,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         responses_ok = True
         for order in orders:
             resp = self._p_client.create_order(order)
+            print(resp)
             responses_ok = responses_ok and resp
             send_analytics_for_order(order)
 
