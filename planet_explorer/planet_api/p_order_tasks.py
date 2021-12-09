@@ -31,7 +31,14 @@ from collections import defaultdict
 import requests
 from osgeo import gdal
 
-from qgis.core import Qgis, QgsMessageLog, QgsProject, QgsRasterLayer, QgsTask
+from qgis.core import (
+    Qgis,
+    QgsMessageLog,
+    QgsProject,
+    QgsRasterLayer,
+    QgsTask,
+    QgsContrastEnhancement
+)
 
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
@@ -169,7 +176,20 @@ class OrderProcessorTask(QgsTask):
         r.setRedBand(self._find_band(layer, "red", 0))
         r.setGreenBand(self._find_band(layer, "green", 1))
         r.setBlueBand(self._find_band(layer, "blue", 2))
-        layer.setRenderer(r)
+
+        for b in range(3):
+            typ = layer.renderer().dataType(b)
+            enhancement = QgsContrastEnhancement(typ)
+            enhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+            bandMin, bandMax = layer.dataProvider().cumulativeCut(b, 0.02, 0.98, sampleSize=10000)
+            enhancement.setMinimumValue(bandMin)
+            enhancement.setMaximumValue(bandMax)
+            if b == 0:
+                r.setRedContrastEnhancement(enhancement)
+            elif b == 1:
+                r.setGreenContrastEnhancement(enhancement)
+            elif b == 2:
+                r.setBlueContrastEnhancement(enhancement)
 
         QgsProject.instance().addMapLayer(layer)
 
