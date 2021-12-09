@@ -177,11 +177,12 @@ class OrderProcessorTask(QgsTask):
         r.setGreenBand(self._find_band(layer, "green", 1))
         r.setBlueBand(self._find_band(layer, "blue", 2))
 
+        usedBands = r.usesBands()
         for b in range(3):
             typ = layer.renderer().dataType(b)
             enhancement = QgsContrastEnhancement(typ)
             enhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
-            bandMin, bandMax = layer.dataProvider().cumulativeCut(b, 0.02, 0.98, sampleSize=10000)
+            bandMin, bandMax = layer.dataProvider().cumulativeCut(usedBands[b], 0.02, 0.98, sampleSize=10000)
             enhancement.setMinimumValue(bandMin)
             enhancement.setMaximumValue(bandMax)
             if b == 0:
