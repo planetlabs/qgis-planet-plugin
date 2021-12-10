@@ -64,7 +64,7 @@ default_bundles_file = os.path.join(
 )
 with open(default_bundles_file, "r", encoding="utf-8") as fp:
     default_bundles = json.load(fp)
-#default_bundles = {k: v.split("::")[-1] for k, v in default_bundles.items()}
+# default_bundles = {k: v.split("::")[-1] for k, v in default_bundles.items()}
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)

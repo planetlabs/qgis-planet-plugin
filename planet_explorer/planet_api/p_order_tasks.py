@@ -37,7 +37,7 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsTask,
-    QgsContrastEnhancement
+    QgsContrastEnhancement,
 )
 
 from qgis.PyQt.QtCore import QUrl
@@ -122,9 +122,7 @@ class OrderProcessorTask(QgsTask):
         if result:
             layers = []
             for filename, image_type in self.images:
-                layers.append(
-                    QgsRasterLayer(filename, os.path.basename(filename))
-                )
+                layers.append(QgsRasterLayer(filename, os.path.basename(filename)))
             validity = [lay.isValid() for lay in layers]
             if False in validity:
                 widget = iface.messageBar().createMessage(
@@ -181,8 +179,12 @@ class OrderProcessorTask(QgsTask):
         for b in range(3):
             typ = layer.renderer().dataType(b)
             enhancement = QgsContrastEnhancement(typ)
-            enhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
-            bandMin, bandMax = layer.dataProvider().cumulativeCut(usedBands[b], 0.02, 0.98, sampleSize=10000)
+            enhancement.setContrastEnhancementAlgorithm(
+                QgsContrastEnhancement.StretchToMinimumMaximum, True
+            )
+            bandMin, bandMax = layer.dataProvider().cumulativeCut(
+                usedBands[b], 0.02, 0.98, sampleSize=10000
+            )
             enhancement.setMinimumValue(bandMin)
             enhancement.setMaximumValue(bandMax)
             if b == 0:
