@@ -304,7 +304,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             )
 
     def clean_up(self):
-        self.daily_images_widget.clean_up()
+        if self.daily_images_widget is not None:
+            self.daily_images_widget.clean_up()
         self.basemaps_widget.reset()
 
     def closeEvent(self, event):
