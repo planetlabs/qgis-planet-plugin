@@ -99,6 +99,7 @@ class PlanetClient(QObject, ClientV1):
         self._psscene_asset_types = None
         self._item_types = None
         self._bundles = None
+        self._asset_types = {}
 
     def set_proxy_values(self):
         settings = QSettings()
@@ -400,13 +401,18 @@ class PlanetClient(QObject, ClientV1):
 
         return None
 
-    def psscene_asset_types(self):
-        if self._psscene_asset_types is None:
-            url = self._url("data/v1/item-types/PSScene/asset-types")
-            self._psscene_asset_types = (
+    def asset_types_for_item_type(self, item_type):
+        if item_type not in self._asset_types:
+            url = self._url(f"data/v1/item-types/{item_type}/asset-types")
+            asset_types = (
                 self._get(url, api_models.JSON).get_body().get()["asset_types"]
             )
-        return self._psscene_asset_types
+            self._asset_types[item_type] = asset_types
+        return self._asset_types[item_type]
+
+    def asset_types_for_item_type_as_dict(self, item_type):
+        asset_types = self.asset_types_for_item_type(item_type)
+        return {a["id"]: a for a in asset_types}
 
     def psscene_asset_types_for_nbands(self, nbands):
         asset_types = self.psscene_asset_types()
@@ -416,31 +422,13 @@ class PlanetClient(QObject, ClientV1):
             if len(asset.get("bands", [])) >= nbands
         ]
 
-    def psscene_bandnum_from_assets(self, assets):
-        if not assets:
-            return 3
-        minbands = 8
-        asset_types = self.psscene_asset_types()
-
-        def _asset_type_from_id(assetid):
-            for psscene_asset in asset_types:
-                if psscene_asset["id"] == assetid:
-                    return psscene_asset
-
-        for asset in assets:
-            assetdef = _asset_type_from_id(asset)
-            if assetdef:
-                bands = assetdef.get("bands")
-                if bands is not None:
-                    minbands = min(len(bands), minbands)
-        return minbands
-
     def item_types(self):
         if self._item_types is None:
             url = self._url("data/v1/item-types/")
             self._item_types = (
                 self._get(url, api_models.JSON).get_body().get()["item_types"]
             )
+            self._item_types = [v for v in self._item_types if " " in v["display_name"]]
         return self._item_types
 
     def item_types_names(self):

@@ -95,7 +95,10 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             )
         )
         if "PSScene4Band" in request["item_types"]:
-            assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
+            if "PSScene3Band" in request["item_types"]:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(3)
+            else:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
             psscene_filter = {
                 "config": [
                     {"config": assets, "type": "AssetFilter"},

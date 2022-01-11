@@ -184,30 +184,18 @@ class DailyImagesWidget(BASE, WIDGET):
         ]
 
         item_type_filters = []
-        for item_type, options in sources.items():
-            # check for PSScene
-            if options in [4, 8] and PlanetClient.getInstance().has_api_key():
-                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(
-                    options
-                )
-                item_type_filter = {
-                    "config": [
-                        {"config": assets, "type": "AssetFilter"},
-                        {
-                            "config": ["PSScene"],
-                            "type": "StringInFilter",
-                            "field_name": "item_type",
-                        },
-                    ],
-                    "type": "AndFilter",
-                }
-            else:
-                item_type_filter = {
-                    "config": [item_type],
-                    "type": "StringInFilter",
-                    "field_name": "item_type",
-                }
-
+        for item_type, assets in sources.items():
+            item_type_filter = {
+                "config": [
+                    {"config": assets, "type": "AssetFilter"},
+                    {
+                        "config": [item_type],
+                        "type": "StringInFilter",
+                        "field_name": "item_type",
+                    },
+                ],
+                "type": "AndFilter",
+            }
             item_type_filters.append(item_type_filter)
 
         all_filters.append(or_filter(*item_type_filters))

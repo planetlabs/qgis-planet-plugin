@@ -912,8 +912,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
 
-        self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
-
+        # self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.legacyWarningWidget = LegacyWarningWidget()
@@ -942,32 +941,40 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.frameRangeSliders.layout().addWidget(sliderWidget)
             sliderWidget.rangeChanged.connect(self.filters_changed)
 
-        self.chkBxGroundControl.stateChanged[int].connect(self.filters_changed)
-        self.chkBxCanDownload.stateChanged[int].connect(self.filters_changed)
-
-    def _pssceneToggled(self):
-        self.radio3Bands.setEnabled(self.chkPlanetScope.isChecked())
-        self.radio4Bands.setEnabled(self.chkPlanetScope.isChecked())
-        self.radio8Bands.setEnabled(self.chkPlanetScope.isChecked())
+        self.chkGroundControl.stateChanged[int].connect(self.filters_changed)
+        self.chkFullCatalog.stateChanged[int].connect(self.filters_changed)
 
     def sources(self):
+        nir = self.chkNIR.isChecked()
+        yellow = self.chkYellow.isChecked()
+        surface = self.chkSurfaceReflectance.isChecked()
         checked_sources = {}
-        sources = self.newSourcesWidget.findChildren(QCheckBox)
-        for source in sources:
-            if source.isChecked():
-                apiname = source.property("api-name")
+        sourcesWidgets = self.newSourcesWidget.findChildren(QCheckBox)
+        for sourceWidget in sourcesWidgets:
+            if sourceWidget.isChecked():
+                apiname = sourceWidget.property("api-name")
                 if apiname is not None:
-                    if apiname == "PSScene":
-                        if self.radio3Bands.isChecked():
-                            options = 3
-                        elif self.radio4Bands.isChecked():
-                            options = 4
-                        else:
-                            options = 8
-                    else:
-                        options = None
-                    checked_sources[apiname] = options
+                    checked_sources[apiname] = self._asset_filter(
+                        apiname, nir, yellow, surface
+                    )
         return checked_sources
+
+    def _asset_filter(self, apiname, nir, yellow, surface):
+        def _filter_for_bandnames(assetslist, bandname):
+            return [a for a in assetslist if {"name": bandname} in a.get("bands", [])]
+
+        assets = PlanetClient.getInstance().asset_types_for_item_type(apiname)
+        if nir:
+            assets = _filter_for_bandnames(assets, "nir")
+        if yellow:
+            assets = _filter_for_bandnames(assets, "yellow")
+        if surface:
+            assets = [
+                a
+                for a in assets
+                if "surface reflectance" in a.get("display_name", "").lower()
+            ]
+        return [a["id"] for a in assets if "bands" in a]
 
     def set_min_enddate(self):
         self.endDateEdit.setMinimumDate(self.startDateEdit.date())
@@ -1064,13 +1071,13 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             populated_filters.append(instrument_filter)
 
         server_filters = []
-        if self.chkBxCanDownload.isChecked():
+        if not self.chkFullCatalog.isChecked():
             dl_permission_filter = permission_filter("assets:download")
             server_filters.append(dl_permission_filter)
 
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
-        if self.chkBxGroundControl.isChecked():
+        if self.chkGroundControl.isChecked():
             gc_filter = not_filter(string_filter("ground_control", "false"))
             server_filters.append(gc_filter)
 
@@ -1093,27 +1100,32 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         checkboxes = self.newSourcesWidget.findChildren(QCheckBox)
         for checkbox in checkboxes:
             checkbox.setChecked(checkbox.property("api-name") in sources)
-        #  Handle the particular case of PSScene
-        if "PSScene" in sources:
-            self.chkPlanetScope.setChecked(True)
-            asset_filters = filters_from_request(request, filter_type="AssetFilter")
-            bands = 3
-            if asset_filters:
-                # We assume here that Assetfilter is only being used for the case of PSScene
-                assets = asset_filters[0].get("config", [])
-                bands = PlanetClient.getInstance().psscene_bandnum_from_assets(assets)
-            if bands == 3:
-                self.radio3Bands.setChecked(True)
-            elif bands == 4:
-                self.radio4Bands.setChecked(True)
-            elif bands == 8:
-                self.radio8Bands.setChecked(True)
-        if "PSScene3Band" in sources:
-            self.chkPlanetScope.setChecked(True)
-            self.radio3Bands.setChecked(True)
-        if "PSScene4Band" in sources:
-            self.chkPlanetScope.setChecked(True)
-            self.radio4Bands.setChecked(True)
+
+        asset_filters = filters_from_request(request, filter_type="AssetFilter")
+        self.chkNIR.setChecked(False)
+        self.chkYellow.setChecked(False)
+        self.chkSurfaceReflectance.setChecked(False)
+        if asset_filters:
+            all_assets = []
+            used_assets = []
+            for item_type in sources:
+                all_assets.extend(
+                    PlanetClient.getInstance().asset_types_for_item_type(item_type)
+                )
+            for filt in asset_filters:
+                used_assets.extend(filt.get("config", []))
+            used_bands = []
+            display_names = []
+            for a in all_assets:
+                if a["id"] in used_assets and "bands" in a:
+                    used_bands.append(a["bands"])
+                    display_names.append(a.get("display_name", ""))
+            nir = all([{"name": "nir"} in bands for bands in used_bands])
+            yellow = all([{"name": "yellow"} in bands for bands in used_bands])
+            surface = all(["surface reflectance" in name for name in display_names])
+            self.chkNIR.setChecked(nir)
+            self.chkYellow.setChecked(yellow)
+            self.chkSurfaceReflectance.setChecked(surface)
 
         filters = filters_from_request(request, "acquired")
         if filters:
@@ -1146,11 +1158,13 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 slider.setRangeHigh(slider.max)
         filters = filters_from_request(request, filter_type="PermissionFilter")
         if filters:
-            self.chkBxCanDownload.setChecked("assets:download" in filters[0]["config"])
+            self.chkFullCatalog.setChecked(
+                "assets:download" not in filters[0]["config"]
+            )
         else:
-            self.chkBxCanDownload.setChecked(False)
+            self.chkFullCatalog.setChecked(False)
         filters = filters_from_request(request, "ground_control")
-        self.chkBxGroundControl.setChecked(bool(filters))
+        self.chkGroundControl.setChecked(bool(filters))
 
         filters = filters_from_request(request, "instrument")
         if filters:
@@ -1178,6 +1192,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             source_boxes = self.oldSourcesWidget.findChildren(QCheckBox)
             for checkbox in source_boxes:
                 checkbox.setChecked(checkbox.property("api-name") in sources)
+            self.widgetOtherAttributes.setEnabled(False)
             self.frameFilters.setEnabled(False)
             self.startDateEdit.setEnabled(False)
             self.endDateEdit.setEnabled(False)
@@ -1186,6 +1201,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.hide_legacy_search_elements()
 
     def hide_legacy_search_elements(self):
+        self.widgetOtherAttributes.setEnabled(True)
         self.frameFilters.setEnabled(True)
         self.startDateEdit.setEnabled(True)
         self.endDateEdit.setEnabled(True)

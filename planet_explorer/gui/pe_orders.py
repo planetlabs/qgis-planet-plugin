@@ -123,29 +123,41 @@ class PlanetOrderBundleWidget(QFrame):
 
     selectionChanged = pyqtSignal()
 
-    def __init__(self, bundleid, name, description, udm, can_harmonize, rectified):
+    def __init__(self, bundleid, bundle, item_type):
         super().__init__()
-
         self.bundleid = bundleid
-        self.name = name
-        self.description = description
-        self.udm = udm
-        self.can_harmonize = can_harmonize
-        self.rectified = rectified
-
+        self.name = bundle["name"]
+        self.description = bundle["description"]
+        self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
+        assets = bundle["assets"][item_type]
+        self.can_harmonize = (
+            "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
+        )
+        self.rectified = bundle["rectification"] == "orthorectified"
+        bands = []
+        asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
+            item_type
+        )
+        for asset in assets:
+            asset_bands = asset_def[asset].get("bands", [])
+            for band in asset_bands:
+                bands.append(band["name"])
+        bands = set(bands)
         layout = QVBoxLayout()
         hlayout = QHBoxLayout()
         hlayout.setMargin(0)
-        self.labelName = QLabel(f"<b>{name}</b>")
+        self.labelName = QLabel(f"<b>{self.name}</b>")
         hlayout.addWidget(self.labelName)
         hlayout.addStretch()
         self.chkSelected = QCheckBox()
         self.chkSelected.stateChanged.connect(self.checkStateChanged)
         hlayout.addWidget(self.chkSelected)
         layout.addLayout(hlayout)
-        self.labelDescription = QLabel(description)
+        self.labelDescription = QLabel(self.description)
         self.labelDescription.setWordWrap(True)
         layout.addWidget(self.labelDescription)
+        self.labelBands = QLabel(f"Bands: {', '.join([str(b) for b in bands])}")
+        layout.addWidget(self.labelBands)
         hlayouttype = QHBoxLayout()
         hlayouttype.setMargin(0)
         self.radioTiff = QRadioButton("GeoTIFF")
@@ -157,14 +169,14 @@ class PlanetOrderBundleWidget(QFrame):
         hlayouttype.addWidget(self.radioNitf)
         hlayouttype.addStretch()
         layout.addLayout(hlayouttype)
-        if udm:
+        if self.udm:
             hlayoutudm = QHBoxLayout()
             hlayoutudm.setMargin(0)
             self.labelUdm = IconLabel("UDM2", UDM_ICON)
             hlayoutudm.addWidget(self.labelUdm)
             hlayoutudm.addStretch()
             layout.addLayout(hlayoutudm)
-
+        layout.addStretch()
         self.setFrameStyle(QFrame.Panel | QFrame.Raised)
         self.setLayout(layout)
         self.checkStateChanged()
@@ -174,6 +186,7 @@ class PlanetOrderBundleWidget(QFrame):
         self.radioNitf.setEnabled(self.chkSelected.isChecked())
         self.labelName.setEnabled(self.chkSelected.isChecked())
         self.labelDescription.setEnabled(self.chkSelected.isChecked())
+        self.labelBands.setEnabled(self.chkSelected.isChecked())
         if self.udm:
             self.labelUdm.setEnabled(self.chkSelected.isChecked())
         self.selectionChanged.emit()
@@ -275,20 +288,17 @@ class PlanetOrderItemTypeWidget(QWidget):
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
 
+        assets = PlanetClient.getInstance().asset_types_for_item_type(self.item_type)
+        assets_and_bands = {}
+        for a in assets:
+            if "bands" in a:
+                assets_and_bands[a["id"]] = len(a["bands"])
+
         widgets = {}
         i = 0
         for bundleid, bundle in item_bundles.items():
             if bundle["rectification"] == "orthorectified":
-                name = bundle["name"]
-                description = bundle["description"]
-                udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                assets = bundle["assets"][self.item_type]
-                can_harmonize = (
-                    "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
-                )
-                w = PlanetOrderBundleWidget(
-                    bundleid, name, description, udm, can_harmonize, True
-                )
+                w = PlanetOrderBundleWidget(bundleid, bundle, self.item_type)
                 gridlayout.addWidget(w, i // 2, i % 2)
                 w.setSelected(False)
                 widgets[bundleid] = w
@@ -319,16 +329,7 @@ class PlanetOrderItemTypeWidget(QWidget):
         i = 0
         for bundleid, bundle in item_bundles.items():
             if bundle["rectification"] != "orthorectified":
-                name = bundle["name"]
-                description = bundle["description"]
-                udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-                assets = bundle["assets"][self.item_type]
-                can_harmonize = (
-                    "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
-                )
-                w = PlanetOrderBundleWidget(
-                    bundleid, name, description, udm, can_harmonize, False
-                )
+                w = PlanetOrderBundleWidget(bundleid, bundle, self.item_type)
                 gridlayoutUnrect.addWidget(w, i // 2, i % 2)
                 w.selectionChanged.connect(partial(self._bundle_selection_changed, w))
                 self.bundleWidgets.append(w)

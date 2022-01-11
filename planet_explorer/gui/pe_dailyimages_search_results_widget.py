@@ -79,6 +79,7 @@ CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 100
 ID = "id"
 SATELLITE_ID = "satellite_id"
 PROPERTIES = "properties"
+ASSETS = "assets"
 GEOMETRY = "geometry"
 ITEM_TYPE = "item_type"
 PERMISSIONS = "_permissions"
@@ -716,6 +717,10 @@ class SceneItemWidget(ItemWidgetBase):
         self.request = request
         self.metadata_to_show = metadata_to_show
         self.properties = image[PROPERTIES]
+        assets = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
+            self.properties[ITEM_TYPE]
+        )
+        self.numbands = max([len(assets[a].get("bands", [])) for a in image[ASSETS]])
 
         datetime = iso8601.parse_date(self.properties[sort_criteria])
         self.time = datetime.strftime("%H:%M:%S")
@@ -762,10 +767,12 @@ class SceneItemWidget(ItemWidgetBase):
                 metadata += (
                     f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
                 )
-
+        bands = ["3", "4", "8"]
+        idx = bands.index(str(self.numbands)) + 1
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>
+                        <span style="{SUBTEXT_STYLE}">Bands: {", ".join(bands[:idx])}</span>
                     """
 
         return text
