@@ -26,6 +26,7 @@ import re
 import logging
 import random
 import json
+from collections import OrderedDict
 
 from typing import (
     Optional,
@@ -438,7 +439,20 @@ class PlanetClient(QObject, ClientV1):
     def bundles(self):
         if self._bundles is None:
             url = "https://developers.planet.com/theme/js/2021-04-06.json"
-            self._bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
+            self._bundles = OrderedDict()
+            ordered = [
+                "visual",
+                "analytic_sr_udm2",
+                "analytic_udm2",
+                "analytic_8b_sr_udm2",
+                "analytic_8b_udm2",
+            ]
+            bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
+            for name in ordered:
+                self._bundles[name] = bundles[name]
+            for name in bundles:
+                if name not in self._bundles:
+                    self._bundles[name] = bundles[name]
         return self._bundles
 
     def bundles_for_item_type(self, item_type, permissions):
