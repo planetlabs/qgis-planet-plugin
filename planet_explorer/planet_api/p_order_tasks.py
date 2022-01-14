@@ -194,6 +194,8 @@ class OrderProcessorTask(QgsTask):
             elif b == 2:
                 r.setBlueContrastEnhancement(enhancement)
 
+        layer.setRenderer(r)
+
         QgsProject.instance().addMapLayer(layer)
 
 
