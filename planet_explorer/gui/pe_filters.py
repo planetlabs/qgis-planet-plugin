@@ -912,7 +912,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
 
-        # self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
+        self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.legacyWarningWidget = LegacyWarningWidget()
@@ -944,6 +944,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.chkGroundControl.stateChanged[int].connect(self.filters_changed)
         self.chkFullCatalog.stateChanged[int].connect(self.filters_changed)
 
+    def _pssceneToggled(self):
+        self.planetScopeWidget.setEnabled(self.chkPlanetScope.isChecked())
+
     def sources(self):
         nir = self.chkNIR.isChecked()
         yellow = self.chkYellow.isChecked()
@@ -953,10 +956,12 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         for sourceWidget in sourcesWidgets:
             if sourceWidget.isChecked():
                 apiname = sourceWidget.property("api-name")
-                if apiname is not None:
+                if apiname == "PSScene":
                     checked_sources[apiname] = self._asset_filter(
                         apiname, nir, yellow, surface
                     )
+                elif apiname is not None:
+                    checked_sources[apiname] = None
         return checked_sources
 
     def _asset_filter(self, apiname, nir, yellow, surface):
@@ -1192,7 +1197,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             source_boxes = self.oldSourcesWidget.findChildren(QCheckBox)
             for checkbox in source_boxes:
                 checkbox.setChecked(checkbox.property("api-name") in sources)
-            self.widgetOtherAttributes.setEnabled(False)
+            self.otherAttributesWidget.setEnabled(False)
             self.frameFilters.setEnabled(False)
             self.startDateEdit.setEnabled(False)
             self.endDateEdit.setEnabled(False)
@@ -1201,7 +1206,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.hide_legacy_search_elements()
 
     def hide_legacy_search_elements(self):
-        self.widgetOtherAttributes.setEnabled(True)
+        self.otherAttributesWidget.setEnabled(True)
         self.frameFilters.setEnabled(True)
         self.startDateEdit.setEnabled(True)
         self.endDateEdit.setEnabled(True)

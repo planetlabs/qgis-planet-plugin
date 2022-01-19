@@ -78,6 +78,7 @@ CHILD_COUNT_THRESHOLD_FOR_PREVIEW = 100
 
 ID = "id"
 SATELLITE_ID = "satellite_id"
+INSTRUMENT = "instrument"
 PROPERTIES = "properties"
 ASSETS = "assets"
 GEOMETRY = "geometry"
@@ -317,13 +318,14 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         date_item = self._find_item_for_date(image)
         date_widget = self.tree.itemWidget(date_item, 0)
         satellite = image[PROPERTIES][SATELLITE_ID]
+        instrument = image[PROPERTIES].get(INSTRUMENT, "")
         count = date_item.childCount()
         for i in range(count):
             child = date_item.child(i)
             if child.satellite == satellite:
                 return date_item, child
         satellite_item = SatelliteItem(satellite)
-        widget = SatelliteItemWidget(satellite, satellite_item)
+        widget = SatelliteItemWidget(satellite, instrument, satellite_item)
         widget.thumbnailChanged.connect(date_widget.update_thumbnail)
         widget.checkedStateChanged.connect(self.checked_count_changed)
         satellite_item.setSizeHint(0, widget.sizeHint())
@@ -649,10 +651,11 @@ class SatelliteItem(QTreeWidgetItem):
 
 
 class SatelliteItemWidget(ItemWidgetBase):
-    def __init__(self, satellite, item):
+    def __init__(self, satellite, instrument, item):
         ItemWidgetBase.__init__(self, item)
         self.has_new = True
         self.satellite = satellite
+        self.instrument = instrument
         self._setup_ui("", None)
         self.update_for_children()
 
@@ -662,7 +665,7 @@ class SatelliteItemWidget(ItemWidgetBase):
             SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
         )
         self.children_count = size
-        text = f"""<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite}</span>
+        text = f"""<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite} {self.instrument} </span>
                     <span style="{count_style}">({size} images)</span>"""
         self.nameLabel.setText(text)
 
@@ -717,10 +720,6 @@ class SceneItemWidget(ItemWidgetBase):
         self.request = request
         self.metadata_to_show = metadata_to_show
         self.properties = image[PROPERTIES]
-        assets = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
-            self.properties[ITEM_TYPE]
-        )
-        self.numbands = max([len(assets[a].get("bands", [])) for a in image[ASSETS]])
 
         datetime = iso8601.parse_date(self.properties[sort_criteria])
         self.time = datetime.strftime("%H:%M:%S")
@@ -767,12 +766,9 @@ class SceneItemWidget(ItemWidgetBase):
                 metadata += (
                     f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
                 )
-        bands = ["3", "4", "8"]
-        idx = bands.index(str(self.numbands)) + 1
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>
-                        <span style="{SUBTEXT_STYLE}">Bands: {", ".join(bands[:idx])}</span>
                     """
 
         return text
