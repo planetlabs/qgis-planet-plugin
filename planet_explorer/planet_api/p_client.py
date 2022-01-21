@@ -438,7 +438,7 @@ class PlanetClient(QObject, ClientV1):
 
     def bundles(self):
         if self._bundles is None:
-            url = "https://developers.planet.com/theme/js/2021-04-06.json"
+            url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/spec/2021-12-06"
             self._bundles = OrderedDict()
             ordered = [
                 "visual",
