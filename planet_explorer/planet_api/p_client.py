@@ -438,7 +438,9 @@ class PlanetClient(QObject, ClientV1):
 
     def bundles(self):
         if self._bundles is None:
-            url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/spec/2021-12-06"
+            url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
+            self._bundles = self._get(url, api_models.JSON).get_body().get()
+            """
             self._bundles = OrderedDict()
             ordered = [
                 "visual",
@@ -447,23 +449,25 @@ class PlanetClient(QObject, ClientV1):
                 "analytic_8b_sr_udm2",
                 "analytic_8b_udm2",
             ]
-            bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
             for name in ordered:
                 self._bundles[name] = bundles[name]
             for name in bundles:
                 if name not in self._bundles:
                     self._bundles[name] = bundles[name]
+            """
         return self._bundles
 
-    def bundles_for_item_type(self, item_type, permissions):
+    def bundles_for_item_type(self, item_type):
         bundles = self.bundles()
         bndls_per_it = {
-            name: b
-            for name, b in bundles.items()
-            if item_type in b["assets"]
-            and b.get("fileType") != "NITF"
-            and b.get("auxiliaryFiles") != "udm"
+            b["id"]: b
+            for b in bundles[item_type]
+            if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "udm"
         }
+        return bndls_per_it
+
+    def bundles_for_item_type_and_permissions(self, item_type, permissions):
+        bundles = self.bundles_for_item_type(item_type)
 
         permissions_cleaned = []
         for img_permissions in permissions:
@@ -475,9 +479,9 @@ class PlanetClient(QObject, ClientV1):
             permissions_cleaned.append(img_permissions_cleaned)
 
         allowed_bundles = {}
-        for name, b in bndls_per_it.items():
+        for name, b in bundles.items():
             add_bundle = True
-            assets = b["assets"].get(item_type, [])
+            assets = b.get("assets", [])
             for asset in assets:
                 for img_permissions in permissions_cleaned:
                     if asset not in img_permissions:

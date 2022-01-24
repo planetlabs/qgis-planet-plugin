@@ -912,6 +912,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
 
+        self.chkYellow.stateChanged.connect(self._yellowFilterToggled)
         self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -924,10 +925,8 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         self.frameWarningLegacySearch.setVisible(False)
 
         self.startDateEdit.valueChanged["QDateTime"].connect(self.filtersChanged)
-        self.startDateEdit.valueChanged["QDateTime"].connect(self.set_min_enddate)
         self.startDateEdit.valueChanged["QDateTime"].connect(self.change_date_vis)
         self.endDateEdit.valueChanged["QDateTime"].connect(self.filtersChanged)
-        self.endDateEdit.valueChanged["QDateTime"].connect(self.set_max_startdate)
         self.endDateEdit.valueChanged["QDateTime"].connect(self.change_date_vis)
 
         current_day = QDateTime().currentDateTimeUtc()
@@ -943,6 +942,10 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.chkGroundControl.stateChanged[int].connect(self.filters_changed)
         self.chkFullCatalog.stateChanged[int].connect(self.filters_changed)
+
+    def _yellowFilterToggled(self):
+        if self.chkYellow.isChecked():
+            self.chkNIR.setChecked(True)
 
     def _pssceneToggled(self):
         self.planetScopeWidget.setEnabled(self.chkPlanetScope.isChecked())
@@ -1080,6 +1083,10 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             dl_permission_filter = permission_filter("assets:download")
             server_filters.append(dl_permission_filter)
 
+        if self.chkStandardQuality.isChecked():
+            quality_filter = string_filter("quality_category", "standard")
+            server_filters.append(quality_filter)
+
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
         if self.chkGroundControl.isChecked():
@@ -1179,6 +1186,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         else:
             for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
                 chk.setChecked(False)
+
+        filters = filters_from_request(request, "quality_category")
+        self.chkStandardQuality.setChecked(bool(filters))
 
         filters = filters_from_request(request, "id")
         if filters:

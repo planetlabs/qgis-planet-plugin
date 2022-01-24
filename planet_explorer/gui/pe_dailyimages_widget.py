@@ -143,6 +143,7 @@ class DailyImagesWidget(BASE, WIDGET):
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
             self._daily_filters_widget.clear_id_filter()
+            self.clear_filters()
 
     def show_filters(self):
         self.stackedWidgetDailyImagery.setCurrentIndex(1)
@@ -315,9 +316,10 @@ class DailyImagesWidget(BASE, WIDGET):
             sources = request["item_types"]
             legacy = "PSScene3Band" in sources or "PSScene4Band" in sources
             self.frameWarningLegacySearch.setVisible(legacy)
-            self.legacyWarningWidget.set_has_image_id(
-                bool(self._daily_filters_widget.leStringIDs.text())
-            )
+            has_image_id = bool(self._daily_filters_widget.leStringIDs.text())
+            self.legacyWarningWidget.set_has_image_id(has_image_id)
+            if has_image_id:
+                self.current_saved_search = None
             if legacy:
                 self.legacy_request = request
             else:

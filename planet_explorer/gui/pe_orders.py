@@ -128,10 +128,11 @@ class PlanetOrderBundleWidget(QFrame):
         self.name = bundle["name"]
         self.description = bundle["description"]
         self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
-        assets = bundle["assets"][item_type]
+        assets = bundle["assets"]
         self.can_harmonize = (
             "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         )
+        self.can_harmonize = bundle.get("canHarmonize", False)
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
         asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
@@ -266,7 +267,7 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         client = PlanetClient.getInstance()
         permissions = [img[PERMISSIONS] for img in self.images]
-        item_bundles = client.bundles_for_item_type(
+        item_bundles = client.bundles_for_item_type_and_permissions(
             self.item_type, permissions=permissions
         )
         default = default_bundles.get(self.item_type, [])
@@ -847,7 +848,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         responses_ok = True
         for order in orders:
             resp = self._p_client.create_order(order)
-            print(resp)
             responses_ok = responses_ok and resp
             send_analytics_for_order(order)
 
