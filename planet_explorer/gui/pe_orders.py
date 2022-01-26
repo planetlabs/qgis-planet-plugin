@@ -133,6 +133,7 @@ class PlanetOrderBundleWidget(QFrame):
             "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         )
         self.can_harmonize = bundle.get("canHarmonize", False)
+        self.can_clip = bundle.get("canClip", False)
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
         asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
@@ -388,6 +389,7 @@ class PlanetOrderItemTypeWidget(QWidget):
                 bundle["udm"] = w.udm
                 bundle["rectified"] = w.rectified
                 bundle["canharmonize"] = w.can_harmonize
+                bundle["canclip"] = w.can_clip
                 bundles.append(bundle)
         return bundles
 
@@ -752,7 +754,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             images = widget.images
             for bundle in bundles:
                 add_clip = (
-                    self.tool_resources["aoi"] is not None and bundle["rectified"]
+                    self.tool_resources["aoi"] is not None and bundle["canclip"]
                 )
                 w = PlanetOrderReviewWidget(
                     item_type, bundle["name"], images, add_clip, bundle["canharmonize"]

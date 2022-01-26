@@ -913,6 +913,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 source.stateChanged.connect(self.filtersChanged)
 
         self.chkYellow.stateChanged.connect(self._yellowFilterToggled)
+        self.chkNIR.stateChanged.connect(self._nirFilterToggled)
         self.chkPlanetScope.stateChanged.connect(self._pssceneToggled)
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -946,6 +947,10 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
     def _yellowFilterToggled(self):
         if self.chkYellow.isChecked():
             self.chkNIR.setChecked(True)
+
+    def _nirFilterToggled(self):
+        if not self.chkNIR.isChecked():
+            self.chkYellow.setChecked(False)
 
     def _pssceneToggled(self):
         self.planetScopeWidget.setEnabled(self.chkPlanetScope.isChecked())
