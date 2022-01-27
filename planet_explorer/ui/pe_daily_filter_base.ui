@@ -135,31 +135,6 @@ have access to order with my current plan</string>
           <number>10</number>
          </property>
          <item>
-          <widget class="QgsDateTimeEdit" name="endDateEdit">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>130</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-           <property name="displayFormat">
-            <string>yyyy/MM/dd</string>
-           </property>
-           <property name="timeSpec">
-            <enum>Qt::UTC</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QgsDateTimeEdit" name="startDateEdit">
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -183,7 +158,7 @@ have access to order with my current plan</string>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>17</day>
+             <day>16</day>
             </datetime>
            </property>
            <property name="time">
@@ -192,6 +167,31 @@ have access to order with my current plan</string>
              <minute>0</minute>
              <second>0</second>
             </time>
+           </property>
+           <property name="displayFormat">
+            <string>yyyy/MM/dd</string>
+           </property>
+           <property name="timeSpec">
+            <enum>Qt::UTC</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QgsDateTimeEdit" name="endDateEdit">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>130</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
            </property>
            <property name="displayFormat">
             <string>yyyy/MM/dd</string>
