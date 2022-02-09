@@ -966,28 +966,30 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 apiname = sourceWidget.property("api-name")
                 if apiname == "PSScene":
                     checked_sources[apiname] = self._asset_filter(
-                        apiname, nir, yellow, surface
+                        nir, yellow, surface
                     )
                 elif apiname is not None:
                     checked_sources[apiname] = None
         return checked_sources
 
-    def _asset_filter(self, apiname, nir, yellow, surface):
-        def _filter_for_bandnames(assetslist, bandname):
-            return [a for a in assetslist if {"name": bandname} in a.get("bands", [])]
+    def _asset_filter(self, nir, yellow, surface):
+        def _filter_for_bandcount(assetslist, count):
+            return [a for a in assetslist if len(a.get("bands", []) < count)]
 
-        assets = PlanetClient.getInstance().asset_types_for_item_type(apiname)
         if nir:
-            assets = _filter_for_bandnames(assets, "nir")
-        if yellow:
-            assets = _filter_for_bandnames(assets, "yellow")
+            if yellow:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(8)
+            else:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
+        else:
+            assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(3)
         if surface:
             assets = [
                 a
                 for a in assets
-                if "surface reflectance" in a.get("display_name", "").lower()
+                if "_sr" in a
             ]
-        return [a["id"] for a in assets if "bands" in a]
+        return assets
 
     def set_min_enddate(self):
         self.endDateEdit.setMinimumDate(self.startDateEdit.date())
@@ -1137,8 +1139,8 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 if a["id"] in used_assets and "bands" in a:
                     used_bands.append(a["bands"])
                     display_names.append(a.get("display_name", ""))
-            nir = all([{"name": "nir"} in bands for bands in used_bands])
-            yellow = all([{"name": "yellow"} in bands for bands in used_bands])
+            nir = any([{"name": "nir"} in bands for bands in used_bands])
+            yellow = any([{"name": "yellow"} in bands for bands in used_bands])
             surface = all(["surface reflectance" in name for name in display_names])
             self.chkNIR.setChecked(nir)
             self.chkYellow.setChecked(yellow)
@@ -1217,6 +1219,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.startDateEdit.setEnabled(False)
             self.endDateEdit.setEnabled(False)
             self.legacyWarningWidget.set_has_image_id(bool(self.leStringIDs.text()))
+
+            self.chkPlanetScope.setChecked(True)
+            self.chkNIR.setChecked("PSScene4Band" in sources)
+            self.chkYellow.setChecked(False)
+            self.chkSurfaceReflectance.setChecked(False)
         else:
             self.hide_legacy_search_elements()
 

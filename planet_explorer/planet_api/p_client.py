@@ -415,11 +415,11 @@ class PlanetClient(QObject, ClientV1):
         return {a["id"]: a for a in asset_types}
 
     def psscene_asset_types_for_nbands(self, nbands):
-        asset_types = self.psscene_asset_types()
+        asset_types = self.asset_types_for_item_type("PSScene")
         return [
             asset["id"]
             for asset in asset_types
-            if len(asset.get("bands", [])) >= nbands
+            if "bands" in asset and len(asset.get("bands")) <= nbands
         ]
 
     def item_types(self):

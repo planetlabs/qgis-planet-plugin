@@ -138,6 +138,7 @@ class DailyImagesWidget(BASE, WIDGET):
             )
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
+            self.perform_search()
         else:
             self.legacy_request = None
             self.frameWarningLegacySearch.setVisible(False)
