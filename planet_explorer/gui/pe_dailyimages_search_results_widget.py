@@ -53,7 +53,12 @@ from ..gui.pe_results_configuration_dialog import (
     ResultsConfigurationDialog,
 )
 from ..gui.pe_save_search_dialog import SaveSearchDialog
-from ..pe_analytics import analytics_track, send_analytics_for_preview
+from ..pe_analytics import (
+    analytics_track,
+    send_analytics_for_preview,
+    SAVED_SEARCH_CREATED
+)
+
 from ..pe_utils import (
     PLANET_COLOR,
     SEARCH_AOI_COLOR,
@@ -187,7 +192,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         dlg = SaveSearchDialog(self._request)
         if dlg.exec_():
             self._p_client.create_search(dlg.request_to_save)
-            analytics_track("saved_search_created")
+            analytics_track(SAVED_SEARCH_CREATED)
 
     def sort_order(self):
         order = ["acquired"]

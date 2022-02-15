@@ -54,7 +54,12 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..pe_analytics import analytics_track, basemap_name_for_analytics
+from ..pe_analytics import (
+    analytics_track,
+    basemap_name_for_analytics,
+    BASEMAP_INSPECTED
+)
+
 from ..pe_utils import (
     PLANET_COLOR,
     add_menu_section_action,
@@ -155,7 +160,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
                 client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
             )
             analytics_track(
-                "basemap_inspected", {"mosaic_type": basemap_name_for_analytics(mosaic)}
+                BASEMAP_INSPECTED, {"mosaic_type": basemap_name_for_analytics(mosaic)}
             )
             tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic["level"])
             url = "https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json"

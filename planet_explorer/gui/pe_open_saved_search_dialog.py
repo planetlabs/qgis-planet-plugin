@@ -5,7 +5,7 @@ from qgis.PyQt import uic
 from .pe_filters import filters_as_text_from_request, filters_from_request
 from .pe_legacy_warning_dialog import LegacyWarningDialog
 from .pe_gui_utils import waitcursor
-from ..pe_analytics import analytics_track
+from ..pe_analytics import analytics_track, SAVED_SEARCH_ACCESSED
 from ..planet_api import PlanetClient
 from ..pe_utils import iface
 
@@ -56,7 +56,7 @@ class OpenSavedSearchDialog(BASE, WIDGET):
     def saved_search_selected(self, idx):
         request = self.comboSavedSearch.currentData()
         if request:
-            analytics_track("saved_search_accessed")
+            analytics_track(SAVED_SEARCH_ACCESSED)
             self.set_from_request(request)
         else:
             self.txtFilters.setPlainText("")

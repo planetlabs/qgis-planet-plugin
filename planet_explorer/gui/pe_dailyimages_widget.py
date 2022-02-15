@@ -31,7 +31,13 @@ from qgis.PyQt.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
 
-from ..pe_analytics import analytics_track, send_analytics_for_search
+from ..pe_analytics import (
+    analytics_track,
+    send_analytics_for_search,
+    ITEM_IDS_COPIED,
+    API_KEY_COPIED
+)
+
 from ..pe_utils import add_menu_section_action
 from ..planet_api import PlanetClient
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
@@ -369,7 +375,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(",".join(sorted_checked))
         self.parent.show_message("Checked IDs copied to clipboard")
-        analytics_track("item_ids_copied")
+        analytics_track(ITEM_IDS_COPIED)
 
     @pyqtSlot()
     def view_curl(self):
@@ -385,7 +391,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(PlanetClient.getInstance().api_key())
         self.parent.show_message("API key copied to clipboard")
-        analytics_track("api_key_copied")
+        analytics_track(API_KEY_COPIED)
 
     def clean_up(self):
         self._aoi_filter.clean_up()

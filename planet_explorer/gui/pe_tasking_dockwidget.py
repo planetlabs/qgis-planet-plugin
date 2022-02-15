@@ -40,7 +40,7 @@ from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
-from ..pe_analytics import analytics_track
+from ..pe_analytics import analytics_track, SKYSAT_TASK_CREATED
 from ..pe_utils import PLANET_COLOR, open_link_with_browser, iface
 from ..planet_api import PlanetClient
 
@@ -134,7 +134,7 @@ class WarningDialog(QDialog):
 
     def _link_clicked(self, url):
         if url.toString() == "dashboard":
-            analytics_track("skysat_task_created")
+            analytics_track(SKYSAT_TASK_CREATED)
             url = f"https://www.planet.com/tasking/orders/new/#/geometry/{self.pt.asWkt()}"
             open_link_with_browser(url)
             self.close()

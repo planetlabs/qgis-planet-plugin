@@ -4,7 +4,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtGui import QGuiApplication
 
-from ..pe_analytics import analytics_track
+from ..pe_analytics import analytics_track, CURL_REQUEST_COPIED
 from ..planet_api import PlanetClient
 
 python_template = """
@@ -65,4 +65,4 @@ class ShowCurlDialog(BASE, WIDGET):
     def copyClicked(self):
         clipboard = QGuiApplication.clipboard()
         clipboard.setText(self.textBrowser.toPlainText())
-        analytics_track("curl_request_copied")
+        analytics_track(CURL_REQUEST_COPIED)
