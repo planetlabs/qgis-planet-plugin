@@ -66,7 +66,6 @@ from qgis.core import (
 )
 
 from qgis.utils import iface as qgisiface
-from qgis.testing.mocked import get_iface
 
 from .planet_api import PlanetClient
 from .planet_api.p_client import tile_service_url
@@ -75,6 +74,7 @@ from .planet_api.p_utils import geometry_from_json_str_or_obj, geometry_from_req
 # This can be further patched using the test.utils module
 iface = qgisiface
 if iface is None:
+    from qgis.testing.mocked import get_iface
     iface = get_iface()
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
