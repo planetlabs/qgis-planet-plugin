@@ -419,7 +419,7 @@ class PlanetClient(QObject, ClientV1):
         return [
             asset["id"]
             for asset in asset_types
-            if "bands" in asset and len(asset.get("bands")) <= nbands
+            if "bands" in asset and len(asset.get("bands")) >= nbands
         ]
 
     def item_types(self):
@@ -437,9 +437,7 @@ class PlanetClient(QObject, ClientV1):
 
     def bundles(self):
         if self._bundles is None:
-            url = (
-                "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
-            )
+            url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
             self._bundles = self._get(url, api_models.JSON).get_body().get()
         return self._bundles
 
