@@ -8,11 +8,11 @@ from ..pe_analytics import analytics_track, CURL_REQUEST_COPIED
 from ..planet_api import PlanetClient
 
 python_template = """
-import os
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 
-PLANET_API_KEY = %s
+PLANET_API_KEY = "%s"
 
 request = %s
 
@@ -23,6 +23,7 @@ search_result = \
     auth=HTTPBasicAuth(PLANET_API_KEY, ''),
     json=request)
 
+print(json.dumps(search_result, indent=2))
 """
 
 curl_template = (
