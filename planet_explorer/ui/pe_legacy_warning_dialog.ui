@@ -17,7 +17,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Update Saved Search to PSScene&lt;/span&gt;&lt;/p&gt;&lt;p&gt;We recently made some changes to our catalog. Your saved search includes legacy assets listed below. Please update to PSScene before continuing. All save searches will be utomatically update on [date]&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;psscene&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn more&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Update Saved Search to PSScene&lt;/span&gt;&lt;/p&gt;&lt;p&gt;We recently made some changes to our catalog. Your saved search includes legacy assets listed below. Please update to PSScene before continuing. All saved searches will be automatically updated on [date]&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;psscene&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn more&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
