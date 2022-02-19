@@ -158,7 +158,7 @@ have access to order with my current plan</string>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>16</day>
+             <day>15</day>
             </datetime>
            </property>
            <property name="time">
@@ -548,6 +548,9 @@ have access to order with my current plan</string>
                   <property name="text">
                    <string>Dove Classic (PS2)</string>
                   </property>
+                  <property name="api-name" stdset="0">
+                   <string>PS2</string>
+                  </property>
                  </widget>
                 </item>
                 <item>
@@ -555,12 +558,18 @@ have access to order with my current plan</string>
                   <property name="text">
                    <string>Dove R (PS2.SD)</string>
                   </property>
+                  <property name="api-name" stdset="0">
+                   <string>PS2.SD</string>
+                  </property>
                  </widget>
                 </item>
                 <item>
                  <widget class="QCheckBox" name="chkPsbSd">
                   <property name="text">
                    <string>Super Dove (PSB.SD)</string>
+                  </property>
+                  <property name="api-name" stdset="0">
+                   <string>PSB.SD</string>
                   </property>
                  </widget>
                 </item>
