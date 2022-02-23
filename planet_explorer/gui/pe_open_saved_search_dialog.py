@@ -3,14 +3,13 @@ import os
 from qgis.PyQt import uic
 
 from .pe_filters import filters_as_text_from_request, filters_from_request
-from .pe_legacy_warning_widget import LegacyWarningWidget
+from .pe_legacy_warning_dialog import LegacyWarningDialog
 from .pe_gui_utils import waitcursor
-from ..pe_analytics import analytics_track
+from ..pe_analytics import analytics_track, SAVED_SEARCH_ACCESSED
 from ..planet_api import PlanetClient
 from ..pe_utils import iface
 
 from qgis.PyQt.QtCore import QDateTime, Qt
-from qgis.PyQt.QtWidgets import QVBoxLayout
 
 from qgis.core import Qgis
 from qgis.gui import QgsMessageBar
@@ -32,14 +31,6 @@ class OpenSavedSearchDialog(BASE, WIDGET):
 
         self.bar = QgsMessageBar()
         self.layout().insertWidget(0, self.bar)
-
-        layout = QVBoxLayout()
-        layout.setMargin(0)
-        self.legacyWarningWidget = LegacyWarningWidget()
-        self.legacyWarningWidget.updateLegacySearch.connect(self.update_legacy_search)
-        layout.addWidget(self.legacyWarningWidget)
-        self.frameWarningLegacySearch.setLayout(layout)
-        self.frameWarningLegacySearch.setVisible(False)
 
         self.populate_saved_searches()
 
@@ -65,7 +56,7 @@ class OpenSavedSearchDialog(BASE, WIDGET):
     def saved_search_selected(self, idx):
         request = self.comboSavedSearch.currentData()
         if request:
-            analytics_track("saved_search_accessed")
+            analytics_track(SAVED_SEARCH_ACCESSED)
             self.set_from_request(request)
         else:
             self.txtFilters.setPlainText("")
@@ -94,8 +85,11 @@ class OpenSavedSearchDialog(BASE, WIDGET):
                 for t in request["item_types"]
             )
         )
-        if "PSScene4Band" in request["item_types"]:
-            assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
+        if "PSScene4Band" in request["item_types"] or "PSScene3Band" in request["item_types"]:
+            if "PSScene3Band" in request["item_types"]:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(3)
+            else:
+                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(4)
             psscene_filter = {
                 "config": [
                     {"config": assets, "type": "AssetFilter"},
@@ -113,18 +107,11 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             }
         cleared_request["name"] = request["name"]
         PlanetClient.getInstance().update_search(cleared_request, request["id"])
-        self.comboSavedSearch.setItemData(
-            self.comboSavedSearch.currentIndex(), cleared_request
-        )
-        self.frameWarningLegacySearch.setVisible(False)
-        self.bar.pushMessage(
-            "Delete search", "Search was correctly updated", Qgis.Success, 5
-        )
+        return cleared_request
 
     def check_for_legacy_request(self, request):
         sources = request["item_types"]
-        legacy = "PSScene3Band" in sources or "PSScene4Band" in sources
-        self.frameWarningLegacySearch.setVisible(legacy)
+        return "PSScene3Band" in sources or "PSScene4Band" in sources
 
     def set_from_request(self, request):
         filters = filters_from_request(request, "acquired")
@@ -147,7 +134,15 @@ class OpenSavedSearchDialog(BASE, WIDGET):
     def loadSearch(self):
         request = self.comboSavedSearch.currentData()
         if request:
-            self.saved_search = request
+            if self.check_for_legacy_request(request):
+                dlg = LegacyWarningDialog(request, self)
+                ret = dlg.exec()
+                if ret == dlg.Accepted:
+                    self.saved_search = self.update_legacy_search()
+                else:
+                    self.saved_search = request
+            else:
+                self.saved_search = request
             self.accept()
         else:
             self.bar.pushMessage(

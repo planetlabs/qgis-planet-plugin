@@ -36,7 +36,14 @@ from PyQt5.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
 from qgis.PyQt import uic
 
-from ..pe_analytics import analytics_track
+from ..pe_analytics import (
+    analytics_track,
+    BASEMAP_SERVICE_ADDED_TO_MAP,
+    BASEMAP_SERVICE_CONNECTION_ESTABLISHED,
+    BASEMAP_COMPLETE_ORDER,
+    BASEMAP_PARTIAL_ORDER
+)
+
 from ..pe_utils import (
     INTERVAL,
     LINKS,
@@ -393,7 +400,7 @@ class BasemapsWidget(BASE, WIDGET):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
 
-            analytics_track("basemap_service_added_to_map")
+            analytics_track(BASEMAP_SERVICE_ADDED_TO_MAP)
 
             add_mosaics_to_qgis_project(
                 selected, self.comboSeriesName.currentText() or selected[0][NAME]
@@ -704,7 +711,7 @@ class BasemapsWidget(BASE, WIDGET):
         proc = self.renderingOptions.process()
         ramp = self.renderingOptions.ramp()
 
-        analytics_track("basemap_service_connection_established")
+        analytics_track(BASEMAP_SERVICE_CONNECTION_ESTABLISHED)
 
         for mosaic in selected:
             name = f"{mosaicname} - {mosaic_title(mosaic)}"
@@ -754,7 +761,7 @@ class BasemapsWidget(BASE, WIDGET):
     def order_complete_submit(self):
         selected = self.mosaicsList.selected_mosaics()
 
-        analytics_track("basemap_complete_order")
+        analytics_track(BASEMAP_COMPLETE_ORDER)
 
         name = self.txtOrderName.text()
         load_as_virtual = self.chkLoadAsVirtualLayer.isChecked()
@@ -777,7 +784,7 @@ class BasemapsWidget(BASE, WIDGET):
         mosaics = self.mosaicsList.selected_mosaics()
         quads_count = len(self.quadsTree.selected_quads())
 
-        analytics_track("basemap_partial_order", {"count": quads_count})
+        analytics_track(BASEMAP_PARTIAL_ORDER, {"count": quads_count})
 
         dates = date_interval_from_mosaics(mosaics)
         quads = self.quadsTree.selected_quads_classified()

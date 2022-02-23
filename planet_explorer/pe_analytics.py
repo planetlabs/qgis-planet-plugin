@@ -36,6 +36,24 @@ NAME = "name"
 # [set_segments_write_key]
 # [set_sentry_dsn]
 
+SCENE_ORDER_CLIPPED = "scene_order_clipped"
+SCENE_SEARCH_EXECUTED = "scene_search_executed"
+SCENE_PREVIEW_ADDED_TO_MAP = "scene_preview_added_to_map"
+SCENE_ORDER_PLACED = "scene_order_placed"
+BASEMAP_SERVICE_ADDED_TO_MAP = "basemap_service_added_to_map"
+BASEMAP_SERVICE_CONNECTION_ESTABLISHED = "basemap_service_connection_established"
+BASEMAP_COMPLETE_ORDER = "basemap_complete_order"
+BASEMAP_PARTIAL_ORDER = "basemap_partial_order"
+SAVED_SEARCH_CREATED = "saved_search_created"
+ITEM_IDS_COPIED = "item_ids_copied"
+API_KEY_COPIED = "api_key_copied"
+USER_LOGIN = "user_login"
+SAVE_CREDENTIALS = "save_credentials"
+SAVED_SEARCH_ACCESSED = "saved_search_accessed"
+BASEMAP_INSPECTED = "basemap_inspected"
+CURL_REQUEST_COPIED = "curl_request_copied"
+SKYSAT_TASK_CREATED = "skysat_task_created"
+
 
 def sentry_dsn():
     return os.environ.get("SENTRY_DSN")
@@ -114,7 +132,7 @@ def send_analytics_for_search(sources):
     for source in sources:
         name = item_type_names.get(source)
         if name is not None:
-            analytics_track("scene_search_executed", {"item_type": name})
+            analytics_track(SCENE_SEARCH_EXECUTED, {"item_type": name})
 
 
 def send_analytics_for_preview(imgs):
@@ -124,7 +142,7 @@ def send_analytics_for_preview(imgs):
         name = item_type_names.get(item_type)
         if name is not None:
             analytics_track(
-                "scene_preview_added_to_map",
+                SCENE_PREVIEW_ADDED_TO_MAP,
                 {"item_type": name, "scene_count": counter[item_type]},
             )
 
@@ -134,12 +152,12 @@ def send_analytics_for_order(order):
     name = item_type_names.get(product["item_type"])
     if name is not None:
         analytics_track(
-            "scene_order_placed",
+            SCENE_ORDER_PLACED,
             {"count": len(product["item_ids"]), "item_type": name},
         )
         clipping = "clip" in [list(tool.keys())[0] for tool in order["tools"]]
         if clipping:
             analytics_track(
-                "scene_order_clipped",
+                SCENE_ORDER_CLIPPED,
                 {"scene_count": len(product["item_ids"]), "item_type": name},
             )

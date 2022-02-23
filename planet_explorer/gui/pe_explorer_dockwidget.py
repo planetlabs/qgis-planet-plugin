@@ -32,7 +32,13 @@ from qgis.PyQt.QtCore import QSettings, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit
 
-from ..pe_analytics import analytics_track, is_sentry_dsn_valid
+from ..pe_analytics import (
+    analytics_track,
+    is_sentry_dsn_valid,
+    USER_LOGIN,
+    SAVE_CREDENTIALS
+)
+
 from ..pe_utils import (
     BASE_URL,
     SETTINGS_NAMESPACE,
@@ -188,12 +194,12 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             with sentry_sdk.configure_scope() as scope:
                 scope.user = {"email": user["email"]}
 
-        analytics_track("user_login")
+        analytics_track(USER_LOGIN)
 
         # Store settings
         if self.chkBxSaveCreds.isChecked():
             self._store_auth_creds()
-            analytics_track("save_credentials")
+            analytics_track(SAVE_CREDENTIALS)
 
         # For debugging
         specs = (

@@ -99,6 +99,7 @@ class PlanetClient(QObject, ClientV1):
         self._psscene_asset_types = None
         self._item_types = None
         self._bundles = None
+        self._asset_types = {}
 
     def set_proxy_values(self):
         settings = QSettings()
@@ -400,40 +401,26 @@ class PlanetClient(QObject, ClientV1):
 
         return None
 
-    def psscene_asset_types(self):
-        if self._psscene_asset_types is None:
-            url = self._url("data/v1/item-types/PSScene/asset-types")
-            self._psscene_asset_types = (
+    def asset_types_for_item_type(self, item_type):
+        if item_type not in self._asset_types:
+            url = self._url(f"data/v1/item-types/{item_type}/asset-types")
+            asset_types = (
                 self._get(url, api_models.JSON).get_body().get()["asset_types"]
             )
-        return self._psscene_asset_types
+            self._asset_types[item_type] = asset_types
+        return self._asset_types[item_type]
+
+    def asset_types_for_item_type_as_dict(self, item_type):
+        asset_types = self.asset_types_for_item_type(item_type)
+        return {a["id"]: a for a in asset_types}
 
     def psscene_asset_types_for_nbands(self, nbands):
-        asset_types = self.psscene_asset_types()
+        asset_types = self.asset_types_for_item_type("PSScene")
         return [
             asset["id"]
             for asset in asset_types
-            if len(asset.get("bands", [])) >= nbands
+            if "bands" in asset and len(asset.get("bands")) >= nbands
         ]
-
-    def psscene_bandnum_from_assets(self, assets):
-        if not assets:
-            return 3
-        minbands = 8
-        asset_types = self.psscene_asset_types()
-
-        def _asset_type_from_id(assetid):
-            for psscene_asset in asset_types:
-                if psscene_asset["id"] == assetid:
-                    return psscene_asset
-
-        for asset in assets:
-            assetdef = _asset_type_from_id(asset)
-            if assetdef:
-                bands = assetdef.get("bands")
-                if bands is not None:
-                    minbands = min(len(bands), minbands)
-        return minbands
 
     def item_types(self):
         if self._item_types is None:
@@ -441,6 +428,7 @@ class PlanetClient(QObject, ClientV1):
             self._item_types = (
                 self._get(url, api_models.JSON).get_body().get()["item_types"]
             )
+            self._item_types = [v for v in self._item_types if " " in v["display_name"]]
         return self._item_types
 
     def item_types_names(self):
@@ -448,20 +436,22 @@ class PlanetClient(QObject, ClientV1):
         return {t["id"]: t["display_name"] for t in item_types}
 
     def bundles(self):
+        url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
         if self._bundles is None:
-            url = "https://developers.planet.com/theme/js/2021-04-06.json"
-            self._bundles = self._get(url, api_models.JSON).get_body().get()["bundles"]
+            self._bundles = self._get(url, api_models.JSON).get_body().get()
         return self._bundles
 
-    def bundles_for_item_type(self, item_type, permissions):
+    def bundles_for_item_type(self, item_type):
         bundles = self.bundles()
         bndls_per_it = {
-            name: b
-            for name, b in bundles.items()
-            if item_type in b["assets"]
-            and b.get("fileType") != "NITF"
-            and b.get("auxiliaryFiles") != "udm"
+            b["id"]: b
+            for b in bundles[item_type]
+            if b.get("fileType") != "NITF" and b.get("auxiliaryFiles") != "udm"
         }
+        return bndls_per_it
+
+    def bundles_for_item_type_and_permissions(self, item_type, permissions):
+        bundles = self.bundles_for_item_type(item_type)
 
         permissions_cleaned = []
         for img_permissions in permissions:
@@ -473,9 +463,9 @@ class PlanetClient(QObject, ClientV1):
             permissions_cleaned.append(img_permissions_cleaned)
 
         allowed_bundles = {}
-        for name, b in bndls_per_it.items():
+        for name, b in bundles.items():
             add_bundle = True
-            assets = b["assets"].get(item_type, [])
+            assets = b.get("assets", [])
             for asset in assets:
                 for img_permissions in permissions_cleaned:
                     if asset not in img_permissions:

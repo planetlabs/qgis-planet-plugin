@@ -31,7 +31,13 @@ from qgis.PyQt.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
 
-from ..pe_analytics import analytics_track, send_analytics_for_search
+from ..pe_analytics import (
+    analytics_track,
+    send_analytics_for_search,
+    ITEM_IDS_COPIED,
+    API_KEY_COPIED
+)
+
 from ..pe_utils import add_menu_section_action
 from ..planet_api import PlanetClient
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
@@ -138,11 +144,13 @@ class DailyImagesWidget(BASE, WIDGET):
             )
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
+            self.perform_search()
         else:
             self.legacy_request = None
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
             self._daily_filters_widget.clear_id_filter()
+            self.clear_filters()
 
     def show_filters(self):
         self.stackedWidgetDailyImagery.setCurrentIndex(1)
@@ -184,17 +192,13 @@ class DailyImagesWidget(BASE, WIDGET):
         ]
 
         item_type_filters = []
-        for item_type, options in sources.items():
-            # check for PSScene
-            if options in [4, 8] and PlanetClient.getInstance().has_api_key():
-                assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(
-                    options
-                )
+        for item_type, assets in sources.items():
+            if assets is not None:
                 item_type_filter = {
                     "config": [
                         {"config": assets, "type": "AssetFilter"},
                         {
-                            "config": ["PSScene"],
+                            "config": [item_type],
                             "type": "StringInFilter",
                             "field_name": "item_type",
                         },
@@ -207,7 +211,6 @@ class DailyImagesWidget(BASE, WIDGET):
                     "type": "StringInFilter",
                     "field_name": "item_type",
                 }
-
             item_type_filters.append(item_type_filter)
 
         all_filters.append(or_filter(*item_type_filters))
@@ -320,9 +323,10 @@ class DailyImagesWidget(BASE, WIDGET):
             sources = request["item_types"]
             legacy = "PSScene3Band" in sources or "PSScene4Band" in sources
             self.frameWarningLegacySearch.setVisible(legacy)
-            self.legacyWarningWidget.set_has_image_id(
-                bool(self._daily_filters_widget.leStringIDs.text())
-            )
+            has_image_id = bool(self._daily_filters_widget.leStringIDs.text())
+            self.legacyWarningWidget.set_has_image_id(has_image_id)
+            if has_image_id:
+                self.current_saved_search = None
             if legacy:
                 self.legacy_request = request
             else:
@@ -371,7 +375,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(",".join(sorted_checked))
         self.parent.show_message("Checked IDs copied to clipboard")
-        analytics_track("item_ids_copied")
+        analytics_track(ITEM_IDS_COPIED)
 
     @pyqtSlot()
     def view_curl(self):
@@ -387,7 +391,7 @@ class DailyImagesWidget(BASE, WIDGET):
         cb = QgsApplication.clipboard()
         cb.setText(PlanetClient.getInstance().api_key())
         self.parent.show_message("API key copied to clipboard")
-        analytics_track("api_key_copied")
+        analytics_track(API_KEY_COPIED)
 
     def clean_up(self):
         self._aoi_filter.clean_up()

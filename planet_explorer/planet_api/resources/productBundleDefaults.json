@@ -7,5 +7,5 @@
 	"PSOrthoTile": ["analytic_sr_udm2"],
 	"PSScene3Band": ["visual"],
 	"PSScene4Band": ["analytic_sr_udm2"],
-	"PSScene": ["analytic_8b_sr_udm2", "analytic_4b_sr_udm2", "visual"]
+	"PSScene": ["analytic_sr_udm2", "visual"]
 }

@@ -65,8 +65,6 @@ class TextBoxWithLink(QWidget):
     @value.setter
     def value(self, value):
         self._value = value
-        print(1)
-        print(value)
         self.lineEdit.setText(value)
 
 
@@ -190,7 +188,7 @@ class SettingsDialog(QDialog):
     def setValueInWidget(self, widget, paramtype, value):
         try:
             if paramtype == BOOL:
-                widget.setChecked(value)
+                widget.setChecked(str(value).lower() == str(True).lower())
             elif paramtype == CHOICE:
                 widget.setCurrentText(value)
             elif paramtype == TEXT:

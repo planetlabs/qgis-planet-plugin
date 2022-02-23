@@ -204,8 +204,12 @@ def _make_zip(zipfile, options):
     cfg = SafeConfigParser()
     cfg.optionxform = str
     cfg.read(metadata_filename)
+
     if hasattr(options.package, "version"):
-        version = "".join(c for c in options.package.version if c.isdigit() or c == ".")
+        if options.package.version.startswith("v"):
+            version = "".join(c for c in options.package.version if c.isdigit() or c == ".")
+        else:
+            version = f"{cfg.get('general', 'version')}-{options.package.version}"
         cfg.set("general", "version", version)
     buf = StringIO()
     cfg.write(buf)
