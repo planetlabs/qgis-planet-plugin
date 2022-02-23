@@ -23,7 +23,7 @@ search_result = \
     auth=HTTPBasicAuth(PLANET_API_KEY, ''),
     json=request)
 
-print(json.dumps(search_result, indent=2))
+print(json.dumps(search_result.json(), indent=2))
 """
 
 curl_template = (
