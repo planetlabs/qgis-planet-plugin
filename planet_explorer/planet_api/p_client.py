@@ -436,8 +436,8 @@ class PlanetClient(QObject, ClientV1):
         return {t["id"]: t["display_name"] for t in item_types}
 
     def bundles(self):
+        url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
         if self._bundles is None:
-            url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
             self._bundles = self._get(url, api_models.JSON).get_body().get()
         return self._bundles
 
