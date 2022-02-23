@@ -906,8 +906,18 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 col += 1
         self.oldSourcesWidget.setLayout(gl)
 
-        sources = self.newSourcesWidget.findChildren(QCheckBox)
-        for source in sources:
+        self.itemTypeCheckBoxes = [
+            self.chkPlanetScope,
+            self.chkPlanetScopeOrtho,
+            self.chkRapidEyeScene,
+            self.chkRapidEyeOrtho,
+            self.chkSkySatScene,
+            self.chkSkySatCollect,
+            self.chkLandsat,
+            self.chkSentinel,
+        ]
+
+        for source in self.itemTypeCheckBoxes:
             apiname = source.property("api-name")
             if apiname is not None:
                 source.stateChanged.connect(self.filtersChanged)
@@ -960,8 +970,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         yellow = self.chkYellow.isChecked()
         surface = self.chkSurfaceReflectance.isChecked()
         checked_sources = {}
-        sourcesWidgets = self.newSourcesWidget.findChildren(QCheckBox)
-        for sourceWidget in sourcesWidgets:
+        for sourceWidget in self.itemTypeCheckBoxes:
             if sourceWidget.isChecked():
                 apiname = sourceWidget.property("api-name")
                 if apiname == "PSScene":
@@ -990,7 +999,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
     def change_date_vis(self):
         dates = self.frameDates.findChildren(QgsDateTimeEdit)
-
         for date in dates:
             if date.dateTime().isNull():
                 date.lineEdit().setEchoMode(QLineEdit.NoEcho)
@@ -1107,8 +1115,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         """
         self.emitFiltersChanged = False
         sources = request["item_types"]
-        checkboxes = self.newSourcesWidget.findChildren(QCheckBox)
-        for checkbox in checkboxes:
+        for checkbox in self.itemTypeCheckBoxes:
             checkbox.setChecked(checkbox.property("api-name") in sources)
 
         asset_filters = filters_from_request(request, filter_type="AssetFilter")
