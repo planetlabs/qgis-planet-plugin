@@ -44,6 +44,7 @@ from qgis.PyQt.QtCore import (
     QSettings,
     QTranslator,
     QCoreApplication,
+    QLocale,
     Qt,
     QTimer,
     QUrl,
@@ -146,7 +147,7 @@ class PlanetExplorer(object):
         self.plugin_dir = os.path.dirname(__file__)
 
         # Initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
+        locale = QSettings().value("locale/userLocale", QLocale().name())[0:2]
         locale_path = os.path.join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
