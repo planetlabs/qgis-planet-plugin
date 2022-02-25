@@ -5,3 +5,5 @@ pyq5-examples
 planet_explorer*.zip
 bundles-util.js
 qgis_resources.py
+venv
+.idea
