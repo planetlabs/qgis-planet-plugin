@@ -35,7 +35,7 @@ from ..pe_analytics import (
     analytics_track,
     send_analytics_for_search,
     ITEM_IDS_COPIED,
-    API_KEY_COPIED
+    API_KEY_COPIED,
 )
 
 from ..pe_utils import add_menu_section_action
@@ -131,6 +131,7 @@ class DailyImagesWidget(BASE, WIDGET):
                 self.current_saved_search = saved_search_request
             self.set_filters_from_request(request)
             self.perform_search()
+            self._aoi_filter.zoom_to_aoi()
 
     @waitcursor
     def update_legacy_search(self):
