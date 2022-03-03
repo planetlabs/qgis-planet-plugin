@@ -37,7 +37,7 @@ class LegacyWarningWidget(BASE, WIDGET):
         self.labelLink.linkActivated.connect(self.link_clicked)
 
     def link_clicked(self):
-        url = "https://developers.planet.com/docs/data/psscene/faq"
+        url = "https://developers.planet.com/docs/data/psscene"
         open_link_with_browser(url)
 
     def update_search(self):

@@ -79,10 +79,13 @@ p, li { white-space: pre-wrap; }
    <item>
     <widget class="QLabel" name="labelLink">
      <property name="text">
-      <string>&lt;a href=&quot;#&quot;&gt;Learn more about this change&lt;/a&gt;</string>
+      <string>&lt;a href=&quot;https://developers.planet.com/docs/data/psscene&quot;&gt;Learn more about this change&lt;/a&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
