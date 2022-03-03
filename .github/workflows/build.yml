@@ -51,6 +51,7 @@ jobs:
         qgis_version: [ release-3_10, release-3_16, latest ]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
+      # cf https://docs.qgis.org/3.16/en/docs/user_manual/introduction/qgis_configuration.html#running-qgis-with-advanced-settings
       QGIS_COMMAND: qgis --noplugins --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
 
     steps:
