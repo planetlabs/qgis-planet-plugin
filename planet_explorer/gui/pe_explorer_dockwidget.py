@@ -36,7 +36,7 @@ from ..pe_analytics import (
     analytics_track,
     is_sentry_dsn_valid,
     USER_LOGIN,
-    SAVE_CREDENTIALS
+    SAVE_CREDENTIALS,
 )
 
 from ..pe_utils import (
@@ -121,6 +121,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self.btn_api_key.hide()
         self.buttonBoxLogin.accepted.connect(self.login)
         self.buttonBoxLogin.rejected.connect(self.api_key_login)
+
+        self.lePass.returnPressed.connect(self.login)
 
         self.tabWidgetResourceType.currentChanged[int].connect(self._item_group_changed)
 
