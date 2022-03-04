@@ -41,3 +41,36 @@ jobs:
       with:
         name: planet_explorer_${{github.sha}}
         path: tmp
+
+  install:
+    name: "Install"
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        qgis_version: [ release-3_10, release-3_16, latest ]
+    env:
+      QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
+      # cf https://docs.qgis.org/3.16/en/docs/user_manual/introduction/qgis_configuration.html#running-qgis-with-advanced-settings
+      QGIS_COMMAND: qgis --noplugins --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: planet_explorer_${{github.sha}}
+          path: tmp
+
+      - name: Zip artifact
+        run: (cd tmp && zip -r ../planet_explorer_${{github.sha}}.zip .)
+
+      - name: Pull qgis image
+        run: docker pull qgis/qgis:${QGIS_TEST_VERSION}
+
+      - name: Run install test
+        run: docker run --rm -v `pwd`:/tests_directory -t -w /tests_directory qgis/qgis:${QGIS_TEST_VERSION} sh -c "xvfb-run ${QGIS_COMMAND}"
