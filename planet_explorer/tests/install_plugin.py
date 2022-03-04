@@ -84,6 +84,11 @@ try:
     assert (
         "planet_explorer" not in pyplugin_installer.installer_data.plugins.all().keys()
     ), "Planet plugin failed to uninstall!"
+
+    if ERROR_OCCURRED:
+        raise PluginInstallException(
+            f"Python exception hit during plugin uninstall: \n {ERROR_MSG}"
+        )
 except Exception:  # noqa
     # Print the error so we know where it failed,
     # and exit with a non-zero status code so CI will fail.
