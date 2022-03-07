@@ -41,7 +41,7 @@ from ..pe_analytics import (
     BASEMAP_SERVICE_ADDED_TO_MAP,
     BASEMAP_SERVICE_CONNECTION_ESTABLISHED,
     BASEMAP_COMPLETE_ORDER,
-    BASEMAP_PARTIAL_ORDER
+    BASEMAP_PARTIAL_ORDER,
 )
 
 from ..pe_utils import (
@@ -228,10 +228,16 @@ class BasemapsWidget(BASE, WIDGET):
                     "Apply a filter to populate this list of series", None
                 )
             else:
-                cadences = set([s[INTERVAL] for s in self.series()])
+                cadences = list(set([s[INTERVAL] for s in self.series()]))
                 self.comboCadence.blockSignals(True)
                 self.comboCadence.clear()
                 self.comboCadence.addItem("All", None)
+
+                def cadenceKey(c):
+                    tokens = c.split(" ")
+                    return f"{tokens[-1]}_{tokens[0]}"
+
+                cadences.sort(key=cadenceKey)
                 for cadence in cadences:
                     self.comboCadence.addItem(cadence, cadence)
                 self.comboCadence.blockSignals(False)
