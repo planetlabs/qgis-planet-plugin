@@ -58,9 +58,7 @@ def pe_qgis_iface(qgis_iface):
 
 
 @pytest.fixture
-def plugin(
-    pytestconfig, pe_qgis_iface, qgis_parent, qgis_new_project, qgis_debug_enabled
-):
+def plugin(pytestconfig, pe_qgis_iface, qgis_parent, qgis_new_project):
     """
     Initialize and return the plugin object.
 
@@ -77,6 +75,15 @@ def plugin(
     plugin.initGui()
     yield plugin
     plugin.unload()
+
+
+@pytest.fixture
+def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled):
+    toolbar = plugin.toolbar
+    toolbar.resize(int(pytestconfig.getini("qgis_window_width")), 70)
+    if qgis_debug_enabled:
+        toolbar.show()
+    yield toolbar
 
 
 @pytest.fixture

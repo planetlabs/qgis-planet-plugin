@@ -3,19 +3,40 @@ import pytest
 from qgis.core import QgsProject
 from qgis.PyQt import QtCore
 
-from planet_explorer.gui.pe_explorer_dockwidget import PlanetExplorerDockWidget
+from planet_explorer.gui.pe_explorer_dockwidget import _get_widget_instance
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.tests.utils import get_testing_credentials
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
 
+TOOLBAR_BUTTONS = [
+    "showdailyimages_act",
+    "showbasemaps_act",
+    "showinspector_act",
+    "showorders_act",
+    "showtasking_act",
+    "user_button",
+]
+
+
 @pytest.fixture
-def explorer_dock_widget(plugin, qgis_debug_enabled, qtbot, pe_qgis_iface):
+def explorer_dock_widget(
+    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
+):
     """
     Convenience fixture for instantiating the explorer dock widget
     """
-    dock_widget = PlanetExplorerDockWidget(pe_qgis_iface.mainWindow())
+    dock_widget = _get_widget_instance()
+    # place dock_widget based on the position of the toolbar
+    current_geometry = dock_widget.geometry()
+    toolbar_geometry = plugin_toolbar.geometry()
+    dock_widget.setGeometry(
+        current_geometry.x(),
+        toolbar_geometry.height() + 1,
+        current_geometry.width(),
+        current_geometry.height(),
+    )
     dock_widget._setup_client()
     dock_widget.chkBxSaveCreds.setChecked(False)
     qtbot.add_widget(dock_widget)
@@ -26,11 +47,23 @@ def explorer_dock_widget(plugin, qgis_debug_enabled, qtbot, pe_qgis_iface):
 
 
 @pytest.fixture
-def logged_in_explorer_dock_widget(plugin, qgis_debug_enabled, qtbot, pe_qgis_iface):
+def logged_in_explorer_dock_widget(
+    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
+):
     """
     Convenience fixture for instantiating a logged in version of the explorer dock widget
     """
-    dock_widget = PlanetExplorerDockWidget(pe_qgis_iface.mainWindow())
+    dock_widget = _get_widget_instance()
+    # place dock_widget based on the position of the toolbar
+    current_geometry = dock_widget.geometry()
+    toolbar_geometry = plugin_toolbar.geometry()
+    dock_widget.setGeometry(
+        current_geometry.x(),
+        toolbar_geometry.height() + 1,
+        current_geometry.width(),
+        current_geometry.height(),
+    )
+    # Setup the planet client and login
     dock_widget._setup_client()
     dock_widget.chkBxSaveCreds.setChecked(False)
     username, password = get_testing_credentials()
@@ -42,7 +75,8 @@ def logged_in_explorer_dock_widget(plugin, qgis_debug_enabled, qtbot, pe_qgis_if
     yield dock_widget
 
 
-def test_explorer_login(qtbot, explorer_dock_widget, qgis_debug_enabled):
+@pytest.mark.parametrize("use_mouse", [True, False], ids=["Mouse Click", "Hit Enter"])
+def test_explorer_login(qtbot, explorer_dock_widget, qgis_debug_enabled, use_mouse):
     """
     Verifies:
         - PLQGIS-TC03
@@ -58,7 +92,10 @@ def test_explorer_login(qtbot, explorer_dock_widget, qgis_debug_enabled):
     qtbot.keyClicks(dock_widget.lePass, password)
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
-    qtbot.mouseClick(dock_widget.btn_ok, QtCore.Qt.LeftButton)
+    if use_mouse:
+        qtbot.mouseClick(dock_widget.btn_ok, QtCore.Qt.LeftButton)
+    else:
+        qtbot.keyClick(dock_widget.lePass, QtCore.Qt.Key_Enter)
 
     current = dock_widget.stckdWidgetViews.currentIndex()
     assert current == 1
@@ -105,6 +142,40 @@ def test_explorer_reacts_to_login(qtbot, explorer_dock_widget, qgis_debug_enable
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     current = dock_widget.stckdWidgetViews.currentIndex()
     assert current == 1
+
+
+def test_explorer_logout(
+    qtbot, plugin, logged_in_explorer_dock_widget, qgis_debug_enabled
+):
+    """
+    Unfortunately it is not possible to click the item in the QMenu, we can however trigger
+    the event that would be emitted by a user click.
+
+    cf. https://github.com/pytest-dev/pytest-qt/issues/195
+
+    Verifies:
+        - PLQGIS-TC20
+    """
+    assert not plugin.btnLogin.isVisible()
+    # Verify things are enabled when logged in
+    for btn in TOOLBAR_BUTTONS:
+        assert getattr(plugin, btn).isEnabled()
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    logout_action = plugin.user_button.menu().actions()[1]
+    logout_action.trigger()
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    qtbot.waitUntil(
+        lambda: not logged_in_explorer_dock_widget.logged_in(), timeout=10 * 1000
+    )
+
+    if qgis_debug_enabled:
+        assert plugin.btnLogin.isVisible()
+    assert plugin.btnLogin.isEnabled()
+    # Verify things are not enabled when logged out
+    for btn in TOOLBAR_BUTTONS:
+        assert not getattr(plugin, btn).isEnabled()
 
 
 def test_explorer_search_daily_images(
