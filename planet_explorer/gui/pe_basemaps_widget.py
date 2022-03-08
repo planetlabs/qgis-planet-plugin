@@ -235,7 +235,17 @@ class BasemapsWidget(BASE, WIDGET):
 
                 def cadenceKey(c):
                     tokens = c.split(" ")
-                    return f"{tokens[-1]}_{tokens[0]}"
+                    try:
+                        i = int(tokens[0])
+                        if tokens[-1].startswith("day"):
+                            pass
+                        elif tokens[-1].startswith("mon"):
+                            i *= 30
+                        else:
+                            i *= 365
+                        return i
+                    except Exception:
+                        return 1000
 
                 cadences.sort(key=cadenceKey)
                 for cadence in cadences:
