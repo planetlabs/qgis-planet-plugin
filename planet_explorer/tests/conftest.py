@@ -1,6 +1,7 @@
 import pytest
 
 from planet_explorer import classFactory
+from unittest.mock import MagicMock
 from qgis.PyQt import QtCore
 
 
@@ -33,27 +34,15 @@ def pe_qgis_iface(qgis_iface):
     Patch the pytest-qgis's qgis_iface to include some specific methods
     for the Planet Explorer plugin.
     """
-
-    def dummy_method(*args, **kwargs):
-        pass
-
-    class DummyClass:
-        pass
-
     for method in [
         "addPluginToWebMenu",
         "messageTimeout",
         "removePluginWebMenu",
         "removeDockWidget",
+        "layerTreeView",
     ]:
-        setattr(qgis_iface, method, dummy_method)
+        setattr(qgis_iface, method, MagicMock)
 
-    qgis_iface.layerTreeView = DummyClass
-    qgis_iface.layerTreeView.layerTreeModel = DummyClass
-    qgis_iface.layerTreeView.layerTreeModel.refreshLayerLegend = dummy_method
-    qgis_iface.layerTreeView.currentNode = DummyClass
-    qgis_iface.layerTreeView.currentNode.setExpanded = dummy_method
-    qgis_iface.messageTimeout.return_value = 5
     yield qgis_iface
 
 
@@ -78,11 +67,12 @@ def plugin(pytestconfig, pe_qgis_iface, qgis_parent, qgis_new_project):
 
 
 @pytest.fixture
-def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled):
+def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled, qtbot):
     toolbar = plugin.toolbar
     toolbar.resize(int(pytestconfig.getini("qgis_window_width")), 70)
     if qgis_debug_enabled:
         toolbar.show()
+    qtbot.add_widget(toolbar)
     yield toolbar
 
 
