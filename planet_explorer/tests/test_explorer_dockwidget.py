@@ -4,6 +4,7 @@ from qgis.core import QgsProject
 from qgis.PyQt import QtCore
 
 from planet_explorer.gui.pe_explorer_dockwidget import _get_widget_instance
+from planet_explorer.gui import pe_explorer_dockwidget
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.tests.utils import get_testing_credentials
 
@@ -44,6 +45,8 @@ def explorer_dock_widget(
     if qgis_debug_enabled:
         dock_widget.show()
     yield dock_widget
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    pe_explorer_dockwidget.dockwidget_instance = None
 
 
 @pytest.fixture
@@ -73,6 +76,8 @@ def logged_in_explorer_dock_widget(
     if qgis_debug_enabled:
         dock_widget.show()
     yield dock_widget
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    pe_explorer_dockwidget.dockwidget_instance = None
 
 
 @pytest.mark.parametrize("use_mouse", [True, False], ids=["Mouse Click", "Hit Enter"])
