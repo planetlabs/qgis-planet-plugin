@@ -80,8 +80,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: List files
+        run: 'ls "C:\Program Files\"'
       - name: Install QGIS
         run: choco install --yes qgis
+      - name: List Files
+        run: 'ls "C:\Program Files\"'
       - name: Run QGIS script
-        run: qgis --help
-        working-directory: 'C:\Program Files\QGIS 3.22.3\bin'
+        run: '& "C:\Program Files\QGIS 3.22.3\bin\qgis.bat" --help'
