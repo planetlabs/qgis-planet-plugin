@@ -101,4 +101,3 @@ To install the latest version of the plugin:
   Documentation will be built in the `docs` folder and added to the resulting
   zip file. It includes dependencies as well, but it will not download them, so
   the `setup` task has to be run before packaging.
-
