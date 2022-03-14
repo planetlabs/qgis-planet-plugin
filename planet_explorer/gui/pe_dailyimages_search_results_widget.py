@@ -56,7 +56,7 @@ from ..gui.pe_save_search_dialog import SaveSearchDialog
 from ..pe_analytics import (
     analytics_track,
     send_analytics_for_preview,
-    SAVED_SEARCH_CREATED
+    SAVED_SEARCH_CREATED,
 )
 
 from ..pe_utils import (

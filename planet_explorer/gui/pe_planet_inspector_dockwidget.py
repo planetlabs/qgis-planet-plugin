@@ -57,7 +57,7 @@ from qgis.PyQt.QtWidgets import (
 from ..pe_analytics import (
     analytics_track,
     basemap_name_for_analytics,
-    BASEMAP_INSPECTED
+    BASEMAP_INSPECTED,
 )
 
 from ..pe_utils import (

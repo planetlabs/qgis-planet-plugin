@@ -96,7 +96,7 @@
             </sizepolicy>
            </property>
            <property name="styleSheet">
-            <string notr="true">QToolButton:disabled{ 
+            <string notr="true">QToolButton:disabled{
 color: rgb(17, 141, 148);
 font-weight: bold;
 }
@@ -125,7 +125,7 @@ font-weight: bold;
             </sizepolicy>
            </property>
            <property name="styleSheet">
-            <string notr="true">QToolButton:disabled{ 
+            <string notr="true">QToolButton:disabled{
 color: rgb(17, 141, 148);
 font-weight: bold;
 }
@@ -151,7 +151,7 @@ font-weight: bold;
             </sizepolicy>
            </property>
            <property name="styleSheet">
-            <string notr="true">QToolButton:disabled{ 
+            <string notr="true">QToolButton:disabled{
 color: rgb(17, 141, 148);
 font-weight: bold;
 }

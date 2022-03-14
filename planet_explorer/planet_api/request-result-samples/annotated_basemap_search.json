@@ -33,4 +33,4 @@
       "quad_download": true // bool - user has permission to download quads from this mosaic
     }
   ]
-}  
+}

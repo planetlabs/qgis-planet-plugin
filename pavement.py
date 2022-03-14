@@ -207,7 +207,9 @@ def _make_zip(zipfile, options):
 
     if hasattr(options.package, "version"):
         if options.package.version.startswith("v"):
-            version = "".join(c for c in options.package.version if c.isdigit() or c == ".")
+            version = "".join(
+                c for c in options.package.version if c.isdigit() or c == "."
+            )
         else:
             version = f"{cfg.get('general', 'version')}-{options.package.version}"
         cfg.set("general", "version", version)
