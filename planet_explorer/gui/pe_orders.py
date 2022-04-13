@@ -753,9 +753,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             bundles = widget.bundles()
             images = widget.images
             for bundle in bundles:
-                add_clip = (
-                    self.tool_resources["aoi"] is not None and bundle["canclip"]
-                )
+                add_clip = self.tool_resources["aoi"] is not None and bundle["canclip"]
                 w = PlanetOrderReviewWidget(
                     item_type, bundle["name"], images, add_clip, bundle["canharmonize"]
                 )
