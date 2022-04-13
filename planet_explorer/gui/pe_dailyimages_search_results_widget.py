@@ -155,20 +155,24 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self._setup_request_aoi_box()
 
         self._set_widgets_visibility(False)
-        self.labelNoResults.setText("""
+        self.labelNoResults.setText(
+            """
                 <p><b>Perform a search to get results.</b></p>
-                """)
+                """
+        )
 
     def _set_widgets_visibility(self, search_ok):
         self.tree.setVisible(search_ok)
         self.widgetActions.setVisible(search_ok)
         self.widgetNoResults.setVisible(not search_ok)
         if not search_ok:
-            self.labelNoResults.setText("""
+            self.labelNoResults.setText(
+                """
                 <p><b>Sorry, no results found</b></p>
                 <p>Try refining your filter, extending your date range,<br/>
                 or searching in another location to see more imagery.</p>
-                """)
+                """
+            )
 
     def search_has_been_performed(self):
         return self._request is not None
@@ -390,9 +394,11 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.tree.clear()
         self.lblImageCount.setText("")
         self._set_widgets_visibility(False)
-        self.labelNoResults.setText("""
+        self.labelNoResults.setText(
+            """
                 <p><b>Perform a search to get results.</b></p>
-                """)
+                """
+        )
 
     def closeEvent(self, event):
         self.clean_up()

@@ -27,6 +27,6 @@ def get_testing_credentials():
 
 
 def qgis_debug_wait(qtbot, qgis_debug_enabled, wait=1000):
-    """ Helper function to see what is going on when running tests."""
+    """Helper function to see what is going on when running tests."""
     if qgis_debug_enabled:
         qtbot.wait(wait)
