@@ -89,7 +89,6 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         super(PlanetExplorerDockWidget, self).__init__(parent)
 
         self.setupUi(self)
-        self.setVisible(visible)
 
         self._auth_man = QgsApplication.authManager()
 
@@ -98,6 +97,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         self._save_creds = bool(
             QSettings().value(f"{SETTINGS_NAMESPACE}/{SAVE_CREDS_KEY}")
         )
+
+        self.setVisible(visible)
 
         self.leUser.addAction(
             QIcon(":/plugins/planet_explorer/envelope-gray.svg"),
@@ -180,13 +181,14 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             self.p_client.log_in(
                 self.leUser.text(), self.lePass.text(), api_key=api_key
             )
-            self.p_client.blockSignals(False)
         except LoginException as e:
             self.show_message(
                 "Login failed!", show_more=str(e.__cause__), level=Qgis.Warning
             )
             # Stay on login panel if error
             return
+        finally:
+            self.p_client.blockSignals(False)
 
         # Login OK
         self.api_key = self.p_client.api_key()
