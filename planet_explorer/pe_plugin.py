@@ -590,7 +590,7 @@ class PlanetExplorer(object):
 
     def login(self):
         if (
-            Qgis.QGIS_VERSION_INT in [32000, 32010, 32020, 32030]
+            Qgis.QGIS_VERSION_INT in [32000, 32001, 32002, 32003]
             and platform.system() == "Darwin"
         ):
             text = (
