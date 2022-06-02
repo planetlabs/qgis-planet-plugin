@@ -589,16 +589,18 @@ class PlanetExplorer(object):
         self._terms_browser.show()
 
     def login(self):
-        if Qgis.QGIS_VERSION_INT >= 32000 and platform.system() == "Darwin":
+        if (
+            Qgis.QGIS_VERSION_INT in [32000, 32010, 32020, 32030]
+            and platform.system() == "Darwin"
+        ):
             text = (
                 "WARNING: Your configuration may encounter serious issues with the"
-                " Planet QGIS Plugin using QGIS V3.20. We are actively troubleshooting"
-                " the issue with the QGIS team, you can track <a"
-                " href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182"
-                " here</a>. In the meantime, we recommend that you use a QGIS version"
-                " between 3.10 and 3.20, such as the 3.16 long term stable release. For"
-                " further information including instructions on how to downgrade QGIS,"
-                " please refer to our <a"
+                " Planet QGIS Plugin using QGIS v3.20. These issues are documented in"
+                " <a href='https://github.com/qgis/QGIS/issues/44182'>Issue 44182"
+                " here</a>. We recommend that you use a QGIS version"
+                " other than v3.20, such as the v3.22 long term stable release."
+                " For further information including instructions on "
+                " how to upgrade QGIS, please refer to our <a"
                 " href='https://support.planet.com/hc/en-us/articles/4404372169233'>support"
                 " page here</a>."
             )
