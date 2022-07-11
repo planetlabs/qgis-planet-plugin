@@ -18,6 +18,10 @@ ITEM_TYPE_CHECKBOXES = {
     "Sentinel2L1C": "chkSentinel",
 }
 
+SPECTRAL_BAND_CHECKBOXES = {"4Band": "chkNIR", "8Band": "chkYellow"}
+
+INSTRUMENT_CHECKBOXES = {"PS2": "chkPs2", "PS2.SD": "chkPs2Sd", "PSB.SD": "chkPsbSd"}
+
 
 def test_search_default_filter(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
@@ -125,7 +129,110 @@ def test_search_item_type_filter(
         assert results_tree.topLevelItem(index).itemtype == item_type
 
 
-def test_search_filter_item_id(
+@pytest.mark.parametrize("band", ["4Band", "8Band"])
+def test_search_spectral_band_filter(
+    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi, band
+):
+    """
+    Verifies:
+        - PLQGIS-TC17
+    """
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, large_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnFilterResults, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # disable all the item and spectral band checkboxes
+    for name, widget in ITEM_TYPE_CHECKBOXES.items():
+        if name == "PSScene":
+            getattr(dock_widget._daily_filters_widget, widget).setCheckState(2)
+        else:
+            getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
+    for name, widget in SPECTRAL_BAND_CHECKBOXES.items():
+        getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
+
+    checkbox = getattr(
+        dock_widget._daily_filters_widget, SPECTRAL_BAND_CHECKBOXES[band]
+    )
+    # default position for clicking checkboxes is incorrect, we must manually supply it
+    # https://stackoverflow.com/questions/19418125/pysides-qtest-not-checking-box
+    qtbot.mouseClick(
+        checkbox, QtCore.Qt.LeftButton, pos=QtCore.QPoint(2, int(checkbox.height() / 2))
+    )
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    assert checkbox.isChecked()
+
+    # click the back button and execute the search
+    qtbot.mouseClick(dock_widget.btnBackFromFilters, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # make sure all items from the search are correct
+    results_tree = dock_widget.searchResultsWidget.tree
+    assert results_tree.topLevelItemCount() >= 1
+
+    for image in results_tree.topLevelItem(0).images():
+        if band == "4Band":
+            assert "basic_analytic_4b" in image["assets"]
+        if band == "8Band":
+            assert "basic_analytic_8b" in image["assets"]
+
+
+@pytest.mark.parametrize("instrument", ["PS2", "PS2.SD", "PSB.SD"])
+def test_search_instrument_filter(
+    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi, instrument
+):
+    """
+    Verifies:
+        - PLQGIS-TC17
+    """
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, large_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnFilterResults, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # disable all the item and spectral band checkboxes
+    for name, widget in ITEM_TYPE_CHECKBOXES.items():
+        if name == "PSScene":
+            getattr(dock_widget._daily_filters_widget, widget).setCheckState(2)
+        else:
+            getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
+    for name, widget in INSTRUMENT_CHECKBOXES.items():
+        getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
+
+    checkbox = getattr(
+        dock_widget._daily_filters_widget, INSTRUMENT_CHECKBOXES[instrument]
+    )
+    # default position for clicking checkboxes is incorrect, we must manually supply it
+    # https://stackoverflow.com/questions/19418125/pysides-qtest-not-checking-box
+    qtbot.mouseClick(
+        checkbox, QtCore.Qt.LeftButton, pos=QtCore.QPoint(2, int(checkbox.height() / 2))
+    )
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    assert checkbox.isChecked()
+
+    # click the back button and execute the search
+    qtbot.mouseClick(dock_widget.btnBackFromFilters, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # make sure all items from the search are correct
+    results_tree = dock_widget.searchResultsWidget.tree
+    assert results_tree.topLevelItemCount() >= 1
+
+    for image in results_tree.topLevelItem(0).images():
+        assert instrument == image["properties"]["instrument"]
+
+
+def test_search_item_id_filter(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi
 ):
     """
@@ -158,9 +265,7 @@ def test_search_filter_item_id(
     assert results_tree.topLevelItem(0).images()[0]["id"] == item_id
 
 
-def test_search_daily_imagery_wrong_aoi(
-    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled
-):
+def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
     """
     Verifies:
         - PLQGIS-TC04
