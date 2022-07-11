@@ -1,6 +1,7 @@
 import pytest
 
 from qgis.PyQt import QtCore
+from qgis.core import QgsProject
 
 from planet_explorer.tests.utils import qgis_debug_wait
 
@@ -18,7 +19,7 @@ ITEM_TYPE_CHECKBOXES = {
 }
 
 
-def test_search_daily_imagery_no_filter(
+def test_search_default_filter(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
 ):
     """
@@ -40,6 +41,35 @@ def test_search_daily_imagery_no_filter(
     assert images_found > 1
 
 
+def test_preview_daily_imagery(
+    qapp, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
+):
+    """
+    Verifies:
+        - PLQGIS-TC05
+    """
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, sample_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # grab the first result and add it to the canvas
+    results_tree = dock_widget.searchResultsWidget.tree
+    item_widget = results_tree.itemWidget(results_tree.topLevelItem(0), 0)
+    qtbot.mouseClick(item_widget.labelZoomTo, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    qtbot.mouseClick(item_widget.labelAddPreview, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    layers = QgsProject.instance().mapLayers().values()
+    # two because layers AND footprints are included in the previews
+    assert len(layers) == 2
+
+
 @pytest.mark.parametrize(
     "item_type",
     [
@@ -51,7 +81,7 @@ def test_search_daily_imagery_no_filter(
         "PSOrthoTile",
     ],
 )
-def test_search_daily_imagery_item_filter(
+def test_search_item_type_filter(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi, item_type
 ):
     """
