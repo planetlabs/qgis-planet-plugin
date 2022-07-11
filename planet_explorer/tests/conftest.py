@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 
 from planet_explorer import classFactory
@@ -89,7 +90,7 @@ def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled, qtbot):
 
 @pytest.fixture
 def sample_aoi():
-    yield str(
+    yield json.dumps(
         {
             "coordinates": [
                 [
@@ -107,7 +108,7 @@ def sample_aoi():
 
 @pytest.fixture
 def large_aoi():
-    yield str(
+    yield json.dumps(
         {
             "coordinates": [
                 [
