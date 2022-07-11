@@ -94,3 +94,55 @@ def sample_aoi():
         "[[-0.334369,40.151264],[-0.276291,40.151264],[-0.276291,40.172081],"
         '[-0.334369,40.172081],[-0.334369,40.151264]]],"type":"Polygon"}'
     )
+
+
+@pytest.fixture
+def explorer_dock_widget(
+    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
+):
+    """
+    Convenience fixture for instantiating the explorer dock widget
+    """
+
+    def _get_widget():
+        from planet_explorer.tests.utils import get_explorer_dockwidget
+
+        dock_widget = get_explorer_dockwidget(plugin_toolbar, login=False)
+        qtbot.add_widget(dock_widget)
+        # Show the widget if debug mode is enabled
+        if qgis_debug_enabled:
+            dock_widget.show()
+        return dock_widget
+
+    yield _get_widget
+
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    from planet_explorer.tests.utils import pe_explorer_dockwidget
+
+    pe_explorer_dockwidget.dockwidget_instance = None
+
+
+@pytest.fixture
+def logged_in_explorer_dock_widget(
+    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
+):
+    """
+    Convenience fixture for instantiating the explorer dock widget
+    """
+
+    def _get_widget():
+        from planet_explorer.tests.utils import get_explorer_dockwidget
+
+        dock_widget = get_explorer_dockwidget(plugin_toolbar, login=True)
+        # qtbot.add_widget(dock_widget)
+        # Show the widget if debug mode is enabled
+        if qgis_debug_enabled:
+            dock_widget.show()
+        return dock_widget
+
+    yield _get_widget
+
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    from planet_explorer.tests.utils import pe_explorer_dockwidget
+
+    pe_explorer_dockwidget.dockwidget_instance = None
