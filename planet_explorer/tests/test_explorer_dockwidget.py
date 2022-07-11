@@ -3,10 +3,8 @@ import pytest
 from qgis.core import QgsProject
 from qgis.PyQt import QtCore
 
-from planet_explorer.gui import pe_explorer_dockwidget
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.tests.utils import get_testing_credentials
-from planet_explorer.tests.utils import get_explorer_dockwidget
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
@@ -21,40 +19,6 @@ TOOLBAR_BUTTONS = [
 ]
 
 
-@pytest.fixture
-def explorer_dock_widget(
-    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
-):
-    """
-    Convenience fixture for instantiating the explorer dock widget
-    """
-    dock_widget = get_explorer_dockwidget(plugin_toolbar, login=False)
-    qtbot.add_widget(dock_widget)
-    # Show the widget if debug mode is enabled
-    if qgis_debug_enabled:
-        dock_widget.show()
-    yield dock_widget
-    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
-    pe_explorer_dockwidget.dockwidget_instance = None
-
-
-@pytest.fixture
-def logged_in_explorer_dock_widget(
-    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
-):
-    """
-    Convenience fixture for instantiating a logged in version of the explorer dock widget
-    """
-    dock_widget = get_explorer_dockwidget(plugin_toolbar, login=True)
-    qtbot.add_widget(dock_widget)
-    # Show the widget if debug mode is enabled
-    if qgis_debug_enabled:
-        dock_widget.show()
-    yield dock_widget
-    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
-    pe_explorer_dockwidget.dockwidget_instance = None
-
-
 @pytest.mark.parametrize("use_mouse", [True, False], ids=["Mouse Click", "Hit Enter"])
 def test_explorer_login(qtbot, explorer_dock_widget, qgis_debug_enabled, use_mouse):
     """
@@ -63,7 +27,7 @@ def test_explorer_login(qtbot, explorer_dock_widget, qgis_debug_enabled, use_mou
     """
     username, password = get_testing_credentials()
 
-    dock_widget = explorer_dock_widget
+    dock_widget = explorer_dock_widget()
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(dock_widget.leUser, username)
@@ -90,7 +54,7 @@ def test_explorer_login_incorrect(qtbot, explorer_dock_widget, qgis_debug_enable
     Verifies:
         - PLQGIS-TC03
     """
-    dock_widget = explorer_dock_widget
+    dock_widget = explorer_dock_widget()
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(dock_widget.leUser, "Iam")
@@ -111,7 +75,7 @@ def test_explorer_reacts_to_login(qtbot, explorer_dock_widget, qgis_debug_enable
     Verifies:
         - PLQGIS-TC03
     """
-    dock_widget = explorer_dock_widget
+    dock_widget = explorer_dock_widget()
 
     current = dock_widget.stckdWidgetViews.currentIndex()
     assert current == 0
@@ -136,6 +100,7 @@ def test_explorer_logout(
     Verifies:
         - PLQGIS-TC20
     """
+    dock_widget = logged_in_explorer_dock_widget()
     assert not plugin.btnLogin.isVisible()
     # Verify things are enabled when logged in
     for btn in TOOLBAR_BUTTONS:
@@ -146,9 +111,7 @@ def test_explorer_logout(
     logout_action.trigger()
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
-    qtbot.waitUntil(
-        lambda: not logged_in_explorer_dock_widget.logged_in(), timeout=10 * 1000
-    )
+    qtbot.waitUntil(lambda: not dock_widget.logged_in(), timeout=10 * 1000)
 
     if qgis_debug_enabled:
         assert plugin.btnLogin.isVisible()
@@ -165,7 +128,7 @@ def test_explorer_search_daily_images(
     Verifies:
         - PLQGIS-TC04
     """
-    dock_widget = logged_in_explorer_dock_widget.daily_images_widget
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(dock_widget._aoi_filter.leAOI, sample_aoi)
@@ -187,7 +150,7 @@ def test_search_daily_images_wrong_aoi(
     Verifies:
         - PLQGIS-TC04
     """
-    dock_widget = logged_in_explorer_dock_widget.daily_images_widget
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(dock_widget._aoi_filter.leAOI, "wrong AOI")
@@ -202,7 +165,7 @@ def test_explorer_basemaps_shown(
     Verifies:
         - PLQGIS-TC10
     """
-    dock_widget = logged_in_explorer_dock_widget
+    dock_widget = logged_in_explorer_dock_widget()
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     basemaps_tab_index = None
     # get the index of the basemaps widget
@@ -251,7 +214,7 @@ def test_explorer_basemaps_explorable(
     Verifies:
         - PLQGIS-TC10
     """
-    dock_widget = logged_in_explorer_dock_widget
+    dock_widget = logged_in_explorer_dock_widget()
     basemaps_widget = dock_widget.basemaps_widget
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
