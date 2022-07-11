@@ -125,6 +125,39 @@ def test_search_item_type_filter(
         assert results_tree.topLevelItem(index).itemtype == item_type
 
 
+def test_search_filter_item_id(
+    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi
+):
+    """
+    Verifies:
+        - PLQGIS-TC17
+    """
+    item_id = "20220710_170008_10_2403"
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, large_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnFilterResults, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    filter_widget = dock_widget._daily_filters_widget
+
+    qtbot.keyClicks(filter_widget.leStringIDs, item_id)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    # click the back button and execute the search
+    qtbot.mouseClick(dock_widget.btnBackFromFilters, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # make sure all items from the search are correct
+    results_tree = dock_widget.searchResultsWidget.tree
+    assert results_tree.topLevelItemCount() == 1
+    # make sure the item id for the returned image is correct
+    assert results_tree.topLevelItem(0).images()[0]["id"] == item_id
+
+
 def test_search_daily_imagery_wrong_aoi(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled
 ):
