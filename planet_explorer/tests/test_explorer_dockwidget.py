@@ -3,10 +3,10 @@ import pytest
 from qgis.core import QgsProject
 from qgis.PyQt import QtCore
 
-from planet_explorer.gui.pe_explorer_dockwidget import _get_widget_instance
 from planet_explorer.gui import pe_explorer_dockwidget
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.tests.utils import get_testing_credentials
+from planet_explorer.tests.utils import get_explorer_dockwidget
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
@@ -28,18 +28,7 @@ def explorer_dock_widget(
     """
     Convenience fixture for instantiating the explorer dock widget
     """
-    dock_widget = _get_widget_instance()
-    # place dock_widget based on the position of the toolbar
-    current_geometry = dock_widget.geometry()
-    toolbar_geometry = plugin_toolbar.geometry()
-    dock_widget.setGeometry(
-        current_geometry.x(),
-        toolbar_geometry.height() + 1,
-        current_geometry.width(),
-        current_geometry.height(),
-    )
-    dock_widget._setup_client()
-    dock_widget.chkBxSaveCreds.setChecked(False)
+    dock_widget = get_explorer_dockwidget(plugin_toolbar, login=False)
     qtbot.add_widget(dock_widget)
     # Show the widget if debug mode is enabled
     if qgis_debug_enabled:
@@ -56,21 +45,7 @@ def logged_in_explorer_dock_widget(
     """
     Convenience fixture for instantiating a logged in version of the explorer dock widget
     """
-    dock_widget = _get_widget_instance()
-    # place dock_widget based on the position of the toolbar
-    current_geometry = dock_widget.geometry()
-    toolbar_geometry = plugin_toolbar.geometry()
-    dock_widget.setGeometry(
-        current_geometry.x(),
-        toolbar_geometry.height() + 1,
-        current_geometry.width(),
-        current_geometry.height(),
-    )
-    # Setup the planet client and login
-    dock_widget._setup_client()
-    dock_widget.chkBxSaveCreds.setChecked(False)
-    username, password = get_testing_credentials()
-    dock_widget.p_client.log_in(username, password)
+    dock_widget = get_explorer_dockwidget(plugin_toolbar, login=True)
     qtbot.add_widget(dock_widget)
     # Show the widget if debug mode is enabled
     if qgis_debug_enabled:
