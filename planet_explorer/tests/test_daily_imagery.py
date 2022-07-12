@@ -4,6 +4,7 @@ from qgis.PyQt import QtCore
 from qgis.core import QgsProject
 
 from planet_explorer.tests.utils import qgis_debug_wait
+from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
@@ -265,6 +266,65 @@ def test_search_item_id_filter(
     assert results_tree.topLevelItemCount() == 1
     # make sure the item id for the returned image is correct
     assert results_tree.topLevelItem(0).images()[0]["id"] == item_id
+
+
+@pytest.mark.parametrize(
+    "slider_key, min_, max_, data_api_name",
+    [
+        ("cloud_cover", 0.0, 20.0, "cloud_percent"),
+        ("sun_elevation", 45.0, 75.0, "sun_elevation"),
+    ],
+    ids=["Cloud Cover", "Sun Elevation"],
+)
+def test_search_env_conditions_filter(
+    qtbot,
+    logged_in_explorer_dock_widget,
+    qgis_debug_enabled,
+    sample_aoi,
+    slider_key,
+    min_,
+    max_,
+    data_api_name,
+):
+    """
+    Verifies:
+        - PLQGIS-TC17
+    """
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, sample_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnFilterResults, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    filter_widget = dock_widget._daily_filters_widget
+
+    # get the slider we want to change
+    sliders = filter_widget.frameRangeSliders.findChildren(PlanetExplorerRangeSlider)
+    for slider in sliders:
+        if slider.filter_key == slider_key:
+            break
+
+    # for ease of automation, we don't use mouse clicks here,
+    # we just manually set the sliders to a range
+    slider.setRangeLow(min_)
+    slider.setRangeHigh(max_)
+    slider.updateLabels()
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # click the back button and execute the search
+    qtbot.mouseClick(dock_widget.btnBackFromFilters, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # make sure all items from the search are correct
+    results_tree = dock_widget.searchResultsWidget.tree
+    for index in range(results_tree.topLevelItemCount()):
+        for image in results_tree.topLevelItem(index).images():
+            assert image["properties"][data_api_name] <= max_
+            assert image["properties"][data_api_name] >= min_
 
 
 def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
