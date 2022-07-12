@@ -3,7 +3,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v4.3.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -11,11 +11,11 @@ repos:
       - id: check-json
         exclude: ^(planet_explorer/planet_api/request-result-samples/)
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 22.6.0
     hooks:
       - id: black
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 4.0.1
+    rev: 3.9.2
     hooks:
       - id: flake8
         language_version: python3
