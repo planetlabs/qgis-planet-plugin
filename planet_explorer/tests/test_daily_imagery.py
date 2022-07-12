@@ -1,4 +1,5 @@
 import pytest
+import datetime
 
 from qgis.PyQt import QtCore
 from qgis.core import QgsProject
@@ -7,6 +8,8 @@ from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
+
+DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 ITEM_TYPE_CHECKBOXES = {
     "PSScene": "chkPlanetScope",
@@ -46,33 +49,53 @@ def test_search_default_filter(
     assert images_found > 1
 
 
-def test_preview_daily_imagery(
-    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
+def test_search_date_time_filter(
+    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi
 ):
     """
     Verifies:
-        - PLQGIS-TC05
+        - PLQGIS-TC04
     """
     dock_widget = logged_in_explorer_dock_widget().daily_images_widget
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
-    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, sample_aoi)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, large_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnFilterResults, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # note for ease of automation we just use internal widget controls to set the datetime
+    filter_widget = dock_widget._daily_filters_widget
+    start_date = (datetime.datetime.today() - datetime.timedelta(days=1)).date()
+    end_date = datetime.datetime.today().date()
+
+    filter_widget.startDateEdit.setMinimumDate(start_date)
+    filter_widget.endDateEdit.setMaximumDate(end_date)
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # click the back button and execute the search
+    qtbot.mouseClick(dock_widget.btnBackFromFilters, QtCore.Qt.LeftButton)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
-    # grab the first result and add it to the canvas
+    # make sure all items from the search are correct
     results_tree = dock_widget.searchResultsWidget.tree
-    item_widget = results_tree.itemWidget(results_tree.topLevelItem(0), 0)
-    qtbot.mouseClick(item_widget.labelZoomTo, QtCore.Qt.LeftButton)
-    qgis_debug_wait(qtbot, qgis_debug_enabled)
-
-    qtbot.mouseClick(item_widget.labelAddPreview, QtCore.Qt.LeftButton)
-    qgis_debug_wait(qtbot, qgis_debug_enabled)
-
-    layers = QgsProject.instance().mapLayers().values()
-    # two because layers AND footprints are included in the previews
-    assert len(layers) == 2
+    for index in range(results_tree.topLevelItemCount()):
+        for image in results_tree.topLevelItem(index).images():
+            assert (
+                datetime.datetime.strptime(
+                    image["properties"]["published"], DATE_TIME_FORMAT
+                ).date()
+                <= end_date
+            )
+            assert (
+                datetime.datetime.strptime(
+                    image["properties"]["published"], DATE_TIME_FORMAT
+                ).date()
+                >= start_date
+            )
 
 
 @pytest.mark.parametrize(
@@ -272,9 +295,10 @@ def test_search_item_id_filter(
     "slider_key, min_, max_, data_api_name",
     [
         ("cloud_cover", 0.0, 20.0, "cloud_percent"),
+        ("sun_azimuth", 45.0, 200.0, "sun_azimuth"),
         ("sun_elevation", 45.0, 75.0, "sun_elevation"),
     ],
-    ids=["Cloud Cover", "Sun Elevation"],
+    ids=["Cloud Cover", "Sun Azimuth", "Sun Elevation"],
 )
 def test_search_env_conditions_filter(
     qtbot,
@@ -325,6 +349,35 @@ def test_search_env_conditions_filter(
         for image in results_tree.topLevelItem(index).images():
             assert image["properties"][data_api_name] <= max_
             assert image["properties"][data_api_name] >= min_
+
+
+def test_preview_daily_imagery(
+    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
+):
+    """
+    Verifies:
+        - PLQGIS-TC05
+    """
+    dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.keyClicks(dock_widget._aoi_filter.leAOI, sample_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # grab the first result and add it to the canvas
+    results_tree = dock_widget.searchResultsWidget.tree
+    item_widget = results_tree.itemWidget(results_tree.topLevelItem(0), 0)
+    qtbot.mouseClick(item_widget.labelZoomTo, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    qtbot.mouseClick(item_widget.labelAddPreview, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    layers = QgsProject.instance().mapLayers().values()
+    # two because layers AND footprints are included in the previews
+    assert len(layers) == 2
 
 
 def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
