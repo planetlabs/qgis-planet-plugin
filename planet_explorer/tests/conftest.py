@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 
 from planet_explorer import classFactory
@@ -89,10 +90,37 @@ def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled, qtbot):
 
 @pytest.fixture
 def sample_aoi():
-    yield (
-        '{"coordinates":['
-        "[[-0.334369,40.151264],[-0.276291,40.151264],[-0.276291,40.172081],"
-        '[-0.334369,40.172081],[-0.334369,40.151264]]],"type":"Polygon"}'
+    yield json.dumps(
+        {
+            "coordinates": [
+                [
+                    [-0.334369, 40.151264],
+                    [-0.276291, 40.151264],
+                    [-0.276291, 40.172081],
+                    [-0.334369, 40.172081],
+                    [-0.334369, 40.151264],
+                ]
+            ],
+            "type": "Polygon",
+        }
+    )
+
+
+@pytest.fixture
+def large_aoi():
+    yield json.dumps(
+        {
+            "coordinates": [
+                [
+                    [-94.317626953125, 28.748396571187406],
+                    [-88.8134765625, 28.748396571187406],
+                    [-88.8134765625, 32.045332838858506],
+                    [-94.317626953125, 32.045332838858506],
+                    [-94.317626953125, 28.748396571187406],
+                ]
+            ],
+            "type": "Polygon",
+        }
     )
 
 
