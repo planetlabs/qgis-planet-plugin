@@ -162,7 +162,7 @@ def logged_in_explorer_dock_widget(
         from planet_explorer.tests.utils import get_explorer_dockwidget
 
         dock_widget = get_explorer_dockwidget(plugin_toolbar, login=True)
-        # qtbot.add_widget(dock_widget)
+        qtbot.add_widget(dock_widget)
         # Show the widget if debug mode is enabled
         if qgis_debug_enabled:
             dock_widget.show()
@@ -174,3 +174,26 @@ def logged_in_explorer_dock_widget(
     from planet_explorer.tests.utils import pe_explorer_dockwidget
 
     pe_explorer_dockwidget.dockwidget_instance = None
+
+
+@pytest.fixture
+def order_monitor_widget(qgis_debug_enabled, qtbot):
+    """
+    Convenience fixture for getting the order monitor widget
+    """
+
+    def _get_widget(explorer_dockwidget):
+        from planet_explorer.tests.utils import get_order_monitor_widget
+
+        order_widget = get_order_monitor_widget(explorer_dockwidget)
+        qtbot.add_widget(order_widget)
+        if qgis_debug_enabled:
+            order_widget.show()
+        return order_widget
+
+    yield _get_widget
+
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    from planet_explorer.tests.utils import pe_orders_monitor_dockwidget
+
+    pe_orders_monitor_dockwidget.dockwidget_instance = None

@@ -1,7 +1,9 @@
 import os
+import random
 
 from planet_explorer import pe_utils
 from planet_explorer.gui import pe_explorer_dockwidget
+from planet_explorer.gui import pe_orders_monitor_dockwidget
 
 
 def patch_iface():
@@ -37,7 +39,7 @@ def get_explorer_dockwidget(plugin_toolbar, login=True):
     """
     Setup the explorer dock_widget for tests
     """
-    dock_widget = pe_explorer_dockwidget._get_widget_instance()
+    dock_widget = pe_explorer_dockwidget._get_widget_instance()  # noqa
     current_geometry = dock_widget.geometry()
     toolbar_geometry = plugin_toolbar.geometry()
     dock_widget.setGeometry(
@@ -52,3 +54,23 @@ def get_explorer_dockwidget(plugin_toolbar, login=True):
         username, password = get_testing_credentials()
         dock_widget.p_client.log_in(username, password)
     return dock_widget
+
+
+def get_order_monitor_widget(explorer_dockwidget):
+    """
+    Setup orders monitor dock_widget for tests
+    """
+    order_widget = pe_orders_monitor_dockwidget._get_widget_instance()  # noqa
+    current_geometry = order_widget.geometry()
+    order_widget.setGeometry(
+        explorer_dockwidget.geometry().width() + 1,
+        explorer_dockwidget.geometry().y(),
+        current_geometry.width(),
+        current_geometry.height(),
+    )
+    return order_widget
+
+
+def get_random_string(length=8):
+    alphanumeric = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+    return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
