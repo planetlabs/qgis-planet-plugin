@@ -132,13 +132,14 @@ def test_order_download(
         ][0]
         assert "download" in download_button.text().lower()
 
+    # sleep for a bit to give time before clicking the button
+    time.sleep(5)
+
     # download the first item and wait until the text changes to re-download
     item_widget = order_monitor.listOrders.itemWidget(order_monitor.listOrders.item(0))
     download_button = [
         widget for widget in item_widget.children() if isinstance(widget, QPushButton)
     ][0]
-    # sleep for a bit to give time before clicking the button
-    time.sleep(1)
 
     qtbot.mouseClick(download_button, QtCore.Qt.LeftButton)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
