@@ -1,4 +1,5 @@
 import pytest
+import time
 
 from PyQt5.QtWidgets import QPushButton
 from qgis.PyQt import QtCore
@@ -136,16 +137,19 @@ def test_order_download(
     download_button = [
         widget for widget in item_widget.children() if isinstance(widget, QPushButton)
     ][0]
+    # sleep for a bit to give time before clicking the button
+    time.sleep(1)
 
     qtbot.mouseClick(download_button, QtCore.Qt.LeftButton)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
     # check that the text has changed
-    def check_download_text():
+    def download_text_changed():
         widget = order_monitor.listOrders.itemWidget(order_monitor.listOrders.item(0))
         button = [
             widget for widget in widget.children() if isinstance(widget, QPushButton)
         ][0]
+        qtbot.mouseClick(order_monitor.btnRefresh, QtCore.Qt.LeftButton)
         return button.text() == "Re-Download"
 
-    qtbot.waitUntil(check_download_text, timeout=20 * 1000)
+    qtbot.waitUntil(download_text_changed, timeout=60 * 1000)
