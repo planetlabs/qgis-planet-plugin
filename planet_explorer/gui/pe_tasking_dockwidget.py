@@ -227,8 +227,8 @@ class TaskingDockWidget(BASE, WIDGET):
         if not visible:
             self.cancel_clicked()
 
-    def _open_tasking_dashboard(self):
-        dialog = WarningDialog(self.pt)
+    def _open_tasking_dashboard(self, dlg=None):
+        dialog = dlg if dlg else WarningDialog(self.pt)
         dialog.exec()
 
 

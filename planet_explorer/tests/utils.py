@@ -4,6 +4,7 @@ import random
 from planet_explorer import pe_utils
 from planet_explorer.gui import pe_explorer_dockwidget
 from planet_explorer.gui import pe_orders_monitor_dockwidget
+from planet_explorer.gui import pe_tasking_dockwidget
 
 
 def patch_iface():
@@ -69,6 +70,21 @@ def get_order_monitor_widget(explorer_dockwidget):
         current_geometry.height(),
     )
     return order_widget
+
+
+def get_tasking_widget(explorer_dockwidget):
+    """
+    Setup orders monitor dock_widget for tests
+    """
+    tasking_widget = pe_tasking_dockwidget._get_widget_instance()  # noqa
+    current_geometry = tasking_widget.geometry()
+    tasking_widget.setGeometry(
+        explorer_dockwidget.geometry().width() + 1,
+        explorer_dockwidget.geometry().y(),
+        current_geometry.width(),
+        current_geometry.height(),
+    )
+    return tasking_widget
 
 
 def get_random_string(length=8):

@@ -113,6 +113,7 @@ def test_order_download(
     """
     dock_widget = logged_in_explorer_dock_widget()
     order_monitor = order_monitor_widget(dock_widget)
+    dock_widget.hide()
     # show only downloadable orders
     checkbox = order_monitor.chkOnlyDownloadable
     qtbot.mouseClick(

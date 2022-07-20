@@ -197,3 +197,26 @@ def order_monitor_widget(qgis_debug_enabled, qtbot):
     from planet_explorer.tests.utils import pe_orders_monitor_dockwidget
 
     pe_orders_monitor_dockwidget.dockwidget_instance = None
+
+
+@pytest.fixture
+def tasking_widget(qgis_debug_enabled, qtbot):
+    """
+    Convenience fixture for getting the order monitor widget
+    """
+
+    def _get_widget(explorer_dockwidget):
+        from planet_explorer.tests.utils import get_tasking_widget
+
+        task_widget = get_tasking_widget(explorer_dockwidget)
+        qtbot.add_widget(task_widget)
+        if qgis_debug_enabled:
+            task_widget.show()
+        return task_widget
+
+    yield _get_widget
+
+    # reset the dockwidget_instance at the end of the test (since it's cleaned up by qtbot)
+    from planet_explorer.tests.utils import pe_tasking_dockwidget
+
+    pe_tasking_dockwidget.dockwidget_instance = None
