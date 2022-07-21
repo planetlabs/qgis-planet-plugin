@@ -5,6 +5,7 @@ from planet_explorer import pe_utils
 from planet_explorer.gui import pe_explorer_dockwidget
 from planet_explorer.gui import pe_orders_monitor_dockwidget
 from planet_explorer.gui import pe_tasking_dockwidget
+from qgis.PyQt import QtCore
 
 
 def patch_iface():
@@ -85,6 +86,18 @@ def get_tasking_widget(explorer_dockwidget):
         current_geometry.height(),
     )
     return tasking_widget
+
+
+def filter_basemaps_by_name(name, qtbot, basemaps_widget, qgis_debug_enabled):
+    qtbot.mouseClick(basemaps_widget.btnAll, QtCore.Qt.LeftButton)
+    qtbot.keyClicks(basemaps_widget.textBasemapsFilter, name)
+
+    qtbot.mouseClick(basemaps_widget.btnBasemapsFilter, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    qtbot.keyClicks(basemaps_widget.comboSeriesName, name[0])
+    qtbot.keyPress(basemaps_widget.comboSeriesName, QtCore.Qt.Key_Enter)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
 
 
 def get_random_string(length=8):
