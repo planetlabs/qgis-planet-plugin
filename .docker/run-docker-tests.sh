@@ -3,6 +3,6 @@
 set -e
 
 pushd /usr/src
-DEFAULT_PARAMS='./planet_explorer/tests/ -v --qgis_disable_gui --qgis_disable_init'
+DEFAULT_PARAMS='./planet_explorer/tests/ -v --qgis_disable_gui --qgis_disable_init --reruns 3'
 xvfb-run pytest ${@:-`echo $DEFAULT_PARAMS`}
 popd
