@@ -23,6 +23,7 @@ class PluginInstallException(Exception):
 
 ERROR_OCCURRED = False
 ERROR_MSG = ""
+PLUGIN_KEY = "planet_explorer"
 
 
 def error_catcher(msg, tag, level):
@@ -39,6 +40,7 @@ try:
     try:
         import pyplugin_installer
         from qgis.core import QgsApplication
+        from qgis import utils
     except ImportError:
         raise PluginInstallException(
             "Cannot install plugin as 'pyplugin_installer' could not be imported."
@@ -61,17 +63,20 @@ try:
     plugin_install_zip = zip_files[0]
     plugin_installer = pyplugin_installer.instance()
     # Make sure plugin is not installed
-    assert (
-        "planet_explorer" not in pyplugin_installer.installer_data.plugins.all().keys()
-    ), "Planet plugin is already installed!"
+    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
+        plugin_installer.uninstallPlugin(PLUGIN_KEY)
 
     # Attach the error catcher
     QgsApplication.messageLog().messageReceived.connect(error_catcher)
 
     # Install from the zip file
     plugin_installer.installFromZipFile(str(plugin_install_zip.absolute()))
+    # unload plugin so we can test load/unload
+    if PLUGIN_KEY in utils.active_plugins:
+        utils.unloadPlugin(PLUGIN_KEY)
+
     assert (
-        "planet_explorer" in pyplugin_installer.installer_data.plugins.all().keys()
+        PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all().keys()
     ), "Planet plugin failed to install!"
 
     if ERROR_OCCURRED:
@@ -79,10 +84,21 @@ try:
             f"Python exception hit during plugin install: \n {ERROR_MSG}"
         )
 
-    # Uninstall the plugin
-    plugin_installer.uninstallPlugin("planet_explorer", quiet=True)
+    # Start/Load the plugin
+    assert utils.loadPlugin(PLUGIN_KEY)
+    assert utils.startPlugin(PLUGIN_KEY), f"'{PLUGIN_KEY}' failed to start!"
     assert (
-        "planet_explorer" not in pyplugin_installer.installer_data.plugins.all().keys()
+        PLUGIN_KEY in utils.active_plugins
+    ), f"'{PLUGIN_KEY}' not found in active_plugins, found: {utils.active_plugins}"
+
+    # Unload the plugin
+    assert utils.unloadPlugin(PLUGIN_KEY), "'planet_explorer' failed to unload"
+    assert PLUGIN_KEY not in utils.active_plugins
+
+    # Uninstall the plugin
+    plugin_installer.uninstallPlugin(PLUGIN_KEY, quiet=True)
+    assert (
+        PLUGIN_KEY not in pyplugin_installer.installer_data.plugins.all().keys()
     ), "Planet plugin failed to uninstall!"
 
     if ERROR_OCCURRED:
@@ -92,12 +108,15 @@ try:
 except Exception:  # noqa
     # Print the error so we know where it failed,
     # and exit with a non-zero status code so CI will fail.
-    print("FAIL: Plugin install and uninstalled failed with the following:")
+    print(
+        "FAIL: Plugin install, load, unload, and uninstall failed with the following:"
+    )
     print(traceback.format_exc())
     os._exit(1)
 finally:
     # The install and uninstall worked! Exit QGIS with a 0 status code.
     print(
-        f"PASS: Plugin install and uninstall successful for {str(plugin_install_zip)}"
+        f"PASS: Plugin install, load, unload, and "
+        f"uninstall successful for {str(plugin_install_zip)}"
     )
     os._exit(0)
