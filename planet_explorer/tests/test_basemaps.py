@@ -5,6 +5,8 @@ from qgis.PyQt import QtCore
 
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.tests.utils import filter_basemaps_by_name
+from planet_explorer.tests.utils import get_random_string
+from planet_explorer.planet_api.p_quad_orders import QuadOrder
 from planet_explorer.gui.pe_basemap_layer_widget import PLANET_CURRENT_MOSAIC
 from planet_explorer.gui.pe_basemap_layer_widget import PLANET_MOSAIC_RAMP
 from planet_explorer.gui.pe_basemap_layer_widget import PLANET_MOSAIC_PROC
@@ -26,7 +28,7 @@ def basemaps_widget(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
         assert dock_widget.tabWidgetResourceType.currentIndex() == 1
 
     qtbot.waitUntil(_basemap_opened, timeout=20 * 1000)
-    yield basemaps_widget
+    yield dock_widget, basemaps_widget
 
 
 def test_basemaps_shown(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
@@ -84,6 +86,7 @@ def test_basemaps_time_slider(
         - PLQGIS-TC11
         - PLQGIS-TC13
     """
+    _, basemaps_widget = basemaps_widget
     num_months = 4
     # filter by 'Global Monthly' series
     filter_basemaps_by_name(
@@ -127,6 +130,7 @@ def test_basemaps_band_selector(
         - PLQGIS-TC11
         - PLQGIS-TC12
     """
+    _, basemaps_widget = basemaps_widget
     filter_basemaps_by_name("Coral Sea", qtbot, basemaps_widget, qgis_debug_enabled)
 
     # select an item in the series
@@ -168,3 +172,75 @@ def test_basemaps_band_selector(
             widget.renderingOptionsWidget.set_ramp(ramp_option)
             qgis_debug_wait(qtbot, qgis_debug_enabled)
             assert layer.customProperty(PLANET_MOSAIC_RAMP) == ramp_option
+
+
+def test_basemaps_order_partial(
+    qtbot,
+    qgis_debug_enabled,
+    basemaps_widget,
+    sample_aoi,
+    order_monitor_widget,
+    qgis_version,
+):
+    """
+    Verifies:
+        - PLQGIS-TC14
+    """
+    dock_widget, basemaps_widget = basemaps_widget
+    order_name = f"test-qgis-basemaps-order-{get_random_string()}"
+
+    # filter by 'Global Monthly' series
+    filter_basemaps_by_name(
+        "Global Monthly", qtbot, basemaps_widget, qgis_debug_enabled
+    )
+    # select a few items in the series
+    mosaics_list = basemaps_widget.mosaicsList
+    qtbot.mouseClick(
+        mosaics_list.itemWidget(mosaics_list.item(0)).checkBox, QtCore.Qt.LeftButton
+    )
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # start the order
+    qtbot.mouseClick(basemaps_widget.btnOrder, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # Select type of the order
+    # TODO test coverage for other types of orders?
+    qtbot.mouseClick(basemaps_widget.radioDownloadAOI, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(basemaps_widget.btnNextOrderMethodPage, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # Enter AOI
+    qtbot.keyClicks(basemaps_widget.aoi_filter.leAOI, sample_aoi)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(basemaps_widget.btnFindQuads, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    qtbot.mouseClick(basemaps_widget.btnNextQuadsPage, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    # Submit the order
+    qtbot.keyClicks(basemaps_widget.txtOrderName, order_name)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    # make sure the new order is shown in the order_monitor page
+    if qgis_version > 32600:
+        qtbot.mouseClick(basemaps_widget.btnSubmitOrder, QtCore.Qt.LeftButton)
+        qgis_debug_wait(qtbot, qgis_debug_enabled)
+        qtbot.mouseClick(basemaps_widget.btnCloseConfirmation, QtCore.Qt.LeftButton)
+        qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+        if qgis_debug_enabled:
+            dock_widget.hide()
+
+        # Check the order monitor widget
+        order_monitor = order_monitor_widget(dock_widget)
+        order_names = []
+        for index in range(order_monitor.listOrders.count()):
+            item = order_monitor.listOrders.item(index)
+            item_widget = order_monitor.listOrders.itemWidget(item)
+            if isinstance(item_widget.order, QuadOrder):
+                order_names.append(item_widget.order.name)
+
+        assert any(
+            order_name in o_name for o_name in order_names
+        ), f"New order not present in orders list: {order_names}"
