@@ -186,6 +186,9 @@ def test_basemaps_order_partial(
     Verifies:
         - PLQGIS-TC14
     """
+    # TODO, enable runnign this test here
+    if str(qgis_version).startswith("322") or str(qgis_version).startswith("324"):
+        pytest.skip("This test causes a seg fault on QGIS 3.22 and 3.24")
     dock_widget, basemaps_widget = basemaps_widget
     order_name = f"test-qgis-basemaps-order-{get_random_string()}"
 
