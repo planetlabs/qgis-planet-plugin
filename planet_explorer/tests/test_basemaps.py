@@ -161,6 +161,7 @@ def test_basemaps_band_selector(
             ramp_options = [
                 widget.renderingOptionsWidget.comboRamp.itemText(index)
                 for index in range(widget.renderingOptionsWidget.comboRamp.count())
+                if len(widget.renderingOptionsWidget.comboRamp.itemText(index)) > 0
             ]
             # since there are so many color ramps,  just randomly select one to test
             ramp_option = random.choice(ramp_options)
