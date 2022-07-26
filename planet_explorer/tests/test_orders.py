@@ -3,6 +3,7 @@ import pytest
 from PyQt5.QtWidgets import QPushButton
 from qgis.PyQt import QtCore
 from planet_explorer.gui.pe_orders import PlanetOrdersDialog
+from planet_explorer.gui.pe_orders_monitor_dockwidget import OrderWrapper
 from planet_explorer.tests.utils import get_random_string
 
 
@@ -143,7 +144,8 @@ def test_order_scene(
         for index in range(order_monitor.listOrders.count()):
             item = order_monitor.listOrders.item(index)
             item_widget = order_monitor.listOrders.itemWidget(item)
-            order_names.append(item_widget.order.order["name"])
+            if isinstance(item_widget.order, OrderWrapper):
+                order_names.append(item_widget.order.order["name"])
 
         assert any(
             order_name in o_name for o_name in order_names
