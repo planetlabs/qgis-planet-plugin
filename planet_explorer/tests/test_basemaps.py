@@ -240,7 +240,12 @@ def test_basemaps_order_partial(
             item_widget = order_monitor.listOrders.itemWidget(item)
             if isinstance(item_widget.order, QuadOrder):
                 order_names.append(item_widget.order.name)
-
+                if order_name == item_widget.order.name:
+                    break
         assert any(
             order_name in o_name for o_name in order_names
         ), f"New order not present in orders list: {order_names}"
+
+        # Download the basemap
+        item_widget.download()  # noqa
+        qtbot.waitUntil(item_widget.order.downloaded, timeout=60 * 1000)  # noqa
