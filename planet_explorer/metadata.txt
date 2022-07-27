@@ -22,8 +22,6 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
-  v2.3.0 (2022-04-12)
-  * The udpate asdfasdf
   v2.2.0 (2022-03-01)
   * This update adds a new PlanetScope imagery type (PSScene) that includes new 8-band PlanetScope imagery that is radiometrically aligned with Sentinel-2
   * Users can also find a new option to "harmonize" their PlanetScope Surface Reflectance orders at checkout to improve the radiometric consistency across different PlanetScope sensors

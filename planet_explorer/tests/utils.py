@@ -1,6 +1,7 @@
 import configparser
 import os
 import random
+import pathlib
 
 from planet_explorer import pe_utils
 from planet_explorer.gui import pe_explorer_dockwidget
@@ -106,10 +107,9 @@ def get_random_string(length=8):
     return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
 
 
-def get_recent_release_from_changelog():
+def get_recent_release_from_changelog(root_dir: pathlib.Path):
     config = configparser.ConfigParser()
-    # note the relative path
-    config.read("../../planet_explorer/metadata.txt")
+    config.read(root_dir / "planet_explorer" / "metadata.txt")
     changelog = config["general"]["changelog"]
     recent_release = None
     for entry in changelog.split("\n"):
