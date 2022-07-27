@@ -95,7 +95,7 @@ def test_order_download(
     # CI trying to download multiple orders at the same time posed problems.
     if qgis_version > 32600:
         # TODO: better workaround?
-        order_item_widget.download()
+        order_item_widget.download(is_unit_test=True)
         qtbot.waitUntil(order_item.order.downloaded, timeout=60 * 1000)
 
 

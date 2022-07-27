@@ -250,5 +250,5 @@ def test_basemaps_order_partial(
         ), f"New order not present in orders list: {order_names}"
 
         # Download the basemap
-        item_widget.download()  # noqa
+        item_widget.download(is_unit_test=True)  # noqa
         qtbot.waitUntil(item_widget.order.downloaded, timeout=60 * 1000)  # noqa

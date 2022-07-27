@@ -251,10 +251,11 @@ class OrderItemWidget(QWidget):
 
         self.setLayout(layout)
 
-    def download(self):
+    def download(self, is_unit_test=False):
         for task in QgsApplication.taskManager().activeTasks():
             if (
-                isinstance(task, OrderProcessorTask)
+                not is_unit_test
+                and isinstance(task, OrderProcessorTask)
                 and task.order.id() == self.order.id()
             ):
                 iface.messageBar().pushMessage(
@@ -264,7 +265,7 @@ class OrderItemWidget(QWidget):
                     duration=5,
                 )
                 return
-        if self.order.downloaded():
+        if not is_unit_test and self.order.downloaded():
             ret = QMessageBox.question(
                 self,
                 "Download order",
@@ -333,10 +334,11 @@ class QuadsOrderItemWidget(QWidget):
 
         self.setLayout(layout)
 
-    def download(self):
+    def download(self, is_unit_test=False):
         for task in QgsApplication.taskManager().activeTasks():
             if (
-                isinstance(task, QuadsOrderProcessorTask)
+                not is_unit_test
+                and isinstance(task, QuadsOrderProcessorTask)
                 and task.order.id() == self.order.id()
             ):
                 iface.messageBar().pushMessage(
@@ -346,7 +348,7 @@ class QuadsOrderItemWidget(QWidget):
                     duration=5,
                 )
                 return
-        if self.order.downloaded():
+        if not is_unit_test and self.order.downloaded():
             ret = QMessageBox.question(
                 self,
                 "Download order",
