@@ -1,3 +1,4 @@
+import configparser
 import os
 import random
 
@@ -103,3 +104,21 @@ def filter_basemaps_by_name(name, qtbot, basemaps_widget, qgis_debug_enabled):
 def get_random_string(length=8):
     alphanumeric = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
     return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
+
+
+def get_recent_release_from_changelog():
+    config = configparser.ConfigParser()
+    # note the relative path
+    config.read("../../planet_explorer/metadata.txt")
+    changelog = config["general"]["changelog"]
+    recent_release = None
+    for entry in changelog.split("\n"):
+        if entry.startswith("v"):
+            recent_release = entry.split(" ")[0]
+            break
+    if not recent_release:
+        raise RuntimeError(
+            "Could not find most recent release in 'planet_explorer/metadata.txt'"
+        )
+    else:
+        return recent_release
