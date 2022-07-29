@@ -118,8 +118,8 @@ class DailyImagesWidget(BASE, WIDGET):
         self._collect_sources_filters()
         self._default_filter_values = build_search_request(self._filters, self._sources)
 
-    def open_saved_searches(self):
-        dlg = OpenSavedSearchDialog()
+    def open_saved_searches(self, dlg=None):
+        dlg = dlg if dlg else OpenSavedSearchDialog()
         if dlg.exec() == OpenSavedSearchDialog.Accepted:
             saved_search_request = dlg.saved_search
             request = {}

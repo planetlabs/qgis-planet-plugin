@@ -1,7 +1,13 @@
+import configparser
 import os
+import random
+import pathlib
 
 from planet_explorer import pe_utils
 from planet_explorer.gui import pe_explorer_dockwidget
+from planet_explorer.gui import pe_orders_monitor_dockwidget
+from planet_explorer.gui import pe_tasking_dockwidget
+from qgis.PyQt import QtCore
 
 
 def patch_iface():
@@ -37,7 +43,7 @@ def get_explorer_dockwidget(plugin_toolbar, login=True):
     """
     Setup the explorer dock_widget for tests
     """
-    dock_widget = pe_explorer_dockwidget._get_widget_instance()
+    dock_widget = pe_explorer_dockwidget._get_widget_instance()  # noqa
     current_geometry = dock_widget.geometry()
     toolbar_geometry = plugin_toolbar.geometry()
     dock_widget.setGeometry(
@@ -52,3 +58,67 @@ def get_explorer_dockwidget(plugin_toolbar, login=True):
         username, password = get_testing_credentials()
         dock_widget.p_client.log_in(username, password)
     return dock_widget
+
+
+def get_order_monitor_widget(explorer_dockwidget):
+    """
+    Setup orders monitor dock_widget for tests
+    """
+    order_widget = pe_orders_monitor_dockwidget._get_widget_instance()  # noqa
+    current_geometry = order_widget.geometry()
+    order_widget.setGeometry(
+        explorer_dockwidget.geometry().width() + 1,
+        explorer_dockwidget.geometry().y(),
+        current_geometry.width(),
+        current_geometry.height(),
+    )
+    return order_widget
+
+
+def get_tasking_widget(explorer_dockwidget):
+    """
+    Setup orders monitor dock_widget for tests
+    """
+    tasking_widget = pe_tasking_dockwidget._get_widget_instance()  # noqa
+    current_geometry = tasking_widget.geometry()
+    tasking_widget.setGeometry(
+        explorer_dockwidget.geometry().width() + 1,
+        explorer_dockwidget.geometry().y(),
+        current_geometry.width(),
+        current_geometry.height(),
+    )
+    return tasking_widget
+
+
+def filter_basemaps_by_name(name, qtbot, basemaps_widget, qgis_debug_enabled):
+    qtbot.mouseClick(basemaps_widget.btnAll, QtCore.Qt.LeftButton)
+    qtbot.keyClicks(basemaps_widget.textBasemapsFilter, name)
+
+    qtbot.mouseClick(basemaps_widget.btnBasemapsFilter, QtCore.Qt.LeftButton)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+    qtbot.keyClicks(basemaps_widget.comboSeriesName, name[0])
+    qtbot.keyPress(basemaps_widget.comboSeriesName, QtCore.Qt.Key_Enter)
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+
+def get_random_string(length=8):
+    alphanumeric = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
+    return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
+
+
+def get_recent_release_from_changelog(root_dir: pathlib.Path):
+    config = configparser.ConfigParser()
+    config.read(root_dir / "planet_explorer" / "metadata.txt")
+    changelog = config["general"]["changelog"]
+    recent_release = None
+    for entry in changelog.split("\n"):
+        if entry.startswith("v"):
+            recent_release = entry.split(" ")[0]
+            break
+    if not recent_release:
+        raise RuntimeError(
+            "Could not find most recent release in 'planet_explorer/metadata.txt'"
+        )
+    else:
+        return recent_release
