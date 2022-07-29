@@ -2,6 +2,7 @@ import pytest
 
 from qgis.PyQt import QtCore
 from planet_explorer.gui.pe_open_saved_search_dialog import OpenSavedSearchDialog
+from planet_explorer.gui.pe_saved_search_dialog import SaveSearchDialog
 from planet_explorer.tests.utils import qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
@@ -10,7 +11,7 @@ pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 SAMPLE_AOI_SAVED_SEARCH_NAME = "QGIS Plugin Tests - Sample AOI"
 
 
-def test_saved_search(
+def test_create_saved_search(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, large_aoi
 ):
     """
@@ -19,6 +20,10 @@ def test_saved_search(
     """
 
     dock_widget = logged_in_explorer_dock_widget().daily_images_widget
+    daily_images_widget = dock_widget.daily_images_widget
+    qgis_debug_wait(qtbot, qgis_debug_enabled)
+    dlg = SaveSearchDialog()
+    qtbot.add_widget(dlg)
 
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(dock_widget._aoi_filter.leAOI, large_aoi)
