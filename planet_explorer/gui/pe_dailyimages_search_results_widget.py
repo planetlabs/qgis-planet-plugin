@@ -201,8 +201,8 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
                 w.set_metadata_to_show(self._metadata_to_show)
             it += 1
 
-    def _save_search(self):
-        dlg = SaveSearchDialog(self._request)
+    def _save_search(self, dlg=None):
+        dlg = dlg if dlg else SaveSearchDialog(self._request)
         if dlg.exec_():
             self._p_client.create_search(dlg.request_to_save)
             analytics_track(SAVED_SEARCH_CREATED)
