@@ -657,6 +657,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
+        self.btnSTAC.clicked.connec(self._btnSTACClicked)
         self.btnContinueName.clicked.connect(
             lambda: self.stackedWidget.setCurrentIndex(1)
         )
@@ -672,6 +673,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
+
+
+        self.stac_order = False
 
         images_dict = defaultdict(list)
         # thumbnails_dict = defaultdict(list)
@@ -738,6 +742,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.stackedWidget.setEnabled(True)
         self.btnPlaceOrder.setEnabled(True)
+
+    def _btnSTACClicked(self):
+        self.stac_order = not self.stac_order
 
     def selectionChanged(self):
         self.update_review_items()
@@ -835,6 +842,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 }
                 order["notifications"] = {"email": True}
 
+                if self.stac_order:
+                    order["metadata"] = {
+                        "stac": {}
+                    }
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})

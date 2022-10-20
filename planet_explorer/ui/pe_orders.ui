@@ -141,7 +141,7 @@
         <item>
          <widget class="QStackedWidget" name="stackedWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="pageName">
            <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -237,8 +237,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>895</width>
-                 <height>726</height>
+                 <width>86</width>
+                 <height>16</height>
                 </rect>
                </property>
               </widget>
@@ -304,10 +304,52 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>895</width>
-                 <height>726</height>
+                 <width>808</width>
+                 <height>717</height>
                 </rect>
                </property>
+               <widget class="QLabel" name="laSTACDescription">
+                <property name="geometry">
+                 <rect>
+                  <x>150</x>
+                  <y>280</y>
+                  <width>491</width>
+                  <height>121</height>
+                 </rect>
+                </property>
+                <property name="text">
+                 <string>STAC metadata provides a standardized format for describing geospatial information so that it can be more easily worked with in tool like QGIS </string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+               <widget class="QLabel" name="laSTACTitle">
+                <property name="geometry">
+                 <rect>
+                  <x>340</x>
+                  <y>250</y>
+                  <width>131</width>
+                  <height>16</height>
+                 </rect>
+                </property>
+                <property name="text">
+                 <string>METADATA</string>
+                </property>
+               </widget>
+               <widget class="QPushButton" name="stacButton">
+                <property name="geometry">
+                 <rect>
+                  <x>290</x>
+                  <y>420</y>
+                  <width>191</width>
+                  <height>41</height>
+                 </rect>
+                </property>
+                <property name="text">
+                 <string>STAC</string>
+                </property>
+               </widget>
               </widget>
              </widget>
             </item>
@@ -461,8 +503,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>225</width>
-             <height>337</height>
+             <width>312</width>
+             <height>325</height>
             </rect>
            </property>
           </widget>
