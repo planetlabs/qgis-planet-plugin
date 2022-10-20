@@ -337,7 +337,7 @@
                  <string>METADATA</string>
                 </property>
                </widget>
-               <widget class="QPushButton" name="stacButton">
+               <widget class="QPushButton" name="btnSTAC">
                 <property name="geometry">
                  <rect>
                   <x>290</x>

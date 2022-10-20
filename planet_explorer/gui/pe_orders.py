@@ -657,7 +657,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnSTAC.clicked.connec(self._btnSTACClicked)
+        self.btnSTAC.clicked.connect(self._btnSTACClicked)
         self.btnContinueName.clicked.connect(
             lambda: self.stackedWidget.setCurrentIndex(1)
         )
