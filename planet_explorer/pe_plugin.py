@@ -121,6 +121,8 @@ SAT_SPECS_PDF = (
     "Planet_Combined_Imagery_Product_Specs_letter_screen.pdf"
 )
 PLANET_SUPPORT_COMMUNITY = "https://support.planet.com"
+PLANET_UNIVERSITY = "https://university.planet.com/"
+PLANET_COMMUNITY = "https://community.planet.com/"
 PLANET_EXPLORER = f"{PLANET_COM}/explorer"
 PLANET_INTEGRATIONS = "https://developers.planet.com/tag/integrations.html"
 PLANET_SALES = "https://www.planet.com/contact-sales"
@@ -480,6 +482,18 @@ class PlanetExplorer(object):
             lambda: open_link_with_browser(PLANET_SUPPORT_COMMUNITY)
         )
         info_menu.addAction(p_support_act)
+
+        p_university_act = QAction(QIcon(EXT_LINK), "Planet University", info_menu)
+        p_university_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_UNIVERSITY)
+        )
+        info_menu.addAction(p_university_act)
+
+        p_community_act = QAction(QIcon(EXT_LINK), "Planet Community", info_menu)
+        p_community_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_COMMUNITY)
+        )
+        info_menu.addAction(p_community_act)
 
         p_whatsnew_act = QAction(QIcon(EXT_LINK), "What's new", info_menu)
         p_whatsnew_act.triggered[bool].connect(
