@@ -170,33 +170,57 @@ class OrderProcessorTask(QgsTask):
         return default
 
     def load_layer(self, layer):
-        r = layer.renderer().clone()
-        r.setRedBand(self._find_band(layer, "red", 0))
-        r.setGreenBand(self._find_band(layer, "green", 1))
-        r.setBlueBand(self._find_band(layer, "blue", 2))
 
-        usedBands = r.usesBands()
-        for b in range(3):
-            typ = layer.renderer().dataType(b)
+        band_cnt = layer.bandCount()
+        if band_cnt < 3:
+            # Rasters with less than 3 bands will be added as single band
+            r = layer.renderer().clone()
+            r.setGrayBand(1)
+
+            used_bands = r.usesBands()
+            typ = layer.renderer().dataType(1)
             enhancement = QgsContrastEnhancement(typ)
             enhancement.setContrastEnhancementAlgorithm(
                 QgsContrastEnhancement.StretchToMinimumMaximum, True
             )
-            bandMin, bandMax = layer.dataProvider().cumulativeCut(
-                usedBands[b], 0.02, 0.98, sampleSize=10000
+            band_min, band_max = layer.dataProvider().cumulativeCut(
+                used_bands[0], 0.02, 0.98, sampleSize=10000
             )
-            enhancement.setMinimumValue(bandMin)
-            enhancement.setMaximumValue(bandMax)
-            if b == 0:
-                r.setRedContrastEnhancement(enhancement)
-            elif b == 1:
-                r.setGreenContrastEnhancement(enhancement)
-            elif b == 2:
-                r.setBlueContrastEnhancement(enhancement)
+            enhancement.setMinimumValue(band_min)
+            enhancement.setMaximumValue(band_max)
+            r.setContrastEnhancement(enhancement)
 
-        layer.setRenderer(r)
+            layer.setRenderer(r)
+            QgsProject.instance().addMapLayer(layer)
+        else:
+            # RGB image for 3 or more bands
+            r = layer.renderer().clone()
+            r.setBlueBand(self._find_band(layer, "blue", 1))
+            r.setGreenBand(self._find_band(layer, "green", 2))
+            r.setRedBand(self._find_band(layer, "red", 3))
 
-        QgsProject.instance().addMapLayer(layer)
+            used_bands = r.usesBands()
+            # Bands will only be set for blue, green and red
+            for b in range(3):
+                typ = layer.renderer().dataType(b)
+                enhancement = QgsContrastEnhancement(typ)
+                enhancement.setContrastEnhancementAlgorithm(
+                    QgsContrastEnhancement.StretchToMinimumMaximum, True
+                )
+                band_min, band_max = layer.dataProvider().cumulativeCut(
+                    used_bands[b], 0.02, 0.98, sampleSize=10000
+                )
+                enhancement.setMinimumValue(band_min)
+                enhancement.setMaximumValue(band_max)
+                if b == 0:
+                    r.setRedContrastEnhancement(enhancement)
+                elif b == 1:
+                    r.setGreenContrastEnhancement(enhancement)
+                elif b == 2:
+                    r.setBlueContrastEnhancement(enhancement)
+
+            layer.setRenderer(r)
+            QgsProject.instance().addMapLayer(layer)
 
 
 class QuadsOrderProcessorTask(QgsTask):
