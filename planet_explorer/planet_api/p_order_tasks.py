@@ -122,6 +122,9 @@ class OrderProcessorTask(QgsTask):
         if result:
             layers = []
             for filename, image_type in self.images:
+                if filename.endswith('_udm.tif') or filename.endswith('_udm2.tif'):
+                    # Skips all udm rasters
+                    continue
                 layers.append(QgsRasterLayer(filename, os.path.basename(filename)))
             validity = [lay.isValid() for lay in layers]
             if False in validity:
@@ -163,6 +166,20 @@ class OrderProcessorTask(QgsTask):
             )
 
     def _find_band(self, layer, name, default):
+        """Finds the band number associated with the provided name (e.g. 'blue'), otherwise returns a default value.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+
+        :param name: Band name (e.g. 'blue')
+        :type name: str
+
+        :param default: Default band number to use
+        :type default: int
+
+        :returns: Band number
+        "rtype: int
+        """
         name = name.lower()
         for i in range(layer.bandCount()):
             if name == layer.bandName(i).lower().split(": ")[-1]:
@@ -170,9 +187,19 @@ class OrderProcessorTask(QgsTask):
         return default
 
     def load_layer(self, layer):
+        """Adds the provided QgsRasterLayer to the QGIS map. Rasters with less than 3 bands will be added as
+        a grey scale layer, whereas multiband will be added as True colour RGB.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+        """
 
         band_cnt = layer.bandCount()
         if band_cnt < 3:
+
+            # These cases will be skipped for now, but removing this 'return' will add non-udm singleband layers again
+            return
+
             # Rasters with less than 3 bands will be added as single band
             r = layer.renderer().clone()
             r.setGrayBand(1)
