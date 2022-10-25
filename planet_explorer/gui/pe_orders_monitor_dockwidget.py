@@ -40,7 +40,7 @@ from qgis.PyQt import uic
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
 
-from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
@@ -70,6 +70,9 @@ PRODUCT_BUNDLE = "product_bundle"
 STATE = "state"
 DELIVERY = "delivery"
 ARCHIVE_TYPE = "archive_type"
+
+EXT_LINK = ":/plugins/planet_explorer/external-link.svg"
+FOLDER_ICON = ":/plugins/planet_explorer/file-open.svg"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -309,6 +312,20 @@ class OrderItemWidget(QWidget):
         )
 
     def _find_band(self, layer, name, default):
+        """Finds the band number associated with the provided name (e.g. 'blue'), otherwise returns a default value.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+
+        :param name: Band name (e.g. 'blue')
+        :type name: str
+
+        :param default: Default band number to use
+        :type default: int
+
+        :returns: Band number
+        "rtype: int
+        """
         name = name.lower()
         for i in range(layer.bandCount()):
             if name == layer.bandName(i).lower().split(": ")[-1]:
@@ -316,9 +333,19 @@ class OrderItemWidget(QWidget):
         return default
 
     def load_layer(self, layer):
+        """Adds the provided QgsRasterLayer to the QGIS map. Rasters with less than 3 bands will be added as
+        a grey scale layer, whereas multiband will be added as True colour RGB.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+        """
 
         band_cnt = layer.bandCount()
         if band_cnt < 3:
+
+            # These cases will be skipped for now, but removing this 'return' will add singleband layers again
+            return
+
             # Rasters with less than 3 bands will be added as single band
             r = layer.renderer().clone()
             r.setGrayBand(1)
@@ -368,12 +395,27 @@ class OrderItemWidget(QWidget):
             QgsProject.instance().addMapLayer(layer)
 
     def add_to_map(self):
-        message_bar = iface.messageBar()
+        """Called when the add to map button is clicked.
+        Adds the selected remotely sensed image in the order monitor list to QGIS.
+        The data needs to be downloaded.
+        """
 
-        order_name = self.order.name().split('_')[0]
+        # Order name is usually "OrderName_" followed by the sensor (e.g. SkySat)
+        # For the QGIS plugin the output folder should be "OrderName_QGIS"
+        order_name_split = self.order.name().split('_')
+        folder_prefix = order_name_split[0]
+        #  List which excludes the first and last elements
+        order_names = order_name_split[1:len(order_name_split) - 1]
+        for prefix in order_names:
+            # Adds each prefix
+            folder_prefix = '{}_{}'.format(
+                folder_prefix,
+                prefix
+            )
+
         manifest_dir = '{}/{}_QGIS/{}'.format(
             self.order.download_folder(),
-            order_name,
+            folder_prefix,
             'manifest.json'
         )
 
@@ -384,11 +426,23 @@ class OrderItemWidget(QWidget):
             list_files = manifest_data['files']
             for json_file in list_files:
                 media_type = json_file['media_type']
-                if media_type == 'image/tiff':
+
+                raster_types = [
+                    'image/tiff',
+                    'application/vnd.lotus-notes'
+                ]
+
+                if media_type in raster_types:
+                    annotations = json_file['annotations']
+                    asset_type = annotations['planet/asset_type']
+                    if asset_type.endswith('_udm') or asset_type.endswith('_udm2'):
+                        # Skips all 'udm' asset rasters
+                        continue
+
                     image_path = json_file['path']
                     image_dir = '{}/{}_QGIS/{}'.format(
                         self.order.download_folder(),
-                        order_name,
+                        folder_prefix,
                         image_path
                     )
 
@@ -396,23 +450,77 @@ class OrderItemWidget(QWidget):
                         layer = QgsRasterLayer(image_dir, os.path.basename(image_dir))
                         self.load_layer(layer)
                     else:
-                        # The raster specified in the manifest is missing
-                        message_bar.pushMessage(
-                            'Error',
-                            'Could not find the raster: {}'.format(
-                                image_dir
-                            ),
-                            level=Qgis.Warning
+                        # The raster specified in the manifest.json file is missing
+                        self.qgs_error_message(
+                            "Cannot add data to map",
+                            "Image layer is missing",
+                            60
                         )
         else:
-            # The manifest is missing
-            message_bar.pushMessage(
-                'Error',
-                'Could not find the manifest: {}'.format(
-                    manifest_dir
-                ),
-                level=Qgis.Warning
+            # The manifest.json file is missing
+            # This file contains information on the downloaded data
+            self.qgs_error_message(
+                "Cannot add data to map",
+                "Manifest file is missing",
+                60
             )
+
+    def qgs_error_message(self, error_title='Error', error_desciption='', timeout=0):
+        """Displays an error message on the QGIS message bar. A buttons is included which will open
+        a message box.
+
+        :param error_title: Error message title
+        :type error_title: str
+
+        :param error_desciption: Error message description
+        :type error_desciption: str
+
+        :param timeout: Message bar timeout in seconds. 0 is infinite.
+        :type timeout: int
+        """
+
+        message_bar = iface.messageBar()
+
+        msg_widget = message_bar.createMessage(
+            error_title,
+            error_desciption
+        )
+
+        details_btn = QPushButton(msg_widget)
+        details_btn.setText("Details")
+        details_btn.pressed.connect(self.details_btn_clicked)
+        msg_widget.layout().addWidget(details_btn)
+
+        message_bar.pushWidget(
+            msg_widget,
+            level=Qgis.Warning,
+            duration=timeout
+        )
+
+    def details_btn_clicked(self):
+        """Opens a QMessageBox when the Details button is clicked. The aim of this is to help the user at
+        finding the error on why the data cannot be added to the map
+        """
+
+        message_box = QMessageBox()
+        message_box.setIcon(QMessageBox.NoIcon)
+        message_box.setWindowTitle("Cannot add data to map")
+        message_box.setText("INFORMATION ON HOW TO FIX THE PROBLEM")
+
+        folder_btn = message_box.addButton('Order folder', QMessageBox.ActionRole)
+        folder_btn.setIcon(QIcon(FOLDER_ICON))
+        folder_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(
+                QUrl.fromLocalFile(self.order.download_folder())
+            )
+        )
+
+        help_btn = message_box.addButton('Online help', QMessageBox.ActionRole)
+        help_btn.setIcon(QIcon(EXT_LINK))
+
+        message_box.setStandardButtons(QMessageBox.Close)
+
+        return_value = message_box.exec()
 
 
 class QuadsOrderItem(BaseWidgetItem):
