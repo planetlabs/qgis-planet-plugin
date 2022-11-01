@@ -453,19 +453,17 @@ class OrderItemWidget(QWidget):
                         # The raster specified in the manifest.json file is missing
                         self.qgs_error_message(
                             "Cannot add data to map",
-                            "Image layer is missing",
-                            60
+                            "Image layer is missing"
                         )
         else:
             # The manifest.json file is missing
             # This file contains information on the downloaded data
             self.qgs_error_message(
                 "Cannot add data to map",
-                "Manifest file is missing",
-                60
+                "Manifest file is missing"
             )
 
-    def qgs_error_message(self, error_title='Error', error_desciption='', timeout=0):
+    def qgs_error_message(self, error_title='Error', error_desciption=''):
         """Displays an error message on the QGIS message bar. A buttons is included which will open
         a message box.
 
@@ -474,53 +472,13 @@ class OrderItemWidget(QWidget):
 
         :param error_desciption: Error message description
         :type error_desciption: str
-
-        :param timeout: Message bar timeout in seconds. 0 is infinite.
-        :type timeout: int
         """
 
         message_bar = iface.messageBar()
-
-        msg_widget = message_bar.createMessage(
+        message_bar.pushInfo(
             error_title,
-            error_desciption
+            message=error_desciption
         )
-
-        details_btn = QPushButton(msg_widget)
-        details_btn.setText("Details")
-        details_btn.pressed.connect(self.details_btn_clicked)
-        msg_widget.layout().addWidget(details_btn)
-
-        message_bar.pushWidget(
-            msg_widget,
-            level=Qgis.Warning,
-            duration=timeout
-        )
-
-    def details_btn_clicked(self):
-        """Opens a QMessageBox when the Details button is clicked. The aim of this is to help the user at
-        finding the error on why the data cannot be added to the map
-        """
-
-        message_box = QMessageBox()
-        message_box.setIcon(QMessageBox.NoIcon)
-        message_box.setWindowTitle("Cannot add data to map")
-        message_box.setText("INFORMATION ON HOW TO FIX THE PROBLEM")
-
-        folder_btn = message_box.addButton('Order folder', QMessageBox.ActionRole)
-        folder_btn.setIcon(QIcon(FOLDER_ICON))
-        folder_btn.clicked.connect(
-            lambda: QDesktopServices.openUrl(
-                QUrl.fromLocalFile(self.order.download_folder())
-            )
-        )
-
-        help_btn = message_box.addButton('Online help', QMessageBox.ActionRole)
-        help_btn.setIcon(QIcon(EXT_LINK))
-
-        message_box.setStandardButtons(QMessageBox.Close)
-
-        return_value = message_box.exec()
 
 
 class QuadsOrderItem(BaseWidgetItem):
