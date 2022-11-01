@@ -40,7 +40,7 @@ from qgis.PyQt import uic
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
 
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtGui import QDesktopServices
 
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
@@ -49,9 +49,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QWidget,
-    QSpacerItem,
-    QSizePolicy
+    QWidget
 )
 
 from ..pe_utils import orders_download_folder, iface, user_agent
@@ -240,7 +238,8 @@ class OrderItemWidget(QWidget):
         label.setOpenExternalLinks(True)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
-        # Addition space characters added to Download so that it vertically lines-up neatly with the Re-download button
+        # Addition space characters added to Download so that it
+        # vertically lines-up neatly with the Re-download button
         button = QPushButton("Re-Download" if order.downloaded() else "   Download   ")
         button.clicked.connect(self.download)
         button.setEnabled(order.state() == "success" and order.is_zipped())
@@ -312,7 +311,8 @@ class OrderItemWidget(QWidget):
         )
 
     def _find_band(self, layer, name, default):
-        """Finds the band number associated with the provided name (e.g. 'blue'), otherwise returns a default value.
+        """Finds the band number associated with the provided name (e.g. 'blue'),
+        otherwise returns a default value.
 
         :param layer: Raster layer. Both single band and multiband.
         :type layer: QgsRasterLayer
@@ -333,7 +333,8 @@ class OrderItemWidget(QWidget):
         return default
 
     def load_layer(self, layer):
-        """Adds the provided QgsRasterLayer to the QGIS map. Rasters with less than 3 bands will be added as
+        """Adds the provided QgsRasterLayer to the QGIS map.
+        Rasters with less than 3 bands will be added as
         a grey scale layer, whereas multiband will be added as True colour RGB.
 
         :param layer: Raster layer. Both single band and multiband.
@@ -343,7 +344,8 @@ class OrderItemWidget(QWidget):
         band_cnt = layer.bandCount()
         if band_cnt < 3:
 
-            # These cases will be skipped for now, but removing this 'return' will add singleband layers again
+            # These cases will be skipped for now, but removing this 'return'
+            # will add singleband layers again
             return
 
             # Rasters with less than 3 bands will be added as single band
@@ -464,8 +466,8 @@ class OrderItemWidget(QWidget):
             )
 
     def qgs_error_message(self, error_title='Error', error_desciption=''):
-        """Displays an error message on the QGIS message bar. A buttons is included which will open
-        a message box.
+        """Displays an error message on the QGIS message bar.
+        A buttons is included which will open a message box.
 
         :param error_title: Error message title
         :type error_title: str
