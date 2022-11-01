@@ -1,3 +1,4 @@
+py
 pytest
 pytest-qgis
 # Version < 4 required for QGIS 3.10
