@@ -1,5 +1,5 @@
 ARG QGIS_TEST_VERSION=latest
-FROM  qgis/qgis:${QGIS_TEST_VERSION}
+FROM  qgis/qgis
 
 RUN apt-get update && \
     apt-get install -y python3-pip
