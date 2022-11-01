@@ -407,7 +407,7 @@ class OrderItemWidget(QWidget):
         order_name_split = self.order.name().split('_')
         folder_prefix = order_name_split[0]
         #  List which excludes the first and last elements
-        order_names = order_name_split[1 :len(order_name_split) - 1]
+        order_names = order_name_split[1:len(order_name_split) - 1]
         for prefix in order_names:
             # Adds each prefix
             folder_prefix = '{}_{}'.format(
