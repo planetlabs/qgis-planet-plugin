@@ -33,7 +33,7 @@ from qgis.core import (
     QgsApplication,
     QgsRasterLayer,
     QgsProject,
-    QgsContrastEnhancement
+    QgsContrastEnhancement,
 )
 
 from qgis.PyQt import uic
@@ -49,7 +49,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QWidget
+    QWidget,
 )
 
 from ..pe_utils import orders_download_folder, iface, user_agent
@@ -404,48 +404,38 @@ class OrderItemWidget(QWidget):
 
         # Order name is usually "OrderName_" followed by the sensor (e.g. SkySat)
         # For the QGIS plugin the output folder should be "OrderName_QGIS"
-        order_name_split = self.order.name().split('_')
+        order_name_split = self.order.name().split("_")
         folder_prefix = order_name_split[0]
         #  List which excludes the first and last elements
-        order_names = order_name_split[1:len(order_name_split) - 1]
+        order_names = order_name_split[1 : len(order_name_split) - 1]
         for prefix in order_names:
             # Adds each prefix
-            folder_prefix = '{}_{}'.format(
-                folder_prefix,
-                prefix
-            )
+            folder_prefix = "{}_{}".format(folder_prefix, prefix)
 
-        manifest_dir = '{}/{}_QGIS/{}'.format(
-            self.order.download_folder(),
-            folder_prefix,
-            'manifest.json'
+        manifest_dir = "{}/{}_QGIS/{}".format(
+            self.order.download_folder(), folder_prefix, "manifest.json"
         )
 
         if os.path.exists(manifest_dir):
             manifest_file = open(manifest_dir)
             manifest_data = json.load(manifest_file)
 
-            list_files = manifest_data['files']
+            list_files = manifest_data["files"]
             for json_file in list_files:
-                media_type = json_file['media_type']
+                media_type = json_file["media_type"]
 
-                raster_types = [
-                    'image/tiff',
-                    'application/vnd.lotus-notes'
-                ]
+                raster_types = ["image/tiff", "application/vnd.lotus-notes"]
 
                 if media_type in raster_types:
-                    annotations = json_file['annotations']
-                    asset_type = annotations['planet/asset_type']
-                    if asset_type.endswith('_udm') or asset_type.endswith('_udm2'):
+                    annotations = json_file["annotations"]
+                    asset_type = annotations["planet/asset_type"]
+                    if asset_type.endswith("_udm") or asset_type.endswith("_udm2"):
                         # Skips all 'udm' asset rasters
                         continue
 
-                    image_path = json_file['path']
-                    image_dir = '{}/{}_QGIS/{}'.format(
-                        self.order.download_folder(),
-                        folder_prefix,
-                        image_path
+                    image_path = json_file["path"]
+                    image_dir = "{}/{}_QGIS/{}".format(
+                        self.order.download_folder(), folder_prefix, image_path
                     )
 
                     if os.path.exists(image_dir):
@@ -454,18 +444,14 @@ class OrderItemWidget(QWidget):
                     else:
                         # The raster specified in the manifest.json file is missing
                         self.qgs_error_message(
-                            "Cannot add data to map",
-                            "Image layer is missing"
+                            "Cannot add data to map", "Image layer is missing"
                         )
         else:
             # The manifest.json file is missing
             # This file contains information on the downloaded data
-            self.qgs_error_message(
-                "Cannot add data to map",
-                "Manifest file is missing"
-            )
+            self.qgs_error_message("Cannot add data to map", "Manifest file is missing")
 
-    def qgs_error_message(self, error_title='Error', error_desciption=''):
+    def qgs_error_message(self, error_title="Error", error_desciption=""):
         """Displays an error message on the QGIS message bar.
         A buttons is included which will open a message box.
 
@@ -477,10 +463,7 @@ class OrderItemWidget(QWidget):
         """
 
         message_bar = iface.messageBar()
-        message_bar.pushInfo(
-            error_title,
-            message=error_desciption
-        )
+        message_bar.pushInfo(error_title, message=error_desciption)
 
 
 class QuadsOrderItem(BaseWidgetItem):
