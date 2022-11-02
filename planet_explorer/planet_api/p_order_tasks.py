@@ -122,7 +122,7 @@ class OrderProcessorTask(QgsTask):
         if result:
             layers = []
             for filename, image_type in self.images:
-                if filename.endswith('_udm.tif') or filename.endswith('_udm2.tif'):
+                if filename.endswith("_udm.tif") or filename.endswith("_udm2.tif"):
                     # Skips all udm rasters
                     continue
                 layers.append(QgsRasterLayer(filename, os.path.basename(filename)))
