@@ -488,7 +488,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             QgsUnitTypes.AreaSquareKilometers
         )
 
-        return geometry_area_sq
+        return round(geometry_area_sq, 2)
 
 
     def aoi_from_layer(self, layer):
