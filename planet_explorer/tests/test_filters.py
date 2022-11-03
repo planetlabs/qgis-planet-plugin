@@ -18,7 +18,7 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
                 QgsPointXY(QgsPoint(10, 20)),
                 QgsPointXY(QgsPoint(20, 20)),
                 QgsPointXY(QgsPoint(20, 10)),
-                QgsPointXY(QgsPoint(10, 10))
+                QgsPointXY(QgsPoint(10, 10)),
             ],
             1239202.90,
             id="area_of_interest_with_small_size",
@@ -30,7 +30,7 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
                 QgsPointXY(QgsPoint(10, 40)),
                 QgsPointXY(QgsPoint(40, 40)),
                 QgsPointXY(QgsPoint(40, 10)),
-                QgsPointXY(QgsPoint(10, 10))
+                QgsPointXY(QgsPoint(10, 10)),
             ],
             11152826.13,
             id="area_of_interest_with_medium_size",
@@ -42,7 +42,7 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
                 QgsPointXY(QgsPoint(10, 60)),
                 QgsPointXY(QgsPoint(60, 60)),
                 QgsPointXY(QgsPoint(60, 10)),
-                QgsPointXY(QgsPoint(10, 10))
+                QgsPointXY(QgsPoint(10, 10)),
             ],
             30980072.58,
             id="area_of_interest_with_large_size",
@@ -54,7 +54,7 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
                 QgsPointXY(QgsPoint(0, 0)),
                 QgsPointXY(QgsPoint(0, 0)),
                 QgsPointXY(QgsPoint(0, 0)),
-                QgsPointXY(QgsPoint(0, 0))
+                QgsPointXY(QgsPoint(0, 0)),
             ],
             0.0,
             id="area_of_interest_with_zero_size",
@@ -62,8 +62,7 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
     ],
 )
 def test_aoi_area_size_calculation(name, polygon, expected_size):
-    """Tests the filter for calculating the aoi size in square kilometers
-    """
+    """Tests the filter for calculating the aoi size in square kilometers"""
     aoi_filter = PlanetAOIFilter()
     aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
 
