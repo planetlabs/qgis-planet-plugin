@@ -459,37 +459,30 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             self.aoi_from_layer(layer)
 
     def show_aoi_area_size(self):
-        """ Displays the aoi area size in square kilometers.
-        """
+        """Displays the aoi area size in square kilometers."""
 
         area_size_sqkm = self.calculate_aoi_area()
 
         formatted_area_sq = "{:,}".format(round(area_size_sqkm, 2))
 
-        self.laAOISize.setText(
-            f"Total AOI area (sqkm): {formatted_area_sq}"
-        )
+        self.laAOISize.setText(f"Total AOI area (sqkm): {formatted_area_sq}")
 
     def calculate_aoi_area(self):
-        """ Calculate the current aoi area in square kilometers """
+        """Calculate the current aoi area in square kilometers"""
 
         geometry = self.aoi_as_4326_geom()
         area = QgsDistanceArea()
         area.setSourceCrs(
-            QgsCoordinateReferenceSystem('EPSG:4326'),
-            QgsProject.instance().transformContext()
+            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsProject.instance().transformContext(),
         )
-        area.setEllipsoid(
-            QgsProject.instance().ellipsoid()
-        )
+        area.setEllipsoid(QgsProject.instance().ellipsoid())
         geometry_area = area.measureArea(geometry)
         geometry_area_sq = area.convertAreaMeasurement(
-            geometry_area,
-            QgsUnitTypes.AreaSquareKilometers
+            geometry_area, QgsUnitTypes.AreaSquareKilometers
         )
 
         return round(geometry_area_sq, 2)
-
 
     def aoi_from_layer(self, layer):
         if not layer.isValid():
@@ -873,6 +866,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         json_txt = self.leAOI.text()
         if not json_txt:
             self.reset_aoi_box()
+            self.show_aoi_area_size()
             log.debug("No AOI defined, skipping validation")
             return
 
