@@ -458,8 +458,20 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             layer = QgsVectorLayer(filename, "")
             self.aoi_from_layer(layer)
 
+    def show_aoi_area_size(self):
+        """ Displays the aoi area size in square kilometers.
+        """
+
+        area_size_sqkm = self.calculate_aoi_area()
+
+        formatted_area_sq = "{:,}".format(round(area_size_sqkm, 2))
+
+        self.laAOISize.setText(
+            f"Total AOI area (sqkm): {formatted_area_sq}"
+        )
+
     def calculate_aoi_area(self):
-        """ Calculate and display the current aoi area in square kilometers """
+        """ Calculate the current aoi area in square kilometers """
 
         geometry = self.aoi_as_4326_geom()
         area = QgsDistanceArea()
@@ -476,11 +488,8 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             QgsUnitTypes.AreaSquareKilometers
         )
 
-        formatted_area_sq = "{:,}".format(round(geometry_area_sq, 2))
+        return geometry_area_sq
 
-        self.laAOISize.setText(
-            f"Total AOI area (sqkm): {formatted_area_sq}"
-        )
 
     def aoi_from_layer(self, layer):
         if not layer.isValid():
@@ -519,7 +528,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 log.debug("AOI set to layer")
 
                 self.zoom_to_aoi()
-                self.calculate_aoi_area()
+                self.show_aoi_area_size()
 
     def _toggle_selection_tools(self):
         active_layer = iface.activeLayer()
@@ -566,7 +575,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         log.debug("AOI set to canvas extent")
 
         self.zoom_to_aoi()
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
     @pyqtSlot()
     def aoi_from_active_layer_extent(self):
@@ -602,7 +611,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         log.debug("AOI set to active layer extent")
 
         self.zoom_to_aoi()
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
     @pyqtSlot()
     def aoi_from_full_extent(self):
@@ -634,7 +643,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         log.debug("AOI set to full data extent")
 
         self.zoom_to_aoi()
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
     @pyqtSlot()
     def aoi_from_box(self):
@@ -687,7 +696,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
             self._show_message("AOI set to drawn figure")
             self.zoom_to_aoi()
-            self.calculate_aoi_area()
+            self.show_aoi_area_size()
             if self._cur_maptool is not None:
                 # Restore previously used maptool
                 self._canvas.setMapTool(self._cur_maptool)
@@ -752,7 +761,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
         self.zoom_to_aoi()
 
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
     @pyqtSlot()
     def aoi_from_bound(self):
@@ -791,7 +800,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(bbox_canvas))
 
         self.zoom_to_aoi()
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
     def hide_aoi_if_matches_geom(self, geom):
         color = (
@@ -894,7 +903,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.leAOI.blockSignals(False)
 
         self.zoom_to_aoi()
-        self.calculate_aoi_area()
+        self.show_aoi_area_size()
 
 
 class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
