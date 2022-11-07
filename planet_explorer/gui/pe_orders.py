@@ -130,7 +130,7 @@ class PlanetOrderBundleWidget(QFrame):
         self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
         assets = bundle["assets"]
         self.can_harmonize = (
-                "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
+            "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         )
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
@@ -595,8 +595,8 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         super().__init__()
 
         self.stac_order = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
-            )
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+        )
         self.stac_order = stac_order
 
         layout = QVBoxLayout()
@@ -747,8 +747,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
         self.stac_order = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
-            )
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+        )
 
         images_dict = defaultdict(list)
         # thumbnails_dict = defaultdict(list)
@@ -925,9 +925,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 order["notifications"] = {"email": True}
 
                 if self.stac_order:
-                    order["metadata"] = {
-                        "stac": {}
-                    }
+                    order["metadata"] = {"stac": {}}
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})
