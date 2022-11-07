@@ -331,6 +331,13 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.btnZoomToAOI.clicked.connect(self.zoom_to_aoi)
         self.btnCopyAOI.clicked.connect(self.copy_aoi_to_clipboard)
 
+        self.leAOI.textChanged.connect(self.aoi_changed)
+        self.lblExtentArea.setVisible(False)
+
+        # Used for workarounds
+        self.draw_performed = False
+        self.coordinates_edit = False
+
         self.p_client = PlanetClient.getInstance()
 
     def reset_aoi_box(self):
@@ -467,9 +474,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 )
             else:
                 geom = feature.geometry()
+                source_crs = layer.crs()
 
                 transform = QgsCoordinateTransform(
-                    layer.crs(),
+                    source_crs,
                     QgsCoordinateReferenceSystem("EPSG:4326"),
                     QgsProject.instance(),
                 )
@@ -494,6 +502,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 self.zoom_to_aoi()
 
+                bounding_box = geom.boundingBox()
+                self.calculate_area_from_extent(bounding_box, source_crs)
+
     def _toggle_selection_tools(self):
         active_layer = iface.activeLayer()
         is_vector = isinstance(active_layer, QgsVectorLayer)
@@ -511,12 +522,54 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             self.single_select_act.setEnabled(False)
             self.bound_select_act.setEnabled(False)
 
+    def aoi_changed(self):
+        """When the AOI coordinates is changed or cleared this function will be called.
+        The AOI area will be set to zero, and the widget set to invisible.
+        """
+        # This is a workaround required for when using the draw tool/editing
+        if self.draw_performed or self.coordinates_edit:
+            self.draw_performed = False
+            self.coordinates_edit = False
+        else:
+            # Disables the label
+            label_text = "Total AOI area (sqkm): 0"
+            self.lblExtentArea.setText(label_text)
+            self.lblExtentArea.setVisible(False)
+
+    def calculate_area_from_extent(self, qgs_rectangle_extent, source_crs):
+        """Calculates the area in square kilometers of the bounding box
+        and sets the label on the UI.
+
+        :param source_crs: Coordinate system (e.g. project crs, layer crs, etc.).
+        :type source_crs: QgsCoordinateReferenceSystem
+
+        :param qgs_rectangle_extent: Rectangle with coordinates.
+        :type qgs_rectangle_extent: QgsRectangle
+        """
+        # Projected coordinate system which will be used for area calculation
+        world_cylindrical_equal_area = "ESRI:54034"
+        dest_crs = QgsCoordinateReferenceSystem(world_cylindrical_equal_area)
+
+        tr = QgsCoordinateTransform(source_crs, dest_crs, QgsProject.instance())
+        transform_extent_projected = tr.transformBoundingBox(qgs_rectangle_extent)
+
+        geom_extent_projected = QgsGeometry.fromRect(transform_extent_projected)
+        # Also converts from square meters to square kilometers
+        # Rounds to two decimals
+        bounding_box_area = round(geom_extent_projected.area() * 0.000001, 2)
+
+        label_text = "Total AOI area (sqkm): {}".format(bounding_box_area)
+        self.lblExtentArea.setText(label_text)
+        self.lblExtentArea.setVisible(True)
+
     @pyqtSlot()
     def aoi_from_current_extent(self):
         """Return current map extent as geojson transformed to EPSG:4326"""
         canvas = iface.mapCanvas()
+        source_crs = QgsProject.instance().crs()
+
         transform = QgsCoordinateTransform(
-            QgsProject.instance().crs(),
+            source_crs,
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
@@ -540,6 +593,8 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.zoom_to_aoi()
 
+        self.calculate_area_from_extent(canvas_extent, source_crs)
+
     @pyqtSlot()
     def aoi_from_active_layer_extent(self):
         """Return active map layer extent as geojson transformed to EPSG:4326"""
@@ -552,8 +607,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             log.debug("Active map layer invalid, skipping AOI extent")
             return
 
+        source_crs = map_layer.crs()
+
         transform = QgsCoordinateTransform(
-            map_layer.crs(),
+            source_crs,
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
@@ -575,13 +632,16 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.zoom_to_aoi()
 
+        self.calculate_area_from_extent(ml_extent, source_crs)
+
     @pyqtSlot()
     def aoi_from_full_extent(self):
         """Return full data map extent as geojson transformed to EPSG:4326"""
         canvas = iface.mapCanvas()
+        source_crs = QgsProject.instance().crs()
 
         transform = QgsCoordinateTransform(
-            QgsProject.instance().crs(),
+            source_crs,
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
@@ -605,6 +665,8 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         log.debug("AOI set to full data extent")
 
         self.zoom_to_aoi()
+
+        self.calculate_area_from_extent(canvas_extent, source_crs)
 
     @pyqtSlot()
     def aoi_from_box(self):
@@ -639,6 +701,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         )
 
         aoi_json = None
+        source_crs = QgsProject.instance().crs()
 
         if isinstance(aoi, QgsRectangle):
             aoi_geom = QgsGeometry().fromRect(aoi)
@@ -646,11 +709,18 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             aoi_geom.transform(transform)
             aoi_json = aoi_geom.asJson(precision=6)
 
+            self.draw_performed = True  # Workaround
+            self.calculate_area_from_extent(aoi, source_crs)
+
         if isinstance(aoi, QgsGeometry):
             self._aoi_box.setToGeometry(aoi)
             # TODO: validate geom is less than 500 vertices
             aoi.transform(transform)
             aoi_json = aoi.asJson(precision=6)
+
+            self.draw_performed = True  # Workaround
+            bounding_box = aoi.boundingBox()
+            self.calculate_area_from_extent(bounding_box, source_crs)
 
         if aoi_json:
             self.leAOI.setText(aoi_json)
@@ -700,8 +770,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             self.aoi_from_bound()
             return
 
+        source_crs = layer.sourceCrs()
+
         trans_layer = QgsCoordinateTransform(
-            layer.sourceCrs(),
+            source_crs,
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
@@ -721,6 +793,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
         self.zoom_to_aoi()
 
+        bounding_box = geom.boundingBox()
+        self.calculate_area_from_extent(bounding_box, source_crs)
+
     @pyqtSlot()
     def aoi_from_bound(self):
         layer = iface.activeLayer()
@@ -735,9 +810,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             return
 
         bbox = layer.boundingBoxOfSelected()
+        source_crs = layer.sourceCrs()
 
         trans_layer = QgsCoordinateTransform(
-            layer.sourceCrs(),
+            source_crs,
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsProject.instance(),
         )
@@ -758,6 +834,8 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(bbox_canvas))
 
         self.zoom_to_aoi()
+
+        self.calculate_area_from_extent(bbox, source_crs)
 
     def hide_aoi_if_matches_geom(self, geom):
         color = (
@@ -860,6 +938,12 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.leAOI.blockSignals(False)
 
         self.zoom_to_aoi()
+
+        self.coordinates_edit = True
+        bounding_box = geom.boundingBox()
+        self.calculate_area_from_extent(
+            bounding_box, QgsCoordinateReferenceSystem("EPSG:4326")
+        )
 
 
 class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):

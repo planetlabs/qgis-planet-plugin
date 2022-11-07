@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>612</width>
-    <height>85</height>
+    <height>122</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -267,6 +267,16 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lblExtentArea">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>Total AOI area (sqkm): </string>
+        </property>
        </widget>
       </item>
      </layout>
