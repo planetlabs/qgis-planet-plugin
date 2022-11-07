@@ -497,9 +497,7 @@ class PlanetExplorer(object):
         add_menu_section_action("Documentation", info_menu)
 
         terms_act = QAction(QIcon(EXT_LINK), "Terms", info_menu)
-        terms_act.triggered[bool].connect(
-            lambda: open_link_with_browser(PLANET_TERMS)
-        )
+        terms_act.triggered[bool].connect(lambda: open_link_with_browser(PLANET_TERMS))
         info_menu.addAction(terms_act)
 
         btn = QToolButton()
