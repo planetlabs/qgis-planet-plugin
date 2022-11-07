@@ -124,6 +124,7 @@ PLANET_SUPPORT_COMMUNITY = "https://support.planet.com"
 PLANET_EXPLORER = f"{PLANET_COM}/explorer"
 PLANET_INTEGRATIONS = "https://developers.planet.com/tag/integrations.html"
 PLANET_SALES = "https://www.planet.com/contact-sales"
+PLANET_TERMS = "https://www.planet.com/terms-of-use"
 
 EXT_LINK = ":/plugins/planet_explorer/external-link.svg"
 ACCOUNT_URL = f"{BASE_URL}/account"
@@ -495,8 +496,10 @@ class PlanetExplorer(object):
 
         add_menu_section_action("Documentation", info_menu)
 
-        terms_act = QAction("Terms", info_menu)
-        terms_act.triggered[bool].connect(self.show_terms)
+        terms_act = QAction(QIcon(EXT_LINK), "Terms", info_menu)
+        terms_act.triggered[bool].connect(
+            lambda: open_link_with_browser(PLANET_TERMS)
+        )
         info_menu.addAction(terms_act)
 
         btn = QToolButton()
