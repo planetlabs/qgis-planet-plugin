@@ -36,4 +36,3 @@ def classFactory(iface):
     from planet_explorer.pe_plugin import PlanetExplorer
 
     return PlanetExplorer(iface)
-

@@ -51,6 +51,7 @@ from ..pe_utils import (
     iface,
     ENABLE_CLIP_SETTING,
     ENABLE_HARMONIZATION_SETTING,
+    ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
 )
 from ..planet_api.p_client import PlanetClient
@@ -119,7 +120,6 @@ class IconLabel(QWidget):
 
 
 class PlanetOrderBundleWidget(QFrame):
-
     selectionChanged = pyqtSignal()
 
     def __init__(self, bundleid, bundle, item_type):
@@ -130,7 +130,7 @@ class PlanetOrderBundleWidget(QFrame):
         self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
         assets = bundle["assets"]
         self.can_harmonize = (
-            "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
+                "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         )
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
@@ -209,7 +209,6 @@ class PlanetOrderBundleWidget(QFrame):
 
 
 class PlanetOrderItemTypeWidget(QWidget):
-
     selectionChanged = pyqtSignal()
 
     def __init__(self, item_type, images):
@@ -407,7 +406,6 @@ class PlanetOrderItemTypeWidget(QWidget):
 
 
 class ImageReviewWidget(QFrame):
-
     selectedChanged = pyqtSignal()
 
     def __init__(self, image):
@@ -453,7 +451,6 @@ class ImageReviewWidget(QFrame):
 
 
 class PlanetOrderReviewWidget(QWidget):
-
     selectedImagesChanged = pyqtSignal()
 
     def __init__(self, item_type, bundle_type, images, add_clip, add_harmonize):
@@ -590,6 +587,83 @@ class PlanetOrderReviewWidget(QWidget):
         self.updateGeometry()
 
 
+class PlanetOrderReviewMetadataWidget(QWidget):
+
+    stac_metadata_btn_clicked = pyqtSignal()
+
+    def __init__(self, stac_order):
+        super().__init__()
+
+        self.stac_order = QSettings().value(
+                f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+            )
+        self.stac_order = stac_order
+
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+
+        self.btnSTAC = QPushButton()
+        self.btnSTAC.setFlat(True)
+        self.btnSTAC.setText("STAC")
+
+        if self.stac_order:
+            self.btnSTAC.setStyleSheet(
+                "background-color: #074c48; color: white;"
+                "border: 3px solid #4eb4ae;"
+                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+            )
+        else:
+            self.btnSTAC.setStyleSheet(
+                "background-color: none; color: black;"
+                "border: 3px solid #4eb4ae;"
+                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+            )
+        self.btnSTAC.setMinimumHeight(45)
+        self.btnSTAC.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.btnSTAC.setMinimumWidth(250)
+
+        self.btnSTAC.clicked.connect(self._btnSTACClicked)
+
+        titleLabel = QLabel("METADATA")
+        descriptionLabel = QLabel(
+            "STAC metadata provides a standardized format for "
+            "describing geospatial information so that it can "
+            "be more easily worked with in tool like QGIS. "
+        )
+        descriptionLabel.setWordWrap(True)
+
+        gridLayout = QGridLayout()
+
+        gridLayout.setMargin(0)
+        gridLayout.setVerticalSpacing(15)
+        gridLayout.setColumnStretch(0, 1)
+        gridLayout.setColumnStretch(2, 1)
+
+        gridLayout.addWidget(titleLabel, 0, 1, Qt.AlignCenter)
+        gridLayout.addWidget(descriptionLabel, 1, 1, Qt.AlignCenter)
+        gridLayout.addWidget(self.btnSTAC, 2, 1, Qt.AlignCenter)
+
+        layout.addLayout(gridLayout)
+
+        self.setLayout(layout)
+
+    def _btnSTACClicked(self):
+        self.stac_metadata_btn_clicked.emit()
+        self.stac_order = not self.stac_order
+        if self.stac_order:
+            self.btnSTAC.setStyleSheet(
+                "background-color: #074c48; color: white;"
+                "border: 3px solid #4eb4ae;"
+                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+            )
+        else:
+            self.btnSTAC.setStyleSheet(
+                "background-color: none; color: black;"
+                "border: 3px solid #4eb4ae;"
+                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+            )
+
+
 class PlanetOrderSummaryOrderWidget(QWidget):
     def __init__(self, summary):
         super().__init__()
@@ -629,7 +703,6 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
-
     NAME_HIGHLIGHT = "QLabel { color: rgb(175, 0, 0); }"
     PLANET_COLOR_CSS = (
         "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
@@ -657,7 +730,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnSTAC.clicked.connect(self._btnSTACClicked)
         self.btnContinueName.clicked.connect(
             lambda: self.stackedWidget.setCurrentIndex(1)
         )
@@ -674,8 +746,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
-
-        self.stac_order = False
+        self.stac_order = QSettings().value(
+                f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+            )
 
         images_dict = defaultdict(list)
         # thumbnails_dict = defaultdict(list)
@@ -708,6 +781,12 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._nameChanged()
 
         self.selectionChanged()
+
+    def _btnSTACClicked(self):
+        self.stac_order = not self.stac_order
+        QSettings().setValue(
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", self.stac_order
+        )
 
     def _pageLabelClicked(self, url):
         page = int(url)
@@ -743,9 +822,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.stackedWidget.setEnabled(True)
         self.btnPlaceOrder.setEnabled(True)
 
-    def _btnSTACClicked(self):
-        self.stac_order = not self.stac_order
-
     def selectionChanged(self):
         self.update_review_items()
         self.update_summary_items()
@@ -770,7 +846,13 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                     first = False
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)
+
+        metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
+        metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
+        layout.addWidget(metadata_widget)
+
         layout.addStretch()
+
         scrollWidget.setLayout(layout)
         self.scrollAreaReview.setWidget(scrollWidget)
 
