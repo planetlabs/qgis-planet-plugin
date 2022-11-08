@@ -3,7 +3,6 @@ import pytest
 from qgis.core import QgsGeometry, QgsPoint, QgsPointXY, QgsWkbTypes
 from qgis.gui import QgsRubberBand
 from qgis.utils import iface
-from qgis.PyQt import QtCore
 
 from planet_explorer.gui.pe_filters import PlanetAOIFilter
 
