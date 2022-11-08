@@ -1,7 +1,7 @@
 import pytest
 
 from qgis.core import QgsGeometry, QgsPoint, QgsPointXY, QgsWkbTypes
-from qgis.gui import QgsRubberBand
+from qgis.gui import QgsRubberBand, QgsMapCanvas
 from qgis.utils import iface
 
 from planet_explorer.gui.pe_filters import PlanetAOIFilter
@@ -63,7 +63,8 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
 def test_aoi_area_size_calculation(name, polygon, expected_size):
     """Tests the filter for calculating the aoi size in square kilometers"""
     aoi_filter = PlanetAOIFilter()
-    aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+    canvas = iface.mapCanvas() if iface else QgsMapCanvas()
+    aoi_box = QgsRubberBand(canvas, QgsWkbTypes.PolygonGeometry)
 
     geometry = QgsGeometry.fromPolygonXY([polygon])
     aoi_box.setToGeometry(geometry)
