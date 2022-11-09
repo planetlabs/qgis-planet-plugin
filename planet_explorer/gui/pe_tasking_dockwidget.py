@@ -135,7 +135,9 @@ class WarningDialog(QDialog):
     def _link_clicked(self, url):
         if url.toString() == "dashboard":
             analytics_track(SKYSAT_TASK_CREATED)
-            url = f"https://www.planet.com/tasking/orders/new/?geometry={self.pt.asWkt()}"
+            url = (
+                f"https://www.planet.com/tasking/orders/new/?geometry={self.pt.asWkt()}"
+            )
             open_link_with_browser(url)
             self.close()
         else:
