@@ -3,7 +3,7 @@
 Planet Plugin for QGIS
 ===============================
 
-.. image:: https://github.com/volaya/qgis-planet-plugin/workflows/Testing/badge.svg?branch=main
+.. image:: https://github.com/planetlabs/qgis-planet-plugin/actions/workflows/testing.yml/badge.svg?branch=master
 
 Browse, filter, preview and download `Planet Inc <https://www.planet.com/>`_ imagery in QGIS.
 
@@ -12,7 +12,7 @@ Official documentation can be found `here <https://developers.planet.com/integra
 Requirements
 ************
 
-QGIS 3.6 (minimum)
+QGIS 3.10 (minimum)
 
 Development Setup
 *****************
