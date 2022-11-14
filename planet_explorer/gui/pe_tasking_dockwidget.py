@@ -194,8 +194,8 @@ class TaskingDockWidget(BASE, WIDGET):
         self._set_map_tool(False)
         text = f"""
                 <p><b>Selected Point Coordinates</b></p>
-                <p align="center">Latitude : {pt.x():.4f}</p>
-                <p align="center">Longitude : {pt.y():.4f}</p>
+                <p align="center">Latitude : {pt.y():.4f}</p>
+                <p align="center">Longitude : {pt.x():.4f}</p>
                 """
         self.textBrowserPoint.setHtml(text)
         self.btnCancel.setEnabled(True)
