@@ -498,7 +498,12 @@ def datatype_from_mosaic_name(name):
     if client.has_api_key():
         try:
             resp = client.get_mosaic_by_name(name)
-            return resp.get()[Mosaics.ITEM_KEY][0][DATATYPE]
+
+            resp_res = resp.get()
+            resp_list = resp_res[Mosaics.ITEM_KEY] if resp_res is not None else []
+            resp_item = resp_list[0][DATATYPE] if len(resp_list) > 0 else None
+
+            return resp_item
         except APIException:
             raise
             return ""
