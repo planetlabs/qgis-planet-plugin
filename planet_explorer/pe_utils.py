@@ -498,7 +498,12 @@ def datatype_from_mosaic_name(name):
     if client.has_api_key():
         try:
             resp = client.get_mosaic_by_name(name)
-            return resp.get()[Mosaics.ITEM_KEY][0][DATATYPE]
+
+            resp_res = resp.get()
+            resp_list = resp_res[Mosaics.ITEM_KEY] if resp_res is not None else []
+            resp_item = resp_list[0][DATATYPE] if len(resp_list) > 0 else None
+
+            return resp_item
         except APIException:
             raise
             return ""
@@ -546,7 +551,8 @@ def add_widget_to_layer(layer):
             layer.setCustomProperty("embeddedWidgets/count", 1)
             layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
             view = iface.layerTreeView()
-            view.currentNode().setExpanded(True)
+            current_node = view.currentNode()
+            current_node.setExpanded(True) if current_node is not None else None
 
 
 def is_planet_url(url):
