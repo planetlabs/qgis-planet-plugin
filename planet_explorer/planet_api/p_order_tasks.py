@@ -37,7 +37,6 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsTask,
-    QgsContrastEnhancement,
 )
 
 from qgis.PyQt.QtCore import QUrl
