@@ -142,8 +142,6 @@ class OrderProcessorTask(QgsTask):
                 widget.layout().addWidget(button)
                 iface.messageBar().pushWidget(widget, level=Qgis.Success)
             else:
-                for layer in layers:
-                    self.load_layer(layer)
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name()}' correctly downloaded and processed",
@@ -164,93 +162,6 @@ class OrderProcessorTask(QgsTask):
                 level=Qgis.Warning,
                 duration=5,
             )
-
-    def _find_band(self, layer, name, default):
-        """Finds the band number associated with the provided name (e.g. 'blue'),
-        otherwise returns a default value.
-
-        :param layer: Raster layer. Both single band and multiband.
-        :type layer: QgsRasterLayer
-
-        :param name: Band name (e.g. 'blue')
-        :type name: str
-
-        :param default: Default band number to use
-        :type default: int
-
-        :returns: Band number
-        "rtype: int
-        """
-        name = name.lower()
-        for i in range(layer.bandCount()):
-            if name == layer.bandName(i).lower().split(": ")[-1]:
-                return i
-        return default
-
-    def load_layer(self, layer):
-        """Adds the provided QgsRasterLayer to the QGIS map.
-        Rasters with less than 3 bands will be added as
-        a grey scale layer, whereas multiband will be added as True colour RGB.
-
-        :param layer: Raster layer. Both single band and multiband.
-        :type layer: QgsRasterLayer
-        """
-
-        band_cnt = layer.bandCount()
-        if band_cnt < 3:
-
-            # These cases will be skipped for now, but removing this
-            # 'return' will add non-udm singleband layers again
-            return
-
-            # Rasters with less than 3 bands will be added as single band
-            r = layer.renderer().clone()
-            r.setGrayBand(1)
-
-            used_bands = r.usesBands()
-            typ = layer.renderer().dataType(1)
-            enhancement = QgsContrastEnhancement(typ)
-            enhancement.setContrastEnhancementAlgorithm(
-                QgsContrastEnhancement.StretchToMinimumMaximum, True
-            )
-            band_min, band_max = layer.dataProvider().cumulativeCut(
-                used_bands[0], 0.02, 0.98, sampleSize=10000
-            )
-            enhancement.setMinimumValue(band_min)
-            enhancement.setMaximumValue(band_max)
-            r.setContrastEnhancement(enhancement)
-
-            layer.setRenderer(r)
-            QgsProject.instance().addMapLayer(layer)
-        else:
-            # RGB image for 3 or more bands
-            r = layer.renderer().clone()
-            r.setBlueBand(self._find_band(layer, "blue", 1))
-            r.setGreenBand(self._find_band(layer, "green", 2))
-            r.setRedBand(self._find_band(layer, "red", 3))
-
-            used_bands = r.usesBands()
-            # Bands will only be set for blue, green and red
-            for b in range(3):
-                typ = layer.renderer().dataType(b)
-                enhancement = QgsContrastEnhancement(typ)
-                enhancement.setContrastEnhancementAlgorithm(
-                    QgsContrastEnhancement.StretchToMinimumMaximum, True
-                )
-                band_min, band_max = layer.dataProvider().cumulativeCut(
-                    used_bands[b], 0.02, 0.98, sampleSize=10000
-                )
-                enhancement.setMinimumValue(band_min)
-                enhancement.setMaximumValue(band_max)
-                if b == 0:
-                    r.setRedContrastEnhancement(enhancement)
-                elif b == 1:
-                    r.setGreenContrastEnhancement(enhancement)
-                elif b == 2:
-                    r.setBlueContrastEnhancement(enhancement)
-
-            layer.setRenderer(r)
-            QgsProject.instance().addMapLayer(layer)
 
 
 class QuadsOrderProcessorTask(QgsTask):
