@@ -127,6 +127,11 @@ def test_order_scene(
         qtbot.mouseClick(order_dialog.btnContinueAssets, QtCore.Qt.LeftButton)
         qgis_debug_wait(qtbot, qgis_debug_enabled)
 
+        # check STAC button state
+        assert not order_dialog.stac_order
+        qtbot.mouseClick(order_dialog.btnSTAC, QtCore.Qt.LeftButton)
+        assert order_dialog.stac_order
+
         # review page and place the order. note we only actually place the order
         # on the latest version of QGIS to keep the total number of orders down.
         if qgis_version > 32600:
