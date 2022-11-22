@@ -128,9 +128,9 @@ def test_order_scene(
         qgis_debug_wait(qtbot, qgis_debug_enabled)
 
         # check STAC button state
-        assert not order_dialog.stac_order
-        qtbot.mouseClick(order_dialog.btnSTAC, QtCore.Qt.LeftButton)
-        assert order_dialog.stac_order
+        stac_order = order_dialog.stac_order
+        qtbot.mouseClick(order_dialog.metadata_widget.btnSTAC, QtCore.Qt.LeftButton)
+        assert order_dialog.stac_order != stac_order
 
         # review page and place the order. note we only actually place the order
         # on the latest version of QGIS to keep the total number of orders down.
@@ -146,12 +146,24 @@ def test_order_scene(
     if qgis_version > 32600:
         order_monitor = order_monitor_widget(dock_widget)
         order_names = []
+        orders = []
         for index in range(order_monitor.listOrders.count()):
             item = order_monitor.listOrders.item(index)
             item_widget = order_monitor.listOrders.itemWidget(item)
+            orders.append(item_widget.order)
             if isinstance(item_widget.order, OrderWrapper):
                 order_names.append(item_widget.order.order["name"])
 
         assert any(
             order_name in o_name for o_name in order_names
         ), f"New order not present in orders list: {order_names}"
+
+        order_metadata = [order.metadata() for order in orders]
+        stac_metadata = {
+            "stac": {}
+        }
+
+        if order_dialog.stac_order:
+            assert stac_metadata in order_metadata
+        else:
+            assert stac_metadata not in order_metadata

@@ -61,6 +61,7 @@ PRODUCT_BUNDLE = "product_bundle"
 STATE = "state"
 DELIVERY = "delivery"
 ARCHIVE_TYPE = "archive_type"
+METADATA = "metadata"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -170,6 +171,9 @@ class OrderWrapper:
 
     def state(self):
         return self.order.get(STATE)
+
+    def metadata(self):
+        return self.order.get(METADATA)
 
     def download_folder(self):
         return os.path.join(orders_download_folder(), "daily", self.id())

@@ -589,6 +589,14 @@ class PlanetOrderReviewWidget(QWidget):
 
 class PlanetOrderReviewMetadataWidget(QWidget):
 
+    STAC_ENABLED_ORDER_CSS = "QPushButton { background-color: #074c48; color: white;"\
+                             "border: 3px solid #4eb4ae;"\
+                             "padding: 3px 5px 2px 5px; border-radius: 3px; }"
+
+    STAC_DISABLED_ORDER_CSS = "QPushButton { background-color: none; color: black;"\
+                              "border: 3px solid #4eb4ae;"\
+                              "padding: 3px 5px 2px 5px; border-radius: 3px; }"
+
     stac_metadata_btn_clicked = pyqtSignal()
 
     def __init__(self, stac_order):
@@ -608,15 +616,11 @@ class PlanetOrderReviewMetadataWidget(QWidget):
 
         if self.stac_order:
             self.btnSTAC.setStyleSheet(
-                "background-color: #074c48; color: white;"
-                "border: 3px solid #4eb4ae;"
-                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+                self.STAC_ENABLED_ORDER_CSS
             )
         else:
             self.btnSTAC.setStyleSheet(
-                "background-color: none; color: black;"
-                "border: 3px solid #4eb4ae;"
-                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+                self.STAC_DISABLED_ORDER_CSS
             )
         self.btnSTAC.setMinimumHeight(45)
         self.btnSTAC.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -652,15 +656,11 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         self.stac_order = not self.stac_order
         if self.stac_order:
             self.btnSTAC.setStyleSheet(
-                "background-color: #074c48; color: white;"
-                "border: 3px solid #4eb4ae;"
-                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+                self.STAC_ENABLED_ORDER_CSS
             )
         else:
             self.btnSTAC.setStyleSheet(
-                "background-color: none; color: black;"
-                "border: 3px solid #4eb4ae;"
-                "padding: 3px 5px 2px 5px; border-radius: 3px;"
+                self.STAC_DISABLED_ORDER_CSS
             )
 
 
@@ -849,6 +849,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
+        self.metadata_widget = metadata_widget
         layout.addWidget(metadata_widget)
 
         layout.addStretch()
