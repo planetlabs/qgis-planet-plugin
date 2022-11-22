@@ -1,6 +1,6 @@
 import pytest
 
-from PyQt5.QtWidgets import QPushButton
+from qgis.PyQt.QtWidgets import QPushButton
 from qgis.PyQt import QtCore
 from planet_explorer.gui.pe_orders import PlanetOrdersDialog
 from planet_explorer.gui.pe_orders_monitor_dockwidget import OrderWrapper

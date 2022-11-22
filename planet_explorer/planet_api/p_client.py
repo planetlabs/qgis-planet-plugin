@@ -32,7 +32,7 @@ from typing import (
     List,
 )
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
+from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
 from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
 
 

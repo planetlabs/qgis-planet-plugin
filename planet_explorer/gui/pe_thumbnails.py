@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
 from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QImage, QPainter, QPixmap
