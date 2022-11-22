@@ -33,7 +33,13 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsProject
+from qgis.core import (
+    Qgis,
+    QgsLayerTreeGroup,
+    QgsLayerTreeLayer,
+    QgsMessageLog,
+    QgsProject,
+)
 from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 
 from ..pe_utils import (
@@ -42,6 +48,7 @@ from ..pe_utils import (
     PLANET_MOSAIC_PROC,
     PLANET_MOSAIC_RAMP,
     PLANET_MOSAICS,
+    QGIS_LOG_SECTION_NAME,
     WIDGET_PROVIDER_NAME,
     datatype_from_mosaic_name,
     is_planet_url,
@@ -393,8 +400,7 @@ class BasemapLayerWidget(QWidget):
             self.ensure_correct_size()
         except RuntimeError as error:
             QgsMessageLog.logMessage(
-                f"Problem changing source"
-                f" {error}",
+                f"Problem changing source" f" {error}",
                 QGIS_LOG_SECTION_NAME,
                 Qgis.Info,
             )
