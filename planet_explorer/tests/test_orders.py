@@ -159,9 +159,7 @@ def test_order_scene(
         ), f"New order not present in orders list: {order_names}"
 
         order_metadata = [order.metadata() for order in orders]
-        stac_metadata = {
-            "stac": {}
-        }
+        stac_metadata = {"stac": {}}
 
         if order_dialog.stac_order:
             assert stac_metadata in order_metadata
