@@ -33,7 +33,13 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsProject
+from qgis.core import (
+    Qgis,
+    QgsLayerTreeGroup,
+    QgsLayerTreeLayer,
+    QgsMessageLog,
+    QgsProject,
+)
 from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 
 from ..pe_utils import (
@@ -42,6 +48,7 @@ from ..pe_utils import (
     PLANET_MOSAIC_PROC,
     PLANET_MOSAIC_RAMP,
     PLANET_MOSAICS,
+    QGIS_LOG_SECTION_NAME,
     WIDGET_PROVIDER_NAME,
     datatype_from_mosaic_name,
     is_planet_url,
@@ -351,45 +358,52 @@ class BasemapLayerWidget(QWidget):
             self.change_source()
 
     def change_source(self):
-        has_api_key = PlanetClient.getInstance().has_api_key()
-        self.labelWarning.setVisible(not has_api_key)
-        self.renderingOptionsWidget.setVisible(has_api_key)
-        if len(self.mosaics) > 1:
-            self.labelId.setVisible(has_api_key)
-            self.labelName.setVisible(has_api_key)
-            self.slider.setVisible(has_api_key)
-            value = self.slider.value() if len(self.mosaics) > 1 else 0
-            name, mosaicid = self.mosaics[value]
-            tile_url = TILE_URL_TEMPLATE % (
-                mosaicid,
-                str(PlanetClient.getInstance().api_key()),
+        try:
+            has_api_key = PlanetClient.getInstance().has_api_key()
+            self.labelWarning.setVisible(not has_api_key)
+            self.renderingOptionsWidget.setVisible(has_api_key)
+            if len(self.mosaics) > 1:
+                self.labelId.setVisible(has_api_key)
+                self.labelName.setVisible(has_api_key)
+                self.slider.setVisible(has_api_key)
+                value = self.slider.value() if len(self.mosaics) > 1 else 0
+                name, mosaicid = self.mosaics[value]
+                tile_url = TILE_URL_TEMPLATE % (
+                    mosaicid,
+                    str(PlanetClient.getInstance().api_key()),
+                )
+                self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
+            else:
+                tile_url = (
+                    f"{self.layerurl}/"
+                    f"{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
+                )
+            proc = self.renderingOptionsWidget.process()
+            ramp = self.renderingOptionsWidget.ramp()
+            procparam = quote(f"&proc={proc}") if proc != "default" else ""
+            rampparam = quote(f"&color={ramp}") if ramp else ""
+            tokens = self.layer.source().split("&")
+            zoom = []
+            for token in tokens:
+                if token.startswith("zmin="):
+                    zoom.append(token)
+                if token.startswith("zmax="):
+                    zoom.append(token)
+            szoom = f"&{'&'.join(zoom)}" if zoom else ""
+            uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
+            provider = self.layer.dataProvider()
+            if provider is not None:
+                provider.setDataSourceUri(uri)
+                self.layer.triggerRepaint()
+            self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
+            self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
+            self.ensure_correct_size()
+        except RuntimeError as error:
+            QgsMessageLog.logMessage(
+                f"Problem changing source" f" {error}",
+                QGIS_LOG_SECTION_NAME,
+                Qgis.Info,
             )
-            self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
-        else:
-            tile_url = (
-                f"{self.layerurl}/"
-                f"{quote(f'&api_key={PlanetClient.getInstance().api_key()}')}"
-            )
-        proc = self.renderingOptionsWidget.process()
-        ramp = self.renderingOptionsWidget.ramp()
-        procparam = quote(f"&proc={proc}") if proc != "default" else ""
-        rampparam = quote(f"&color={ramp}") if ramp else ""
-        tokens = self.layer.source().split("&")
-        zoom = []
-        for token in tokens:
-            if token.startswith("zmin="):
-                zoom.append(token)
-            if token.startswith("zmax="):
-                zoom.append(token)
-        szoom = f"&{'&'.join(zoom)}" if zoom else ""
-        uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
-        provider = self.layer.dataProvider()
-        if provider is not None:
-            provider.setDataSourceUri(uri)
-            self.layer.triggerRepaint()
-        self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
-        self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
-        self.ensure_correct_size()
 
     def login_changed(self):
         if not bool(self.datatype):
