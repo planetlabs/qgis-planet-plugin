@@ -18,9 +18,9 @@ import json
 import os
 from urllib.parse import quote
 
-from PyQt5.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
+from qgis.PyQt.QtWidgets import (
     QComboBox,
     QFrame,
     QGridLayout,

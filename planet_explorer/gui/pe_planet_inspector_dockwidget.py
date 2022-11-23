@@ -29,7 +29,7 @@ import iso8601
 import mercantile
 from planet.api.filters import build_search_request, string_filter
 from planet.api.models import Mosaics
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,

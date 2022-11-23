@@ -23,10 +23,10 @@ __revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
+from qgis.PyQt import QtCore
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QPixmap
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QFrame,
     QHBoxLayout,

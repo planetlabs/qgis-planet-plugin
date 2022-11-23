@@ -28,11 +28,11 @@ import os
 
 from planet.api.exceptions import InvalidAPIKey
 from planet.api.models import MosaicQuads, Mosaics
-from PyQt5 import QtCore
-from PyQt5.QtCore import QObject, QThread, QUrl, pyqtSignal
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtWidgets import QApplication, QMessageBox, QVBoxLayout
+from qgis.PyQt import QtCore
+from qgis.PyQt.QtCore import QObject, QThread, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QImage, QPixmap
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from qgis.PyQt.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
 from qgis.PyQt import uic
 
