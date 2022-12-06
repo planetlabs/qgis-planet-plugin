@@ -406,18 +406,20 @@ class OrderItemWidget(QWidget):
         The data needs to be downloaded.
         """
 
-        # Order name is usually "OrderName_" followed by the sensor (e.g. SkySat)
-        # For the QGIS plugin the output folder should be "OrderName_QGIS"
-        order_name_split = self.order.name().split("_")
-        folder_prefix = order_name_split[0]
-        #  List which excludes the first and last elements
-        order_names = order_name_split[1 : len(order_name_split) - 1]
-        for prefix in order_names:
-            # Adds each prefix
-            folder_prefix = "{}_{}".format(folder_prefix, prefix)
+        # Gets the folder name in the root folder to access the manifest.json file
+        # There should always be only one folder, so this will be the selected folder
+        # All files will be ignored
+        final_path = None
+        root = self.order.download_folder()
+        dir_contents = os.listdir(root)
+        for content in dir_contents:
+            full_path = os.path.join(root, content)
+            if os.path.isdir(full_path):
+                final_path = full_path
+                break
 
-        manifest_dir = "{}/{}_QGIS/{}".format(
-            self.order.download_folder(), folder_prefix, "manifest.json"
+        manifest_dir = "{}/{}".format(
+            final_path, "manifest.json"
         )
 
         if os.path.exists(manifest_dir):
@@ -438,8 +440,8 @@ class OrderItemWidget(QWidget):
                         continue
 
                     image_path = json_file["path"]
-                    image_dir = "{}/{}_QGIS/{}".format(
-                        self.order.download_folder(), folder_prefix, image_path
+                    image_dir = "{}//{}".format(
+                        final_path, image_path
                     )
 
                     if os.path.exists(image_dir):
