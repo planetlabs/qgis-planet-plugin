@@ -192,6 +192,7 @@ class BasemapsWidget(BASE, WIDGET):
 
     def reset(self):
         self._initialized = False
+        self._series = None
 
     def batch_select_mosaics_clicked(self, url="all"):
         checked = url == "all"
