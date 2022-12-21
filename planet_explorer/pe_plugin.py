@@ -456,7 +456,7 @@ class PlanetExplorer(object):
         self.provider.updateLayerWidgets()
         try:
             self.enable_buttons(loggedin)
-        except RuntimeError as error:
+        except RuntimeError:
             pass
 
         if not loggedin:
