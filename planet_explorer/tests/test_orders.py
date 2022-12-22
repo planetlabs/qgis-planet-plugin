@@ -5,6 +5,7 @@ from qgis.PyQt import QtCore
 from planet_explorer.gui.pe_orders import PlanetOrdersDialog
 from planet_explorer.gui.pe_orders_monitor_dockwidget import OrderWrapper
 from planet_explorer.tests.utils import get_random_string
+from planet_explorer.planet_api.p_quad_orders import QuadOrder
 
 
 from planet_explorer.tests.utils import qgis_debug_wait
@@ -158,7 +159,11 @@ def test_order_scene(
             order_name in o_name for o_name in order_names
         ), f"New order not present in orders list: {order_names}"
 
-        order_metadata = [order.metadata() for order in orders]
+        # Check for all order metadata except QuadOrder orders
+        order_metadata = [
+            order.metadata() if not isinstance(order, QuadOrder) else None
+            for order in orders
+        ]
         stac_metadata = {"stac": {}}
 
         if order_dialog.stac_order:
