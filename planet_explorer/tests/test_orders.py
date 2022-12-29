@@ -1,13 +1,17 @@
+import os
+import shutil
 import pytest
 
 from PyQt5.QtWidgets import QPushButton
 from qgis.PyQt import QtCore
+from qgis.core import QgsProject
 from planet_explorer.gui.pe_orders import PlanetOrdersDialog
 from planet_explorer.gui.pe_orders_monitor_dockwidget import OrderWrapper
 from planet_explorer.tests.utils import get_random_string
 
 
 from planet_explorer.tests.utils import qgis_debug_wait
+from ..pe_utils import orders_download_folder
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
@@ -97,6 +101,75 @@ def test_order_download(
         # TODO: better workaround?
         order_item_widget.download(is_unit_test=True)
         qtbot.waitUntil(order_item.order.downloaded, timeout=60 * 1000)
+
+
+def test_order_add_to_map(
+    qtbot,
+    logged_in_explorer_dock_widget,
+    qgis_debug_enabled,
+    order_monitor_widget,
+    qgis_version,
+):
+    """This test is performed on the 'Add to map' button of the orders monitor widget. An image is copied from the
+    plugin directory/repo to the Planet orders directory. This directory stores the downloaded orders. The widget
+    of a particular download is initilalized and added to the QGIS canvas instance. If the image could not be added,
+    the test will fail. If the image cannot be found in the map layers list of the canvas after adding the image,
+    the test will also fail.
+    """
+    dock_widget = logged_in_explorer_dock_widget()
+    order_monitor = order_monitor_widget(dock_widget)
+    dock_widget.hide()
+
+    # The test data for this function is stored here: planet_explorer/tests/Data/test_add_to_map
+    image_id = '5c9e6c59-eb35-485d-ab7d-04a75e9e0f14'  # Planet order ID
+    image_name = '20221221_084022_18_2414_3B_AnalyticMS_SR.tif'  # Raster name
+    daily_imagery_dir = '/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders/' + image_id
+    orders_folder = orders_download_folder() + '/daily'
+    copy_folder = orders_folder + '/' + image_id
+
+    if not os.path.exists(copy_folder):
+        # Copies the test data to the orders folder use
+        shutil.copytree(daily_imagery_dir, copy_folder)
+    else:
+        # The test data is missing
+        assert False
+
+    count = order_monitor.listOrders.count()
+    found = False
+    i = 0
+    while i < count:
+        # Loops through each of the layers stored in the QGIS instance
+        # This is done to ensure the correct order is used for the test, as other tests might
+        # also add to the orders list
+        item = order_monitor.listOrders.item(i)
+        item_order = item.order
+        item_id = item_order.id()
+        if item_id == image_id:
+            # Add to map test data found
+            item_widget = order_monitor.listOrders.itemWidget(item)
+            success = item_widget.add_to_map()
+
+            if not success:
+                # Could not add the image to the QGIS canvas
+                # Either the manifest or the image could not be found
+                assert False
+
+            map_layers = QgsProject.instance().mapLayers()
+            keys = map_layers.keys()
+            for key in keys:
+                # Checks each of the layers in the QGIS instance
+                # Using this approach as other tests might also add layers to the canvas
+                layer = map_layers.get(key)
+                layer_name = layer.name()
+                if image_name in layer_name:
+                    # The image has been found in the QGIS instance, and therefore added successfully
+                    found = True
+            break
+
+        i = i + 1
+
+    # True if found, otherwise False
+    assert found
 
 
 def test_order_scene(
