@@ -228,6 +228,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
         else:
             self._set_credential_fields()
             self.switch_to_login_panel()
+            self.basemaps_widget.reset()
 
     @pyqtSlot()
     def switch_to_login_panel(self):
