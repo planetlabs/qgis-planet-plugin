@@ -488,13 +488,17 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         if not layer.isValid():
             self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
         else:
-            feature = next(layer.getFeatures(), None)
-            if feature is None:
+            feature_count = layer.featureCount()
+            if feature_count == 0:
                 self._show_message(
                     "Layer contains no features", level=Qgis.Warning, duration=10
                 )
             else:
-                geom = feature.geometry()
+                # The layer bounding box will be used to include all features
+                layer.selectAll()
+                bounding_box = layer.boundingBoxOfSelected()
+                bb_polygon = bounding_box.asWktPolygon()
+                geom = QgsGeometry().fromWkt(bb_polygon)
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
