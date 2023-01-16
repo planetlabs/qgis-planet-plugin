@@ -1,11 +1,16 @@
+import os
+
 import pytest
 import datetime
+import json
 
 from qgis.PyQt import QtCore
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsVectorLayer
+from qgis.utils import iface
 
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
+from planet_explorer.gui.pe_filters import PlanetAOIFilter
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
@@ -26,6 +31,7 @@ SPECTRAL_BAND_CHECKBOXES = {"4Band": "chkNIR", "8Band": "chkYellow"}
 
 INSTRUMENT_CHECKBOXES = {"PS2": "chkPs2", "PS2.SD": "chkPs2Sd", "PSB.SD": "chkPsbSd"}
 
+ALLOWED_GEOMS = ["Polygon", "MultiPolygon"]
 
 def test_search_default_filter(
     qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
@@ -391,3 +397,321 @@ def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enab
     qtbot.keyClicks(dock_widget._aoi_filter.leAOI, "wrong AOI")
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
+
+
+@pytest.mark.parametrize(
+    "name, layer_dir, expected_coordinates",
+    [
+        pytest.param(
+            "polygons",
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            [[[[18.688858, -33.840948],
+               [18.634939, -33.96754],
+               [19.047537, -34.089444],
+               [19.244459, -33.681535],
+               [18.672448, -33.636993],
+               [18.290326, -33.644026],
+               [18.24344, -33.777651],
+               [18.688858, -33.840948]]],
+             [[[17.812478, -33.460602],
+               [17.721783, -33.629738],
+               [17.898272, -33.740044],
+               [18.089469, -33.521883],
+               [17.969358, -33.404224],
+               [17.812478, -33.460602]]],
+             [[[19.508736, -34.058705],
+               [19.39843, -34.191072],
+               [19.572469, -34.257255],
+               [19.648457, -34.021936],
+               [19.552859, -33.769459],
+               [19.508736, -34.058705]]]],
+        ),
+        pytest.param(
+            "multipolygons",
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            [[[[19.854093, -32.914008],
+               [19.115666, -33.119873],
+               [19.804865, -33.36154],
+               [20.400082, -33.00799],
+               [20.042057, -32.694718],
+               [19.854093, -32.914008]]],
+             [[[18.063967, -32.824502],
+               [17.996837, -33.173577],
+               [18.390665, -33.231756],
+               [18.592054, -32.846879],
+               [18.242979, -32.694718],
+               [18.063967, -32.824502]]],
+             [[[19.795914, -33.603207],
+               [19.80039, -33.777745],
+               [20.149464, -33.840399],
+               [20.221069, -33.459997],
+               [19.921223, -33.406293],
+               [19.795914, -33.603207]]],
+             [[[18.784493, -33.204904],
+               [18.650233, -33.406293],
+               [19.053012, -33.603207],
+               [19.563198, -33.580831],
+               [19.267827, -33.272034],
+               [18.829246, -33.066169],
+               [18.784493, -33.204904]]],
+             [[[18.866631, -32.117031],
+               [18.615466, -32.368195],
+               [19.083323, -32.535639],
+               [19.309864, -32.117031],
+               [19.093172, -31.924963],
+               [18.866631, -32.117031]]],
+             [[[19.565953, -32.107181],
+               [19.462532, -32.328797],
+               [20.102757, -32.491316],
+               [20.112606, -31.979136],
+               [19.738321, -31.905264],
+               [19.565953, -32.107181]]]],
+        ),
+    ],
+)
+def test_aoi_from_layer(name, layer_dir, expected_coordinates):
+    """Tests the filter for the AOI read from an input vector layer.
+    AOI calculated from each polygon.
+    """
+    aoi_filter = PlanetAOIFilter()
+    layer = QgsVectorLayer(layer_dir, "")
+
+    # Determines the extent
+    aoi_filter.aoi_from_layer(layer)
+
+    extent = aoi_filter.leAOI.text()
+    extent_json = json.loads(extent)
+    geom_type = extent_json.get("type")
+    coords = extent_json.get("coordinates")
+    if geom_type not in ALLOWED_GEOMS:
+        assert False
+
+    assert coords == expected_coordinates
+
+
+@pytest.mark.parametrize(
+    "layer_dir, expected_coordinates",
+    [
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            [[[17.721783, -34.257255],
+              [19.648457, -34.257255],
+              [19.648457, -33.404224],
+              [17.721783, -33.404224],
+              [17.721783, -34.257255]
+              ]],
+        ),
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            [[[17.996837, -33.840399],
+              [20.400082, -33.840399],
+              [20.400082, -31.905264],
+              [17.996837, -31.905264],
+              [17.996837, -33.840399]]],
+        ),
+    ],
+)
+def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
+    """Tests the filter for the AOI read from an input vector layer.
+    AOI calculated from a bounding box covering all features.
+    """
+    aoi_filter = PlanetAOIFilter()
+    layer = QgsVectorLayer(layer_dir, "")
+
+    # Determines the extent
+    aoi_filter.aoi_bb_from_layer(layer)
+
+    extent = aoi_filter.leAOI.text()
+    extent_json = json.loads(extent)
+    geom_type = extent_json.get("type")
+    coords = extent_json.get("coordinates")
+
+    if geom_type not in ALLOWED_GEOMS:
+        assert False
+
+    assert coords == expected_coordinates
+
+
+@pytest.mark.parametrize(
+    "layer_dir, expected_coordinates, perform_selection",
+    [
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            [[[18.688858, -33.840948],
+              [18.634939, -33.96754],
+              [19.047537, -34.089444],
+              [19.244459, -33.681535],
+              [18.672448, -33.636993],
+              [18.290326, -33.644026],
+              [18.24344, -33.777651],
+              [18.688858, -33.840948]]],
+            True
+        ),
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            [[[[18.688858, -33.840948],
+               [18.634939, -33.96754],
+               [19.047537, -34.089444],
+               [19.244459, -33.681535],
+               [18.672448, -33.636993],
+               [18.290326, -33.644026],
+               [18.24344, -33.777651],
+               [18.688858, -33.840948]]],
+             [[[17.812478, -33.460602],
+               [17.721783, -33.629738],
+               [17.898272, -33.740044],
+               [18.089469, -33.521883],
+               [17.969358, -33.404224],
+               [17.812478, -33.460602]]],
+             [[[19.508736, -34.058705],
+               [19.39843, -34.191072],
+               [19.572469, -34.257255],
+               [19.648457, -34.021936],
+               [19.552859, -33.769459],
+               [19.508736, -34.058705]]]],
+            False
+        ),
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            [[[[19.854093, -32.914008],
+               [19.115666, -33.119873],
+               [19.804865, -33.36154],
+               [20.400082, -33.00799],
+               [20.042057, -32.694718],
+               [19.854093, -32.914008]]],
+             [[[18.063967, -32.824502],
+               [17.996837, -33.173577],
+               [18.390665, -33.231756],
+               [18.592054, -32.846879],
+               [18.242979, -32.694718],
+               [18.063967, -32.824502]]]],
+            True
+        ),
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            [[[[19.854093, -32.914008],
+               [19.115666, -33.119873],
+               [19.804865, -33.36154],
+               [20.400082, -33.00799],
+               [20.042057, -32.694718],
+               [19.854093, -32.914008]]],
+             [[[18.063967, -32.824502],
+               [17.996837, -33.173577],
+               [18.390665, -33.231756],
+               [18.592054, -32.846879],
+               [18.242979, -32.694718],
+               [18.063967, -32.824502]]],
+             [[[19.795914, -33.603207],
+               [19.80039, -33.777745],
+               [20.149464, -33.840399],
+               [20.221069, -33.459997],
+               [19.921223, -33.406293],
+               [19.795914, -33.603207]]],
+             [[[18.784493, -33.204904],
+               [18.650233, -33.406293],
+               [19.053012, -33.603207],
+               [19.563198, -33.580831],
+               [19.267827, -33.272034],
+               [18.829246, -33.066169],
+               [18.784493, -33.204904]]],
+             [[[18.866631, -32.117031],
+               [18.615466, -32.368195],
+               [19.083323, -32.535639],
+               [19.309864, -32.117031],
+               [19.093172, -31.924963],
+               [18.866631, -32.117031]]],
+             [[[19.565953, -32.107181],
+               [19.462532, -32.328797],
+               [20.102757, -32.491316],
+               [20.112606, -31.979136],
+               [19.738321, -31.905264],
+               [19.565953, -32.107181]]]],
+            False
+        ),
+    ],
+)
+def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_selection):
+    """Tests the filter for the AOI read from no selection and a selection on a layer loaded in QGIS.
+    AOI calculated from each polygon.
+    """
+    aoi_filter = PlanetAOIFilter()
+    layer = QgsVectorLayer(layer_dir, "")
+    QgsProject.instance().addMapLayer(layer)
+
+    iface.setActiveLayer(layer)
+    features = layer.getFeatures()
+    feat_count = layer.featureCount()
+
+    if perform_selection:
+        # Only the selected features will be considered, otherwise all features
+        selection_count = int(feat_count/2)
+        test = list(features)[:selection_count]
+        for feat in test:
+            feat_id = feat.id()
+            layer.select(feat_id)
+
+    # Determines the extent
+    aoi_filter.aoi_from_multiple_polygons()
+
+    extent = aoi_filter.leAOI.text()
+    extent_json = json.loads(extent)
+    geom_type = extent_json.get("type")
+    coords = extent_json.get("coordinates")
+
+    # Done using the layer, remove it from the project
+    QgsProject.instance().removeMapLayer(layer.id())
+
+    if geom_type not in ALLOWED_GEOMS:
+        assert False
+
+    assert coords == expected_coordinates
+
+
+@pytest.mark.parametrize(
+    "layer_dir, expected_coordinates",
+    [
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            [[[17.721783, -34.257255],
+              [19.648457, -34.257255],
+              [19.648457, -33.404224],
+              [17.721783, -33.404224],
+              [17.721783, -34.257255]]],
+        ),
+        pytest.param(
+            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            [[[17.996837, -33.840399],
+              [20.400082, -33.840399],
+              [20.400082, -31.905264],
+              [17.996837, -31.905264],
+              [17.996837, -33.840399]]],
+        ),
+    ],
+)
+def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
+    """Tests the filter for the AOI read from on the bounding box of a layer loaded in QGIS.
+    AOI calculated using a bounding box covering all polygons.
+    """
+    aoi_filter = PlanetAOIFilter()
+    layer = QgsVectorLayer(layer_dir, "")
+    QgsProject.instance().addMapLayer(layer)
+
+    iface.setActiveLayer(layer)
+    layer.selectAll()
+
+    # Determines the extent
+    aoi_filter.aoi_from_bound()
+
+    extent = aoi_filter.leAOI.text()
+    extent_json = json.loads(extent)
+    geom_type = extent_json.get("type")
+    coords = extent_json.get("coordinates")
+
+    # Done using the layer, remove it from the project
+    QgsProject.instance().removeMapLayer(layer.id())
+
+    if geom_type not in ALLOWED_GEOMS:
+        assert False
+
+    assert coords == expected_coordinates
+
