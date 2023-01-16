@@ -895,7 +895,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             self.zoom_to_aoi()
             self.show_aoi_area_size()
 
-
     @pyqtSlot()
     def aoi_from_bound(self):
         layer = iface.activeLayer()
