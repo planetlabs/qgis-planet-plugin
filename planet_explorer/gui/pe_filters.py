@@ -431,7 +431,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         selection_menu.addAction(self.single_select_act)
 
         self.multi_polygon_select_act = QAction("Multiple features", selection_menu)
-        self.multi_polygon_select_act.triggered[bool].connect(self.aoi_from_multiple_polygons)
+        self.multi_polygon_select_act.triggered[bool].connect(
+            self.aoi_from_multiple_polygons
+        )
         selection_menu.addAction(self.multi_polygon_select_act)
 
         self.bound_select_act = QAction(
@@ -834,9 +836,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
         if not layer.isValid():
-            self._show_message(
-                "Invalid layer", level=Qgis.Warning, duration=10
-            )
+            self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
             return
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
