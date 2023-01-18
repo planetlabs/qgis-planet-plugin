@@ -476,10 +476,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 # Therefore need to process each layer
                 for subLayer in layer.dataProvider().subLayers():
                     sublayer_name = subLayer.split("!!::!!")[1]
-                    embedded_file = '{}|layername={}'.format(
-                        filename,
-                        sublayer_name
-                    )
+                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
                     embedded_layer = QgsVectorLayer(embedded_file, "")
                     if not embedded_layer.isValid():
                         # Skip invalid layers
@@ -496,7 +493,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     self._show_message(
                         "None of the embedded layers are valid polygons",
                         level=Qgis.Warning,
-                        duration=10
+                        duration=10,
                     )
                     return
                 self.aoi_bb_from_layer(embedded_layers)
@@ -507,7 +504,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     return
                 elif not isinstance(layer, QgsVectorLayer):
                     self._show_message(
-                        "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                        "Active layer must be a vector layer.",
+                        level=Qgis.Warning,
+                        duration=10,
                     )
                     return
                 elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
@@ -535,10 +534,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 # Therefore need to process each layer
                 for subLayer in layer.dataProvider().subLayers():
                     sublayer_name = subLayer.split("!!::!!")[1]
-                    embedded_file = '{}|layername={}'.format(
-                        filename,
-                        sublayer_name
-                    )
+                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
                     embedded_layer = QgsVectorLayer(embedded_file, "")
                     if not embedded_layer.isValid():
                         # Skip invalid layers
@@ -555,7 +551,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     self._show_message(
                         "None of the embedded layers are valid polygons",
                         level=Qgis.Warning,
-                        duration=10
+                        duration=10,
                     )
                     return
                 self.aoi_from_layer(embedded_layers)
@@ -566,7 +562,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     return
                 elif not isinstance(layer, QgsVectorLayer):
                     self._show_message(
-                        "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                        "Active layer must be a vector layer.",
+                        level=Qgis.Warning,
+                        duration=10,
                     )
                     return
                 elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
