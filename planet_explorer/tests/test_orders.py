@@ -111,11 +111,12 @@ def test_order_add_to_map(
     order_monitor_widget,
     qgis_version,
 ):
-    """This test is performed on the 'Add to map' button of the orders monitor widget. An image is copied from the
-    plugin directory/repo to the Planet orders directory. This directory stores the downloaded orders. The widget
-    of a particular download is initilalized and added to the QGIS canvas instance. If the image could not be added,
-    the test will fail. If the image cannot be found in the map layers list of the canvas after adding the image,
-    the test will also fail.
+    """This test is performed on the 'Add to map' button of the orders monitor widget.
+    An image is copied from the plugin directory/repo to the Planet orders directory.
+    This directory stores the downloaded orders. The widget of a particular download is
+    initilalized and added to the QGIS canvas instance. If the image could not be added,
+    the test will fail. If the image cannot be found in the map layers list of the canvas
+    after adding the image, the test will also fail.
     """
     dock_widget = logged_in_explorer_dock_widget()
     order_monitor = order_monitor_widget(dock_widget)
@@ -124,9 +125,10 @@ def test_order_add_to_map(
     # The test data for this function is stored here: planet_explorer/tests/Data/test_add_to_map
     image_id = '5c9e6c59-eb35-485d-ab7d-04a75e9e0f14'  # Planet order ID
     image_name = '20221221_084022_18_2414_3B_AnalyticMS_SR.tif'  # Raster name
-    daily_imagery_dir = '/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders/' + image_id
-    orders_folder = orders_download_folder() + '/daily'
-    copy_folder = orders_folder + '/' + image_id
+    daily_imagery_dir = '/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders/{}'.format(
+        image_id)
+    orders_folder = '{}/daily'.format(orders_download_folder())
+    copy_folder = '{}/{}'.format(orders_folder, image_id)
 
     if not os.path.exists(copy_folder):
         # Copies the test data to the orders folder use
