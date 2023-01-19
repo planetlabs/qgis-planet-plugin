@@ -414,9 +414,7 @@ class OrderItemWidget(QWidget):
                 final_path = full_path
                 break
 
-        manifest_dir = "{}/{}".format(
-            final_path, "manifest.json"
-        )
+        manifest_dir = "{}/{}".format(final_path, "manifest.json")
 
         if os.path.exists(manifest_dir):
             manifest_file = open(manifest_dir)
@@ -436,9 +434,7 @@ class OrderItemWidget(QWidget):
                         continue
 
                     image_path = json_file["path"]
-                    image_dir = "{}/{}".format(
-                        final_path, image_path
-                    )
+                    image_dir = "{}/{}".format(final_path, image_path)
 
                     if os.path.exists(image_dir):
                         layer = QgsRasterLayer(image_dir, os.path.basename(image_dir))
