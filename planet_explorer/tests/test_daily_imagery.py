@@ -1,3 +1,4 @@
+import os
 import pytest
 import datetime
 import json
@@ -30,6 +31,9 @@ SPECTRAL_BAND_CHECKBOXES = {"4Band": "chkNIR", "8Band": "chkYellow"}
 INSTRUMENT_CHECKBOXES = {"PS2": "chkPs2", "PS2.SD": "chkPs2Sd", "PSB.SD": "chkPsbSd"}
 
 ALLOWED_GEOMS = ["Polygon", "MultiPolygon"]
+ABSOLUTE_PATH = os.path.dirname(__file__)
+TEST_POLY = "{}/data/aoi_tests/test_aoi.gpkg".format(ABSOLUTE_PATH)
+TEST_MULTIPOLY = "{}/data/aoi_tests/test_multipoly.gpkg".format(ABSOLUTE_PATH)
 
 
 def test_search_default_filter(
@@ -403,7 +407,7 @@ def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enab
     [
         pytest.param(
             "polygons",
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            TEST_POLY,
             [
                 [
                     [
@@ -441,7 +445,7 @@ def test_search_wrong_aoi(qtbot, logged_in_explorer_dock_widget, qgis_debug_enab
         ),
         pytest.param(
             "multipolygons",
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            TEST_MULTIPOLY,
             [
                 [
                     [
@@ -516,15 +520,14 @@ def test_aoi_from_layer(name, layer_dir, expected_coordinates):
     layer = QgsVectorLayer(layer_dir, "")
 
     # Determines the extent
-    aoi_filter.aoi_from_layer(layer)
+    aoi_filter.aoi_from_layer([layer])
 
     extent = aoi_filter.leAOI.text()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
 
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -532,7 +535,7 @@ def test_aoi_from_layer(name, layer_dir, expected_coordinates):
     "layer_dir, expected_coordinates",
     [
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            TEST_POLY,
             [
                 [
                     [17.721783, -34.257255],
@@ -544,7 +547,7 @@ def test_aoi_from_layer(name, layer_dir, expected_coordinates):
             ],
         ),
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            TEST_MULTIPOLY,
             [
                 [
                     [17.996837, -33.840399],
@@ -565,16 +568,14 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     layer = QgsVectorLayer(layer_dir, "")
 
     # Determines the extent
-    aoi_filter.aoi_bb_from_layer(layer)
+    aoi_filter.aoi_bb_from_layer([layer])
 
     extent = aoi_filter.leAOI.text()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -582,7 +583,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     "layer_dir, expected_coordinates, perform_selection",
     [
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            TEST_POLY,
             [
                 [
                     [18.688858, -33.840948],
@@ -598,7 +599,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
             True,
         ),
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            TEST_POLY,
             [
                 [
                     [
@@ -636,7 +637,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
             False,
         ),
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            TEST_MULTIPOLY,
             [
                 [
                     [
@@ -662,7 +663,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
             True,
         ),
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            TEST_MULTIPOLY,
             [
                 [
                     [
@@ -731,8 +732,8 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     ],
 )
 def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_selection):
-    """Tests the filter for the AOI read from no selection and a selection on a layer loaded in QGIS.
-    AOI calculated from each polygon.
+    """Tests the filter for the AOI read from no selection and a
+    selection on a layer loaded in QGIS. AOI calculated from each polygon.
     """
     aoi_filter = PlanetAOIFilter()
     layer = QgsVectorLayer(layer_dir, "")
@@ -761,9 +762,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     # Done using the layer, remove it from the project
     QgsProject.instance().removeMapLayer(layer.id())
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -771,7 +770,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     "layer_dir, expected_coordinates",
     [
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_aoi.gpkg",
+            TEST_POLY,
             [
                 [
                     [17.721783, -34.257255],
@@ -783,7 +782,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
             ],
         ),
         pytest.param(
-            "/usr/src/planet_explorer/tests/data/aoi_tests/test_multipoly.gpkg",
+            TEST_MULTIPOLY,
             [
                 [
                     [17.996837, -33.840399],
@@ -797,8 +796,8 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     ],
 )
 def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
-    """Tests the filter for the AOI read from on the bounding box of a layer loaded in QGIS.
-    AOI calculated using a bounding box covering all polygons.
+    """Tests the filter for the AOI read from on the bounding box of a layer
+    loaded in QGIS. AOI calculated using a bounding box covering all polygons.
     """
     aoi_filter = PlanetAOIFilter()
     layer = QgsVectorLayer(layer_dir, "")
@@ -818,7 +817,5 @@ def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
     # Done using the layer, remove it from the project
     QgsProject.instance().removeMapLayer(layer.id())
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates

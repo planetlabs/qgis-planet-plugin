@@ -426,18 +426,18 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         selection_menu = QMenu(self)
 
-        self.single_select_act = QAction("Single feature", selection_menu)
-        self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
-        selection_menu.addAction(self.single_select_act)
+        # self.single_select_act = QAction("Single feature", selection_menu)
+        # self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
+        # selection_menu.addAction(self.single_select_act)
 
-        self.multi_polygon_select_act = QAction("Multiple features", selection_menu)
+        self.multi_polygon_select_act = QAction("Selected features", selection_menu)
         self.multi_polygon_select_act.triggered[bool].connect(
             self.aoi_from_multiple_polygons
         )
         selection_menu.addAction(self.multi_polygon_select_act)
 
         self.bound_select_act = QAction(
-            "Multiple features (bounding box)", selection_menu
+            "Selected features (bounding box)", selection_menu
         )
         self.bound_select_act.triggered[bool].connect(self.aoi_from_bound)
         selection_menu.addAction(self.bound_select_act)
@@ -898,62 +898,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
 
-    @pyqtSlot()
-    def aoi_from_feature(self):
-        layer = iface.activeLayer()
-        if not isinstance(layer, QgsVectorLayer):
-            self._show_message(
-                "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
-            )
-            return
-
-        if layer.selectedFeatureCount() > 1:
-            self._show_message(
-                "More than 1 feature. Searching by bbox.",
-                level=Qgis.Warning,
-                duration=10,
-            )
-            self.aoi_from_bound()
-            return
-        elif layer.selectedFeatureCount() < 1:
-            self._show_message("No features selected.", level=Qgis.Warning, duration=10)
-            return
-
-        selected: QgsFeature = layer.selectedFeatures()[0]
-        geom: QgsGeometry = selected.geometry()
-
-        if geom.constGet().vertexCount() > 500:
-            self._show_message(
-                "More than 500 vertices. Searching by bbox.",
-                level=Qgis.Warning,
-                duration=10,
-            )
-            self.aoi_from_bound()
-            return
-
-        trans_layer = QgsCoordinateTransform(
-            layer.sourceCrs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance(),
-        )
-
-        trans_canvas = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance().crs(),
-            QgsProject.instance(),
-        )
-
-        # geom.transform(transform)
-        geom.transform(trans_layer)
-        geom_json = geom.asJson(precision=6)
-        self.leAOI.setText(geom_json)
-
-        geom.transform(trans_canvas)
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
-        self.zoom_to_aoi()
-
-        self.show_aoi_area_size()
-
     def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
         if not layer.isValid():
@@ -1025,11 +969,17 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             )
             return
 
-        if layer.selectedFeatureCount() < 1:
-            self._show_message("No features selected.", level=Qgis.Warning, duration=10)
-            return
+        all_features = False
+        if layer.selectedFeatureCount() == 0:
+            # If no features were selected, all features are considered
+            # Required to do the selection for determining the bounding box
+            layer.selectAll()
+            all_features = True
 
         bbox = layer.boundingBoxOfSelected()
+        if all_features:
+            # Deselect all features for the case when the user had no features selected
+            layer.removeSelection()
 
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
