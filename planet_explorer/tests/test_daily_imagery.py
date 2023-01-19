@@ -732,8 +732,8 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     ],
 )
 def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_selection):
-    """Tests the filter for the AOI read from no selection and a selection on a layer loaded in QGIS.
-    AOI calculated from each polygon.
+    """Tests the filter for the AOI read from no selection and a
+    selection on a layer loaded in QGIS. AOI calculated from each polygon.
     """
     aoi_filter = PlanetAOIFilter()
     layer = QgsVectorLayer(layer_dir, "")
@@ -796,8 +796,8 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     ],
 )
 def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
-    """Tests the filter for the AOI read from on the bounding box of a layer loaded in QGIS.
-    AOI calculated using a bounding box covering all polygons.
+    """Tests the filter for the AOI read from on the bounding box of a layer
+    loaded in QGIS. AOI calculated using a bounding box covering all polygons.
     """
     aoi_filter = PlanetAOIFilter()
     layer = QgsVectorLayer(layer_dir, "")
