@@ -123,12 +123,13 @@ def test_order_add_to_map(
     dock_widget.hide()
 
     # The test data for this function is stored here: planet_explorer/tests/Data/test_add_to_map
-    image_id = '5c9e6c59-eb35-485d-ab7d-04a75e9e0f14'  # Planet order ID
-    image_name = '20221221_084022_18_2414_3B_AnalyticMS_SR.tif'  # Raster name
-    daily_imagery_dir = '/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders/{}'.format(
-        image_id)
-    orders_folder = '{}/daily'.format(orders_download_folder())
-    copy_folder = '{}/{}'.format(orders_folder, image_id)
+    image_id = "5c9e6c59-eb35-485d-ab7d-04a75e9e0f14"  # Planet order ID
+    image_name = "20221221_084022_18_2414_3B_AnalyticMS_SR.tif"  # Raster name
+    daily_imagery_dir = "{}/{}".format(
+        "/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders", image_id
+    )
+    orders_folder = "{}/daily".format(orders_download_folder())
+    copy_folder = "{}/{}".format(orders_folder, image_id)
 
     if not os.path.exists(copy_folder):
         # Copies the test data to the orders folder use
