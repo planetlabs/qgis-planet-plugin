@@ -43,7 +43,6 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCsException,
     QgsDistanceArea,
-    QgsFeature,
     QgsGeometry,
     QgsMapLayer,
     QgsProject,
