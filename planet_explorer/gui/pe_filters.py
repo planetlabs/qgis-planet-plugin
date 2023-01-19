@@ -426,9 +426,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         selection_menu = QMenu(self)
 
-        #self.single_select_act = QAction("Single feature", selection_menu)
-        #self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
-        #selection_menu.addAction(self.single_select_act)
+        # self.single_select_act = QAction("Single feature", selection_menu)
+        # self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
+        # selection_menu.addAction(self.single_select_act)
 
         self.multi_polygon_select_act = QAction("Selected features", selection_menu)
         self.multi_polygon_select_act.triggered[bool].connect(
