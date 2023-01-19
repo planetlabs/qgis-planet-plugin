@@ -165,7 +165,8 @@ def test_order_add_to_map(
                 layer = map_layers.get(key)
                 layer_name = layer.name()
                 if image_name in layer_name:
-                    # The image has been found in the QGIS instance, and therefore added successfully
+                    # The image has been found in the QGIS instance,
+                    # and therefore added successfully
                     found = True
             break
 
