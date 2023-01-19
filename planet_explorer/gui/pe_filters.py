@@ -898,62 +898,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
 
-    # @pyqtSlot()
-    # def aoi_from_feature(self):
-    #     layer = iface.activeLayer()
-    #     if not isinstance(layer, QgsVectorLayer):
-    #         self._show_message(
-    #             "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
-    #         )
-    #         return
-    #
-    #     if layer.selectedFeatureCount() > 1:
-    #         self._show_message(
-    #             "More than 1 feature. Searching by bbox.",
-    #             level=Qgis.Warning,
-    #             duration=10,
-    #         )
-    #         self.aoi_from_bound()
-    #         return
-    #     elif layer.selectedFeatureCount() < 1:
-    #         self._show_message("No features selected.", level=Qgis.Warning, duration=10)
-    #         return
-    #
-    #     selected: QgsFeature = layer.selectedFeatures()[0]
-    #     geom: QgsGeometry = selected.geometry()
-    #
-    #     if geom.constGet().vertexCount() > 500:
-    #         self._show_message(
-    #             "More than 500 vertices. Searching by bbox.",
-    #             level=Qgis.Warning,
-    #             duration=10,
-    #         )
-    #         self.aoi_from_bound()
-    #         return
-    #
-    #     trans_layer = QgsCoordinateTransform(
-    #         layer.sourceCrs(),
-    #         QgsCoordinateReferenceSystem("EPSG:4326"),
-    #         QgsProject.instance(),
-    #     )
-    #
-    #     trans_canvas = QgsCoordinateTransform(
-    #         QgsCoordinateReferenceSystem("EPSG:4326"),
-    #         QgsProject.instance().crs(),
-    #         QgsProject.instance(),
-    #     )
-    #
-    #     # geom.transform(transform)
-    #     geom.transform(trans_layer)
-    #     geom_json = geom.asJson(precision=6)
-    #     self.leAOI.setText(geom_json)
-    #
-    #     geom.transform(trans_canvas)
-    #     self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
-    #     self.zoom_to_aoi()
-    #
-    #     self.show_aoi_area_size()
-
     def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
         if not layer.isValid():

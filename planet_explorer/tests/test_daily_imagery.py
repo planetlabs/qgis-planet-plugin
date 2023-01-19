@@ -522,9 +522,7 @@ def test_aoi_from_layer(name, layer_dir, expected_coordinates):
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -572,9 +570,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -761,9 +757,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     # Done using the layer, remove it from the project
     QgsProject.instance().removeMapLayer(layer.id())
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
 
 
@@ -818,7 +812,5 @@ def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
     # Done using the layer, remove it from the project
     QgsProject.instance().removeMapLayer(layer.id())
 
-    if geom_type not in ALLOWED_GEOMS:
-        assert False
-
+    assert geom_type in ALLOWED_GEOMS
     assert coords == expected_coordinates
