@@ -453,7 +453,9 @@ class ImageReviewWidget(QFrame):
 class PlanetOrderReviewWidget(QWidget):
     selectedImagesChanged = pyqtSignal()
 
-    def __init__(self, item_type, bundle_type, images, add_clip, add_harmonize):
+    def __init__(
+        self, item_type, bundle_type, images, add_clip, add_harmonize, stac_order=False
+    ):
         super().__init__()
 
         self.item_type = item_type
@@ -461,6 +463,7 @@ class PlanetOrderReviewWidget(QWidget):
         self.images = images
         self.add_clip = add_clip
         self.add_harmonize = add_harmonize
+        self.stac_order = stac_order
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -493,6 +496,14 @@ class PlanetOrderReviewWidget(QWidget):
         self.updateGeometry()
 
         self.populate_details()
+
+    def _btnSTACClicked(self):
+        stac_order = QSettings().value(
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
+        )
+        QSettings().setValue(
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", not stac_order
+        )
 
     def populate_details(self):
         self.imgWidgets = []
@@ -533,10 +544,19 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
-        layout.addWidget(QLabel("<b>Review Items</b>"), 6, 1, Qt.AlignCenter)
+
+        metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
+        metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
+        self.metadata_widget = metadata_widget
+
+        layout.addWidget(metadata_widget, 6, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.description_label, 7, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.btnSTAC, 8, 1, Qt.AlignCenter)
+
+        layout.addWidget(QLabel("<b>Review Items</b>"), 9, 1, Qt.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
-            7,
+            10,
             1,
             Qt.AlignCenter,
         )
@@ -550,7 +570,7 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 8, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 11, 1, Qt.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
@@ -607,9 +627,8 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         super().__init__()
 
         self.stac_order = QSettings().value(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", stac_order, type=bool
         )
-        self.stac_order = stac_order
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -617,6 +636,9 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         self.btnSTAC = QPushButton()
         self.btnSTAC.setFlat(True)
         self.btnSTAC.setText("STAC")
+        self.btnSTAC.setToolTip(
+            "Click to enable/disable STAC " "metadata usage in the order."
+        )
 
         if self.stac_order:
             self.btnSTAC.setStyleSheet(self.STAC_ENABLED_ORDER_CSS)
@@ -628,13 +650,12 @@ class PlanetOrderReviewMetadataWidget(QWidget):
 
         self.btnSTAC.clicked.connect(self._btnSTACClicked)
 
-        titleLabel = QLabel("METADATA")
-        descriptionLabel = QLabel(
-            "STAC metadata provides a standardized format for "
+        title_label = QLabel("<b> Metadata </b>")
+        self.description_label = QLabel(
+            "<a href='https://stacspec.org/'>STAC</a> metadata provides a standardized format for "
             "describing geospatial information so that it can "
-            "be more easily worked with in tool like QGIS. "
+            "be more <br> easily worked with in tool like QGIS."
         )
-        descriptionLabel.setWordWrap(True)
 
         gridLayout = QGridLayout()
 
@@ -643,9 +664,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         gridLayout.setColumnStretch(0, 1)
         gridLayout.setColumnStretch(2, 1)
 
-        gridLayout.addWidget(titleLabel, 0, 1, Qt.AlignCenter)
-        gridLayout.addWidget(descriptionLabel, 1, 1, Qt.AlignCenter)
-        gridLayout.addWidget(self.btnSTAC, 2, 1, Qt.AlignCenter)
+        gridLayout.addWidget(title_label, 0, 1, Qt.AlignCenter)
 
         layout.addLayout(gridLayout)
 
@@ -743,7 +762,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
         self.stac_order = QSettings().value(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
         )
 
         images_dict = defaultdict(list)
@@ -777,12 +796,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self._nameChanged()
 
         self.selectionChanged()
-
-    def _btnSTACClicked(self):
-        self.stac_order = not self.stac_order
-        QSettings().setValue(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", self.stac_order
-        )
 
     def _pageLabelClicked(self, url):
         page = int(url)
@@ -834,7 +847,12 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             for bundle in bundles:
                 add_clip = self.tool_resources["aoi"] is not None and bundle["canclip"]
                 w = PlanetOrderReviewWidget(
-                    item_type, bundle["name"], images, add_clip, bundle["canharmonize"]
+                    item_type,
+                    bundle["name"],
+                    images,
+                    add_clip,
+                    bundle["canharmonize"],
+                    self.stac_order,
                 )
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
@@ -842,11 +860,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                     first = False
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)
-
-        metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
-        metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
-        self.metadata_widget = metadata_widget
-        layout.addWidget(metadata_widget)
 
         layout.addStretch()
 
