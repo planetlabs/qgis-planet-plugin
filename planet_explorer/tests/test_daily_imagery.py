@@ -5,7 +5,6 @@ import json
 
 from qgis.PyQt import QtCore
 from qgis.core import QgsProject, QgsVectorLayer
-from qgis.utils import iface
 
 from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
@@ -731,7 +730,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
         ),
     ],
 )
-def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_selection):
+def test_aoi_from_multiple_polygons(qtbot, pe_qgis_iface, layer_dir, expected_coordinates, perform_selection):
     """Tests the filter for the AOI read from no selection and a
     selection on a layer loaded in QGIS. AOI calculated from each polygon.
     """
@@ -739,7 +738,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
     layer = QgsVectorLayer(layer_dir, "")
     QgsProject.instance().addMapLayer(layer)
 
-    iface.setActiveLayer(layer)
+    pe_qgis_iface.setActiveLayer(layer)
     features = layer.getFeatures()
     feat_count = layer.featureCount()
 
@@ -795,7 +794,7 @@ def test_aoi_from_multiple_polygons(layer_dir, expected_coordinates, perform_sel
         ),
     ],
 )
-def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
+def test_bb_aoi_from_multiple_polygons(qtbot, pe_qgis_iface, layer_dir, expected_coordinates):
     """Tests the filter for the AOI read from on the bounding box of a layer
     loaded in QGIS. AOI calculated using a bounding box covering all polygons.
     """
@@ -803,7 +802,7 @@ def test_bb_aoi_from_multiple_polygons(layer_dir, expected_coordinates):
     layer = QgsVectorLayer(layer_dir, "")
     QgsProject.instance().addMapLayer(layer)
 
-    iface.setActiveLayer(layer)
+    pe_qgis_iface.setActiveLayer(layer)
     layer.selectAll()
 
     # Determines the extent
