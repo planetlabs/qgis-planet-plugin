@@ -20,6 +20,9 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
+    - name: Install plugin dependencies
+      run: pip install -r requirements.txt
+
     - name: Setup
       run: |
         pip install paver
