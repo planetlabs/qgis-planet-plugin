@@ -50,7 +50,6 @@ jobs:
         ref: release
     - name: Update custom plugin repository to include latest release
       run: |
-        echo "$(paver generate_plugin_repo_xml)" >> docs/repository/plugins.xml
         paver -v generate_plugin_repo_xml
         echo " " >> docs/repository/plugins.xml 
         git config --global user.name "github-actions[bot]"

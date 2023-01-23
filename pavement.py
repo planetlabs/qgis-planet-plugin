@@ -30,6 +30,7 @@ from configparser import SafeConfigParser
 from io import StringIO
 
 from pathlib import Path
+from dataclasses import dataclass
 import httpx
 
 import datetime as dt
@@ -239,6 +240,8 @@ def _make_zip(zipfile, options):
 
         zipfile.writestr("planet_explorer/pe_utils.py", txt)
 
+
+@dataclass
 class GithubRelease:
     """
     Class for defining plugin releases details.
@@ -266,6 +269,7 @@ def generate_plugin_repo_xml():
     metadata = SafeConfigParser()
     metadata.optionxform = str
     metadata.read(metadata_filename)
+
     fragment_template = """
             <pyqgis_plugin name="{name}" version="{version}">
                 <description><![CDATA[{description}]]></description>
@@ -291,22 +295,22 @@ def generate_plugin_repo_xml():
     for release in [r for r in _get_latest_releases(all_releases) if r is not None]:
         tag_name = release.tag_name
         fragment = fragment_template.format(
-            name=metadata.get("name"),
+            name=metadata.get("general", "name"),
             version=tag_name.replace("v", ""),
-            description=metadata.get("description"),
-            about=metadata.get("about"),
-            qgis_minimum_version=metadata.get("qgisMinimumVersion"),
-            homepage=metadata.get("homepage"),
+            description=metadata.get("general", "description"),
+            about=metadata.get("general", "about"),
+            qgis_minimum_version=metadata.get("general", "qgisMinimumVersion"),
+            homepage=metadata.get("general", "homepage"),
             filename=release.url.rpartition("/")[-1],
-            icon=metadata.get("icon", ""),
-            author=metadata.get("author"),
+            icon=metadata.get("general", "icon"),
+            author=metadata.get("general", "author"),
             download_url=release.url,
             update_date=release.published_at,
             experimental=release.pre_release,
-            deprecated=metadata.get("deprecated"),
-            tracker=metadata.get("tracker"),
-            repository=metadata.get("repository"),
-            tags=metadata.get("tags"),
+            deprecated=metadata.get("general", "deprecated"),
+            tracker=metadata.get("general", "tracker"),
+            repository=metadata.get("general", "repository"),
+            tags=metadata.get("general", "tags"),
         )
         contents = "\n".join((contents, fragment))
     contents = "\n".join((contents, "</plugins>"))
@@ -333,7 +337,7 @@ def _get_existing_releases():
         payload = response.json()
         for release in payload:
             for asset in release["assets"]:
-                if asset.get("content_type") == "application/zip":
+                if '.zip' in asset.get("name"):
                     zip_download_url = asset.get("browser_download_url")
                     break
             else:
