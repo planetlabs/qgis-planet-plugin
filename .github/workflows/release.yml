@@ -40,3 +40,20 @@ jobs:
         allowUpdates: true
         omitNameDuringUpdate: true
         artifacts: "planet_explorer.zip"
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        ref: release
+    - name: Update custom plugin repository to include latest release
+      run: |
+        echo "$(paver generate_plugin_repo_xml)" >> docs/repository/plugins.xml
+        paver -v generate_plugin_repo_xml
+        echo " " >> docs/repository/plugins.xml 
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global --add safe.directory /__w/qgis-planet-plugin/qgis-planet-plugin
+
+        git add -A
+        git commit -m "Update plugins.xml"
+        git push origin release

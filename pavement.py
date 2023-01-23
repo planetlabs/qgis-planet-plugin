@@ -29,6 +29,11 @@ import zipfile
 from configparser import SafeConfigParser
 from io import StringIO
 
+from pathlib import Path
+import httpx
+
+import datetime as dt
+
 from paver.easy import Bunch, cmdopts, error, options, path, task
 
 options(
@@ -233,3 +238,146 @@ def _make_zip(zipfile, options):
         )
 
         zipfile.writestr("planet_explorer/pe_utils.py", txt)
+
+class GithubRelease:
+    """
+    Class for defining plugin releases details.
+    """
+    pre_release: bool
+    tag_name: str
+    url: str
+    published_at: dt.datetime
+
+
+@task
+def generate_plugin_repo_xml():
+    """ Generates the plugin repository xml file, from which users
+        can use to install the plugin in QGIS.
+
+    :param context: Application context
+    :type context: typer.Context
+   """
+    repo_base_dir = Path(__file__).parent.resolve() / "docs" / "repository"
+    repo_base_dir.mkdir(parents=True, exist_ok=True)
+
+    metadata_filename = os.path.join(
+        os.path.dirname(__file__), "planet_explorer", "metadata.txt"
+    )
+    metadata = SafeConfigParser()
+    metadata.optionxform = str
+    metadata.read(metadata_filename)
+    fragment_template = """
+            <pyqgis_plugin name="{name}" version="{version}">
+                <description><![CDATA[{description}]]></description>
+                <about><![CDATA[{about}]]></about>
+                <version>{version}</version>
+                <qgis_minimum_version>{qgis_minimum_version}</qgis_minimum_version>
+                <homepage><![CDATA[{homepage}]]></homepage>
+                <file_name>{filename}</file_name>
+                <icon>{icon}</icon>
+                <author_name><![CDATA[{author}]]></author_name>
+                <download_url>{download_url}</download_url>
+                <update_date>{update_date}</update_date>
+                <experimental>{experimental}</experimental>
+                <deprecated>{deprecated}</deprecated>
+                <tracker><![CDATA[{tracker}]]></tracker>
+                <repository><![CDATA[{repository}]]></repository>
+                <tags><![CDATA[{tags}]]></tags>
+                <server>False</server>
+            </pyqgis_plugin>
+    """.strip()
+    contents = "<?xml version = '1.0' encoding = 'UTF-8'?>\n<plugins>"
+    all_releases = _get_existing_releases()
+    for release in [r for r in _get_latest_releases(all_releases) if r is not None]:
+        tag_name = release.tag_name
+        fragment = fragment_template.format(
+            name=metadata.get("name"),
+            version=tag_name.replace("v", ""),
+            description=metadata.get("description"),
+            about=metadata.get("about"),
+            qgis_minimum_version=metadata.get("qgisMinimumVersion"),
+            homepage=metadata.get("homepage"),
+            filename=release.url.rpartition("/")[-1],
+            icon=metadata.get("icon", ""),
+            author=metadata.get("author"),
+            download_url=release.url,
+            update_date=release.published_at,
+            experimental=release.pre_release,
+            deprecated=metadata.get("deprecated"),
+            tracker=metadata.get("tracker"),
+            repository=metadata.get("repository"),
+            tags=metadata.get("tags"),
+        )
+        contents = "\n".join((contents, fragment))
+    contents = "\n".join((contents, "</plugins>"))
+    repo_index = repo_base_dir / "plugins.xml"
+    repo_index.write_text(contents, encoding="utf-8")
+
+    return contents
+
+
+def _get_existing_releases():
+    """ Gets the existing plugin releases in  available in the Github repository.
+
+    :param context: Application context
+    :type context: typer.Context
+
+    :returns: List of github releases
+    :rtype: List[GithubRelease]
+    """
+    base_url = "https://api.github.com/repos/" \
+               "samweli/qgis-planet-plugin/releases"
+    response = httpx.get(base_url)
+    result = []
+    if response.status_code == 200:
+        payload = response.json()
+        for release in payload:
+            for asset in release["assets"]:
+                if asset.get("content_type") == "application/zip":
+                    zip_download_url = asset.get("browser_download_url")
+                    break
+            else:
+                zip_download_url = None
+            if zip_download_url is not None:
+                result.append(
+                    GithubRelease(
+                        pre_release=release.get("prerelease", True),
+                        tag_name=release.get("tag_name"),
+                        url=zip_download_url,
+                        published_at=dt.datetime.strptime(
+                            release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
+                        ),
+                    )
+                )
+    return result
+
+
+def _get_latest_releases(
+        current_releases
+):
+    """ Searches for the latest plugin releases from the Github plugin releases.
+
+    :param current_releases: Existing plugin releases
+     available in the Github repository.
+    :type current_releases: list
+
+    :returns: Tuple containing the latest stable and experimental releases
+    :rtype: tuple
+    """
+    latest_experimental = None
+    latest_stable = None
+    for release in current_releases:
+        if release.pre_release:
+            if latest_experimental is not None:
+                if release.published_at > latest_experimental.published_at:
+                    latest_experimental = release
+            else:
+                latest_experimental = release
+        else:
+            if latest_stable is not None:
+                if release.published_at > latest_stable.published_at:
+                    latest_stable = release
+            else:
+                latest_stable = release
+    return latest_stable, latest_experimental
+
