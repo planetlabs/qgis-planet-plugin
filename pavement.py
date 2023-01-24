@@ -244,7 +244,7 @@ def _make_zip(zipfile, options):
 @dataclass
 class GithubRelease:
     """
-    Class for defining plugin releases details.
+    Handles plugin releases details.
     """
     pre_release: bool
     tag_name: str
@@ -261,7 +261,6 @@ class GithubRelease:
 def generate_plugin_repo_xml(options):
     """ Generates the plugin repository xml file, from which users
         can use to install the plugin in QGIS.
-
    """
     repo_base_dir = Path(__file__).parent.resolve() / "docs" / "repository"
     repo_base_dir.mkdir(parents=True, exist_ok=True)
@@ -274,12 +273,11 @@ def generate_plugin_repo_xml(options):
     metadata.read(metadata_filename)
 
     if hasattr(options, "version"):
+        version = options.version
         if options.version.startswith("v"):
             version = "".join(
                 c for c in options.package.version if c.isdigit() or c == "."
             )
-        else:
-            version = f"{metadata.get('general', 'version')}-{options.version}"
         metadata.set("general", "version", version)
 
     fragment_template = """
@@ -306,9 +304,12 @@ def generate_plugin_repo_xml(options):
     all_releases = _get_existing_releases()
     for release in [r for r in _get_latest_releases(all_releases) if r is not None]:
         tag_name = release.tag_name
+        plugin_version = metadata.get('general', 'version') \
+            if hasattr(options, "version") else \
+            tag_name.replace("v", "")
         fragment = fragment_template.format(
             name=metadata.get("general", "name"),
-            version=tag_name.replace("v", ""),
+            version=plugin_version,
             description=metadata.get("general", "description"),
             about=metadata.get("general", "about"),
             qgis_minimum_version=metadata.get("general", "qgisMinimumVersion"),
@@ -333,10 +334,10 @@ def generate_plugin_repo_xml(options):
 
 
 def _get_existing_releases():
-    """ Gets the existing plugin releases in  available in the Github repository.
+    """ Gets the existing plugin releases from the plugin Github repository.
     """
     base_url = "https://api.github.com/repos/" \
-               "samweli/qgis-planet-plugin/releases"
+               "planetlabs/qgis-planet-plugin/releases"
     response = httpx.get(base_url)
     result = []
     if response.status_code == 200:
@@ -365,7 +366,7 @@ def _get_existing_releases():
 def _get_latest_releases(
         current_releases
 ):
-    """ Searches for the latest plugin releases from the Github plugin releases.
+    """ Gets the latest plugin releases from the Github plugin releases.
     """
     latest_experimental = None
     latest_stable = None
