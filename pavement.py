@@ -253,12 +253,15 @@ class GithubRelease:
 
 
 @task
-def generate_plugin_repo_xml():
+@cmdopts(
+    [
+        ("version=", "v", "Plugin version number"),
+    ]
+)
+def generate_plugin_repo_xml(options):
     """ Generates the plugin repository xml file, from which users
         can use to install the plugin in QGIS.
 
-    :param context: Application context
-    :type context: typer.Context
    """
     repo_base_dir = Path(__file__).parent.resolve() / "docs" / "repository"
     repo_base_dir.mkdir(parents=True, exist_ok=True)
@@ -269,6 +272,15 @@ def generate_plugin_repo_xml():
     metadata = SafeConfigParser()
     metadata.optionxform = str
     metadata.read(metadata_filename)
+
+    if hasattr(options, "version"):
+        if options.version.startswith("v"):
+            version = "".join(
+                c for c in options.package.version if c.isdigit() or c == "."
+            )
+        else:
+            version = f"{metadata.get('general', 'version')}-{options.version}"
+        metadata.set("general", "version", version)
 
     fragment_template = """
             <pyqgis_plugin name="{name}" version="{version}">
@@ -322,12 +334,6 @@ def generate_plugin_repo_xml():
 
 def _get_existing_releases():
     """ Gets the existing plugin releases in  available in the Github repository.
-
-    :param context: Application context
-    :type context: typer.Context
-
-    :returns: List of github releases
-    :rtype: List[GithubRelease]
     """
     base_url = "https://api.github.com/repos/" \
                "samweli/qgis-planet-plugin/releases"
@@ -360,13 +366,6 @@ def _get_latest_releases(
         current_releases
 ):
     """ Searches for the latest plugin releases from the Github plugin releases.
-
-    :param current_releases: Existing plugin releases
-     available in the Github repository.
-    :type current_releases: list
-
-    :returns: Tuple containing the latest stable and experimental releases
-    :rtype: tuple
     """
     latest_experimental = None
     latest_stable = None
