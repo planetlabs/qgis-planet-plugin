@@ -246,6 +246,7 @@ class GithubRelease:
     """
     Handles plugin releases details.
     """
+
     pre_release: bool
     tag_name: str
     url: str
@@ -259,9 +260,9 @@ class GithubRelease:
     ]
 )
 def generate_plugin_repo_xml(options):
-    """ Generates the plugin repository xml file, from which users
-        can use to install the plugin in QGIS.
-   """
+    """Generates the plugin repository xml file, from which users
+    can use to install the plugin in QGIS.
+    """
     repo_base_dir = Path(__file__).parent.resolve() / "docs" / "repository"
     repo_base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -304,9 +305,11 @@ def generate_plugin_repo_xml(options):
     all_releases = _get_existing_releases()
     for release in [r for r in _get_latest_releases(all_releases) if r is not None]:
         tag_name = release.tag_name
-        plugin_version = metadata.get('general', 'version') \
-            if hasattr(options, "version") else \
-            tag_name.replace("v", "")
+        plugin_version = (
+            metadata.get("general", "version")
+            if hasattr(options, "version")
+            else tag_name.replace("v", "")
+        )
         fragment = fragment_template.format(
             name=metadata.get("general", "name"),
             version=plugin_version,
@@ -334,17 +337,15 @@ def generate_plugin_repo_xml(options):
 
 
 def _get_existing_releases():
-    """ Gets the existing plugin releases from the plugin Github repository.
-    """
-    base_url = "https://api.github.com/repos/" \
-               "planetlabs/qgis-planet-plugin/releases"
+    """Gets the existing plugin releases from the plugin Github repository."""
+    base_url = "https://api.github.com/repos/" "planetlabs/qgis-planet-plugin/releases"
     response = httpx.get(base_url)
     result = []
     if response.status_code == 200:
         payload = response.json()
         for release in payload:
             for asset in release["assets"]:
-                if '.zip' in asset.get("name"):
+                if ".zip" in asset.get("name"):
                     zip_download_url = asset.get("browser_download_url")
                     break
             else:
@@ -363,11 +364,8 @@ def _get_existing_releases():
     return result
 
 
-def _get_latest_releases(
-        current_releases
-):
-    """ Gets the latest plugin releases from the Github plugin releases.
-    """
+def _get_latest_releases(current_releases):
+    """Gets the latest plugin releases from the Github plugin releases."""
     latest_experimental = None
     latest_stable = None
     for release in current_releases:
@@ -384,4 +382,3 @@ def _get_latest_releases(
             else:
                 latest_stable = release
     return latest_stable, latest_experimental
-
