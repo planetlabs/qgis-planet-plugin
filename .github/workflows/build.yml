@@ -51,7 +51,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        qgis_version: [ release-3_10, release-3_16, release-3_24, release-3_26, latest ]
+        qgis_version: [ release-3_10, release-3_16, release-3_24, release-3_26, release-3_28 ]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
       # cf https://docs.qgis.org/3.16/en/docs/user_manual/introduction/qgis_configuration.html#running-qgis-with-advanced-settings
