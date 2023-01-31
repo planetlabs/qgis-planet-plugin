@@ -38,7 +38,7 @@ Install
 
 
 Install from source
--------
+++++++++++++++
 
 First, clone this repository.
 
@@ -71,7 +71,7 @@ For example, you should use the following `python3` exe path for IDE setups:
 
 
 Install from QGIS plugin repository
--------
+++++++++++++++
 
 - Open QGIS application and open plugin manager.
 - Search for `Planet` in the All page of the plugin manager.
@@ -81,7 +81,7 @@ Install from QGIS plugin repository
 
 
 Install from ZIP file
--------
+++++++++++++++
 
 Alternatively the plugin can be installed using **Install from ZIP** option on the
 QGIS plugin manager.
@@ -90,7 +90,7 @@ QGIS plugin manager.
 - From the **Install from ZIP** page, select the zip file and click the **Install** button to install plugin
 
 Install from planet plugin repository
--------
+++++++++++++++
 
 Planet plugin repository is available `here <https://raw.githubusercontent.com/planetlabs/qgis-planet-plugin/release/docs/repository/plugins.xml>`_
 
