@@ -36,6 +36,10 @@ The dev environ provides:
 Install
 -------
 
+
+Install from source
+++++++++++++++
+
 First, clone this repository.
 
 Using an install of ``conda`` (from `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_ or `anaconda <https://www.anaconda.com/distribution/>`_), load this environment file: `qgis3-conda-forge-env.yml <./qgis3-conda-forge-env.yml>`_ (see `Managing conda environments <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_)
@@ -64,6 +68,37 @@ The wrapped executables/scripts are available at this path (note added ``wrapper
 For example, you should use the following `python3` exe path for IDE setups:
 
     /path/to/your/miniconda3/envs/qgis3-conda-forge/bin/wrappers/conda/python3
+
+
+Install from QGIS plugin repository
+++++++++++++++
+
+- Open QGIS application and open plugin manager.
+- Search for `Planet` in the All page of the plugin manager.
+- From the found results, click on the `Planet_Explorer` result item and a page with plugin information will show up.
+
+- Click the `Install Plugin` button at the bottom of the dialog to install the plugin.
+
+
+Install from ZIP file
+++++++++++++++
+
+Alternatively the plugin can be installed using **Install from ZIP** option on the
+QGIS plugin manager.
+
+- Download zip file from the required plugin released version `planet_explorer.zip <https://github.com/planetlabs/qgis-planet-plugin/releases/download/{tagname}/planet_explorer.zip>`_
+- From the **Install from ZIP** page, select the zip file and click the **Install** button to install plugin
+
+Install from planet plugin repository
+++++++++++++++
+
+Planet plugin repository is available `here <https://raw.githubusercontent.com/planetlabs/qgis-planet-plugin/release/docs/repository/plugins.xml>`_
+
+- Open the QGIS plugin manager, then select the **Settings** page
+
+- Click **Add** button on the **Plugin Repositories** group box and use the above url to create the new plugin repository.
+
+- The plugin should now be available from the list of all plugins that can be installed.
 
 
 Plugin Setup
