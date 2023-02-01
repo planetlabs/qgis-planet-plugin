@@ -416,6 +416,7 @@ class OrderItemWidget(QWidget):
 
         manifest_dir = "{}/{}".format(final_path, "manifest.json")
 
+        data_found = False
         if os.path.exists(manifest_dir):
             manifest_file = open(manifest_dir)
             manifest_data = json.load(manifest_file)
@@ -439,13 +440,14 @@ class OrderItemWidget(QWidget):
                     if os.path.exists(image_dir):
                         layer = QgsRasterLayer(image_dir, os.path.basename(image_dir))
                         self.load_layer(layer)
-                        return True
-                    else:
-                        # The raster specified in the manifest.json file is missing
-                        self.qgs_error_message(
-                            "Cannot add data to map", "Image layer is missing"
-                        )
-                        return False
+                        data_found = True
+            if not data_found:
+                # The raster(s) specified in the manifest.json file is missing
+                self.qgs_error_message(
+                    "Cannot add data to map", "Image layer(s) is missing"
+                )
+            # True returned if atleast one data were loaded, otherwise False
+            return data_found
         else:
             # The manifest.json file is missing
             # This file contains information on the downloaded data
