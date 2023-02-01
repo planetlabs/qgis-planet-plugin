@@ -656,6 +656,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
             "describing geospatial information so that it can "
             "be more <br> easily worked with in tool like QGIS."
         )
+        self.description_label.setOpenExternalLinks(True)
 
         gridLayout = QGridLayout()
 
