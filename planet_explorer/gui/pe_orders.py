@@ -51,6 +51,7 @@ from ..pe_utils import (
     iface,
     ENABLE_CLIP_SETTING,
     ENABLE_HARMONIZATION_SETTING,
+    ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
 )
 from ..planet_api.p_client import PlanetClient
@@ -119,7 +120,6 @@ class IconLabel(QWidget):
 
 
 class PlanetOrderBundleWidget(QFrame):
-
     selectionChanged = pyqtSignal()
 
     def __init__(self, bundleid, bundle, item_type):
@@ -209,7 +209,6 @@ class PlanetOrderBundleWidget(QFrame):
 
 
 class PlanetOrderItemTypeWidget(QWidget):
-
     selectionChanged = pyqtSignal()
 
     def __init__(self, item_type, images):
@@ -407,7 +406,6 @@ class PlanetOrderItemTypeWidget(QWidget):
 
 
 class ImageReviewWidget(QFrame):
-
     selectedChanged = pyqtSignal()
 
     def __init__(self, image):
@@ -453,7 +451,6 @@ class ImageReviewWidget(QFrame):
 
 
 class PlanetOrderReviewWidget(QWidget):
-
     selectedImagesChanged = pyqtSignal()
 
     def __init__(self, item_type, bundle_type, images, add_clip, add_harmonize):
@@ -464,6 +461,9 @@ class PlanetOrderReviewWidget(QWidget):
         self.images = images
         self.add_clip = add_clip
         self.add_harmonize = add_harmonize
+        self.stac_order = QSettings().value(
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
+        )
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -496,6 +496,9 @@ class PlanetOrderReviewWidget(QWidget):
         self.updateGeometry()
 
         self.populate_details()
+
+    def _stac_box_clicked(self, checked):
+        self.stac_order = checked
 
     def populate_details(self):
         self.imgWidgets = []
@@ -536,10 +539,18 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
-        layout.addWidget(QLabel("<b>Review Items</b>"), 6, 1, Qt.AlignCenter)
+
+        metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
+        metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
+
+        layout.addWidget(metadata_widget, 6, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.description_label, 7, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.stac_box, 8, 1, Qt.AlignCenter)
+
+        layout.addWidget(QLabel("<b>Review Items</b>"), 9, 1, Qt.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
-            7,
+            10,
             1,
             Qt.AlignCenter,
         )
@@ -553,7 +564,7 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 8, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 11, 1, Qt.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
@@ -588,6 +599,55 @@ class PlanetOrderReviewWidget(QWidget):
         self.widgetDetails.show()
         self.btnDetails.setIcon(EXPAND_LESS_ICON)
         self.updateGeometry()
+
+
+class PlanetOrderReviewMetadataWidget(QWidget):
+
+    stac_metadata_box_clicked = pyqtSignal(bool)
+
+    def __init__(self, stac_order):
+        super().__init__()
+
+        self.stac_order = stac_order
+
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+
+        self.stac_box = QCheckBox()
+        self.stac_box.setChecked(self.stac_order)
+        self.stac_box.setText("Add STAC metadata")
+        self.stac_box.setToolTip(
+            "Click to enable/disable STAC metadata usage in the order."
+        )
+
+        self.stac_box.toggled.connect(self._stac_box_clicked)
+
+        title_label = QLabel("<b> Metadata </b>")
+        self.description_label = QLabel(
+            "<a style='color: #50a94e; text-decoration: none;' "
+            "href='https://stacspec.org/'>STAC</a>"
+            " metadata provides a standardized format for "
+            "describing geospatial information so that it can "
+            "be more <br> easily worked with in tool like QGIS."
+        )
+        self.description_label.setOpenExternalLinks(True)
+
+        gridLayout = QGridLayout()
+
+        gridLayout.setMargin(0)
+        gridLayout.setVerticalSpacing(15)
+        gridLayout.setColumnStretch(0, 1)
+        gridLayout.setColumnStretch(2, 1)
+
+        gridLayout.addWidget(title_label, 0, 1, Qt.AlignCenter)
+
+        layout.addLayout(gridLayout)
+
+        self.setLayout(layout)
+
+    def _stac_box_clicked(self, checked):
+        self.stac_order = checked
+        self.stac_metadata_box_clicked.emit(checked)
 
 
 class PlanetOrderSummaryOrderWidget(QWidget):
@@ -629,7 +689,6 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
-
     NAME_HIGHLIGHT = "QLabel { color: rgb(175, 0, 0); }"
     PLANET_COLOR_CSS = (
         "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
@@ -763,7 +822,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                     first = False
                 self._order_review_widgets.append(w)
                 layout.addWidget(w)
+
         layout.addStretch()
+
         scrollWidget.setLayout(layout)
         self.scrollAreaReview.setWidget(scrollWidget)
 
@@ -835,6 +896,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 }
                 order["notifications"] = {"email": True}
 
+                if w.stac_order:
+                    order["metadata"] = {"stac": {}}
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})

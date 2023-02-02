@@ -454,7 +454,11 @@ class PlanetExplorer(object):
 
     def login_changed(self, loggedin):
         self.provider.updateLayerWidgets()
-        self.enable_buttons(loggedin)
+        try:
+            self.enable_buttons(loggedin)
+        except RuntimeError:
+            pass
+
         if not loggedin:
             hide_orders_monitor()
             hide_inspector()
