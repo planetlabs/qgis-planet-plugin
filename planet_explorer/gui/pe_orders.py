@@ -47,11 +47,11 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_analytics import send_analytics_for_order
 from ..pe_utils import (
+    qgs_log,
     resource_file,
     iface,
     ENABLE_CLIP_SETTING,
     ENABLE_HARMONIZATION_SETTING,
-    ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
 )
 from ..planet_api.p_client import PlanetClient
@@ -498,12 +498,7 @@ class PlanetOrderReviewWidget(QWidget):
         self.populate_details()
 
     def _btnSTACClicked(self):
-        stac_order = QSettings().value(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
-        )
-        QSettings().setValue(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", not stac_order
-        )
+        self.stac_order = not self.stac_order
 
     def populate_details(self):
         self.imgWidgets = []
@@ -547,7 +542,6 @@ class PlanetOrderReviewWidget(QWidget):
 
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
-        self.metadata_widget = metadata_widget
 
         layout.addWidget(metadata_widget, 6, 1, Qt.AlignCenter)
         layout.addWidget(metadata_widget.description_label, 7, 1, Qt.AlignCenter)
@@ -626,9 +620,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
     def __init__(self, stac_order):
         super().__init__()
 
-        self.stac_order = QSettings().value(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", stac_order, type=bool
-        )
+        self.stac_order = stac_order
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -764,10 +756,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
 
-        self.stac_order = QSettings().value(
-            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
-        )
-
         images_dict = defaultdict(list)
         # thumbnails_dict = defaultdict(list)
         for img in images:
@@ -854,8 +842,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                     bundle["name"],
                     images,
                     add_clip,
-                    bundle["canharmonize"],
-                    self.stac_order,
+                    bundle["canharmonize"]
                 )
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
@@ -937,8 +924,11 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 }
                 order["notifications"] = {"email": True}
 
-                if self.stac_order:
+                if w.stac_order:
                     order["metadata"] = {"stac": {}}
+                    qgs_log(f"STAC Metdata included {order}")
+                else:
+                    qgs_log(f"STAC Metdata has not been included {order}")
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})
