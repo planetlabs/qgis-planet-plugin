@@ -57,7 +57,6 @@ from qgis.core import (
     QgsGeometry,
     QgsJsonUtils,
     QgsLayerTree,
-    QgsMessageLog,
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
