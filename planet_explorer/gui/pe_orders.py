@@ -47,11 +47,11 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_analytics import send_analytics_for_order
 from ..pe_utils import (
-    qgs_log,
     resource_file,
     iface,
     ENABLE_CLIP_SETTING,
     ENABLE_HARMONIZATION_SETTING,
+    ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
 )
 from ..planet_api.p_client import PlanetClient
@@ -453,9 +453,7 @@ class ImageReviewWidget(QFrame):
 class PlanetOrderReviewWidget(QWidget):
     selectedImagesChanged = pyqtSignal()
 
-    def __init__(
-        self, item_type, bundle_type, images, add_clip, add_harmonize, stac_order=False
-    ):
+    def __init__(self, item_type, bundle_type, images, add_clip, add_harmonize):
         super().__init__()
 
         self.item_type = item_type
@@ -463,7 +461,9 @@ class PlanetOrderReviewWidget(QWidget):
         self.images = images
         self.add_clip = add_clip
         self.add_harmonize = add_harmonize
-        self.stac_order = stac_order
+        self.stac_order = QSettings().value(
+            f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
+        )
 
         layout = QVBoxLayout()
         layout.setMargin(0)
@@ -497,8 +497,8 @@ class PlanetOrderReviewWidget(QWidget):
 
         self.populate_details()
 
-    def _btnSTACClicked(self):
-        self.stac_order = not self.stac_order
+    def _stac_box_clicked(self, checked):
+        self.stac_order = checked
 
     def populate_details(self):
         self.imgWidgets = []
@@ -541,11 +541,11 @@ class PlanetOrderReviewWidget(QWidget):
             layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
 
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
-        metadata_widget.stac_metadata_btn_clicked.connect(self._btnSTACClicked)
+        metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
         layout.addWidget(metadata_widget, 6, 1, Qt.AlignCenter)
         layout.addWidget(metadata_widget.description_label, 7, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.btnSTAC, 8, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.stac_box, 8, 1, Qt.AlignCenter)
 
         layout.addWidget(QLabel("<b>Review Items</b>"), 9, 1, Qt.AlignCenter)
         layout.addWidget(
@@ -603,19 +603,7 @@ class PlanetOrderReviewWidget(QWidget):
 
 class PlanetOrderReviewMetadataWidget(QWidget):
 
-    STAC_ENABLED_ORDER_CSS = (
-        "QPushButton { background-color: #074c48; color: white;"
-        "border: 3px solid #4eb4ae;"
-        "padding: 3px 5px 2px 5px; border-radius: 3px; }"
-    )
-
-    STAC_DISABLED_ORDER_CSS = (
-        "QPushButton { background-color: none; color: black;"
-        "border: 3px solid #4eb4ae;"
-        "padding: 3px 5px 2px 5px; border-radius: 3px; }"
-    )
-
-    stac_metadata_btn_clicked = pyqtSignal()
+    stac_metadata_box_clicked = pyqtSignal(bool)
 
     def __init__(self, stac_order):
         super().__init__()
@@ -625,22 +613,14 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         layout = QVBoxLayout()
         layout.setMargin(0)
 
-        self.btnSTAC = QPushButton()
-        self.btnSTAC.setFlat(True)
-        self.btnSTAC.setText("STAC")
-        self.btnSTAC.setToolTip(
+        self.stac_box = QCheckBox()
+        self.stac_box.setChecked(self.stac_order)
+        self.stac_box.setText("Add STAC metadata")
+        self.stac_box.setToolTip(
             "Click to enable/disable STAC metadata usage in the order."
         )
 
-        if self.stac_order:
-            self.btnSTAC.setStyleSheet(self.STAC_ENABLED_ORDER_CSS)
-        else:
-            self.btnSTAC.setStyleSheet(self.STAC_DISABLED_ORDER_CSS)
-        self.btnSTAC.setMinimumHeight(45)
-        self.btnSTAC.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.btnSTAC.setMinimumWidth(250)
-
-        self.btnSTAC.clicked.connect(self._btnSTACClicked)
+        self.stac_box.toggled.connect(self._stac_box_clicked)
 
         title_label = QLabel("<b> Metadata </b>")
         self.description_label = QLabel(
@@ -665,13 +645,9 @@ class PlanetOrderReviewMetadataWidget(QWidget):
 
         self.setLayout(layout)
 
-    def _btnSTACClicked(self):
-        self.stac_metadata_btn_clicked.emit()
-        self.stac_order = not self.stac_order
-        if self.stac_order:
-            self.btnSTAC.setStyleSheet(self.STAC_ENABLED_ORDER_CSS)
-        else:
-            self.btnSTAC.setStyleSheet(self.STAC_DISABLED_ORDER_CSS)
+    def _stac_box_clicked(self, checked):
+        self.stac_order = checked
+        self.stac_metadata_box_clicked.emit(checked)
 
 
 class PlanetOrderSummaryOrderWidget(QWidget):
@@ -838,11 +814,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             for bundle in bundles:
                 add_clip = self.tool_resources["aoi"] is not None and bundle["canclip"]
                 w = PlanetOrderReviewWidget(
-                    item_type,
-                    bundle["name"],
-                    images,
-                    add_clip,
-                    bundle["canharmonize"]
+                    item_type, bundle["name"], images, add_clip, bundle["canharmonize"]
                 )
                 w.selectedImagesChanged.connect(self.update_summary_items)
                 if first:
@@ -926,9 +898,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
                 if w.stac_order:
                     order["metadata"] = {"stac": {}}
-                    qgs_log(f"STAC Metdata included {order}")
-                else:
-                    qgs_log(f"STAC Metdata has not been included {order}")
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})

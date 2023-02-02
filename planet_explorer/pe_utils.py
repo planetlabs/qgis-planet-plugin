@@ -109,6 +109,7 @@ QGIS_LOG_SECTION_NAME = "Planet"
 ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 ENABLE_CLIP_SETTING = "enableClip"
+ENABLE_STAC_METADATA = "enableStacMetadata"
 ENABLE_HARMONIZATION_SETTING = "enableHarmonization"
 
 BASE_URL = "https://www.planet.com"
@@ -584,36 +585,3 @@ def plugin_version(add_commit=False):
 
 def user_agent():
     return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"
-
-
-def qgs_log(
-        message: str,
-        name: str = "qgis_planet_explorer",
-        info: bool = True,
-        notify: bool = True,
-):
-    """ Logs the message into QGIS logs using as the default
-    log instance.
-    If notify_user is True, user will be notified about the log.
-
-    :param message: The log message
-    :type message: str
-
-    :param name: Name of the log instance,
-    :type message: str
-
-    :param info: Whether the message is about info or a
-    warning
-    :type info: bool
-
-    :param notify: Whether to notify user about the log
-    :type notify: bool
-     """
-    level = Qgis.Info if info else Qgis.Warning
-    QgsMessageLog.logMessage(
-        message,
-        name,
-        level=level,
-        notifyUser=notify,
-    )
-

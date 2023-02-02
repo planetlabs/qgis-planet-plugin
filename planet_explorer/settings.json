@@ -22,5 +22,13 @@
     "type": "bool",
     "default": false,
     "group": "Orders"
+  },
+  {
+    "name": "enableStacMetadata",
+    "label": "Enable STAC Metadata tool by default",
+    "description": "Enable STAC Metadata tool by default in orders panel",
+    "type": "bool",
+    "default": false,
+    "group": "Orders"
   }
 ]
