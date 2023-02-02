@@ -637,7 +637,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         self.btnSTAC.setFlat(True)
         self.btnSTAC.setText("STAC")
         self.btnSTAC.setToolTip(
-            "Click to enable/disable STAC " "metadata usage in the order."
+            "Click to enable/disable STAC metadata usage in the order."
         )
 
         if self.stac_order:
@@ -652,7 +652,9 @@ class PlanetOrderReviewMetadataWidget(QWidget):
 
         title_label = QLabel("<b> Metadata </b>")
         self.description_label = QLabel(
-            "<a href='https://stacspec.org/'>STAC</a> metadata provides a standardized format for "
+            "<a style='color: #50a94e; text-decoration: none;' "
+            "href='https://stacspec.org/'>STAC</a>"
+            " metadata provides a standardized format for "
             "describing geospatial information so that it can "
             "be more <br> easily worked with in tool like QGIS."
         )
