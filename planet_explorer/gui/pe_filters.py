@@ -43,7 +43,6 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCsException,
     QgsDistanceArea,
-    QgsFeature,
     QgsGeometry,
     QgsMapLayer,
     QgsProject,
@@ -426,12 +425,18 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         selection_menu = QMenu(self)
 
-        self.single_select_act = QAction("Single feature", selection_menu)
-        self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
-        selection_menu.addAction(self.single_select_act)
+        # self.single_select_act = QAction("Single feature", selection_menu)
+        # self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
+        # selection_menu.addAction(self.single_select_act)
+
+        self.multi_polygon_select_act = QAction("Selected features", selection_menu)
+        self.multi_polygon_select_act.triggered[bool].connect(
+            self.aoi_from_multiple_polygons
+        )
+        selection_menu.addAction(self.multi_polygon_select_act)
 
         self.bound_select_act = QAction(
-            "Multiple features (bounding box)", selection_menu
+            "Selected features (bounding box)", selection_menu
         )
         self.bound_select_act.triggered[bool].connect(self.aoi_from_bound)
         selection_menu.addAction(self.bound_select_act)
@@ -447,16 +452,128 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         upload_act.triggered[bool].connect(self.upload_file)
         upload_menu.addAction(upload_act)
 
+        upload_bb_act = QAction("Upload vector layer file (bounding box)", upload_menu)
+        upload_bb_act.triggered[bool].connect(self.upload_file_bb)
+        upload_menu.addAction(upload_bb_act)
+
         self.btnUpload.setMenu(upload_menu)
         self.btnUpload.clicked.connect(self.btnUpload.showMenu)
 
-    def upload_file(self):
+    def upload_file_bb(self):
+        """Loads a vector file provided by a user. Considers embedded gpkg files.
+        Checks if the layer(s) are valid. Then calls the function to calculate the
+        bounding box AOI.
+        """
         filename, _ = QFileDialog.getOpenFileName(
             self, "Select AOI file", "", "All files(*.*)"
         )
         if filename:
             layer = QgsVectorLayer(filename, "")
-            self.aoi_from_layer(layer)
+            embedded_layers = []
+            if len(layer.dataProvider().subLayers()) > 1:
+                # If the file contains embedded layers
+                # Therefore need to process each layer
+                for subLayer in layer.dataProvider().subLayers():
+                    sublayer_name = subLayer.split("!!::!!")[1]
+                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
+                    embedded_layer = QgsVectorLayer(embedded_file, "")
+                    if not embedded_layer.isValid():
+                        # Skip invalid layers
+                        continue
+                    elif not isinstance(layer, QgsVectorLayer):
+                        # Skip non-vector layers
+                        continue
+                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                        # Only add the embedded layer if it's a valid polygon layer
+                        embedded_layers.append(embedded_layer)
+
+                if len(embedded_layers) == 0:
+                    # If none of the embedded layers are polygons
+                    self._show_message(
+                        "None of the embedded layers are valid polygons",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
+                self.aoi_bb_from_layer(embedded_layers)
+            else:
+                # No embedded layers in the file
+                if not layer.isValid():
+                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+                    return
+                elif not isinstance(layer, QgsVectorLayer):
+                    self._show_message(
+                        "Active layer must be a vector layer.",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
+                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+                    # If the geometry is not polygon
+                    self._show_message(
+                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
+                    )
+                    return
+                else:
+                    self.aoi_bb_from_layer([layer])
+
+    def upload_file(self):
+        """Loads a vector file provided by a user. Considers embedded gpkg files.
+        Checks if the layer(s) are valid. Then calls the function to calculate the
+        AOI.
+        """
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Select AOI file", "", "All files(*.*)"
+        )
+        if filename:
+            layer = QgsVectorLayer(filename, "")
+            embedded_layers = []
+            if len(layer.dataProvider().subLayers()) > 1:
+                # If the file contains embedded layers
+                # Therefore need to process each layer
+                for subLayer in layer.dataProvider().subLayers():
+                    sublayer_name = subLayer.split("!!::!!")[1]
+                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
+                    embedded_layer = QgsVectorLayer(embedded_file, "")
+                    if not embedded_layer.isValid():
+                        # Skip invalid layers
+                        continue
+                    elif not isinstance(layer, QgsVectorLayer):
+                        # Skip non-vector layers
+                        continue
+                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                        # Only add the embedded layer if it's a valid polygon layer
+                        embedded_layers.append(embedded_layer)
+
+                if len(embedded_layers) == 0:
+                    # If none of the embedded layers are polygons
+                    self._show_message(
+                        "None of the embedded layers are valid polygons",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
+                self.aoi_from_layer(embedded_layers)
+            else:
+                # No embedded layers in the file
+                if not layer.isValid():
+                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+                    return
+                elif not isinstance(layer, QgsVectorLayer):
+                    self._show_message(
+                        "Active layer must be a vector layer.",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
+                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+                    # If the geometry is not polygon
+                    self._show_message(
+                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
+                    )
+                    return
+                else:
+                    self.aoi_from_layer([layer])
 
     def show_aoi_area_size(self):
         """Displays the aoi area size in square kilometers."""
@@ -484,17 +601,24 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         return round(geometry_area_sq, 2)
 
-    def aoi_from_layer(self, layer):
-        if not layer.isValid():
-            self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
-        else:
-            feature = next(layer.getFeatures(), None)
-            if feature is None:
-                self._show_message(
-                    "Layer contains no features", level=Qgis.Warning, duration=10
-                )
-            else:
+    def aoi_from_layer(self, layers):
+        """Determine AOI from polygons. Considers all polygons.
+        :param layers: List of QgsVectorLayers
+        :type layers: list
+        """
+        multipart_polygon = None
+        for layer in layers:
+            features = layer.getFeatures()
+            # Creates the multipart polygon which will be used for the searches
+            for feature in features:
                 geom = feature.geometry()
+                # Skips features with invalid geometries
+                if geom.isNull():
+                    continue
+                elif geom.isEmpty():
+                    continue
+                elif not geom.isGeosValid():
+                    continue
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
@@ -512,16 +636,89 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     )
                     return
 
-                geom_json = geom.asJson(precision=6)
+                if multipart_polygon is None:
+                    multipart_polygon = QgsGeometry(geom)
+                else:
+                    multipart_polygon.addPartGeometry(geom)
 
-                self._aoi_box.setToGeometry(geom)
+        if multipart_polygon is not None:
+            # Sets the features to the canvas
+            geom_json = multipart_polygon.asJson(precision=6)
+            self._aoi_box.setToGeometry(multipart_polygon)
+            self.leAOI.setText(geom_json)
 
-                self.leAOI.setText(geom_json)
+            log.debug("AOI set to layer")
 
-                log.debug("AOI set to layer")
+            self.zoom_to_aoi()
+            self.show_aoi_area_size()
+        else:
+            # There were no features to process
+            self._show_message(
+                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+            )
+            return
 
-                self.zoom_to_aoi()
-                self.show_aoi_area_size()
+    def aoi_bb_from_layer(self, layers):
+        """Determine AOI as a bounding box from polygons. Considers all polygons.
+        :param layers: List of QgsVectorLayers
+        :type layers: list
+        """
+        multipart_polygon = None
+        for layer in layers:
+            features = layer.getFeatures()
+            # Creates the multipart polygon which will be used for the searches
+            for feature in features:
+                geom = feature.geometry()
+                # Skips features with invalid geometries
+                if geom.isNull():
+                    continue
+                elif geom.isEmpty():
+                    continue
+                elif not geom.isGeosValid():
+                    continue
+
+                transform = QgsCoordinateTransform(
+                    layer.crs(),
+                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsProject.instance(),
+                )
+
+                try:
+                    geom.transform(transform)
+                except QgsCsException:
+                    self._show_message(
+                        "Could not convert AOI to EPSG:4326",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
+
+                if multipart_polygon is None:
+                    multipart_polygon = QgsGeometry(geom)
+                else:
+                    multipart_polygon.addPartGeometry(geom)
+
+        if multipart_polygon is not None:
+            bounding_box = multipart_polygon.boundingBox()
+            bb_polygon = bounding_box.asWktPolygon()
+            geom_bb = QgsGeometry().fromWkt(bb_polygon)
+
+            geom_json = geom_bb.asJson(precision=6)
+
+            self._aoi_box.setToGeometry(geom_bb)
+
+            self.leAOI.setText(geom_json)
+
+            log.debug("AOI set to layer")
+
+            self.zoom_to_aoi()
+            self.show_aoi_area_size()
+        else:
+            # There were no features to process
+            self._show_message(
+                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+            )
+            return
 
     def _toggle_selection_tools(self):
         active_layer = iface.activeLayer()
@@ -700,61 +897,67 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
 
-    @pyqtSlot()
-    def aoi_from_feature(self):
+    def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
+        if not layer.isValid():
+            self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+            return
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
                 "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
             )
             return
 
-        if layer.selectedFeatureCount() > 1:
+        feature_count = layer.featureCount()
+        if feature_count == 0:
             self._show_message(
-                "More than 1 feature. Searching by bbox.",
-                level=Qgis.Warning,
-                duration=10,
+                "Layer contains no features", level=Qgis.Warning, duration=10
             )
-            self.aoi_from_bound()
             return
-        elif layer.selectedFeatureCount() < 1:
-            self._show_message("No features selected.", level=Qgis.Warning, duration=10)
-            return
+        else:
+            selected_feature_count = layer.selectedFeatureCount()
+            if selected_feature_count == 0:
+                # If no features is selected, all layer will be taken into account
+                features = layer.getFeatures()
+            else:
+                # Only selected features will be considered
+                features = layer.selectedFeatures()
 
-        selected: QgsFeature = layer.selectedFeatures()[0]
-        geom: QgsGeometry = selected.geometry()
+            # Creates the multipart polygon which will be used for the searches
+            multipart_polygon = None
+            for feature in features:
+                geom = feature.geometry()
 
-        if geom.constGet().vertexCount() > 500:
-            self._show_message(
-                "More than 500 vertices. Searching by bbox.",
-                level=Qgis.Warning,
-                duration=10,
-            )
-            self.aoi_from_bound()
-            return
+                transform = QgsCoordinateTransform(
+                    layer.crs(),
+                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsProject.instance(),
+                )
 
-        trans_layer = QgsCoordinateTransform(
-            layer.sourceCrs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance(),
-        )
+                try:
+                    geom.transform(transform)
+                except QgsCsException:
+                    self._show_message(
+                        "Could not convert AOI to EPSG:4326",
+                        level=Qgis.Warning,
+                        duration=10,
+                    )
+                    return
 
-        trans_canvas = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
-            QgsProject.instance().crs(),
-            QgsProject.instance(),
-        )
+                if multipart_polygon is None:
+                    multipart_polygon = QgsGeometry(geom)
+                else:
+                    multipart_polygon.addPartGeometry(geom)
 
-        # geom.transform(transform)
-        geom.transform(trans_layer)
-        geom_json = geom.asJson(precision=6)
-        self.leAOI.setText(geom_json)
+            # Sets the features to the canvas
+            geom_json = multipart_polygon.asJson(precision=6)
+            self._aoi_box.setToGeometry(multipart_polygon)
+            self.leAOI.setText(geom_json)
 
-        geom.transform(trans_canvas)
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
-        self.zoom_to_aoi()
+            log.debug("AOI set to layer")
 
-        self.show_aoi_area_size()
+            self.zoom_to_aoi()
+            self.show_aoi_area_size()
 
     @pyqtSlot()
     def aoi_from_bound(self):
@@ -765,11 +968,17 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             )
             return
 
-        if layer.selectedFeatureCount() < 1:
-            self._show_message("No features selected.", level=Qgis.Warning, duration=10)
-            return
+        all_features = False
+        if layer.selectedFeatureCount() == 0:
+            # If no features were selected, all features are considered
+            # Required to do the selection for determining the bounding box
+            layer.selectAll()
+            all_features = True
 
         bbox = layer.boundingBoxOfSelected()
+        if all_features:
+            # Deselect all features for the case when the user had no features selected
+            layer.removeSelection()
 
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
