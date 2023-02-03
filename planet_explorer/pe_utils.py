@@ -286,8 +286,52 @@ def create_preview_vector_layer(image):
         QgsField("sort_order", QVariant.String),
     ]
 
+    prop_dates = [
+        'acquired',
+        'published',
+        'updated'
+    ]
+    prop_int = [
+        'anomalous_pixels'
+    ]
+    prop_double = [
+        'clear_confidence_percent',
+        'clear_percent',
+        'cloud_cover',
+        'cloud_percent',
+        'ground_control_ratio',  # Only SkySat
+        'gsd',
+        'heavy_haze_percent',
+        'light_haze_percent',
+        'pixel_resolution',
+        'satellite_azimuth',
+        'shadow_percent',
+        'snow_ice_percent',
+        'sun_azimuth',
+        'sun_elevation',
+        'view_angle',
+        'visible_confidence_percent',
+        'visible_percent'
+    ]
+    prop_boolean = [
+        'ground_control'  # Only PlanetScope
+    ]
+
     for prop in image["properties"]:
-        qgs_fields.append(QgsField(str(prop), QVariant.String))
+        # Determines the field types
+        if prop in prop_dates:
+            field_type = QVariant.DateTime
+        elif prop in prop_int:
+            field_type = QVariant.Int
+        elif prop in prop_double:
+            field_type = QVariant.Double
+        elif prop in prop_boolean:
+            field_type = QVariant.Bool
+        else:
+            # All other properties/fields will default to string
+            field_type = QVariant.String
+
+        qgs_fields.append(QgsField(str(prop), field_type))
 
     dp.addAttributes(qgs_fields)
     return vlayer
