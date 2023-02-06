@@ -121,7 +121,7 @@ def test_order_add_to_map(
     qgis_version,
     image_id,
     image_name,
-    root_dir
+    root_dir,
 ):
     """This test is performed on the 'Add to map' button of the orders monitor widget.
     An image is copied from the plugin directory/repo to the Planet orders directory.
@@ -135,9 +135,7 @@ def test_order_add_to_map(
     dock_widget.hide()
 
     # The test data for this function is stored here: planet_explorer/tests/Data/test_add_to_map
-    daily_imagery_dir = "{}/{}".format(
-        root_dir, image_id
-    )
+    daily_imagery_dir = "{}/{}".format(root_dir, image_id)
     orders_folder = "{}/daily".format(orders_download_folder())
     copy_folder = "{}/{}".format(orders_folder, image_id)
 
