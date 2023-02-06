@@ -103,12 +103,25 @@ def test_order_download(
         qtbot.waitUntil(order_item.order.downloaded, timeout=60 * 1000)
 
 
+@pytest.mark.parametrize(
+    "image_id, image_name, root_dir",
+    [
+        pytest.param(
+            "5c9e6c59-eb35-485d-ab7d-04a75e9e0f14",
+            "20221221_084022_18_2414_3B_AnalyticMS_SR.tif",
+            "/usr/src/planet_explorer/tests/data/test_add_to_map/planet_orders",
+        ),
+    ],
+)
 def test_order_add_to_map(
     qtbot,
     logged_in_explorer_dock_widget,
     qgis_debug_enabled,
     order_monitor_widget,
     qgis_version,
+    image_id,
+    image_name,
+    root_dir
 ):
     """This test is performed on the 'Add to map' button of the orders monitor widget.
     An image is copied from the plugin directory/repo to the Planet orders directory.
@@ -122,10 +135,8 @@ def test_order_add_to_map(
     dock_widget.hide()
 
     # The test data for this function is stored here: planet_explorer/tests/Data/test_add_to_map
-    image_id = "5c9e6c59-eb35-485d-ab7d-04a75e9e0f14"  # Planet order ID
-    image_name = "20221221_084022_18_2414_3B_AnalyticMS_SR.tif"  # Raster name
     daily_imagery_dir = "{}/{}".format(
-        "/usr/src/planet_explorer/tests/Data/test_add_to_map/planet_orders", image_id
+        root_dir, image_id
     )
     orders_folder = "{}/daily".format(orders_download_folder())
     copy_folder = "{}/{}".format(orders_folder, image_id)
