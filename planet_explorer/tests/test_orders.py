@@ -162,10 +162,9 @@ def test_order_add_to_map(
             item_widget = order_monitor.listOrders.itemWidget(item)
             success = item_widget.add_to_map()
 
-            if not success:
-                # Could not add the image to the QGIS canvas
-                # Either the manifest or the image could not be found
-                assert False
+            # Could not add the image to the QGIS canvas
+            # Either the manifest or the image could not be found
+            assert success, "Could not add the image to the QGIS canvas"
 
             map_layers = QgsProject.instance().mapLayers()
             keys = map_layers.keys()
