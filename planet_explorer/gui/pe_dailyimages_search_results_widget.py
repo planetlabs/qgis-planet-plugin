@@ -312,7 +312,7 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         if filt:
             minvalue = filt["config"].get("gte", 0)
             maxvalue = filt["config"].get("lte", 100)
-            return area_coverage > minvalue and area_coverage < maxvalue
+            return area_coverage >= minvalue and area_coverage <= maxvalue
         return True
 
     def _find_item_for_date(self, image):
