@@ -198,7 +198,13 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="leAOI">
+          <widget class="QTextEdit" name="leAOI">
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>25</height>
+            </size>
+           </property>
            <property name="toolTip">
             <string>GeoJSON feature required:
 - only polygon type supported
@@ -206,11 +212,11 @@
 - limited to 500 vertices
 </string>
            </property>
+           <property name="verticalScrollBarPolicy">
+            <enum>Qt::ScrollBarAlwaysOff</enum>
+           </property>
            <property name="placeholderText">
             <string>Active coordinates (GeoJSON)</string>
-           </property>
-           <property name="clearButtonEnabled">
-            <bool>true</bool>
            </property>
           </widget>
          </item>
