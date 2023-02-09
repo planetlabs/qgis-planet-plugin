@@ -22,8 +22,14 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
-  v2.3.0 (2023-02-01)
-  * Pre-release
+  v2.3.0 (2023-02-09)
+  * Better multi-polygon search handling. Users can now search in individual polygons in a multi-polygon or by selecting a bounding box around the multi-polygon extent.
+  * New "Add to Map" button in the Orders Panel that when selected will automatically render a true color visualization of PlanetScope or SkySat imagery in the QGIS map.
+  * Added STAC metadata as an option during Order Checkout so customers can download their images with STAC metadata.
+  * Fixed some the metadata fields in our imagery footprints so that they now have the correct data format. Previously, all fields in the footprint's attribute table were strings.
+  * Updated a few links in the Add-In to our Developer Trial, Planet University, Planet Community and ToS.
+  * Customers can now see a SQKM size estimate when they draw an AOI to search for imagery or  Basemap quads for download.
+  * The Basemap series cadence filter is now ordered correctly.
   v2.2.0 (2022-03-01)
   * This update adds a new PlanetScope imagery type (PSScene) that includes new 8-band PlanetScope imagery that is radiometrically aligned with Sentinel-2
   * Users can also find a new option to "harmonize" their PlanetScope Surface Reflectance orders at checkout to improve the radiometric consistency across different PlanetScope sensors
