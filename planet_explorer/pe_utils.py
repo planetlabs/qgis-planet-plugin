@@ -286,36 +286,28 @@ def create_preview_vector_layer(image):
         QgsField("sort_order", QVariant.String),
     ]
 
-    prop_dates = [
-        'acquired',
-        'published',
-        'updated'
-    ]
-    prop_int = [
-        'anomalous_pixels'
-    ]
+    prop_dates = ["acquired", "published", "updated"]
+    prop_int = ["anomalous_pixels"]
     prop_double = [
-        'clear_confidence_percent',
-        'clear_percent',
-        'cloud_cover',
-        'cloud_percent',
-        'ground_control_ratio',  # Only SkySat
-        'gsd',
-        'heavy_haze_percent',
-        'light_haze_percent',
-        'pixel_resolution',
-        'satellite_azimuth',
-        'shadow_percent',
-        'snow_ice_percent',
-        'sun_azimuth',
-        'sun_elevation',
-        'view_angle',
-        'visible_confidence_percent',
-        'visible_percent'
+        "clear_confidence_percent",
+        "clear_percent",
+        "cloud_cover",
+        "cloud_percent",
+        "ground_control_ratio",  # Only SkySat
+        "gsd",
+        "heavy_haze_percent",
+        "light_haze_percent",
+        "pixel_resolution",
+        "satellite_azimuth",
+        "shadow_percent",
+        "snow_ice_percent",
+        "sun_azimuth",
+        "sun_elevation",
+        "view_angle",
+        "visible_confidence_percent",
+        "visible_percent",
     ]
-    prop_boolean = [
-        'ground_control'  # Only PlanetScope
-    ]
+    prop_boolean = ["ground_control"]  # Only PlanetScope
 
     for prop in image["properties"]:
         # Determines the field types
