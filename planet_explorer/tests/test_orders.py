@@ -42,8 +42,8 @@ def get_order_dialog(qtbot, daily_images_widget):
     images = daily_images_widget.searchResultsWidget.selected_images()
 
     tool_resources = {}
-    if daily_images_widget._aoi_filter.leAOI.text():  # noqa
-        tool_resources["aoi"] = daily_images_widget._aoi_filter.leAOI.text()  # noqa
+    if daily_images_widget._aoi_filter.leAOI.toPlainText():  # noqa
+        tool_resources["aoi"] = daily_images_widget._aoi_filter.leAOI.toPlainText()  # noqa
     else:
         tool_resources["aoi"] = None
 

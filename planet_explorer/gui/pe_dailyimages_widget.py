@@ -239,7 +239,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         send_analytics_for_search(self._sources)
 
-        if not self._aoi_filter.leAOI.text():
+        if not self._aoi_filter.leAOI.toPlainText():
             id_filters = filters_from_request(self._filters, "id")
             if len(id_filters) == 0:
                 self.lblWarning.setHidden(False)
@@ -351,8 +351,8 @@ class DailyImagesWidget(BASE, WIDGET):
             return
 
         tool_resources = {}
-        if self._aoi_filter.leAOI.text():
-            tool_resources["aoi"] = self._aoi_filter.leAOI.text()
+        if self._aoi_filter.leAOI.toPlainText():
+            tool_resources["aoi"] = self._aoi_filter.leAOI.toPlainText()
         else:
             tool_resources["aoi"] = None
 

@@ -464,7 +464,7 @@ class BasemapsWidget(BASE, WIDGET):
     def find_quads_clicked(self):
         self.labelWarningQuads.setText("")
         selected = self.mosaicsList.selected_mosaics()
-        if not self.aoi_filter.leAOI.text():
+        if not self.aoi_filter.leAOI.toPlainText():
             self.labelWarningQuads.setText("⚠️ No area of interest (AOI) defined")
             return
         geom = self.aoi_filter.aoi_as_4326_geom()
