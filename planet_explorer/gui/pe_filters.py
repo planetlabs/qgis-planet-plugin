@@ -425,10 +425,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         selection_menu = QMenu(self)
 
-        # self.single_select_act = QAction("Single feature", selection_menu)
-        # self.single_select_act.triggered[bool].connect(self.aoi_from_feature)
-        # selection_menu.addAction(self.single_select_act)
-
         self.multi_polygon_select_act = QAction("Selected features", selection_menu)
         self.multi_polygon_select_act.triggered[bool].connect(
             self.aoi_from_multiple_polygons
@@ -443,7 +439,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.btnSelection.setMenu(selection_menu)
         # Also show menu on click, to keep disclosure triangle visible
-        self.btnSelection.clicked.connect(self._toggle_selection_tools)
         self.btnSelection.clicked.connect(self.btnSelection.showMenu)
 
         upload_menu = QMenu(self)
@@ -719,23 +714,6 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
             )
             return
-
-    def _toggle_selection_tools(self):
-        active_layer = iface.activeLayer()
-        is_vector = isinstance(active_layer, QgsVectorLayer)
-        if is_vector and active_layer.selectedFeatureCount():
-            if active_layer.selectedFeatureCount() > 1:
-                self.single_select_act.setEnabled(False)
-                self.bound_select_act.setEnabled(True)
-            elif active_layer.selectedFeatureCount():
-                self.single_select_act.setEnabled(True)
-                self.bound_select_act.setEnabled(False)
-            else:
-                self.single_select_act.setEnabled(False)
-                self.bound_select_act.setEnabled(False)
-        else:
-            self.single_select_act.setEnabled(False)
-            self.bound_select_act.setEnabled(False)
 
     @pyqtSlot()
     def aoi_from_current_extent(self):
