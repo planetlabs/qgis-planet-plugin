@@ -23,6 +23,7 @@ hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
   v2.3.0 (2023-02-09)
+  * Fixed the auto-fill coordinates feature for setting a point collect location in QGIS and auto-populating those coordinates to our tasking dashboard.
   * Better multi-polygon search handling. Users can now search in individual polygons in a multi-polygon or by selecting a bounding box around the multi-polygon extent.
   * New "Add to Map" button in the Orders Panel that when selected will automatically render a true color visualization of PlanetScope or SkySat imagery in the QGIS map.
   * Added STAC metadata as an option during Order Checkout so customers can download their images with STAC metadata.
