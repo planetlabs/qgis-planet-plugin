@@ -23,11 +23,18 @@ __revision__ = "$Format:%H$"
 
 import logging
 import os
+import json
 
 import iso8601
 from planet.api.models import Order, Orders
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsRasterLayer,
+    QgsProject,
+    QgsContrastEnhancement,
+)
 
 from qgis.PyQt import uic
 
@@ -62,6 +69,9 @@ STATE = "state"
 DELIVERY = "delivery"
 ARCHIVE_TYPE = "archive_type"
 METADATA = "metadata"
+
+EXT_LINK = ":/plugins/planet_explorer/external-link.svg"
+FOLDER_ICON = ":/plugins/planet_explorer/file-open.svg"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
@@ -232,26 +242,41 @@ class OrderItemWidget(QWidget):
         label.setOpenExternalLinks(True)
         if not order.is_zipped():
             label.setStyleSheet("color: gray")
-        button = QPushButton("Re-Download" if order.downloaded() else "Download")
+        # Addition space characters added to Download so that it
+        # vertically lines-up neatly with the Re-download button
+        button = QPushButton("Re-Download" if order.downloaded() else "   Download   ")
         button.clicked.connect(self.download)
         button.setEnabled(order.state() == "success" and order.is_zipped())
 
-        vlayout = QVBoxLayout()
-        vlayout.addWidget(button)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(button)
+
+        add_to_map_btn = QPushButton("Add to map")
+        add_to_map_btn.clicked.connect(self.add_to_map)
+        hlayout.addWidget(add_to_map_btn)
+
         if order.downloaded():
-            labelOpenFolder = QLabel("<a href='#'>Open order folder</a>")
-            vlayout.addWidget(labelOpenFolder)
-            labelOpenFolder.setOpenExternalLinks(False)
-            labelOpenFolder.linkActivated.connect(
+            # Enable the add to map button if the data has been downloaded
+            add_to_map_btn.setEnabled(True)
+
+            # Add the open folder location button if the data has been downloaded
+            label_open_folder = QLabel("<a href='#'>Open order folder</a>")
+            hlayout.addWidget(label_open_folder)
+            label_open_folder.setOpenExternalLinks(False)
+            label_open_folder.linkActivated.connect(
                 lambda: QDesktopServices.openUrl(
                     QUrl.fromLocalFile(self.order.download_folder())
                 )
             )
+        else:
+            # Add to map button will be disabled if the data has not been downloaded
+            add_to_map_btn.setEnabled(False)
+        hlayout.addStretch(1)  # Spacer
 
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addStretch()
-        layout.addLayout(vlayout)
+        layout.addLayout(hlayout)
 
         self.setLayout(layout)
 
@@ -288,6 +313,164 @@ class OrderItemWidget(QWidget):
             level=Qgis.Info,
             duration=5,
         )
+
+    def _find_band(self, layer, name, default):
+        """Finds the band number associated with the provided name (e.g. 'blue'),
+        otherwise returns a default value.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+
+        :param name: Band name (e.g. 'blue')
+        :type name: str
+
+        :param default: Default band number to use
+        :type default: int
+
+        :returns: Band number
+        "rtype: int
+        """
+        name = name.lower()
+        for i in range(layer.bandCount()):
+            if name == layer.bandName(i).lower().split(": ")[-1]:
+                return i
+        return default
+
+    def load_layer(self, layer):
+        """Adds the provided QgsRasterLayer to the QGIS map.
+        Rasters with less than 3 bands will be added as
+        a grey scale layer, whereas multiband will be added as True colour RGB.
+
+        :param layer: Raster layer. Both single band and multiband.
+        :type layer: QgsRasterLayer
+        """
+
+        band_cnt = layer.bandCount()
+        if band_cnt < 3:
+
+            # These cases will be skipped for now, but removing this 'return'
+            # will add singleband layers again
+            return
+
+            # Rasters with less than 3 bands will be added as single band
+            r = layer.renderer().clone()
+            r.setGrayBand(1)
+
+            used_bands = r.usesBands()
+            typ = layer.renderer().dataType(1)
+            enhancement = QgsContrastEnhancement(typ)
+            enhancement.setContrastEnhancementAlgorithm(
+                QgsContrastEnhancement.StretchToMinimumMaximum, True
+            )
+            band_min, band_max = layer.dataProvider().cumulativeCut(
+                used_bands[0], 0.02, 0.98, sampleSize=10000
+            )
+            enhancement.setMinimumValue(band_min)
+            enhancement.setMaximumValue(band_max)
+            r.setContrastEnhancement(enhancement)
+
+            layer.setRenderer(r)
+            QgsProject.instance().addMapLayer(layer)
+        else:
+            # BGR image for 3 or more bands
+            r = layer.renderer().clone()
+            r.setBlueBand(self._find_band(layer, "blue", 1))
+            r.setGreenBand(self._find_band(layer, "green", 2))
+            r.setRedBand(self._find_band(layer, "red", 3))
+
+            used_bands = r.usesBands()
+            for b in range(3):
+                typ = layer.renderer().dataType(b)
+                enhancement = QgsContrastEnhancement(typ)
+                enhancement.setContrastEnhancementAlgorithm(
+                    QgsContrastEnhancement.StretchToMinimumMaximum, True
+                )
+                band_min, band_max = layer.dataProvider().cumulativeCut(
+                    used_bands[b], 0.02, 0.98, sampleSize=10000
+                )
+                enhancement.setMinimumValue(band_min)
+                enhancement.setMaximumValue(band_max)
+                if b == 0:
+                    r.setRedContrastEnhancement(enhancement)
+                elif b == 1:
+                    r.setGreenContrastEnhancement(enhancement)
+                elif b == 2:
+                    r.setBlueContrastEnhancement(enhancement)
+
+            layer.setRenderer(r)
+            QgsProject.instance().addMapLayer(layer)
+
+    def add_to_map(self):
+        """Called when the add to map button is clicked.
+        Adds the selected remotely sensed image in the order monitor list to QGIS.
+        The data needs to be downloaded.
+        """
+
+        # Gets the folder name in the root folder to access the manifest.json file
+        # There should always be only one folder, so this will be the selected folder
+        # All files will be ignored
+        final_path = None
+        root = self.order.download_folder()
+        dir_contents = os.listdir(root)
+        for content in dir_contents:
+            full_path = os.path.join(root, content)
+            if os.path.isdir(full_path):
+                final_path = full_path
+                break
+
+        manifest_dir = "{}/{}".format(final_path, "manifest.json")
+
+        data_found = False
+        if os.path.exists(manifest_dir):
+            manifest_file = open(manifest_dir)
+            manifest_data = json.load(manifest_file)
+
+            list_files = manifest_data["files"]
+            for json_file in list_files:
+                media_type = json_file["media_type"]
+
+                raster_types = ["image/tiff", "application/vnd.lotus-notes"]
+
+                if media_type in raster_types:
+                    annotations = json_file["annotations"]
+                    asset_type = annotations["planet/asset_type"]
+                    if asset_type.endswith("_udm") or asset_type.endswith("_udm2"):
+                        # Skips all 'udm' asset rasters
+                        continue
+
+                    image_path = json_file["path"]
+                    image_dir = "{}/{}".format(final_path, image_path)
+
+                    if os.path.exists(image_dir):
+                        layer = QgsRasterLayer(image_dir, os.path.basename(image_dir))
+                        self.load_layer(layer)
+                        data_found = True
+            if not data_found:
+                # The raster(s) specified in the manifest.json file is missing
+                self.qgs_error_message(
+                    "Cannot add data to map", "Image layer(s) is missing"
+                )
+            # True returned if atleast one data were loaded, otherwise False
+            return data_found
+        else:
+            # The manifest.json file is missing
+            # This file contains information on the downloaded data
+            self.qgs_error_message("Cannot add data to map", "Manifest file is missing")
+            return False
+
+    def qgs_error_message(self, error_title="Error", error_desciption=""):
+        """Displays an error message on the QGIS message bar.
+        A buttons is included which will open a message box.
+
+        :param error_title: Error message title
+        :type error_title: str
+
+        :param error_desciption: Error message description
+        :type error_desciption: str
+        """
+
+        message_bar = iface.messageBar()
+        message_bar.pushInfo(error_title, message=error_desciption)
 
 
 class QuadsOrderItem(BaseWidgetItem):
