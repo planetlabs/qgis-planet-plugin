@@ -50,7 +50,7 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItemIterator,
 )
 
-from planet.api.exceptions import APIException, BadQuery
+from planet.api.exceptions import BadQuery
 
 from ..gui.pe_results_configuration_dialog import (
     PlanetNodeMetadata,
