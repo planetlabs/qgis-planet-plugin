@@ -1,6 +1,6 @@
 click
-requests-futures
-planet
+requests-futures<1.0
+planet~=1.4
 iso8601
 mercantile
 analytics-python
