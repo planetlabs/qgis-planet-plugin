@@ -364,7 +364,7 @@ class BasemapLayerWidget(QWidget):
             # found it will later be used as API key for authentication
             # instead of the stored logged-in user API key from the plugin
             # authentication settings.
-            pattern = re.compile('api_key=(.*)')
+            pattern = re.compile("api_key=(.*)")
             res = pattern.search(unquote(self.layer.source()))
             passed_api_key = res.groups()[0] if res.groups() else None
 
@@ -372,12 +372,15 @@ class BasemapLayerWidget(QWidget):
 
             # The label warning should only be shown if a logged-in user doesn't
             # have an API key or when layer source doesn't contain api_key parameter
-            # if no user has logged-in
+            # if no user has logged-in.
             self.labelWarning.setVisible(not has_api_key and not passed_api_key)
             self.renderingOptionsWidget.setVisible(has_api_key)
 
-            api_key = PlanetClient.getInstance().api_key() \
-                if not passed_api_key else passed_api_key
+            api_key = (
+                PlanetClient.getInstance().api_key()
+                if not passed_api_key
+                else passed_api_key
+            )
 
             if len(self.mosaics) > 1:
                 self.labelId.setVisible(has_api_key)
@@ -391,10 +394,7 @@ class BasemapLayerWidget(QWidget):
                 )
                 self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
             else:
-                tile_url = (
-                    f"{self.layerurl}/"
-                    f"{quote(f'&api_key={api_key}')}"
-                )
+                tile_url = f"{self.layerurl}/" f"{quote(f'&api_key={api_key}')}"
 
             proc = self.renderingOptionsWidget.process()
             ramp = self.renderingOptionsWidget.ramp()
