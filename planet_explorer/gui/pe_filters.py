@@ -1303,7 +1303,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         # Publishing stage
         publish_types = []
-        for chk in [self.cb_publish_preview_3, self.cb_publish_standard_3, self.cb_publish_finalized_3]:
+        for chk in [
+            self.cb_publish_preview_3,
+            self.cb_publish_standard_3,
+            self.cb_publish_finalized_3,
+        ]:
             # preview, standard and finalized
             if chk.isChecked():
                 publish_types.append(chk.property("api-publish"))
