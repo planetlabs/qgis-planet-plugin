@@ -45,8 +45,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>415</width>
-        <height>968</height>
+        <width>401</width>
+        <height>1115</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -153,17 +153,17 @@ have access to order with my current plan</string>
            </property>
            <property name="dateTime">
             <datetime>
-             <hour>23</hour>
+             <hour>22</hour>
              <minute>0</minute>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>15</day>
+             <day>13</day>
             </datetime>
            </property>
            <property name="time">
             <time>
-             <hour>23</hour>
+             <hour>22</hour>
              <minute>0</minute>
              <second>0</second>
             </time>
@@ -499,6 +499,83 @@ have access to order with my current plan</string>
                  <widget class="QCheckBox" name="chkYellow">
                   <property name="text">
                    <string>Coastal blue, green II, yellow, red edge</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <item>
+                 <widget class="QLabel" name="lblPublishFilter">
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="text">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Publishing filter&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_5">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lblLearnMorePublishFilter">
+                  <property name="text">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://developers.planet.com/docs/apis/data/items-assets/#item-publishing-lifecycle&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Learn More&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                  <property name="openExternalLinks">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_16">
+                <item>
+                 <widget class="QCheckBox" name="cb_publish_preview_3">
+                  <property name="text">
+                   <string>Preview (unrectified)</string>
+                  </property>
+                  <property name="api-publish" stdset="0">
+                   <string>preview</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="cb_publish_standard_3">
+                  <property name="text">
+                   <string>Standard (rectified)</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                  <property name="api-publish" stdset="0">
+                   <string>standard</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="cb_publish_finalized_3">
+                  <property name="text">
+                   <string>Finalized (rectified)</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                  <property name="api-publish" stdset="0">
+                   <string>finalized</string>
                   </property>
                  </widget>
                 </item>

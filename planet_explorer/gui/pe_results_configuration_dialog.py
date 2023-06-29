@@ -17,6 +17,7 @@ class PlanetNodeMetadata(enum.Enum):
     SUN_AZIMUTH = "sun_azimuth"
     SUN_ELEVATION = "sun_elevation"
     QUALITY_CATEGORY = "quality_category"
+    PUBLISHING_STAGE = "publishing_stage"
 
 
 WIDGET, BASE = uic.loadUiType(
@@ -46,6 +47,7 @@ class ResultsConfigurationDialog(BASE, WIDGET):
             PlanetNodeMetadata.SUN_AZIMUTH: self.chkSunAzimuth,
             PlanetNodeMetadata.SUN_ELEVATION: self.chkSunElevation,
             PlanetNodeMetadata.QUALITY_CATEGORY: self.chkQualityCategory,
+            PlanetNodeMetadata.PUBLISHING_STAGE: self.chkPublishStage,
         }
 
         for chk in self.checkboxes.values():

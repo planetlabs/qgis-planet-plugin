@@ -1301,6 +1301,18 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                     "No valid ID present", level=Qgis.Warning, duration=10
                 )
 
+        # Publishing stage
+        publish_types = []
+        for chk in [self.cb_publish_preview_3, self.cb_publish_standard_3, self.cb_publish_finalized_3]:
+            # preview, standard and finalized
+            if chk.isChecked():
+                publish_types.append(chk.property("api-publish"))
+        if publish_types:
+            # Adds the Publishing stage to the filters if any were active
+            # Metadata name is "publishing_stage"
+            publish_filters = string_filter("publishing_stage", *publish_types)
+            populated_filters.append(publish_filters)
+
         instruments = []
         for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
             if chk.isChecked():
