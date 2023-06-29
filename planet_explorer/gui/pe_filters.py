@@ -1133,7 +1133,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.itemTypeCheckBoxes = [
             self.chkPlanetScope,
-            self.chkPlanetScopeOrtho,
             self.chkRapidEyeScene,
             self.chkRapidEyeOrtho,
             self.chkSkySatScene,

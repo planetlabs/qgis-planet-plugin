@@ -46,7 +46,7 @@
         <x>0</x>
         <y>0</y>
         <width>401</width>
-        <height>1115</height>
+        <height>1086</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -340,16 +340,6 @@ have access to order with my current plan</string>
               </widget>
              </item>
              <item>
-              <widget class="QCheckBox" name="chkPlanetScopeOrtho">
-               <property name="text">
-                <string>PlanetScope Ortho Tile</string>
-               </property>
-               <property name="api-name" stdset="0">
-                <string>PSOrthoTile</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="QCheckBox" name="chkRapidEyeScene">
                <property name="text">
                 <string>RapidEye Basic Scene</string>
@@ -512,7 +502,7 @@ have access to order with my current plan</string>
                    <string notr="true"/>
                   </property>
                   <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Publishing filter&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Publishing stage filter&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
