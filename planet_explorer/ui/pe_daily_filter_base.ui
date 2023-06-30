@@ -158,7 +158,7 @@ have access to order with my current plan</string>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>13</day>
+             <day>12</day>
             </datetime>
            </property>
            <property name="time">
@@ -536,7 +536,7 @@ have access to order with my current plan</string>
                 <item>
                  <widget class="QCheckBox" name="cb_publish_preview_3">
                   <property name="text">
-                   <string>Preview (unrectified)</string>
+                   <string>Preview</string>
                   </property>
                   <property name="api-publish" stdset="0">
                    <string>preview</string>
@@ -546,7 +546,7 @@ have access to order with my current plan</string>
                 <item>
                  <widget class="QCheckBox" name="cb_publish_standard_3">
                   <property name="text">
-                   <string>Standard (rectified)</string>
+                   <string>Standard</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
@@ -559,7 +559,7 @@ have access to order with my current plan</string>
                 <item>
                  <widget class="QCheckBox" name="cb_publish_finalized_3">
                   <property name="text">
-                   <string>Finalized (rectified)</string>
+                   <string>Finalized</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
