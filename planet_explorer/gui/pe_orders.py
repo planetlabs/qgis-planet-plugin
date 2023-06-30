@@ -51,6 +51,7 @@ from ..pe_utils import (
     iface,
     ENABLE_CLIP_SETTING,
     ENABLE_HARMONIZATION_SETTING,
+    ENABLE_COMPOSITE,
     ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
 )
@@ -134,6 +135,10 @@ class PlanetOrderBundleWidget(QFrame):
         )
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
+
+        # =========================================================== Currently the bundle does not contain a canComposite
+        self.can_composite = bundle.get("canComposite", False)
+
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
         asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
@@ -460,6 +465,9 @@ class PlanetOrderReviewWidget(QWidget):
         self.bundle_type = bundle_type
         self.images = images
         self.add_clip = add_clip
+
+        self.add_composite = True
+
         self.add_harmonize = add_harmonize
         self.stac_order = QSettings().value(
             f"{SETTINGS_NAMESPACE}/{ENABLE_STAC_METADATA}", False, type=bool
@@ -508,6 +516,7 @@ class PlanetOrderReviewWidget(QWidget):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(2, 1)
         self.chkClip = None
+        self.chkComposite = None
         self.chkHarmonize = None
         if self.add_clip:
             layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
@@ -521,14 +530,62 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkClip.setChecked(str(enabled).lower() == str(True).lower())
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
+
+        if self.add_composite:
+            layout.addWidget(QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignCenter)
+            description_label = QLabel(
+                "The "
+                "<a style='color: #50a94e; text-decoration: none;' "
+                "href='https://developers.planet.com/apis/orders/tools/#composite'>Composite tool</a>"
+                " allows your to composite a "
+                "set of images into a single output"
+            )
+            layout.addWidget(
+                description_label,
+                4,
+                1,
+                Qt.AlignCenter,
+            )
+            description_label.setOpenExternalLinks(True)
+
+            self.chkComposite = QCheckBox("Enable composite")
+            enabled = QSettings().value(
+                f"{SETTINGS_NAMESPACE}/{ENABLE_COMPOSITE}", False
+            )
+            self.chkComposite.setChecked(str(enabled).lower() == str(True).lower())
+            self.chkComposite.stateChanged.connect(self.compositeStateChanged)
+            layout.addWidget(self.chkComposite, 5, 1, Qt.AlignCenter)
+
+            self.radio_btn_all = QRadioButton("All items")
+            self.radio_btn_strip = QRadioButton("By strip")
+            self.radio_btn_all.setChecked(True)
+
+            # Show/hide composite radio buttons
+            if self.chkComposite.isChecked():
+                self.radio_btn_all.setEnabled(True)
+                self.radio_btn_strip.setEnabled(True)
+
+                self.radio_btn_all.setVisible(True)
+                self.radio_btn_strip.setVisible(True)
+
+            else:
+                self.radio_btn_all.setEnabled(False)
+                self.radio_btn_strip.setEnabled(False)
+
+                self.radio_btn_all.setVisible(False)
+                self.radio_btn_strip.setVisible(False)
+
+            layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignCenter)
+            layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignCenter)
+
         if self.add_harmonize:
-            layout.addWidget(QLabel("<b>Harmonization</b>"), 3, 1, Qt.AlignCenter)
+            layout.addWidget(QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignCenter)
             layout.addWidget(
                 QLabel(
                     "Radiometrically harmonize imagery captured by one satellite "
                     "instrument type to imagery capture by another"
                 ),
-                4,
+                9,
                 1,
                 Qt.AlignCenter,
             )
@@ -538,19 +595,19 @@ class PlanetOrderReviewWidget(QWidget):
             )
             self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
-            layout.addWidget(self.chkHarmonize, 5, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignCenter)
 
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
-        layout.addWidget(metadata_widget, 6, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.description_label, 7, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.stac_box, 8, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget, 11, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.description_label, 12, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignCenter)
 
-        layout.addWidget(QLabel("<b>Review Items</b>"), 9, 1, Qt.AlignCenter)
+        layout.addWidget(QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
-            10,
+            15,
             1,
             Qt.AlignCenter,
         )
@@ -564,12 +621,27 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 11, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 16, 1, Qt.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
     def checkStateChanged(self):
         self.selectedImagesChanged.emit()
+
+    def compositeStateChanged(self):
+        # Show/hide composite radio buttons
+        if self.chkComposite.isChecked():
+            self.radio_btn_all.setEnabled(True)
+            self.radio_btn_strip.setEnabled(True)
+
+            self.radio_btn_all.setVisible(True)
+            self.radio_btn_strip.setVisible(True)
+        else:
+            self.radio_btn_all.setEnabled(False)
+            self.radio_btn_strip.setEnabled(False)
+
+            self.radio_btn_all.setVisible(False)
+            self.radio_btn_strip.setVisible(False)
 
     def selected_images(self):
         return [w.image for w in self.imgWidgets if w.selected()]
@@ -585,6 +657,20 @@ class PlanetOrderReviewWidget(QWidget):
             return False
         else:
             return self.chkHarmonize.isChecked()
+
+    def composite(self):
+        if self.chkComposite is None:
+            return False
+        else:
+            return self.chkComposite.isChecked()
+
+    def getCompositeType(self):
+        if self.radio_btn_all.isChecked():
+            # Will composite all images
+            return "order"
+        else:
+            # Will only composite each strip
+            return "strip_id"
 
     def _btnDetailsClicked(self):
         if self.widgetDetails.isVisible():
@@ -868,11 +954,25 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             return
         name = self.txtOrderName.text()
 
+        print("tool resources")
+        print(str(self.tool_resources))
+
         aoi = None
         if self.tool_resources.get("aoi") is not None:
             aoi = json.loads(self.tool_resources.get("aoi"))
+
+        print('aoi')
+        print(str(aoi))
+
         orders = []
         for item_type, widget in self._item_type_widgets.items():
+
+            # item_type2 = item_type
+            #
+            # print('item type: ' + str(item_type))
+            # if item_type == "PSScene":
+            #     item_type2 = "PSScene4Band"
+
             for bundle in widget.bundles():
                 w = self._review_widget_for_bundle(item_type, bundle["name"])
                 images = w.selected_images()
@@ -901,6 +1001,13 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 tools = []
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})
+                if w.composite():
+
+                    print('composite')
+
+                    # 'order' or 'strip_id' for 'group_by'
+                    composite_type = w.getCompositeType()
+                    tools.append({"composite": {"group_by": composite_type}})
                 if w.harmonize():
                     tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
                 if bundle["filetype"] == "NITF":
@@ -908,8 +1015,19 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 order["tools"] = tools
                 orders.append(order)
 
+        print('orders')
+        print(str(orders))
+
         responses_ok = True
         for order in orders:
+
+            print("order")
+            print(str(order))
+            # print(str(self._p_client))
+
+            #test = json.dumps(order)
+            #test2 = json.loads(test)
+
             resp = self._p_client.create_order(order)
             responses_ok = responses_ok and resp
             send_analytics_for_order(order)
