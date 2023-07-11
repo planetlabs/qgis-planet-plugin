@@ -266,9 +266,6 @@ class PlanetClient(QObject, ClientV1):
         return item_descriptions
 
     def create_order(self, request):
-
-        print('create order')
-
         api_key = PlanetClient.getInstance().api_key()
         url = self._url("compute/ops/orders/v2")
         headers = {"X-Planet-App": "qgis"}

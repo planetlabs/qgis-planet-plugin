@@ -954,25 +954,12 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             return
         name = self.txtOrderName.text()
 
-        print("tool resources")
-        print(str(self.tool_resources))
-
         aoi = None
         if self.tool_resources.get("aoi") is not None:
             aoi = json.loads(self.tool_resources.get("aoi"))
 
-        print('aoi')
-        print(str(aoi))
-
         orders = []
         for item_type, widget in self._item_type_widgets.items():
-
-            # item_type2 = item_type
-            #
-            # print('item type: ' + str(item_type))
-            # if item_type == "PSScene":
-            #     item_type2 = "PSScene4Band"
-
             for bundle in widget.bundles():
                 w = self._review_widget_for_bundle(item_type, bundle["name"])
                 images = w.selected_images()
@@ -1002,9 +989,6 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 if w.clipping():
                     tools.append({"clip": {"aoi": aoi}})
                 if w.composite():
-
-                    print('composite')
-
                     # 'order' or 'strip_id' for 'group_by'
                     composite_type = w.getCompositeType()
                     tools.append({"composite": {"group_by": composite_type}})
@@ -1015,19 +999,8 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 order["tools"] = tools
                 orders.append(order)
 
-        print('orders')
-        print(str(orders))
-
         responses_ok = True
         for order in orders:
-
-            print("order")
-            print(str(order))
-            # print(str(self._p_client))
-
-            #test = json.dumps(order)
-            #test2 = json.loads(test)
-
             resp = self._p_client.create_order(order)
             responses_ok = responses_ok and resp
             send_analytics_for_order(order)

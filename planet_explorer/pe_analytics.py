@@ -149,29 +149,16 @@ def send_analytics_for_preview(imgs):
 
 
 def send_analytics_for_order(order):
-
-    print('send analytics')
-
     product = order["products"][0]
     name = item_type_names.get(product["item_type"])
 
-    #print('item type: ' + product["item_type"])
-
-    #print('name: ' + name)
-
     if name is not None:
-
-        print('name is not none')
-
         analytics_track(
             SCENE_ORDER_PLACED,
             {"count": len(product["item_ids"]), "item_type": name},
         )
         clipping = "clip" in [list(tool.keys())[0] for tool in order["tools"]]
         if clipping:
-
-            print('clipping')
-
             analytics_track(
                 SCENE_ORDER_CLIPPED,
                 {"scene_count": len(product["item_ids"]), "item_type": name},
