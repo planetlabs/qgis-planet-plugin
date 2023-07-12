@@ -136,9 +136,6 @@ class PlanetOrderBundleWidget(QFrame):
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
 
-        # =========================================================== Currently the bundle does not contain a canComposite
-        self.can_composite = bundle.get("canComposite", False)
-
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
         asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
@@ -536,7 +533,8 @@ class PlanetOrderReviewWidget(QWidget):
             description_label = QLabel(
                 "The "
                 "<a style='color: #50a94e; text-decoration: none;' "
-                "href='https://developers.planet.com/apis/orders/tools/#composite'>Composite tool</a>"
+                "href='https://developers.planet.com/apis/orders/tools/#composite'>"
+                "Composite tool</a>"
                 " allows your to composite a "
                 "set of images into a single output"
             )
