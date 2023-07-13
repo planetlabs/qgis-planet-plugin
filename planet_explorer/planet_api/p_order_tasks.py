@@ -109,12 +109,30 @@ class OrderProcessorTask(QgsTask):
         images = []
         for img in manifest["files"]:
             if img["media_type"] == "image/tiff":
-                images.append(
-                    (
-                        os.path.join(base_folder, img["path"]),
-                        img["annotations"]["planet/item_type"],
+                annotations = img["annotations"]
+                asset_type_key = "planet/asset_type"
+
+                if asset_type_key in annotations:
+                    images.append(
+                        (
+                            os.path.join(base_folder, img["path"]),
+                            img["annotations"]["planet/item_type"],
+                        )
                     )
-                )
+                else:
+                    # A workaround for composite
+                    image_path = img["path"]
+                    if not image_path.startswith("composite."):
+                        # Skips if it's not a composite file
+                        continue
+                    else:
+                        # Adds the composite file
+                        images.append(
+                            (
+                                os.path.join(base_folder, img["path"]),
+                                "composite",  # Item type
+                            )
+                        )
         return images
 
     def finished(self, result):
