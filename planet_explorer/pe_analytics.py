@@ -104,6 +104,7 @@ def analytics_track(event, properties=None):
 
 
 item_type_names = {
+    "PSScene": "planetscope_scene",
     "PSScene4Band": "planetscope_scene",
     "PSScene3Band": "planetscope_scene",
     "PSOrthoTile": "planetscope_ortho",
@@ -150,6 +151,7 @@ def send_analytics_for_preview(imgs):
 def send_analytics_for_order(order):
     product = order["products"][0]
     name = item_type_names.get(product["item_type"])
+
     if name is not None:
         analytics_track(
             SCENE_ORDER_PLACED,

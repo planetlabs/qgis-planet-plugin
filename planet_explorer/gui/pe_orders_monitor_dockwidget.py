@@ -428,15 +428,25 @@ class OrderItemWidget(QWidget):
             list_files = manifest_data["files"]
             for json_file in list_files:
                 media_type = json_file["media_type"]
-
                 raster_types = ["image/tiff", "application/vnd.lotus-notes"]
 
                 if media_type in raster_types:
                     annotations = json_file["annotations"]
-                    asset_type = annotations["planet/asset_type"]
-                    if asset_type.endswith("_udm") or asset_type.endswith("_udm2"):
-                        # Skips all 'udm' asset rasters
-                        continue
+                    asset_type_key = "planet/asset_type"
+
+                    if asset_type_key in annotations:
+                        asset_type = annotations[asset_type_key]
+                        if asset_type.endswith("_udm") or asset_type.endswith("_udm2"):
+                            # Skips all 'udm' asset rasters
+                            continue
+                    else:
+                        # A workaround for composite
+                        image_path = json_file["path"]
+                        if not image_path.endswith(
+                            "composite.tif"
+                        ) and not image_path.endswith("composite_file_format.ntf"):
+                            # Skips if it's not a composite file
+                            continue
 
                     image_path = json_file["path"]
                     image_dir = "{}/{}".format(final_path, image_path)

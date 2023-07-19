@@ -109,6 +109,7 @@ ORDERS_DOWNLOAD_FOLDER_SETTING = "ordersPath"
 DEFAULT_ORDERS_FOLDERNAME = "planet_orders"
 ENABLE_CLIP_SETTING = "enableClip"
 ENABLE_STAC_METADATA = "enableStacMetadata"
+ENABLE_COMPOSITE = "enableComposite"
 ENABLE_HARMONIZATION_SETTING = "enableHarmonization"
 
 BASE_URL = "https://www.planet.com"

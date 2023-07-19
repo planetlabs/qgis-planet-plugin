@@ -271,7 +271,8 @@ class PlanetClient(QObject, ClientV1):
         headers = {"X-Planet-App": "qgis"}
         session = PlanetClient.getInstance().dispatcher.session
         res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
-        return res.json()
+
+        return res
 
     def update_search(self, request, searchid):
         body = json.dumps(request)
