@@ -442,7 +442,9 @@ class OrderItemWidget(QWidget):
                     else:
                         # A workaround for composite
                         image_path = json_file["path"]
-                        if not image_path.startswith("composite."):
+                        if not image_path.endswith(
+                            "composite.tif"
+                        ) and not image_path.endswith("composite_file_format.ntf"):
                             # Skips if it's not a composite file
                             continue
 

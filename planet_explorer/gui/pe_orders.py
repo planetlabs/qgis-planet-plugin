@@ -1000,8 +1000,30 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         responses_ok = True
         for order in orders:
             resp = self._p_client.create_order(order)
-            responses_ok = responses_ok and resp
-            send_analytics_for_order(order)
+            resp_json = resp.json()
+
+            # If the order request failed
+            if resp.status_code >= 400:
+                order_name = order["name"]
+
+                if resp_json and resp_json["general"][0]["message"]:
+                    # Error message received from response
+                    err_message = resp_json["general"][0]["message"]
+                else:
+                    # If no error message has been received
+                    err_message = "An error occurred for the order."
+
+                self.bar.pushMessage(
+                    order_name,
+                    err_message,
+                    Qgis.Warning,
+                )
+
+                responses_ok = False
+            else:
+                # Order were a success
+                responses_ok = responses_ok and resp_json
+                send_analytics_for_order(order)
 
         if responses_ok:
             self.bar.pushMessage(
