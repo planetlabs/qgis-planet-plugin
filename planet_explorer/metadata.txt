@@ -22,6 +22,11 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v2.3.1 (2023-07-21)
+  * Access new "publishing stage" filters for PlanetScope data to see even more available PlanetScope imagery in their areas of interest.
+  * Apply a "composite" tool at Order Checkout, which can composite multiple images into a single image for an area of interest or by Satellite Strip.
+  * PSOrthoTile Item Types have been deprecated.
+  * Fixed bug when accessing Planet xyz tiles in QGIS.
   v2.3.0 (2023-02-09)
   * Fixed the auto-fill coordinates feature for setting a point collect location in QGIS and auto-populating those coordinates to our tasking dashboard.
   * Better multi-polygon search handling. Users can now search in individual polygons in a multi-polygon or by selecting a bounding box around the multi-polygon extent.
