@@ -1,16 +1,16 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 <plugins>
-<pyqgis_plugin name="Planet_Explorer" version="2.3.0">
+<pyqgis_plugin name="Planet_Explorer" version="2.3.1">
                 <description><![CDATA[The Planet Plugin enables QGIS users to quickly discover, stream, and download Planet imagery and Planet Basemaps. The plug-in provides an imagery discovery interface that allows users to search for, stream, and download Planet imagery within QGIS.<br><br>Full documentation for the Plugin is available <a href="https://developers.planet.com/docs/integrations/qgis/">here</a>.]]></description>
                 <about><![CDATA[Planet Explorer accesses the Planet imagery catalog archive. PYTHON 3.6 MINIMUM REQUIRED]]></about>
-                <version>2.3.0</version>
+                <version>2.3.1</version>
                 <qgis_minimum_version>3.10</qgis_minimum_version>
                 <homepage><![CDATA[https://developers.planet.com/docs/integrations/qgis/]]></homepage>
                 <file_name>planet_explorer.zip</file_name>
                 <icon>resources/planet-logo-p.png</icon>
                 <author_name><![CDATA[Planet Inc]]></author_name>
-                <download_url>https://github.com/planetlabs/qgis-planet-plugin/releases/download/v2.3.0/planet_explorer.zip</download_url>
-                <update_date>2023-02-10 04:56:08</update_date>
+                <download_url>https://github.com/planetlabs/qgis-planet-plugin/releases/download/v2.3.1/planet_explorer.zip</download_url>
+                <update_date>2023-07-25 06:59:28</update_date>
                 <experimental>False</experimental>
                 <deprecated>False</deprecated>
                 <tracker><![CDATA[https://github.com/planetlabs/qgis-planet-plugin/issues]]></tracker>
