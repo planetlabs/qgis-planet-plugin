@@ -28,7 +28,6 @@ from planet.api.filters import (
     and_filter,
     or_filter,
     build_search_request,
-    string_filter,
 )
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
