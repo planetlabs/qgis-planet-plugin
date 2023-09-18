@@ -158,7 +158,7 @@ have access to order with my current plan</string>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>12</day>
+             <day>11</day>
             </datetime>
            </property>
            <property name="time">
@@ -534,7 +534,7 @@ have access to order with my current plan</string>
               <item>
                <layout class="QVBoxLayout" name="verticalLayout_16">
                 <item>
-                 <widget class="QCheckBox" name="cb_publish_preview_3">
+                 <widget class="QCheckBox" name="cb_publish_preview">
                   <property name="text">
                    <string>Preview</string>
                   </property>
@@ -544,7 +544,7 @@ have access to order with my current plan</string>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="cb_publish_standard_3">
+                 <widget class="QCheckBox" name="cb_publish_standard">
                   <property name="text">
                    <string>Standard</string>
                   </property>
@@ -557,7 +557,7 @@ have access to order with my current plan</string>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="cb_publish_finalized_3">
+                 <widget class="QCheckBox" name="cb_publish_finalized">
                   <property name="text">
                    <string>Finalized</string>
                   </property>

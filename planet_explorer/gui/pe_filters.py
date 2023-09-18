@@ -1304,9 +1304,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         publish_types = []
         publish_filters = None
         for chk in [
-            self.cb_publish_preview_3,
-            self.cb_publish_standard_3,
-            self.cb_publish_finalized_3,
+            self.cb_publish_preview,
+            self.cb_publish_standard,
+            self.cb_publish_finalized,
         ]:
             # preview, standard and finalized
             if chk.isChecked() and chk.isEnabled():
@@ -1314,7 +1314,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         if publish_types:
             # Adds the Publishing stage to the filters if any were active
             # Metadata name is "publishing_stage"
-            # Publising stage filters will only be used for SkySat and PlanetScope
+            # Publishing stage filters will only be used for SkySat and PlanetScope
             publish_filters = string_filter("publishing_stage", *publish_types)
 
         instruments = []

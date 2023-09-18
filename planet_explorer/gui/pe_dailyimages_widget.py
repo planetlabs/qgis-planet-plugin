@@ -24,11 +24,7 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from planet.api.filters import (
-    and_filter,
-    or_filter,
-    build_search_request,
-)
+from planet.api.filters import and_filter, or_filter, build_search_request
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
@@ -51,6 +47,7 @@ from .pe_show_curl_dialog import ShowCurlDialog
 from .pe_legacy_warning_widget import LegacyWarningWidget
 from .pe_open_saved_search_dialog import OpenSavedSearchDialog
 from .pe_gui_utils import waitcursor
+from ..pe_utils import LANDSAT_ID, SENTINEL_ID, RAPIDEYE_ID, RAPIDEYE_ORTHO_ID
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -202,10 +199,10 @@ class DailyImagesWidget(BASE, WIDGET):
 
         # RapidEye, Landsat and Sentinel does not have a publishing stage field
         non_publish_filter_items = [
-            "Landsat8L1G",
-            "Sentinel2L1C",
-            "REScene",
-            "REOrthoTile",
+            LANDSAT_ID,
+            SENTINEL_ID,
+            RAPIDEYE_ID,
+            RAPIDEYE_ORTHO_ID,
         ]
 
         item_type_filters = []
