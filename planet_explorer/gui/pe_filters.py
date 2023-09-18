@@ -1309,7 +1309,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.cb_publish_finalized_3,
         ]:
             # preview, standard and finalized
-            if chk.isChecked():
+            if chk.isChecked() and chk.isEnabled():
                 publish_types.append(chk.property("api-publish"))
         if publish_types:
             # Adds the Publishing stage to the filters if any were active
