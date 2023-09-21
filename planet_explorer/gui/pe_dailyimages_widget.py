@@ -47,6 +47,7 @@ from .pe_show_curl_dialog import ShowCurlDialog
 from .pe_legacy_warning_widget import LegacyWarningWidget
 from .pe_open_saved_search_dialog import OpenSavedSearchDialog
 from .pe_gui_utils import waitcursor
+from ..pe_utils import LANDSAT_ID, SENTINEL_ID, RAPIDEYE_ID, RAPIDEYE_ORTHO_ID
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -182,7 +183,11 @@ class DailyImagesWidget(BASE, WIDGET):
 
         sources = self._daily_filters_widget.sources()
 
-        item_filters, self.local_filters = self._daily_filters_widget.filters()
+        (
+            item_filters,
+            self.local_filters,
+            publish_filters,
+        ) = self._daily_filters_widget.filters()
         if not item_filters:
             item_filters = []
 
@@ -192,26 +197,66 @@ class DailyImagesWidget(BASE, WIDGET):
             f for f in all_filters if "field_name" in f and f["field_name"] == "id"
         ]
 
+        # RapidEye, Landsat and Sentinel does not have a publishing stage field
+        non_publish_filter_items = [
+            LANDSAT_ID,
+            SENTINEL_ID,
+            RAPIDEYE_ID,
+            RAPIDEYE_ORTHO_ID,
+        ]
+
         item_type_filters = []
         for item_type, assets in sources.items():
             if assets is not None:
-                item_type_filter = {
-                    "config": [
-                        {"config": assets, "type": "AssetFilter"},
-                        {
-                            "config": [item_type],
-                            "type": "StringInFilter",
-                            "field_name": "item_type",
-                        },
-                    ],
-                    "type": "AndFilter",
-                }
+                if publish_filters and item_type not in non_publish_filter_items:
+                    # Only include the publishing stage if its PlanetScope or SkySat
+                    item_type_filter = {
+                        "config": [
+                            {"config": assets, "type": "AssetFilter"},
+                            {
+                                "config": [item_type],
+                                "type": "StringInFilter",
+                                "field_name": "item_type",
+                            },
+                            publish_filters,
+                        ],
+                        "type": "AndFilter",
+                    }
+                else:
+                    # Publishing filters will be excluded
+                    item_type_filter = {
+                        "config": [
+                            {"config": assets, "type": "AssetFilter"},
+                            {
+                                "config": [item_type],
+                                "type": "StringInFilter",
+                                "field_name": "item_type",
+                            },
+                        ],
+                        "type": "AndFilter",
+                    }
             else:
-                item_type_filter = {
-                    "config": [item_type],
-                    "type": "StringInFilter",
-                    "field_name": "item_type",
-                }
+                if publish_filters and item_type not in non_publish_filter_items:
+                    # Only include the publishing stage if its PlanetScope or SkySat
+                    item_type_filter = {
+                        "config": [
+                            {
+                                "config": [item_type],
+                                "type": "StringInFilter",
+                                "field_name": "item_type",
+                            },
+                            publish_filters,
+                        ],
+                        "type": "AndFilter",
+                    }
+                else:
+                    # Publishing filters will be excluded
+                    item_type_filter = {
+                        "config": [item_type],
+                        "type": "StringInFilter",
+                        "field_name": "item_type",
+                    }
+
             item_type_filters.append(item_type_filter)
 
         all_filters.append(or_filter(*item_type_filters))

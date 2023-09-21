@@ -1302,19 +1302,20 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         # Publishing stage
         publish_types = []
+        publish_filters = None
         for chk in [
-            self.cb_publish_preview_3,
-            self.cb_publish_standard_3,
-            self.cb_publish_finalized_3,
+            self.cb_publish_preview,
+            self.cb_publish_standard,
+            self.cb_publish_finalized,
         ]:
             # preview, standard and finalized
-            if chk.isChecked():
+            if chk.isChecked() and chk.isEnabled():
                 publish_types.append(chk.property("api-publish"))
         if publish_types:
             # Adds the Publishing stage to the filters if any were active
             # Metadata name is "publishing_stage"
+            # Publishing stage filters will only be used for SkySat and PlanetScope
             publish_filters = string_filter("publishing_stage", *publish_types)
-            populated_filters.append(publish_filters)
 
         instruments = []
         for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
@@ -1345,7 +1346,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         local_filters = [
             f for f in populated_filters if f["field_name"] in LOCAL_FILTERS
         ]
-        return server_filters, local_filters
+        return server_filters, local_filters, publish_filters
 
     def set_from_request(self, request):
         """

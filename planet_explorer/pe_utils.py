@@ -92,6 +92,11 @@ PROPERTIES = [
     "quality_category",
 ]
 
+LANDSAT_ID = "Landsat8L1G"
+SENTINEL_ID = "Sentinel2L1C"
+RAPIDEYE_ID = "REScene"
+RAPIDEYE_ORTHO_ID = "REOrthoTile"
+
 PE_PREVIEW = "PE thumbnail preview"
 PE_PREVIEW_GROUP = "Planet Explorer temp previews"
 
