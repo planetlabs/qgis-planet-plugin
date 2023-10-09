@@ -323,8 +323,8 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         # This may later be a nullptr, if no active tool when queried
         self._cur_maptool = None
 
-        self.leAOI.textChanged["QString"].connect(self.filters_changed)
-        self.leAOI.textEdited["QString"].connect(self.validate_edited_aoi)
+        self.leAOI.textChanged.connect(self.filters_changed)
+        self.leAOI.textChanged.connect(self.validate_edited_aoi)
 
         self._setup_tool_buttons()
 
@@ -335,15 +335,17 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.p_client = PlanetClient.getInstance()
 
     def reset_aoi_box(self):
+        self.leAOI.blockSignals(True)
         self.leAOI.setText("")
+        self.leAOI.blockSignals(False)
         if self._aoi_box:
             self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
 
     def filters(self):
         filters = []
-        if self.leAOI.text():
+        if self.leAOI.toPlainText():
             try:
-                qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
+                qgsgeom = qgsgeometry_from_geojson(self.leAOI.toPlainText())
                 if not qgsgeom.isEmpty():
                     geom_json = json.loads(qgsgeom.asJson())
                     filters.append(geom_filter(geom_json))
@@ -360,24 +362,26 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
     def filters_as_json(self):
         filters = []
-        if self.leAOI.text():
-            filters.append(self.leAOI.text())
+        if self.leAOI.toPlainText():
+            filters.append(self.leAOI.toPlainText())
 
         return filters
 
     def set_from_request(self, request):
         self.emitFiltersChanged = False
         filters = filters_from_request(request, "geometry")
+        self.leAOI.blockSignals(True)
         if filters:
             geom = filters[0]["config"]
             txt = json.dumps(geom)
             self.leAOI.setText(txt)
         else:
             self.leAOI.setText("")
+        self.leAOI.blockSignals(False)
         self.emitFiltersChanged = True
 
-    @pyqtSlot("QString")
-    def filters_changed(self, value):
+    @pyqtSlot()
+    def filters_changed(self, value=None):
         if self.emitFiltersChanged:
             self.filtersChanged.emit()
 
@@ -640,7 +644,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             # Sets the features to the canvas
             geom_json = multipart_polygon.asJson(precision=6)
             self._aoi_box.setToGeometry(multipart_polygon)
+            self.leAOI.blockSignals(True)
             self.leAOI.setText(geom_json)
+            self.leAOI.blockSignals(False)
 
             log.debug("AOI set to layer")
 
@@ -702,7 +708,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
             self._aoi_box.setToGeometry(geom_bb)
 
+            self.leAOI.blockSignals(True)
             self.leAOI.setText(geom_json)
+            self.leAOI.blockSignals(False)
 
             log.debug("AOI set to layer")
 
@@ -738,7 +746,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas.extent()))
 
+        self.leAOI.blockSignals(True)
         self.leAOI.setText(extent_json)
+        self.leAOI.blockSignals(False)
 
         log.debug("AOI set to canvas extent")
 
@@ -774,7 +784,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         geom_extent = QgsGeometry.fromRect(transform_extent)
         extent_json = geom_extent.asJson(precision=6)
 
+        self.leAOI.blockSignals(True)
         self.leAOI.setText(extent_json)
+        self.leAOI.blockSignals(False)
 
         log.debug("AOI set to active layer extent")
 
@@ -806,7 +818,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         extent_json = geom_extent.asJson(precision=6)
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(canvas_extent))
 
+        self.leAOI.blockSignals(True)
         self.leAOI.setText(extent_json)
+        self.leAOI.blockSignals(False)
 
         log.debug("AOI set to full data extent")
 
@@ -860,7 +874,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             aoi_json = aoi.asJson(precision=6)
 
         if aoi_json:
+            self.leAOI.blockSignals(True)
             self.leAOI.setText(aoi_json)
+            self.leAOI.blockSignals(False)
 
             self._show_message("AOI set to drawn figure")
             self.zoom_to_aoi()
@@ -930,7 +946,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             # Sets the features to the canvas
             geom_json = multipart_polygon.asJson(precision=6)
             self._aoi_box.setToGeometry(multipart_polygon)
+            self.leAOI.blockSignals(True)
             self.leAOI.setText(geom_json)
+            self.leAOI.blockSignals(False)
 
             log.debug("AOI set to layer")
 
@@ -974,7 +992,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         geom_bbox = QgsGeometry.fromRect(transform_bbox)
         bbox_json = geom_bbox.asJson(precision=6)
 
+        self.leAOI.blockSignals(True)
         self.leAOI.setText(bbox_json)
+        self.leAOI.blockSignals(False)
 
         bbox_canvas = trans_canvas.transformBoundingBox(transform_bbox)
         self._aoi_box.setToGeometry(QgsGeometry.fromRect(bbox_canvas))
@@ -1011,11 +1031,11 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
     @pyqtSlot()
     def zoom_to_aoi(self):
-        if not self.leAOI.text():
+        if not self.leAOI.toPlainText():
             log.debug("No AOI defined, skipping zoom to AOI")
             return
 
-        geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.text())
+        geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.toPlainText())
         if geom.isEmpty():
             self._show_message(
                 "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
@@ -1026,18 +1046,18 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.show_aoi()
 
-        zoom_canvas_to_aoi(self.leAOI.text())
+        zoom_canvas_to_aoi(self.leAOI.toPlainText())
 
         self.zoomToAOIRequested.emit()
 
     @pyqtSlot()
     def copy_aoi_to_clipboard(self):
-        if not self.leAOI.text():
+        if not self.leAOI.toPlainText():
             log.debug("No AOI defined, skipping zoom to AOI")
             return
 
         try:
-            json_obj = json.loads(self.leAOI.text())
+            json_obj = json.loads(self.leAOI.toPlainText())
         except ValueError:
             return
 
@@ -1050,7 +1070,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
     @pyqtSlot()
     def validate_edited_aoi(self):
-        json_txt = self.leAOI.text()
+        json_txt = self.leAOI.toPlainText()
         if not json_txt:
             self.reset_aoi_box()
             self.show_aoi_area_size()
