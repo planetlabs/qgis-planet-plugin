@@ -22,6 +22,8 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v2.3.2 (2024-03-07)
+  * Fixed bug when filtering search results for Landsat and Sentinel data.
   v2.3.1 (2023-07-21)
   * Access new "publishing stage" filters for PlanetScope data to see even more available PlanetScope imagery in their areas of interest.
   * Apply a "composite" tool at Order Checkout, which can composite multiple images into a single image for an area of interest or by Satellite Strip.
