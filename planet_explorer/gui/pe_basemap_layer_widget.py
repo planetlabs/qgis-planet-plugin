@@ -59,7 +59,7 @@ from ..planet_api import PlanetClient
 
 TILE_URL_TEMPLATE = (
     "https://tiles.planet.com/basemaps/v1/planet-tiles/"
-    "%s/gmap/{z}/{x}/{y}.png?api_key=%s"
+    "%s/gmap/{z}/{x}/{y}.png"
 )
 
 
@@ -390,8 +390,10 @@ class BasemapLayerWidget(QWidget):
                 name, mosaicid = self.mosaics[value]
                 tile_url = TILE_URL_TEMPLATE % (
                     mosaicid,
-                    str(api_key),
                 )
+
+                tile_url = f"{tile_url}?{quote(f'&api_key={str(api_key)}')}"
+
                 self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
             else:
                 tile_url = f"{self.layerurl}/" f"{quote(f'&api_key={api_key}')}"
