@@ -16,8 +16,7 @@
 """
 import json
 import os
-import re
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 from qgis.PyQt.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
@@ -52,6 +51,7 @@ from ..pe_utils import (
     QGIS_LOG_SECTION_NAME,
     WIDGET_PROVIDER_NAME,
     datatype_from_mosaic_name,
+    get_source_param,
     is_planet_url,
     mosaic_name_from_url,
 )
@@ -364,9 +364,11 @@ class BasemapLayerWidget(QWidget):
             # found it will later be used as API key for authentication
             # instead of the stored logged-in user API key from the plugin
             # authentication settings.
-            pattern = re.compile("api_key=(.*)")
-            res = pattern.search(unquote(self.layer.source()))
-            passed_api_key = res.groups()[0] if res.groups() else None
+
+            passed_api_key = get_source_param(
+                self.layer.source(),
+                'api_key'
+            )
 
             has_api_key = PlanetClient.getInstance().has_api_key()
 

@@ -626,3 +626,40 @@ def plugin_version(add_commit=False):
 
 def user_agent():
     return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"
+
+def get_source_param(self, layer_source, name):
+    """ Query the passed QgsMapLayer source uri
+     and returns value for a parameter with the passed
+     name
+     """
+
+    url = layer_source.split("&url=")
+    unquoted_url = urllib.parse.unquote(url[1]) \
+        if url and len(url) > 1 else None
+
+    if name not in unquoted_url:
+        return None
+
+    url_tokens = unquoted_url.split('?') \
+        if unquoted_url else None
+    params_tokens = url_tokens[1].split('&') \
+        if url_tokens else None
+
+    param_item = None
+
+    for token in params_tokens:
+        param_tokens = token.split('=')
+        param_name = param_tokens[0] \
+            if params_tokens else token
+
+        if param_name == name:
+            param_item = token
+            break
+
+    param_list = param_item.split('=') \
+        if param_item else None
+    param_item = param_list[1] \
+        if param_list and len(param_list) > 1 else None
+    param_item = param_item if param_item is not '' else None
+
+    return param_item
