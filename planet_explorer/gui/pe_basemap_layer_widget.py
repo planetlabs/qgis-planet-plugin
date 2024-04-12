@@ -368,6 +368,9 @@ class BasemapLayerWidget(QWidget):
             res = pattern.search(unquote(self.layer.source()))
             passed_api_key = res.groups()[0] if res.groups() else None
 
+            if '&' in passed_api_key:
+                passed_api_key = passed_api_key.split('&')[0]
+
             has_api_key = PlanetClient.getInstance().has_api_key()
 
             # The label warning should only be shown if a logged-in user doesn't
@@ -378,7 +381,7 @@ class BasemapLayerWidget(QWidget):
 
             api_key = (
                 PlanetClient.getInstance().api_key()
-                if not passed_api_key
+                if not passed_api_key or passed_api_key is ''
                 else passed_api_key
             )
 
