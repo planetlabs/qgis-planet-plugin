@@ -46,7 +46,7 @@
         <x>0</x>
         <y>0</y>
         <width>401</width>
-        <height>1086</height>
+        <height>1003</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -153,17 +153,17 @@ have access to order with my current plan</string>
            </property>
            <property name="dateTime">
             <datetime>
-             <hour>22</hour>
+             <hour>21</hour>
              <minute>0</minute>
              <second>0</second>
              <year>1999</year>
              <month>12</month>
-             <day>11</day>
+             <day>10</day>
             </datetime>
            </property>
            <property name="time">
             <time>
-             <hour>22</hour>
+             <hour>21</hour>
              <minute>0</minute>
              <second>0</second>
             </time>
@@ -356,43 +356,6 @@ have access to order with my current plan</string>
                </property>
                <property name="api-name" stdset="0">
                 <string>REOrthoTile</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_4">
-             <property name="styleSheet">
-              <string notr="true">color: rgb(17, 141, 148);</string>
-             </property>
-             <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Non-Planet Data Sets (&amp;gt;10 m)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QVBoxLayout" name="verticalLayout_8">
-             <property name="leftMargin">
-              <number>10</number>
-             </property>
-             <item>
-              <widget class="QCheckBox" name="chkSentinel">
-               <property name="text">
-                <string>Sentinel-2 Tile</string>
-               </property>
-               <property name="api-name" stdset="0">
-                <string>Sentinel2L1C</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="chkLandsat">
-               <property name="text">
-                <string>Landsat 8</string>
-               </property>
-               <property name="api-name" stdset="0">
-                <string>Landsat8L1G</string>
                </property>
               </widget>
              </item>

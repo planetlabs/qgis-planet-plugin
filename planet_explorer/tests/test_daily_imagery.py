@@ -21,8 +21,6 @@ ITEM_TYPE_CHECKBOXES = {
     "REOrthoTile": "chkRapidEyeOrtho",
     "SkySatScene": "chkSkySatScene",
     "SkySatCollect": "chkSkySatCollect",
-    "Landsat8L1G": "chkLandsat",
-    "Sentinel2L1C": "chkSentinel",
 }
 
 SPECTRAL_BAND_CHECKBOXES = {"4Band": "chkNIR", "8Band": "chkYellow"}
