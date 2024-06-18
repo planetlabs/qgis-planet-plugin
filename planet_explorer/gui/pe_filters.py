@@ -1137,8 +1137,6 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.chkRapidEyeOrtho,
             self.chkSkySatScene,
             self.chkSkySatCollect,
-            self.chkLandsat,
-            self.chkSentinel,
         ]
 
         for source in self.itemTypeCheckBoxes:
