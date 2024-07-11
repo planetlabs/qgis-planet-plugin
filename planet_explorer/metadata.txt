@@ -22,6 +22,8 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v2.3.4 (2024-07-11)
+  * Removed support for non-Planet datasets search filters.
   v2.3.3 (2024-04-12)
   * Fixed issue in rendering a streamed basemap saved in a project after user logout.
   * Fixed processing index issue when selecting multiple months or years for basemap exploring.
