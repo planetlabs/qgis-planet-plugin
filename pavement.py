@@ -240,6 +240,12 @@ def _make_zip(zipfile, options):
 
         zipfile.writestr("planet_explorer/pe_utils.py", txt)
 
+    # Include the license file in the zip archive
+    license_file = os.path.join(os.path.dirname(__file__), "LICENSE")
+    with open(license_file) as f:
+        license_text = f.read()
+        zipfile.writestr("planet_explorer/LICENSE", license_text)
+
 
 @dataclass
 class GithubRelease:
