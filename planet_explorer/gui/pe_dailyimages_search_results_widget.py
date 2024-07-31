@@ -26,10 +26,12 @@ import os
 
 import iso8601
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsGeometry,
+    QgsMessageLog,
     QgsProject,
     QgsRectangle,
     QgsWkbTypes,
@@ -48,6 +50,8 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItemIterator,
 )
 
+from planet.api.exceptions import BadQuery
+
 from ..gui.pe_results_configuration_dialog import (
     PlanetNodeMetadata,
     ResultsConfigurationDialog,
@@ -61,6 +65,7 @@ from ..pe_analytics import (
 
 from ..pe_utils import (
     PLANET_COLOR,
+    QGIS_LOG_SECTION_NAME,
     SEARCH_AOI_COLOR,
     area_coverage_for_image,
     create_preview_group,
@@ -229,19 +234,39 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
         self.tree.clear()
         stats_request = {"interval": "year"}
         stats_request.update(self._request)
-        resp = self._p_client.stats(stats_request).get()
-        self._total_count = sum([b["count"] for b in resp["buckets"]])
-        if self._total_count:
-            response = self._p_client.quick_search(
-                self._request,
-                page_size=TOP_ITEMS_BATCH,
-                sort=" ".join(self.sort_order()),
+
+        try:
+            resp = self._p_client.stats(stats_request).get()
+            self._total_count = sum([b["count"] for b in resp["buckets"]])
+            if self._total_count:
+                response = self._p_client.quick_search(
+                    self._request,
+                    page_size=TOP_ITEMS_BATCH,
+                    sort=" ".join(self.sort_order()),
+                )
+                self._response_iterator = response.iter()
+                self.load_more()
+                self._set_widgets_visibility(True)
+            else:
+                self._set_widgets_visibility(False)
+
+        except BadQuery as bq:
+            QgsMessageLog.logMessage(
+                f"Exception during search, "
+                f"the search parameters are invalid."
+                f"Error details {bq}.",
+                QGIS_LOG_SECTION_NAME,
+                Qgis.Critical,
             )
-            self._response_iterator = response.iter()
-            self.load_more()
-            self._set_widgets_visibility(True)
-        else:
-            self._set_widgets_visibility(False)
+
+            iface.messageBar().pushMessage(
+                "Planet Explorer",
+                "Encountered a problem during search, "
+                "Make sure search parameters are valid. "
+                "See logs for details",
+                level=Qgis.Critical,
+                duration=10,
+            )
 
     @waitcursor
     def load_more(self):
