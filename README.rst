@@ -127,7 +127,11 @@ To install the latest version of the plugin:
   That will copy the code into your QGIS user plugin folder, or create a
   symlink in it, depending on your OS.
 
-  **NOTE**: This ``paver`` task only installs to the 'default' QGIS profile; so, you will have to ensure that is the active profile in order to see the plugin. You will also need to initially activate the plugin inside of the QGIS plugin manager.
+  **NOTE**: By default, this ``paver`` task installs the plugin to the 'default' QGIS profile. However, you can optionally specify a custom plugin path using the `--pluginpath` flag. For example:
+
+    paver install --pluginpath=~/.local/share/QGIS/QGIS3/profiles/custom_profile/python/plugins
+
+  If you specify a custom `pluginpath`, the plugin will be installed to the specified location. Ensure that the specified profile is active in QGIS to see the plugin. You will also need to activate the plugin inside the QGIS plugin manager.
 
 - To package the plugin (*not needed during development*), run
 

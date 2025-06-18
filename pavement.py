@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 import zipfile
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 from io import StringIO
 
 from pathlib import Path
@@ -83,9 +83,7 @@ def setup():
         try:
             subprocess.check_call(
                 [
-                    sys.executable,
-                    "-m",
-                    "pip",
+                    "pip",  # Explicitly use pip instead of relying on sys.executable
                     "install",
                     "--no-deps",
                     "--upgrade",
@@ -100,25 +98,33 @@ def setup():
 
 
 @task
+@cmdopts(
+    [
+        ("pluginpath=", "p", "Custom path to install the plugin"),
+    ]
+)
 def install(options):
-    """install plugin to qgis"""
+    """Install plugin to QGIS."""
     plugin_name = options.plugin.name
     src = path(__file__).dirname() / plugin_name
-    if os.name == "nt":
-        default_profile_plugins = (
+
+    # Use the plugin path provided via the command-line flag, or fallback to default paths
+    if hasattr(options, "pluginpath") and options.pluginpath:
+        dst_plugins = path(options.pluginpath).expanduser()
+    elif os.name == "nt":
+        dst_plugins = path(
             "~/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins"
-        )
+        ).expanduser()
     elif sys.platform == "darwin":
-        default_profile_plugins = (
+        dst_plugins = path(
             "~/Library/Application Support/QGIS/QGIS3"
             "/profiles/default/python/plugins"
-        )
+        ).expanduser()
     else:
-        default_profile_plugins = (
+        dst_plugins = path(
             "~/.local/share/QGIS/QGIS3/profiles/default/python/plugins"
-        )
+        ).expanduser()
 
-    dst_plugins = path(default_profile_plugins).expanduser()
     if not dst_plugins.exists():
         os.makedirs(dst_plugins, exist_ok=True)
     dst = dst_plugins / plugin_name
