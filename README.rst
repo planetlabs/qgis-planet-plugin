@@ -140,3 +140,9 @@ To install the latest version of the plugin:
   Documentation will be built in the `docs` folder and added to the resulting
   zip file. It includes dependencies as well, but it will not download them, so
   the `setup` task has to be run before packaging.
+
+- NixOS users will find a flake in the root of the repository, which can be used to create a development shell with all dependencies installed. To use it, run:
+
+    nix develop
+
+  This will set up a development environment with all necessary dependencies for the plugin.
