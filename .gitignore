@@ -9,9 +9,6 @@ venv
 .idea
 # Nixos Direnv Dev Environment
 .envrc
-start_qgis.sh
-start_qgis_ltr.sh
-vscode.sh
 shell.nix
 .vscode
 .vscode-extensions
