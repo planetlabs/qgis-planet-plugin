@@ -120,7 +120,7 @@ class PlanetClient(QObject, ClientV1):
 
             proxyHost = settings.value("proxy/proxyHost")
             proxyPort = settings.value("proxy/proxyPort")
-            url = f"{proxyHost}:{proxyPort}"
+            url = f"{proxyHost}:{proxyPort}"  # noqa
             authid = settings.value("proxy/authcfg", "")
             if authid:
                 authConfig = QgsAuthMethodConfig()
@@ -135,7 +135,7 @@ class PlanetClient(QObject, ClientV1):
 
             if username:
                 tokens = url.split("://")
-                url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"
+                url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"  # noqa: E231
 
             self.dispatcher.session.proxies["http"] = url
             self.dispatcher.session.proxies["https"] = url
@@ -228,7 +228,8 @@ class PlanetClient(QObject, ClientV1):
             mosaicid = mosaic["id"]
 
         url = self._url(
-            f"basemaps/v1/mosaics/{mosaicid}/quads?bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
+            f"basemaps/v1/mosaics/{mosaicid}/quads?bbox="
+            f"{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}"
         )
         if bbox is None:
             if isinstance(mosaic, str):
@@ -357,7 +358,7 @@ class PlanetClient(QObject, ClientV1):
         ).get_body()
 
         resp_data = resp.get()
-        log.debug(f"resp_data:\n{resp_data}")
+        log.debug(f"resp_data:\n{resp_data}")  # noqa: E231
         if not resp_data:
             log.warning("No response data found for getting quota")
             return False
@@ -503,8 +504,8 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
             return res_json["name"]
     else:
         log.debug(
-            f"Tile service hash request failed:\n"
-            f"status_code: {res.status_code}\n"
+            f"Tile service hash request failed:\n"  # noqa: E231
+            f"status_code: {res.status_code}\n"  # noqa: E231
             f"reason: {res.reason}"
         )
 

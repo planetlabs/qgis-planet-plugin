@@ -283,7 +283,7 @@ class SceneItemWidget(QFrame):
 
         text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
                         <b>{PlanetClient.getInstance().item_types_names()[self.properties['item_type']]}</b>
-                    """
+                    """  # noqa
 
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()

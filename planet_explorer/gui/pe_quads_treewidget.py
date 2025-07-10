@@ -236,7 +236,7 @@ class QuadInstanceItemWidget(QFrame):
         self.setMouseTracking(True)
         self.quad = quad
         self.nameLabel = QLabel(
-            f'<b>{quad[ID]}</b><br><span style="color:grey;">'
+            f'<b>{quad[ID]}</b><br><span style="color:grey;">'  # noqa
             f"{quad[PERCENT_COVERED]} % covered</span>"
         )
         self.iconLabel = QLabel()

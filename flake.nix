@@ -7,6 +7,7 @@
   outputs = { self, geospatial, nixpkgs }:
     let
       system = "x86_64-linux";
+      profileName = "PLANET";
       pkgs = import nixpkgs {
         inherit system;
         config = { allowUnfree = true; };
@@ -57,6 +58,7 @@
           pkgs.vim
           pkgs.virtualenv
           pkgs.vscode
+          pkgs.privoxy
           (pkgs.python3.withPackages (ps: [
               ps.python
               ps.pip
@@ -96,18 +98,39 @@
           # Activate the virtual environment
           source .venv/bin/activate
 
-          # Upgrade pip and install packages from requirements.txt
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          # Start privoxy caching proxy in background, using .privoxy-cache in CWD
+          # This is used for testing the plugin works properly behind a proxy
+          export PRIVOXY_CACHE_DIR="$(pwd)/.privoxy-cache"
+          mkdir -p "$PRIVOXY_CACHE_DIR"
+          PRIVOXY_CONFIG_FILE="$(pwd)/.privoxy-config"
+          PRIVOXY_PID_FILE=".privoxy.pid"
+          if [ ! -f "$PRIVOXY_CONFIG_FILE" ]; then
+            cat > "$PRIVOXY_CONFIG_FILE" <<EOF
+listen-address  127.0.0.1:8123
+logdir $PRIVOXY_CACHE_DIR
+confdir $PRIVOXY_CACHE_DIR
+EOF
+          fi
+          if [ ! -f "$PRIVOXY_PID_FILE" ] || ! kill -0 $(cat "$PRIVOXY_PID_FILE") 2>/dev/null; then
+            privoxy --pidfile "$PRIVOXY_PID_FILE" "$PRIVOXY_CONFIG_FILE" &
+            echo "Started privoxy proxy on 127.0.0.1:8123 (logdir: $PRIVOXY_CACHE_DIR)"
+          fi
+
+          # Upgrade pip and install packages from requirements.txt if it exists
+          pip install --upgrade pip > /dev/null
+          if [ -f requirements.txt ]; then
+            echo "Installing Python requirements from requirements.txt..."
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping pip install."
+          fi
 
           echo "-----------------------"
           echo "🌈 Your Dev Environment is prepared."
-          echo "Run QGIS from the command line"
-          echo "for a QGIS environment with"
-          echo "geopandas and rasterio, start QGIS"
-          echo "like this:"
+          echo "To run QGIS with your profile, use one of these commands:"
           echo ""
-          echo "./start_qgis.sh"
+          echo "  nix run .#qgis"
+          echo "  nix run .#qgis-ltr"
           echo ""
           echo "📒 Note:"
           echo "-----------------------"
@@ -117,12 +140,24 @@
           echo ""
           echo "./vscode.sh"
           echo "-----------------------"
-          pre-commit clean
-          pre-commit install --install-hooks
-          pre-commit run --all-files
-          paver setup
-          paver install --pluginpath=~/.local/share/QGIS/QGIS3/profiles/PLANET/python/plugins
+
+          pre-commit clean > /dev/null
+          pre-commit install --install-hooks > /dev/null
+          pre-commit run --all-files || true
         '';
+      };
+
+      apps.${system} = {
+        qgis = {
+          type = "app";
+          program = "${qgisWithExtras}/bin/qgis";
+          args = [ "--profile" "${profileName}" ];
+        };
+        qgis-ltr = {
+          type = "app";
+          program = "${qgisLtrWithExtras}/bin/qgis";
+          args = [ "--profile" "${profileName}" ];
+        };
       };
     };
 }

@@ -619,7 +619,7 @@ class DateItemWidget(ItemWidgetBase):
         self.children_count = size
         text = f"""{self.date}<br>
                     <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
-                    <span style="{count_style}">{size} images</span>"""
+                    <span style="{count_style}">{size} images</span>"""  # noqa
         self.nameLabel.setText(text)
 
         geoms = []
@@ -689,7 +689,7 @@ class SatelliteItemWidget(ItemWidgetBase):
         )
         self.children_count = size
         text = f"""<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite} {self.instrument} </span>
-                    <span style="{count_style}">({size} images)</span>"""
+                    <span style="{count_style}">({size} images)</span>"""  # noqa
         self.nameLabel.setText(text)
 
         geoms = []
@@ -782,17 +782,15 @@ class SceneItemWidget(ItemWidgetBase):
             if value == PlanetNodeMetadata.AREA_COVER:
                 area_coverage = area_coverage_for_image(self.image, self.request)
                 if area_coverage is not None:
-                    metadata += f"{value.value}:{area_coverage:.0f}{spacer}"
+                    metadata += f"{value.value}:{area_coverage:.0f}{spacer}"  # noqa
                 else:
-                    metadata += f"{value.value}:--{spacer}"
+                    metadata += f"{value.value}:--{spacer}"  # noqa
             else:
-                metadata += (
-                    f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'
-                )
+                metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'  # noqa
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>
-                    """
+                    """  # noqa
 
         return text
 

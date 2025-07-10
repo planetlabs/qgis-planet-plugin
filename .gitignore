@@ -17,3 +17,4 @@ shell.nix
 .vscode-extensions
 .venv
 .env
+.privoxy-config

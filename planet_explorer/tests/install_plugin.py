@@ -89,7 +89,7 @@ try:
     assert utils.startPlugin(PLUGIN_KEY), f"'{PLUGIN_KEY}' failed to start!"
     assert (
         PLUGIN_KEY in utils.active_plugins
-    ), f"'{PLUGIN_KEY}' not found in active_plugins, found: {utils.active_plugins}"
+    ), f"'{PLUGIN_KEY}' not found in active_plugins, found: {utils.active_plugins}"  # noqa
 
     # Unload the plugin
     assert utils.unloadPlugin(PLUGIN_KEY), "'planet_explorer' failed to unload"

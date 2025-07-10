@@ -589,8 +589,8 @@ class BasemapsWidget(BASE, WIDGET):
         name = selected[0][NAME]
         dates = date_interval_from_mosaics(selected)
         description = (
-            f'<span style="color:black;"><b>{name}</b></span><br>'
-            f'<span style="color:grey;">{len(selected)} instances | {dates}</span>'
+            f'<span style="color:black;"><b>{name}</b></span><br>'  # noqa
+            f'<span style="color:grey;">{len(selected)} instances | {dates}</span>'  # noqa
         )
         self.labelStreamingOrderDescription.setText(description)
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
@@ -639,8 +639,8 @@ class BasemapsWidget(BASE, WIDGET):
         dates = date_interval_from_mosaics(selected)
         if self.radioDownloadComplete.isChecked():
             description = (
-                f'<span style="color:black;"><b>{name}</b></span><br>'
-                f'<span style="color:grey;">{len(selected)} instances | {dates}</span>'
+                f'<span style="color:black;"><b>{name}</b></span><br>'  # noqa
+                f'<span style="color:grey;">{len(selected)} instances | {dates}</span>'  # noqa
             )
 
             title = "Order Complete Basemap"
@@ -653,8 +653,8 @@ class BasemapsWidget(BASE, WIDGET):
             numquads = len(selected_quads)
             title = "Order Partial Basemap"
             description = (
-                f'<span style="color:black;"><b>{name}</b></span><br>'
-                f'<span style="color:grey;">{self._quads_summary()}</span>'
+                f'<span style="color:black;"><b>{name}</b></span><br>'  # noqa
+                f'<span style="color:grey;">{self._quads_summary()}</span>'  # noqa
             )
             total_area = self._quads_quota()
 
@@ -673,7 +673,7 @@ class BasemapsWidget(BASE, WIDGET):
         size = numquads * QUAD_SIZE
         if quota is not None:
             self.labelOrderInfo.setText(
-                f"This Order will use {total_area:.2f} square km"
+                f"This Order will use {total_area:.2f} square km"  # noqa
                 f" of your remaining {quota} quota.\n\n"
                 f"This Order's download size will be approximately {size} GB."
             )
