@@ -15,3 +15,6 @@ shell.nix
 .venv
 .env
 .privoxy-config
+.privoxy-cache/ca-key.pem
+.privoxy-cache/ca-cert.pem
+.privoxy.pid

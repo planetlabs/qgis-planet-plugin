@@ -42,7 +42,7 @@ REQUIRED_EXTENSIONS=(
     ms-vscode.test-adapter-converter@0.2.1
     DavidAnson.vscode-markdownlint@0.60.0
     waderyan.gitblame@11.1.3
-    GitHub.copilot-chat@0.26.7
+    #GitHub.copilot-chat@0.26.7
     VisualStudioExptTeam.intellicode-api-usage-examples@0.2.9
     wholroyd.jinja@0.0.8
     jamesqquick.python-class-generator@0.0.3
