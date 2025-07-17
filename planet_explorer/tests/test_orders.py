@@ -242,7 +242,7 @@ def test_order_scene(
 
         assert any(
             order_name in o_name for o_name in order_names
-        ), f"New order not present in orders list: {order_names}"
+        ), f"New order not present in orders list: {order_names}"  # noqa
 
         # Check for all order metadata except QuadOrder orders
         order_metadata = [

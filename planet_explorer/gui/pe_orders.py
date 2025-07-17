@@ -1056,7 +1056,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
             self._log(
                 f"Requesting {item_type} order failed: "
                 "response data contains no Order ID.\n"
-                f"Order resp_data:\n{response}"
+                f"Order resp_data:\n{response}"  # noqa
             )
             return False
 

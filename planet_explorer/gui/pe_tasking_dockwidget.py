@@ -126,7 +126,7 @@ class WarningDialog(QDialog):
                 and contact our sales team <a href="https://www.planet.com/contact-sales/">
                 here</a>.</p>
                 <p>&nbsp;</p>
-                <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>"""
+                <p"><a href="dashboard">Take me to the Tasking Dashboard</a>&nbsp;</p>"""  # noqa
         textbrowser.setHtml(text)
         layout.addWidget(textbrowser)
         self.setLayout(layout)
@@ -135,9 +135,7 @@ class WarningDialog(QDialog):
     def _link_clicked(self, url):
         if url.toString() == "dashboard":
             analytics_track(SKYSAT_TASK_CREATED)
-            url = (
-                f"https://www.planet.com/tasking/orders/new/?geometry={self.pt.asWkt()}"
-            )
+            url = f"https://www.planet.com/tasking/orders/new/?geometry={self.pt.asWkt()}"  # noqa
             open_link_with_browser(url)
             self.close()
         else:
@@ -194,11 +192,12 @@ class TaskingDockWidget(BASE, WIDGET):
         transformed = transform.transform(pt)
         self.marker.setToGeometry(QgsGeometry.fromPointXY(transformed))
         self._set_map_tool(False)
-        text = f"""
-                <p><b>Selected Point Coordinates</b></p>
-                <p align="center">Latitude : {pt.y():.4f}</p>
-                <p align="center">Longitude : {pt.x():.4f}</p>
-                """
+
+        text = (
+            f"<p><b>Selected Point Coordinates</b></p>"
+            f'<p align="center">Latitude : {pt.y():.4f}</p>'  # noqa
+            f'<p align="center">Longitude : {pt.x():.4f}</p>'  # noqa
+        )
         self.textBrowserPoint.setHtml(text)
         self.btnCancel.setEnabled(True)
         self.btnOpenDashboard.setEnabled(True)

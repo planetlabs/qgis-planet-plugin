@@ -226,8 +226,8 @@ def add_menu_section_action(text, menu, tag="b", pad=0.5):
     """
     lbl = QLabel(f"<{tag}>{text}</{tag}>", menu)
     lbl.setStyleSheet(
-        f"QLabel {{ padding-left: {pad}em; padding-right: {pad}em; "
-        f"padding-top: {pad}ex; padding-bottom: {pad}ex;}}"
+        f"QLabel {{ padding-left: {pad}em; padding-right: {pad}em; "  # noqa: E702 E201
+        f"padding-top: {pad}ex; padding-bottom: {pad}ex; }}"  # noqa: E702 E202
     )
     wa = QWidgetAction(menu)
     wa.setDefaultWidget(lbl)
@@ -356,7 +356,7 @@ def create_preview_group(
     uri = tile_service_data_src_uri(item_ids, service=tile_service)
 
     if uri:
-        log.debug(f"Tile datasource URI:\n{uri}")
+        log.debug(f"Tile datasource URI: \n{uri}")
 
         rlayer = QgsRasterLayer(uri, "Image previews", "wms")
         rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
@@ -625,4 +625,6 @@ def plugin_version(add_commit=False):
 
 
 def user_agent():
-    return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"
+    return (
+        f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
+    )

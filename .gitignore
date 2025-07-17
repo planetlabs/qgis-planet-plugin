@@ -7,3 +7,14 @@ bundles-util.js
 qgis_resources.py
 venv
 .idea
+# Nixos Direnv Dev Environment
+.envrc
+shell.nix
+.vscode
+.vscode-extensions
+.venv
+.env
+.privoxy-config
+.privoxy-cache/ca-key.pem
+.privoxy-cache/ca-cert.pem
+.privoxy.pid

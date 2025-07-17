@@ -230,7 +230,7 @@ class OrderItemWidget(QWidget):
             f"<b><h3>Order {order.name()}</h3></b>"
             f"<b>Placed on</b>: {order.date()}<br>"
             "<b>Id</b>: <a"
-            f' href="https://www.planet.com/account/#/orders/{order.id()}">'
+            f' href="https://www.planet.com/account/#/orders/{order.id()}">'  # noqa
             f"{order.id()}</a><br>"
             f"<b>Imagery source</b>: {order.item_type()}<br>"
             # f'<b>Assets ordered</b>: {order.assets_ordered()}<br>'

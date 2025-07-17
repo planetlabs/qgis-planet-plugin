@@ -211,7 +211,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             f"api_key = {self.p_client.api_key()}\n\n"
             f"user: {self.p_client.user()}\n\n"
         )
-        log.debug(f"Login successful:\n{specs}")
+        log.debug(f"Login successful:\n{specs}")  # noqa
 
         # Now switch panels
         self.p_client.loginChanged.emit(self.p_client.has_api_key())

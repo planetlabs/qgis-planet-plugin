@@ -58,8 +58,7 @@ from ..pe_utils import (
 from ..planet_api import PlanetClient
 
 TILE_URL_TEMPLATE = (
-    "https://tiles.planet.com/basemaps/v1/planet-tiles/"
-    "%s/gmap/{z}/{x}/{y}.png"
+    "https://tiles.planet.com/basemaps/v1/planet-tiles/" "%s/gmap/{z}/{x}/{y}.png"
 )
 
 
@@ -304,7 +303,7 @@ class BasemapLayerWidget(QWidget):
                     idx = 0
                 self.labelId = QLabel()
                 self.labelId.setText(
-                    f'<span style="color: grey;">{self.mosaicids[idx]}</span>'
+                    f'<span style="color: grey;">{self.mosaicids[idx]}</span>'  # noqa
                 )
                 self.layout.addWidget(self.labelId)
                 self.labelName = QLabel(current_mosaic_name)
@@ -352,7 +351,7 @@ class BasemapLayerWidget(QWidget):
 
     def on_value_changed(self, value):
         self.labelId.setText(
-            f'<span style="color: grey;">{self.mosaicids[value]}</span>'
+            f'<span style="color: grey;">{self.mosaicids[value]}</span>'  # noqa
         )
         self.labelName.setText(f"{self.mosaicnames[value]}")
         if not self.slider.isSliderDown():
@@ -368,8 +367,8 @@ class BasemapLayerWidget(QWidget):
             res = pattern.search(unquote(self.layer.source()))
             passed_api_key = res.groups()[0] if res.groups() else None
 
-            if '&' in passed_api_key:
-                passed_api_key = passed_api_key.split('&')[0]
+            if "&" in passed_api_key:
+                passed_api_key = passed_api_key.split("&")[0]
 
             has_api_key = PlanetClient.getInstance().has_api_key()
 
@@ -381,7 +380,7 @@ class BasemapLayerWidget(QWidget):
 
             api_key = (
                 PlanetClient.getInstance().api_key()
-                if not passed_api_key or passed_api_key is ''
+                if not passed_api_key or passed_api_key == ""
                 else passed_api_key
             )
 
@@ -391,9 +390,7 @@ class BasemapLayerWidget(QWidget):
                 self.slider.setVisible(has_api_key)
                 value = self.slider.value() if len(self.mosaics) > 1 else 0
                 name, mosaicid = self.mosaics[value]
-                tile_url = TILE_URL_TEMPLATE % (
-                    mosaicid,
-                )
+                tile_url = TILE_URL_TEMPLATE % (mosaicid,)
 
                 tile_url = f"{tile_url}?{quote(f'&api_key={str(api_key)}')}"
 

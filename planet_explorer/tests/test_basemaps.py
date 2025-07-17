@@ -247,7 +247,7 @@ def test_basemaps_order_partial(
                     break
         assert any(
             order_name in o_name for o_name in order_names
-        ), f"New order not present in orders list: {order_names}"
+        ), f"New order not present in orders list: {order_names}"  # noqa
 
         # Download the basemap
         item_widget.download(is_unit_test=True)  # noqa

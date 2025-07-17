@@ -154,8 +154,8 @@ class BasemapItemWidget(QWidget):
         self.mosaic = mosaic
         title = mosaic_title(mosaic)
         self.nameLabel = QLabel(
-            f'<span style="color:black;"><b>{title}</b></span>'
-            f'<br><span style="color:grey;">{mosaic[NAME]}</span>'
+            f'<span style="color:black;"><b>{title}</b></span>'  # noqa
+            f'<br><span style="color:grey;">{mosaic[NAME]}</span>'  # noqa
         )
         self.iconLabel = QLabel()
         self.toolsButton = QLabel()
