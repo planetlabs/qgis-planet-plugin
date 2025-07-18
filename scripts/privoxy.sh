@@ -47,9 +47,11 @@ case "$CMD" in
 listen-address  127.0.0.1:8123
 logdir $PRIVOXY_CACHE_DIR
 confdir $PRIVOXY_CACHE_DIR
-enable-ssl-intercept 1
 ca-key-file $PRIVOXY_CA_KEY_FILE
 ca-cert-file $PRIVOXY_CA_CERT_FILE
+logfile privoxy.log
+debug   1
+debug   1024
 EOF
         fi
         if [ ! -f "$PRIVOXY_PID_FILE" ] || ! kill -0 "$(cat "$PRIVOXY_PID_FILE")" 2>/dev/null; then

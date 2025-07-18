@@ -31,7 +31,8 @@ from typing import (
     Optional,
     List,
 )
-
+from urllib.parse import urlparse
+import urllib
 from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
 from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
 
@@ -110,16 +111,34 @@ class PlanetClient(QObject, ClientV1):
         excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
         if proxyEnabled and not excluded:
             proxyType = settings.value("proxy/proxyType")
-            if proxyType != "HttpProxy":
+            if proxyType == "DefaultProxy":
+                # Try to get system proxy settings
+
+                proxies = urllib.request.getproxies()
+                proxy_url = proxies.get("http") or proxies.get("https")
+                if proxy_url:
+                    # Parse proxy_url, e.g. http://host:port
+                    parsed = urlparse(proxy_url)
+                    proxyHost = parsed.hostname
+                    proxyPort = parsed.port
+                else:
+                    QgsMessageLog.logMessage(
+                        "Planet Explorer: No system proxy found for 'DefaultProxy' proxy type.",
+                        level=Qgis.Warning,
+                    )
+                    return
+            elif proxyType == "HttpProxy":
+                proxyHost = settings.value("proxy/proxyHost")
+                proxyPort = settings.value("proxy/proxyPort")
+            else:
                 QgsMessageLog.logMessage(
-                    "Planet Explorer: Only HttpProxy is supported "
-                    "for connecting to the Planet API",
+                    "Planet Explorer: Only 'HttpProxy' or 'Default' "
+                    "QGIS Proxy options are supported "
+                    "for connecting to the Planet API.",
                     level=Qgis.Warning,
                 )
                 return
 
-            proxyHost = settings.value("proxy/proxyHost")
-            proxyPort = settings.value("proxy/proxyPort")
             url = f"{proxyHost}:{proxyPort}"  # noqa
             authid = settings.value("proxy/authcfg", "")
             if authid:

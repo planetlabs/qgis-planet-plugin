@@ -150,7 +150,11 @@ class PlanetExplorer(object):
         self.plugin_dir = os.path.dirname(__file__)
 
         # Initialize locale
-        locale = QSettings().value("locale/userLocale", QLocale().name())[0:2]
+        locale_value = QSettings().value("locale/userLocale", QLocale().name())
+        if isinstance(locale_value, str):
+            locale = locale_value[0:2]
+        else:
+            locale = str(locale_value)[0:2]
         locale_path = os.path.join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
