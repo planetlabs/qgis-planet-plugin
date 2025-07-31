@@ -26,6 +26,7 @@ import os
 import subprocess
 import sys
 import zipfile
+
 from configparser import ConfigParser
 from io import StringIO
 
@@ -213,7 +214,7 @@ def _make_zip(zipfile, options):
     metadata_filename = os.path.join(
         os.path.dirname(__file__), "planet_explorer", "metadata.txt"
     )
-    cfg = SafeConfigParser()
+    cfg = ConfigParser()
     cfg.optionxform = str
     cfg.read(metadata_filename)
 
