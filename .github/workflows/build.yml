@@ -40,7 +40,7 @@ jobs:
         mkdir tmp
         unzip planet_explorer.zip -d tmp
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: planet_explorer_${{github.sha}}
         path: tmp
