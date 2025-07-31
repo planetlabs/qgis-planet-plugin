@@ -25,7 +25,7 @@ jobs:
       run: pip3 install --break-system-packages -r /tmp/requirements.txt
     - name: Setup
       run: |
-        pip install paver
+        pip install --break-system-packages paver
         paver setup
 
     - name: Build package
