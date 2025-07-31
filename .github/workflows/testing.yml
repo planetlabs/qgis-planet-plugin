@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        qgis_version: [ 3.44, 3.42, 3.40, 3.38, release-3_36 ]
+        qgis_version: [ "3.44", "3.42", "3.40", "3.38", "release-3_36" ]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
     steps:
