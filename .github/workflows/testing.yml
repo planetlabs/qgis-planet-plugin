@@ -11,7 +11,7 @@ on:
 jobs:
   # Run unit tests
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         qgis_version: [release-3_44, release-3_42, release-3_40, release-3_38, release-3_36]
