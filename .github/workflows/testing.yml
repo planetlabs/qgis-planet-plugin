@@ -18,6 +18,8 @@ jobs:
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Checkout
         uses: actions/checkout@v2
         with:
