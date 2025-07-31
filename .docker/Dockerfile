@@ -3,7 +3,9 @@ FROM qgis/qgis:${QGIS_TEST_VERSION}
 
 RUN apt-get update \
     && apt-get install -y python3-pip
+
 COPY ./requirements.txt /tmp/
+RUN apt remove python3-pytest
 RUN pip3 install --break-system-packages -r /tmp/requirements.txt
 
 COPY ./requirements_test.txt /tmp/
