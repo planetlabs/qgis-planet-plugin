@@ -28,4 +28,4 @@ jobs:
         env:
           PLANET_USER: ${{ secrets.PLANET_USER }}
           PLANET_PASSWORD: ${{ secrets.PLANET_PASSWORD }}
-        run: docker-compose -f .docker/docker-compose.gh.yml run -e PLANET_USER=${PLANET_USER} -e PLANET_PASSWORD=${PLANET_PASSWORD} qgis /usr/src/.docker/run-docker-tests.sh
+        run: docker compose -f .docker/docker-compose.gh.yml run -e PLANET_USER=${PLANET_USER} -e PLANET_PASSWORD=${PLANET_PASSWORD} qgis /usr/src/.docker/run-docker-tests.sh
