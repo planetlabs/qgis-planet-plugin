@@ -6,10 +6,10 @@ RUN apt-get update \
 
 COPY ./requirements.txt /tmp/
 RUN apt remove -y python3-pytest
-RUN pip3 install --break-system-packages -r /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt
 
 COPY ./requirements_test.txt /tmp/
-RUN pip3 install --break-system-packages -r /tmp/requirements_test.txt
+RUN pip3 install -r /tmp/requirements_test.txt
 
 ENV LANG=C.UTF-8
 ENV IS_DOCKER_CONTAINER=true
