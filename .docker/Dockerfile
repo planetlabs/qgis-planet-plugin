@@ -2,7 +2,7 @@ ARG QGIS_TEST_VERSION=latest
 FROM qgis/qgis:${QGIS_TEST_VERSION}
 
 RUN apt-get update \
-    && apt-get install -y python3-pip
+    && apt-get install -y curl
 
 COPY ./requirements.txt /tmp/
 RUN apt remove -y python3-pytest python3-pip
