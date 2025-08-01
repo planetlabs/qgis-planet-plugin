@@ -6,6 +6,7 @@ RUN apt-get update \
 
 COPY ./requirements.txt /tmp/
 RUN apt remove -y python3-pytest
+RUN python3 -m pip install --upgrade pip
 RUN pip3 install --break-system-packages -r /tmp/requirements.txt
 
 COPY ./requirements_test.txt /tmp/
