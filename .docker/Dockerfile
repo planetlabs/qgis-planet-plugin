@@ -5,8 +5,9 @@ RUN apt-get update \
     && apt-get install -y python3-pip
 
 COPY ./requirements.txt /tmp/
-RUN apt remove -y python3-pytest
-RUN python3 -m pip install --upgrade pip
+RUN apt remove -y python3-pytest python3-pip
+# Install the freshes pip version so we can use the break-system-packages option
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 RUN pip3 install --break-system-packages -r /tmp/requirements.txt
 
 COPY ./requirements_test.txt /tmp/
