@@ -18,3 +18,4 @@ shell.nix
 .privoxy-cache/ca-key.pem
 .privoxy-cache/ca-cert.pem
 .privoxy.pid
+scripts/list_proxies.py
