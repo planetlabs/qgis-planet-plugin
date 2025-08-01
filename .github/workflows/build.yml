@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Install plugin dependencies
-      run: pip3 install --break-system-packages -r /tmp/requirements.txt
+      run: pip3 install --break-system-packages -r ./requirements.txt
     - name: Setup
       run: |
         pip install --break-system-packages paver
