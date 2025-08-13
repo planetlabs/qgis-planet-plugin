@@ -19,11 +19,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface
+from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface, log
 
 BOOL = "bool"
 STRING = "string"
-PASSWORD = "password"
+PASSWORD = "password"  # nosec
 TEXT = "text"  # a multiline string
 NUMBER = "number"
 FILES = "files"
@@ -200,6 +200,7 @@ class SettingsDialog(QDialog):
             else:
                 widget.setText(str(value))
         except Exception:
+            log(f"Error setting value {value} in widget {widget} of type {paramtype}")
             pass
 
     def accept(self):

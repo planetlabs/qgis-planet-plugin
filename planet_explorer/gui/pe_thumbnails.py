@@ -29,7 +29,7 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsP
 from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QImage, QPainter, QPixmap
 
-from ..pe_utils import qgsgeometry_from_geojson
+from ..pe_utils import qgsgeometry_from_geojson, log
 
 
 class ThumbnailManager:
@@ -56,6 +56,7 @@ class ThumbnailManager:
                 try:
                     w.set_thumbnail(img)
                 except Exception:
+                    log("Error setting thumbnail for widget")
                     # the widget might have been deleted
                     pass
 

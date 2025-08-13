@@ -23,7 +23,7 @@ __revision__ = "$Format:%H$"
 
 import fnmatch
 import os
-import subprocess
+import subprocess  # nosec
 import sys
 import zipfile
 
@@ -92,7 +92,7 @@ def setup():
                     f"{ext_libs.abspath()}",
                     req,
                 ]
-            )
+            )  # nosec
         except subprocess.CalledProcessError:
             error(f"Error installing {req} with pip.")
             sys.exit(1)
@@ -236,7 +236,7 @@ def _make_zip(zipfile, options):
     with open(utils_filename) as f:
         txt = f.read()
         commitid = (
-            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            subprocess.check_output(["git", "rev-parse", "HEAD"])  # nosec
             .decode("utf-8")
             .strip()
         )

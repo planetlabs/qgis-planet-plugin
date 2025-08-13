@@ -1,6 +1,6 @@
 import configparser
 import os
-import random
+import secrets
 import pathlib
 
 from planet_explorer import pe_utils
@@ -104,7 +104,7 @@ def filter_basemaps_by_name(name, qtbot, basemaps_widget, qgis_debug_enabled):
 
 def get_random_string(length=8):
     alphanumeric = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-    return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
+    return "".join(secrets.choice(alphanumeric) for _ in range(length)).strip()
 
 
 def get_recent_release_from_changelog(root_dir: pathlib.Path):

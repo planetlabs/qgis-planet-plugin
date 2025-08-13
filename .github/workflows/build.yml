@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Get source code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
@@ -35,7 +35,7 @@ jobs:
         GITHUB_REF: ${{ github.ref }}
         GITHUB_SHA: ${{ github.sha}}
       run: |
-        paver package.sentry=${SENTRY_KEY} package.segments=$SEGMENTS_KEY package.version=${GITHUB_SHA::7} package
+        paver package.sentry="${SENTRY_KEY}" package.segments="${SEGMENTS_KEY}" package.version="${GITHUB_SHA::7}" package
         mkdir tmp
         unzip planet_explorer.zip -d tmp
 
@@ -53,14 +53,13 @@ jobs:
         qgis_version: [ "3.44", "3.42", "3.40", "3.38", "release-3_36" ]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
-      # cf https://docs.qgis.org/3.16/en/docs/user_manual/introduction/qgis_configuration.html#running-qgis-with-advanced-settings
       QGIS_COMMAND: qgis --noplugins --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
 
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -74,7 +73,7 @@ jobs:
         run: (cd tmp && zip -r ../planet_explorer_${{github.sha}}.zip .)
 
       - name: Pull qgis image
-        run: docker pull qgis/qgis:${QGIS_TEST_VERSION}
+        run: docker pull "qgis/qgis:${QGIS_TEST_VERSION}"
 
       - name: Run install test
-        run: docker run --rm -v `pwd`:/tests_directory -t -w /tests_directory qgis/qgis:${QGIS_TEST_VERSION} sh -c "xvfb-run ${QGIS_COMMAND}"
+        run: docker run --rm -v "$(pwd)":/tests_directory -t -w /tests_directory "qgis/qgis:${QGIS_TEST_VERSION}" sh -c "xvfb-run ${QGIS_COMMAND}"

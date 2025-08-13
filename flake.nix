@@ -1,16 +1,23 @@
 {
   description = "NixOS developer environment for QGIS plugins.";
-
   inputs.geospatial.url = "github:imincik/geospatial-nix.repo";
   inputs.nixpkgs.follows = "geospatial/nixpkgs";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-  outputs = { self, geospatial, nixpkgs }:
+  outputs =
+    {
+      self,
+      geospatial,
+      nixpkgs,
+    }:
     let
       system = "x86_64-linux";
       profileName = "PLANET";
       pkgs = import nixpkgs {
         inherit system;
-        config = { allowUnfree = true; };
+        config = {
+          allowUnfree = true;
+        };
       };
       extraPythonPackages = ps: [
         ps.pyqtwebengine
@@ -25,7 +32,8 @@
       qgisLtrWithExtras = geospatial.packages.${system}.qgis-ltr.override {
         inherit extraPythonPackages;
       };
-    in {
+    in
+    {
       packages.${system} = {
         default = qgisWithExtras;
         qgis-ltr = qgisLtrWithExtras;
@@ -39,7 +47,7 @@
           pkgs.git
           pkgs.glow # terminal markdown viewer
           pkgs.gource # Software version control visualization
-          pkgs.gum
+          pkgs.codeql
           pkgs.gum # UX for TUIs
           pkgs.jq
           pkgs.libsForQt5.kcachegrind
@@ -54,36 +62,44 @@
           pkgs.qt5.qtquickcontrols2
           pkgs.qt5.qtsvg
           pkgs.qt5.qttools
-          pkgs.skate # Distributed key/value store
           pkgs.vim
           pkgs.virtualenv
           pkgs.vscode
           pkgs.privoxy
+          pkgs.shellcheck
+          pkgs.shfmt
+          pkgs.markdownlint-cli
+          pkgs.yamllint
+          pkgs.yamlfmt
+          pkgs.actionlint # for checking gh actions
+          pkgs.bearer
+          pkgs.bandit
+          pkgs.nodePackages.cspell
           (pkgs.python3.withPackages (ps: [
-              ps.python
-              ps.pip
-              ps.setuptools
-              ps.wheel
-              ps.pytest
-              ps.pytest-qt
-              ps.black
-              ps.click # needed by black
-              ps.jsonschema
-              ps.pandas
-              ps.odfpy
-              ps.psutil
-              ps.httpx
-              ps.toml
-              ps.typer
-              ps.paver
-              # For autocompletion in vscode
-              ps.pyqt5-stubs
-              ps.debugpy
-              ps.numpy
-              ps.gdal
-              ps.toml
-              ps.typer
-              ps.snakeviz # For visualising cprofiler outputs
+            ps.python
+            ps.pip
+            ps.setuptools
+            ps.wheel
+            ps.pytest
+            ps.pytest-qt
+            ps.black
+            ps.click # needed by black
+            ps.jsonschema
+            ps.pandas
+            ps.odfpy
+            ps.psutil
+            ps.httpx
+            ps.toml
+            ps.typer
+            ps.paver
+            # For autocompletion in vscode
+            ps.pyqt5-stubs
+            ps.debugpy
+            ps.numpy
+            ps.gdal
+            ps.toml
+            ps.typer
+            ps.snakeviz # For visualising cprofiler outputs
           ]))
 
         ];
@@ -148,12 +164,18 @@
         qgis = {
           type = "app";
           program = "${qgisWithExtras}/bin/qgis";
-          args = [ "--profile" "${profileName}" ];
+          args = [
+            "--profile"
+            "${profileName}"
+          ];
         };
         qgis-ltr = {
           type = "app";
           program = "${qgisLtrWithExtras}/bin/qgis";
-          args = [ "--profile" "${profileName}" ];
+          args = [
+            "--profile"
+            "${profileName}"
+          ];
         };
       };
     };

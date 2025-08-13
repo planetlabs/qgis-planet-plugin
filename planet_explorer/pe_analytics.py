@@ -28,6 +28,7 @@ from collections import Counter
 import analytics
 
 from .planet_api import PlanetClient
+from planet_explorer.pe_utils import log
 
 ITEM_TYPE = "item_type"
 ITEM_TYPES = "item_types"
@@ -100,6 +101,7 @@ def analytics_track(event, properties=None):
             user = PlanetClient.getInstance().user()["email"]
             analytics.track(user, event, properties)
         except Exception:
+            log(f"Error tracking event {event} with properties {properties}")
             pass
 
 

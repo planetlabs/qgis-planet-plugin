@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 import os
 import re
 import logging
-import random
+import secrets
 import json
 
 from typing import (
@@ -560,7 +560,7 @@ def tile_service_url(
         tile_url = TILE_SERVICE_URL.format("")
         url = f"{tile_url}/wmts/{tile_hash}?api_key={api_key}"
     elif service.lower() == "xyz":
-        tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
+        tile_url = TILE_SERVICE_URL.format(secrets.randbelow(4))
         url = (
             f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
             f"api_key={api_key}"

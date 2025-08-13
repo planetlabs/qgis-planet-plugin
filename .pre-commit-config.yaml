@@ -13,12 +13,125 @@ repos:
       - id: check-json
         exclude: ^(planet_explorer/planet_api/request-result-samples/)
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 24.4.0
     hooks:
       - id: black
+        name: "🖤 black"
+        language_version: python3
+        additional_dependencies: []
+  - repo: local
+    hooks:
+      - id: remove-core-file
+        name: "🗑️ Remove core file if it exists"
+        entry: bash -c '[[ -f core && ! -d core ]] && rm core || exit 0'
+        language: system
+        stages:
+          - pre-commit
+  - repo: local
+    hooks:
+      - id: ensure-utf8-encoding
+        name: "🌐 Ensure UTF-8 encoding declaration in Python files"
+        entry: bash scripts/encoding_check.sh
+        language: system
+        types: [python]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: ensure-google-docstrings
+        name: "📚 Ensure Google-style docstrings in Python modules"
+        entry: bash scripts/docstrings_check.sh
+        language: system
+        types: [python]
+        stages: [pre-commit]
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
       - id: flake8
+        name: "🐍 flake8 Python Linter"
         language_version: python3
         args: ['--extend-ignore=E203']
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        name: "📦 isort - sort Python imports"
+        entry: isort --check --diff
+        language: python
+        types: [python]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: nixfmt
+        name: "❄️ Nixfmt (RFC style)"
+        description: Format Nix code with nixfmt-rfc-style
+        entry: nixfmt
+        language: system
+        args: ["--"]
+        types: [nix]
+  - repo: local
+    hooks:
+      - id: markdownlint
+        name: "📝 markdownlint - Markdown linter"
+        entry: markdownlint
+        language: system
+        types: [markdown]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: cspell
+        name: "🔤 cspell - Spell checker for Markdown"
+        entry: cspell --config=.cspell.json --no-progress --no-summary
+        language: system
+        types: [markdown]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: yamllint
+        name: "🔍 yamllint - YAML linter"
+        entry: yamllint
+        language: system
+        types: [yaml]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: actionlint
+        name: "🤖 actionlint - GitHub Actions workflow linter"
+        entry: actionlint
+        language: system
+        types: [yaml]
+        files: ^\.github/workflows/.*\.ya?ml$
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: bandit-scripts
+        name: "🔒 Bandit - Python security analysis"
+        entry: bandit -r scripts
+        language: system
+        types: [python]
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: shellcheck-scripts
+        name: "🐚 ShellCheck - scripts"
+        entry: shellcheck
+        language: system
+        files: ^scripts/.*\.(sh|bash|zsh)$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
+      - id: bearer-plugin
+        name: "🛡️ Bearer - Security & privacy scanner - planet_explorer"
+        entry: bearer scan --exit-code 1 planet_explorer
+        language: system
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: codeql-scan
+        name: "🔎 CodeQL - Static code analysis"
+        entry: codeql database analyze --format=sarifv2.1.0 --output=codeql-results.sarif codeql-db codeql/python-queries planet_explorer
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        description: "Run CodeQL static analysis on the planet_explorer folder"

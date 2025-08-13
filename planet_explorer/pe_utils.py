@@ -31,6 +31,7 @@ import re
 import urllib
 from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
+from pathlib import Path
 
 import iso8601
 
@@ -193,6 +194,7 @@ def qgsgeometry_from_geojson(json_type):
         )
         geom = feats[0].geometry()
     except Exception:
+        log.debug("JSON to geometry conversion failed")
         pass  # will return an empty geom
 
     return geom
@@ -454,7 +456,7 @@ def zoom_canvas_to_aoi(json_type):
 
 
 def resource_file(f):
-    return os.path.join(os.path.dirname(__file__), "resources", f)
+    return safe_join(os.path.dirname(__file__), "resources", f)
 
 
 def orders_download_folder():
@@ -628,3 +630,24 @@ def user_agent():
     return (
         f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
     )
+
+
+SAFE_LOCALE = re.compile(r"^[a-z]{2}(?:_[A-Z]{2})?$")
+
+
+def safe_join(base: Path, *parts: str) -> Path:
+    base = base.resolve()
+    p = base.joinpath(*parts).resolve()
+    if p == base or base not in p.parents:
+        return p
+    raise ValueError("Path traversal detected")
+
+
+def basename_only(name: str) -> str:
+    return Path(name).name  # strips ../../ etc.
+
+
+def safe_locale(loc: str) -> str:
+    if not SAFE_LOCALE.fullmatch(loc):
+        raise ValueError("Invalid locale")
+    return loc

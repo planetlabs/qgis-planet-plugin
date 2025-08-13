@@ -6,7 +6,7 @@ import uuid
 from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
-from ..pe_utils import orders_download_folder, user_agent
+from ..pe_utils import orders_download_folder, user_agent, log, safe_join
 from .p_client import PlanetClient
 
 
@@ -60,6 +60,9 @@ def quad_orders():
                     )
                 orders.append(order)
         except Exception:
+            log.error(
+                "Error reading quad orders file. The file may be corrupted or malformed."
+            )
             pass  # will return an empty array if the file is corrupted
         return orders
     else:
@@ -110,7 +113,8 @@ class QuadOrder:
         return locations
 
     def download_folder(self):
-        return os.path.join(orders_download_folder(), "basemaps", self.name)
+        # Sanitize self.name to prevent path traversal
+        return safe_join(orders_download_folder(), "basemaps", self.name)
 
     def downloaded(self):
         return os.path.exists(self.download_folder())
