@@ -30,7 +30,6 @@ from collections import defaultdict
 
 import requests
 from osgeo import gdal
-
 from qgis.core import (
     Qgis,
     QgsMessageLog,
@@ -38,7 +37,6 @@ from qgis.core import (
     QgsRasterLayer,
     QgsTask,
 )
-
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton

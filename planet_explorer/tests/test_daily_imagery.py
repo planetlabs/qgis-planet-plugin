@@ -1,13 +1,13 @@
+import datetime
 import os
 import unittest
-import datetime
+
 import pytest
-
-from qgis.PyQt import QtCore
 from qgis.core import QgsProject
+from qgis.PyQt import QtCore
 
-from planet_explorer.tests.utils import qgis_debug_wait
 from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
+from planet_explorer.tests.utils import qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

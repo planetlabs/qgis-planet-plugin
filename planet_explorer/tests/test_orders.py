@@ -1,18 +1,17 @@
 import os
 import shutil
-import pytest
 import unittest
 
-from qgis.PyQt.QtWidgets import QPushButton
-from qgis.PyQt import QtCore
+import pytest
 from qgis.core import QgsProject
+from qgis.PyQt import QtCore
+from qgis.PyQt.QtWidgets import QPushButton
+
 from planet_explorer.gui.pe_orders import PlanetOrdersDialog
 from planet_explorer.gui.pe_orders_monitor_dockwidget import OrderWrapper
-from planet_explorer.tests.utils import get_random_string
 from planet_explorer.planet_api.p_quad_orders import QuadOrder
+from planet_explorer.tests.utils import get_random_string, qgis_debug_wait
 
-
-from planet_explorer.tests.utils import qgis_debug_wait
 from ..pe_utils import orders_download_folder
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]

@@ -1,10 +1,9 @@
-import pytest
 import unittest
 
+import pytest
 from qgis.PyQt import QtCore
 
-from planet_explorer.tests.utils import qgis_debug_wait
-from planet_explorer.tests.utils import get_testing_credentials
+from planet_explorer.tests.utils import get_testing_credentials, qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

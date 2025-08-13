@@ -1,17 +1,20 @@
-import unittest
 import random
-import pytest
+import unittest
 
+import pytest
 from qgis.PyQt import QtCore
 
-from planet_explorer.tests.utils import qgis_debug_wait
-from planet_explorer.tests.utils import filter_basemaps_by_name
-from planet_explorer.tests.utils import get_random_string
+from planet_explorer.gui.pe_basemap_layer_widget import (
+    PLANET_CURRENT_MOSAIC,
+    PLANET_MOSAIC_PROC,
+    PLANET_MOSAIC_RAMP,
+)
 from planet_explorer.planet_api.p_quad_orders import QuadOrder
-from planet_explorer.gui.pe_basemap_layer_widget import PLANET_CURRENT_MOSAIC
-from planet_explorer.gui.pe_basemap_layer_widget import PLANET_MOSAIC_RAMP
-from planet_explorer.gui.pe_basemap_layer_widget import PLANET_MOSAIC_PROC
-
+from planet_explorer.tests.utils import (
+    filter_basemaps_by_name,
+    get_random_string,
+    qgis_debug_wait,
+)
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

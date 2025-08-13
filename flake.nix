@@ -41,18 +41,25 @@
 
       devShells.${system}.default = pkgs.mkShell {
         packages = [
+          pkgs.actionlint # for checking gh actions
+          pkgs.bandit
+          pkgs.bearer
           pkgs.chafa
+          pkgs.codeql
           pkgs.ffmpeg
           pkgs.gdb
           pkgs.git
           pkgs.glow # terminal markdown viewer
           pkgs.gource # Software version control visualization
-          pkgs.codeql
           pkgs.gum # UX for TUIs
+          pkgs.isort
           pkgs.jq
           pkgs.libsForQt5.kcachegrind
+          pkgs.markdownlint-cli
           pkgs.nixfmt-rfc-style
+          pkgs.nodePackages.cspell
           pkgs.pre-commit
+          pkgs.privoxy
           pkgs.pyprof2calltree # needed to covert cprofile call trees into a format kcachegrind can read
           pkgs.python3
           pkgs.qgis
@@ -62,19 +69,13 @@
           pkgs.qt5.qtquickcontrols2
           pkgs.qt5.qtsvg
           pkgs.qt5.qttools
+          pkgs.shellcheck
+          pkgs.shfmt
           pkgs.vim
           pkgs.virtualenv
           pkgs.vscode
-          pkgs.privoxy
-          pkgs.shellcheck
-          pkgs.shfmt
-          pkgs.markdownlint-cli
-          pkgs.yamllint
           pkgs.yamlfmt
-          pkgs.actionlint # for checking gh actions
-          pkgs.bearer
-          pkgs.bandit
-          pkgs.nodePackages.cspell
+          pkgs.yamllint
           (pkgs.python3.withPackages (ps: [
             ps.python
             ps.pip

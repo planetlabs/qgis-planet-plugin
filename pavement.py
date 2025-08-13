@@ -21,21 +21,18 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import datetime as dt
 import fnmatch
 import os
 import subprocess  # nosec
 import sys
 import zipfile
-
 from configparser import ConfigParser
-from io import StringIO
-
-from pathlib import Path
 from dataclasses import dataclass
+from io import StringIO
+from pathlib import Path
+
 import httpx
-
-import datetime as dt
-
 from paver.easy import Bunch, cmdopts, error, options, path, task
 
 options(

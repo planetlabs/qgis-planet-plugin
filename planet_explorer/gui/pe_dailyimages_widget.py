@@ -24,7 +24,7 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from planet.api.filters import and_filter, or_filter, build_search_request
+from planet.api.filters import and_filter, build_search_request, or_filter
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
@@ -32,22 +32,26 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
 
 from ..pe_analytics import (
+    API_KEY_COPIED,
+    ITEM_IDS_COPIED,
     analytics_track,
     send_analytics_for_search,
-    ITEM_IDS_COPIED,
-    API_KEY_COPIED,
 )
-
-from ..pe_utils import add_menu_section_action
+from ..pe_utils import (
+    LANDSAT_ID,
+    RAPIDEYE_ID,
+    RAPIDEYE_ORTHO_ID,
+    SENTINEL_ID,
+    add_menu_section_action,
+)
 from ..planet_api import PlanetClient
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
-from .pe_filters import PlanetDailyFilter, PlanetAOIFilter, filters_from_request
-from .pe_orders import PlanetOrdersDialog
-from .pe_show_curl_dialog import ShowCurlDialog
+from .pe_filters import PlanetAOIFilter, PlanetDailyFilter, filters_from_request
+from .pe_gui_utils import waitcursor
 from .pe_legacy_warning_widget import LegacyWarningWidget
 from .pe_open_saved_search_dialog import OpenSavedSearchDialog
-from .pe_gui_utils import waitcursor
-from ..pe_utils import LANDSAT_ID, SENTINEL_ID, RAPIDEYE_ID, RAPIDEYE_ORTHO_ID
+from .pe_orders import PlanetOrdersDialog
+from .pe_show_curl_dialog import ShowCurlDialog
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)

@@ -39,8 +39,8 @@ def error_catcher(msg, tag, level):
 try:
     try:
         import pyplugin_installer
-        from qgis.core import QgsApplication
         from qgis import utils
+        from qgis.core import QgsApplication
     except ImportError:
         raise PluginInstallException(
             "Cannot install plugin as 'pyplugin_installer' could not be imported."

@@ -1,7 +1,7 @@
 import unittest
 
 from qgis.core import QgsGeometry, QgsPoint, QgsPointXY, QgsWkbTypes
-from qgis.gui import QgsRubberBand, QgsMapCanvas
+from qgis.gui import QgsMapCanvas, QgsRubberBand
 from qgis.utils import iface
 
 from planet_explorer.gui.pe_filters import PlanetAOIFilter

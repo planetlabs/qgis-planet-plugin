@@ -33,17 +33,16 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QLineEdit
 
 from ..pe_analytics import (
+    SAVE_CREDENTIALS,
+    USER_LOGIN,
     analytics_track,
     is_sentry_dsn_valid,
-    USER_LOGIN,
-    SAVE_CREDENTIALS,
 )
-
 from ..pe_utils import (
     BASE_URL,
     SETTINGS_NAMESPACE,
-    open_link_with_browser,
     iface,
+    open_link_with_browser,
     plugin_version,
 )
 from ..planet_api import API_KEY_DEFAULT, LoginException, PlanetClient

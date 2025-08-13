@@ -6,7 +6,7 @@ import uuid
 from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
-from ..pe_utils import orders_download_folder, user_agent, log, safe_join
+from ..pe_utils import log, orders_download_folder, safe_join, user_agent
 from .p_client import PlanetClient
 
 

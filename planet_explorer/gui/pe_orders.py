@@ -30,7 +30,7 @@ from functools import partial
 from qgis.core import Qgis, QgsMessageLog
 from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot, QSettings
+from qgis.PyQt.QtCore import QSettings, QSize, Qt, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -47,13 +47,13 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_analytics import send_analytics_for_order
 from ..pe_utils import (
-    resource_file,
-    iface,
     ENABLE_CLIP_SETTING,
-    ENABLE_HARMONIZATION_SETTING,
     ENABLE_COMPOSITE,
+    ENABLE_HARMONIZATION_SETTING,
     ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
+    iface,
+    resource_file,
 )
 from ..planet_api.p_client import PlanetClient
 from .pe_gui_utils import waitcursor

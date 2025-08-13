@@ -1,9 +1,11 @@
-import pytest
 import unittest
+
+import pytest
 from qgis.PyQt import QtCore
+
 from planet_explorer.gui.pe_open_saved_search_dialog import OpenSavedSearchDialog
 from planet_explorer.gui.pe_save_search_dialog import SaveSearchDialog
-from planet_explorer.tests.utils import qgis_debug_wait, get_random_string
+from planet_explorer.tests.utils import get_random_string, qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

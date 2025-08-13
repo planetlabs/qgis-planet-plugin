@@ -54,11 +54,10 @@ from ..gui.pe_results_configuration_dialog import (
 )
 from ..gui.pe_save_search_dialog import SaveSearchDialog
 from ..pe_analytics import (
+    SAVED_SEARCH_CREATED,
     analytics_track,
     send_analytics_for_preview,
-    SAVED_SEARCH_CREATED,
 )
-
 from ..pe_utils import (
     PLANET_COLOR,
     SEARCH_AOI_COLOR,
@@ -68,7 +67,7 @@ from ..pe_utils import (
     qgsgeometry_from_geojson,
     safe_join,
 )
-from ..planet_api.p_client import PlanetClient, ITEM_ASSET_DL_REGEX
+from ..planet_api.p_client import ITEM_ASSET_DL_REGEX, PlanetClient
 from .pe_gui_utils import waitcursor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 

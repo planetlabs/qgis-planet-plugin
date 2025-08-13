@@ -24,12 +24,12 @@ __revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
-from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
 from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QImage, QPainter, QPixmap
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from ..pe_utils import qgsgeometry_from_geojson, log
+from ..pe_utils import log, qgsgeometry_from_geojson
 
 
 class ThumbnailManager:

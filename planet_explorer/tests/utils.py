@@ -1,13 +1,16 @@
 import configparser
 import os
-import secrets
 import pathlib
+import secrets
+
+from qgis.PyQt import QtCore
 
 from planet_explorer import pe_utils
-from planet_explorer.gui import pe_explorer_dockwidget
-from planet_explorer.gui import pe_orders_monitor_dockwidget
-from planet_explorer.gui import pe_tasking_dockwidget
-from qgis.PyQt import QtCore
+from planet_explorer.gui import (
+    pe_explorer_dockwidget,
+    pe_orders_monitor_dockwidget,
+    pe_tasking_dockwidget,
+)
 
 
 def patch_iface():

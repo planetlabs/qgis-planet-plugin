@@ -29,24 +29,13 @@ import logging
 import os
 import re
 import urllib
+from pathlib import Path
 from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
-from pathlib import Path
 
 import iso8601
-
 from planet.api.exceptions import APIException
 from planet.api.models import Mosaics
-
-from qgis.PyQt.QtCore import QVariant, QUrl, QSettings
-
-from qgis.PyQt.QtGui import QColor, QDesktopServices
-
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QWidgetAction,
-)
-
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -65,7 +54,12 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
-
+from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
+from qgis.PyQt.QtGui import QColor, QDesktopServices
+from qgis.PyQt.QtWidgets import (
+    QLabel,
+    QWidgetAction,
+)
 from qgis.utils import iface as qgisiface
 
 from .planet_api import PlanetClient

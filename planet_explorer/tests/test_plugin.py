@@ -1,9 +1,10 @@
-import requests
-from urllib.parse import urljoin
-from planet_explorer.tests.utils import get_recent_release_from_changelog
 import unittest
+from urllib.parse import urljoin
 
 import defusedxml.ElementTree as ET
+import requests
+
+from planet_explorer.tests.utils import get_recent_release_from_changelog
 
 REPO_URL = "https://api.github.com/repos/planetlabs/qgis-planet-plugin/"
 

@@ -23,9 +23,9 @@ __revision__ = "$Format:%H$"
 
 import json
 import logging
-from math import floor
 import os
 import re
+from math import floor
 
 from planet.api.filters import (
     date_range,
@@ -72,14 +72,14 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_utils import (
     MAIN_AOI_COLOR,
+    iface,
     qgsgeometry_from_geojson,
     zoom_canvas_to_aoi,
-    iface,
 )
 from ..planet_api.p_client import PlanetClient
 from .pe_aoi_maptools import PlanetCircleMapTool, PlanetExtentMapTool, PlanetPolyMapTool
-from .pe_range_slider import PlanetExplorerRangeSlider
 from .pe_legacy_warning_widget import LegacyWarningWidget
+from .pe_range_slider import PlanetExplorerRangeSlider
 
 LOCAL_FILTERS = ["area_coverage"]
 

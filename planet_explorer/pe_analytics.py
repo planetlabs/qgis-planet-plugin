@@ -27,8 +27,9 @@ from collections import Counter
 
 import analytics
 
-from .planet_api import PlanetClient
 from planet_explorer.pe_utils import log
+
+from .planet_api import PlanetClient
 
 ITEM_TYPE = "item_type"
 ITEM_TYPES = "item_types"
