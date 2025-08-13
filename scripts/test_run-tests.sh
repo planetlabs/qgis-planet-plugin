@@ -26,7 +26,8 @@ export PLANET_USER="dummyuser"
 export PLANET_PASSWORD="dummypass"
 
 # Mock docker-compose to avoid running containers
-export PATH="$(mktemp -d):$PATH"
+mock_path="$(mktemp -d)"
+export PATH="$mock_path:$PATH"
 cat >"$(command -v docker-compose)" <<'EOF'
 #!/usr/bin/env bash
 echo "MOCK docker-compose $@"

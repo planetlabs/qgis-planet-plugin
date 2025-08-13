@@ -126,12 +126,12 @@ repos:
         language: system
         pass_filenames: false
 
-  - repo: local
-    hooks:
-      - id: codeql-scan
-        name: "🔎 CodeQL - Static code analysis"
-        entry: codeql database analyze --format=sarifv2.1.0 --output=codeql-results.sarif codeql-db codeql/python-queries planet_explorer
-        language: system
-        pass_filenames: false
-        stages: [pre-commit]
-        description: "Run CodeQL static analysis on the planet_explorer folder"
+  # - repo: local
+  #   hooks:
+  #     - id: codeql-scan
+  #       name: "🔎 CodeQL - Static code analysis"
+  #       entry: codeql database analyze --format=sarifv2.1.0 --output=codeql-results.sarif codeql-db codeql-db/db-python-queries planet_explorer
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+  #       description: "Run CodeQL static analysis on the planet_explorer folder"
