@@ -11,7 +11,6 @@ LOG_FILE="vscode.log"
 
 REQUIRED_EXTENSIONS=(
     naumovs.color-highlight@2.8.0
-    GitHub.copilot@1.277.0
     ms-python.vscode-pylance@2025.4.1
     KevinRose.vsc-python-indent@1.21.0
     lextudio.restructuredtext@190.4.10
@@ -32,7 +31,6 @@ REQUIRED_EXTENSIONS=(
     trond-snekvik.simple-rst@1.5.4
     littlefoxteam.vscode-python-test-adapter@0.8.2
     ms-python.debugpy@2025.8.0
-    GitHub.copilot@1.331.0
     github.vscode-github-actions@0.27.1
     donjayamanne.python-environment-manager@1.2.7
     mkhl.direnv@0.17.0
@@ -42,7 +40,6 @@ REQUIRED_EXTENSIONS=(
     ms-vscode.test-adapter-converter@0.2.1
     DavidAnson.vscode-markdownlint@0.60.0
     waderyan.gitblame@11.1.3
-    #GitHub.copilot-chat@0.26.7
     VisualStudioExptTeam.intellicode-api-usage-examples@0.2.9
     wholroyd.jinja@0.0.8
     jamesqquick.python-class-generator@0.0.3
@@ -144,7 +141,7 @@ QGIS_PREFIX=$(dirname "$(dirname "$QGIS_BIN")")
 # Construct the correct QGIS Python path
 QGIS_PYTHON_PATH="$QGIS_PREFIX/share/qgis/python"
 # Needed for qgis processing module import
-PROCESSING_PATH="$QGIS_PREFIX/share/qgis/python/qgis"
+# PROCESSING_PATH="$QGIS_PREFIX/share/qgis/python/qgis"
 
 # Check if the Python directory exists
 if [[ ! -d "$QGIS_PYTHON_PATH" ]]; then
@@ -319,15 +316,17 @@ if [[ " $* " == *" --verbose "* ]]; then
 fi
 
 # Add VSCode runner configuration
-
+# shellcheck disable=SC2154
 cat <<EOF >.vscode/launch.json
 {
     "version": "0.2.0",
+
     "configurations": [
         {
             "name": "QGIS Plugin Debug",
             "type": "debugpy",
             "request": "launch",
+
             "program": "${env:QGIS_EXECUTABLE}", // Set the QGIS executable path from an environment variable
             //"program": "/usr/bin/qgis", // Replace with the actual QGIS executable path
             "args": ["--project", "${workspaceFolder}/GEEST.qgs"], // Optional QGIS project

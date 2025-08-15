@@ -4,7 +4,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtGui import QGuiApplication
 
-from ..pe_analytics import analytics_track, CURL_REQUEST_COPIED
+from ..pe_analytics import CURL_REQUEST_COPIED, analytics_track
 from ..planet_api import PlanetClient
 
 python_template = """

@@ -21,99 +21,87 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-from builtins import object
-
 import os
 import platform
-import zipfile
 import sys
 import traceback
-import urllib3
-from requests import exceptions
-import planet
+import zipfile
+from builtins import object
 
 import analytics
+import planet
 import sentry_sdk
-
-
+import urllib3
 from qgis.core import Qgis, QgsProject
-
 from qgis.gui import QgsGui
-
 from qgis.PyQt.QtCore import (
-    QSettings,
-    QTranslator,
     QCoreApplication,
     QLocale,
+    QSettings,
+    QSize,
     Qt,
     QTimer,
+    QTranslator,
     QUrl,
-    QSize,
 )
-
-from qgis.PyQt.QtGui import QIcon, QDesktopServices, QPalette
-
+from qgis.PyQt.QtGui import QDesktopServices, QIcon, QPalette
 from qgis.PyQt.QtWidgets import (
     QAction,
-    QToolButton,
-    QPushButton,
-    QMenu,
-    QTextBrowser,
-    QWidget,
     QHBoxLayout,
-    QSizePolicy,
     QLabel,
+    QMenu,
     QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTextBrowser,
+    QToolButton,
+    QWidget,
 )
+from requests import exceptions
+
+from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
+from planet_explorer.gui.pe_explorer_dockwidget import (
+    remove_explorer,
+    show_explorer,
+    toggle_images_search,
+    toggle_mosaics_search,
+)
+from planet_explorer.gui.pe_orders_monitor_dockwidget import (
+    hide_orders_monitor,
+    remove_orders_monitor,
+    toggle_orders_monitor,
+)
+from planet_explorer.gui.pe_planet_inspector_dockwidget import (
+    hide_inspector,
+    remove_inspector,
+    toggle_inspector,
+)
+from planet_explorer.gui.pe_settings_dialog import SettingsDialog
+from planet_explorer.gui.pe_tasking_dockwidget import (
+    remove_tasking_widget,
+    toggle_tasking_widget,
+)
+from planet_explorer.pe_analytics import (
+    is_segments_write_key_valid,
+    is_sentry_dsn_valid,
+    segments_write_key,
+    sentry_dsn,
+)
+from planet_explorer.pe_utils import (
+    BASE_URL,
+    PLANET_COLOR,
+    add_menu_section_action,
+    add_widget_to_layer,
+    log,
+    open_link_with_browser,
+    plugin_version,
+    safe_join,
+    safe_path,
+)
+from planet_explorer.planet_api import PlanetClient
 
 # Initialize Qt resources from file resources.py
 from planet_explorer.resources import resources  # noqa: F401
-
-from planet_explorer.gui.pe_explorer_dockwidget import (
-    show_explorer,
-    remove_explorer,
-    toggle_mosaics_search,
-    toggle_images_search,
-)
-
-from planet_explorer.pe_utils import (
-    add_menu_section_action,
-    BASE_URL,
-    open_link_with_browser,
-    add_widget_to_layer,
-    PLANET_COLOR,
-    plugin_version,
-)
-
-from planet_explorer.pe_analytics import (
-    sentry_dsn,
-    is_sentry_dsn_valid,
-    is_segments_write_key_valid,
-    segments_write_key,
-)
-
-from planet_explorer.planet_api import PlanetClient
-
-from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
-
-from planet_explorer.gui.pe_settings_dialog import SettingsDialog
-
-from planet_explorer.gui.pe_orders_monitor_dockwidget import (
-    toggle_orders_monitor,
-    hide_orders_monitor,
-    remove_orders_monitor,
-)
-
-from planet_explorer.gui.pe_planet_inspector_dockwidget import (
-    toggle_inspector,
-    hide_inspector,
-    remove_inspector,
-)
-
-from planet_explorer.gui.pe_tasking_dockwidget import (
-    toggle_tasking_widget,
-    remove_tasking_widget,
-)
 
 PLANET_COM = "https://planet.com"
 SAT_SPECS_PDF = (
@@ -155,13 +143,13 @@ class PlanetExplorer(object):
             locale = locale_value[0:2]
         else:
             locale = str(locale_value)[0:2]
-        locale_path = os.path.join(
+        locale_path = safe_join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
-            self.translator.load(locale_path)
+            self.translator.load(safe_path(locale_path))
             QCoreApplication.installTranslator(self.translator)
 
         # Declare instance attributes
@@ -256,6 +244,7 @@ class PlanetExplorer(object):
                     try:
                         sentry_sdk.capture_exception(value)
                     except Exception:
+                        log("Error sending exception to Sentry", exc_info=True)
                         pass  # we swallow all exceptions here, to avoid entering an endless loop
                     self.qgis_hook(t, value, tb)
             else:

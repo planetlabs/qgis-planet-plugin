@@ -1,13 +1,16 @@
 import configparser
 import os
-import random
 import pathlib
+import secrets
+
+from qgis.PyQt import QtCore
 
 from planet_explorer import pe_utils
-from planet_explorer.gui import pe_explorer_dockwidget
-from planet_explorer.gui import pe_orders_monitor_dockwidget
-from planet_explorer.gui import pe_tasking_dockwidget
-from qgis.PyQt import QtCore
+from planet_explorer.gui import (
+    pe_explorer_dockwidget,
+    pe_orders_monitor_dockwidget,
+    pe_tasking_dockwidget,
+)
 
 
 def patch_iface():
@@ -104,7 +107,7 @@ def filter_basemaps_by_name(name, qtbot, basemaps_widget, qgis_debug_enabled):
 
 def get_random_string(length=8):
     alphanumeric = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-    return "".join(random.choice(alphanumeric) for _ in range(length)).strip()
+    return "".join(secrets.choice(alphanumeric) for _ in range(length)).strip()
 
 
 def get_recent_release_from_changelog(root_dir: pathlib.Path):

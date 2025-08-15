@@ -39,8 +39,8 @@ def error_catcher(msg, tag, level):
 try:
     try:
         import pyplugin_installer
-        from qgis.core import QgsApplication
         from qgis import utils
+        from qgis.core import QgsApplication
     except ImportError:
         raise PluginInstallException(
             "Cannot install plugin as 'pyplugin_installer' could not be imported."
@@ -75,9 +75,8 @@ try:
     if PLUGIN_KEY in utils.active_plugins:
         utils.unloadPlugin(PLUGIN_KEY)
 
-    assert (
-        PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all().keys()
-    ), "Planet plugin failed to install!"
+    if PLUGIN_KEY not in pyplugin_installer.installer_data.plugins.all().keys():
+        raise PluginInstallException("Planet plugin failed to install!")
 
     if ERROR_OCCURRED:
         raise PluginInstallException(
@@ -85,21 +84,27 @@ try:
         )
 
     # Start/Load the plugin
-    assert utils.loadPlugin(PLUGIN_KEY)
-    assert utils.startPlugin(PLUGIN_KEY), f"'{PLUGIN_KEY}' failed to start!"
-    assert (
-        PLUGIN_KEY in utils.active_plugins
-    ), f"'{PLUGIN_KEY}' not found in active_plugins, found: {utils.active_plugins}"  # noqa
+    if not utils.loadPlugin(PLUGIN_KEY):
+        raise PluginInstallException(f"Failed to load plugin '{PLUGIN_KEY}'")
+    if not utils.startPlugin(PLUGIN_KEY):
+        raise PluginInstallException(f"'{PLUGIN_KEY}' failed to start!")
+    if PLUGIN_KEY not in utils.active_plugins:
+        raise PluginInstallException(
+            f"'{PLUGIN_KEY}' missing in active_plugins, found: {utils.active_plugins}"
+        )
 
     # Unload the plugin
-    assert utils.unloadPlugin(PLUGIN_KEY), "'planet_explorer' failed to unload"
-    assert PLUGIN_KEY not in utils.active_plugins
+    if not utils.unloadPlugin(PLUGIN_KEY):
+        raise PluginInstallException("'planet_explorer' failed to unload")
+    if PLUGIN_KEY in utils.active_plugins:
+        raise PluginInstallException(
+            "'planet_explorer' still in active_plugins after unload"
+        )
 
     # Uninstall the plugin
     plugin_installer.uninstallPlugin(PLUGIN_KEY, quiet=True)
-    assert (
-        PLUGIN_KEY not in pyplugin_installer.installer_data.plugins.all().keys()
-    ), "Planet plugin failed to uninstall!"
+    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all().keys():
+        raise PluginInstallException("Planet plugin failed to uninstall!")
 
     if ERROR_OCCURRED:
         raise PluginInstallException(

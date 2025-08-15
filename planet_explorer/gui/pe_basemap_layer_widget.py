@@ -19,6 +19,14 @@ import os
 import re
 from urllib.parse import quote, unquote
 
+from qgis.core import (
+    Qgis,
+    QgsLayerTreeGroup,
+    QgsLayerTreeLayer,
+    QgsMessageLog,
+    QgsProject,
+)
+from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 from qgis.PyQt.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -34,14 +42,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import (
-    Qgis,
-    QgsLayerTreeGroup,
-    QgsLayerTreeLayer,
-    QgsMessageLog,
-    QgsProject,
-)
-from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 
 from ..pe_utils import (
     PLANET_CURRENT_MOSAIC,

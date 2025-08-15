@@ -1,12 +1,12 @@
-import os
 import json
-import pytest
-
-from planet_explorer import classFactory
+import os
 from unittest.mock import MagicMock
+
+import pytest
 from qgis.PyQt import QtCore
 from qgis.testing import start_app
 
+from planet_explorer import classFactory
 
 if os.environ.get("IS_DOCKER_CONTAINER") and os.environ["IS_DOCKER_CONTAINER"].lower()[
     0

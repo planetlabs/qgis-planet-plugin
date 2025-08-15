@@ -54,11 +54,10 @@ from ..gui.pe_results_configuration_dialog import (
 )
 from ..gui.pe_save_search_dialog import SaveSearchDialog
 from ..pe_analytics import (
+    SAVED_SEARCH_CREATED,
     analytics_track,
     send_analytics_for_preview,
-    SAVED_SEARCH_CREATED,
 )
-
 from ..pe_utils import (
     PLANET_COLOR,
     SEARCH_AOI_COLOR,
@@ -66,8 +65,9 @@ from ..pe_utils import (
     create_preview_group,
     iface,
     qgsgeometry_from_geojson,
+    safe_join,
 )
-from ..planet_api.p_client import PlanetClient, ITEM_ASSET_DL_REGEX
+from ..planet_api.p_client import ITEM_ASSET_DL_REGEX, PlanetClient
 from .pe_gui_utils import waitcursor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
@@ -75,7 +75,7 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 
 def iconPath(f):
-    return os.path.join(plugin_path, "resources", f)
+    return safe_join(plugin_path, "resources", f)
 
 
 TOP_ITEMS_BATCH = 250
@@ -106,7 +106,7 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_search_results_base.ui"),
+    safe_join(plugin_path, "ui", "pe_search_results_base.ui"),
     from_imports=True,
     import_from=f"{os.path.basename(plugin_path)}",
     resource_suffix="",
