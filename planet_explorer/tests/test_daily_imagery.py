@@ -519,7 +519,7 @@ def test_aoi_from_layer(name, layer_dir, expected_coordinates):
     # Determines the extent
     aoi_filter.aoi_from_layer([layer])
 
-    extent = aoi_filter.leAOI.text()
+    extent = aoi_filter.leAOI.toPlainText()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
@@ -567,7 +567,7 @@ def test_aoi_bb_from_layer(layer_dir, expected_coordinates):
     # Determines the extent
     aoi_filter.aoi_bb_from_layer([layer])
 
-    extent = aoi_filter.leAOI.text()
+    extent = aoi_filter.leAOI.toPlainText()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
@@ -753,7 +753,7 @@ def test_aoi_from_multiple_polygons(
     # Determines the extent
     aoi_filter.aoi_from_multiple_polygons()
 
-    extent = aoi_filter.leAOI.text()
+    extent = aoi_filter.leAOI.toPlainText()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")
@@ -810,7 +810,7 @@ def test_bb_aoi_from_multiple_polygons(
     # Determines the extent
     aoi_filter.aoi_from_bound()
 
-    extent = aoi_filter.leAOI.text()
+    extent = aoi_filter.leAOI.toPlainText()
     extent_json = json.loads(extent)
     geom_type = extent_json.get("type")
     coords = extent_json.get("coordinates")

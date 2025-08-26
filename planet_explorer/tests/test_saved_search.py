@@ -35,7 +35,7 @@ def test_load(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_
 
     # make sure the proper AOI from the saved search is loaded by checking the filter
     qgis_debug_wait(qtbot, qgis_debug_enabled)
-    assert daily_images_widget._aoi_filter.leAOI.text() == sample_aoi
+    assert daily_images_widget._aoi_filter.leAOI.toPlainText() == sample_aoi
 
 
 def test_create(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi):
