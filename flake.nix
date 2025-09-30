@@ -27,7 +27,6 @@
         ps.pyqtwebengine
         ps.jsonschema
         ps.debugpy
-        ps.future
         ps.psutil
       ];
       qgisWithExtras = geospatial.packages.${system}.qgis.override {
