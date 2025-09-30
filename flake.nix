@@ -120,7 +120,6 @@
           pkgs.qt5.qttools
           pkgs.shellcheck
           pkgs.shfmt
-          pkgs.vim
           pkgs.virtualenv
           pkgs.vscode
           pkgs.yamlfmt
@@ -220,7 +219,7 @@
           echo "  nix run .#qgis-master"
           echo ""
           echo "  To check if the LDMP plugin is properly usable from"
-          echo "  qgis_process, you can do this:
+          echo "  qgis_process, you can do this:"
           echo "  nix run .#qgis_process plugins enable trends.earth"
           echo "  nix run .#qgis_process list"
           echo ""
@@ -236,7 +235,7 @@
           echo "-----------------------"
           echo "If you want to test the plugin behind an http proxy"
           echo "we provide a script to run privoxy."
-          echo "🛡️  To start the proxy (Privoxy), run:"
+          echo "🛡️  To start the proxy Privoxy, run:"
           echo "   ./scripts/privoxy.sh start"
           echo "🛑  To stop the proxy, run:"
           echo "   ./scripts/privoxy.sh stop"
