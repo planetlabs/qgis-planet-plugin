@@ -8,7 +8,7 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, Qt
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QInputDialog, QSizePolicy, QVBoxLayout
 
-from ..pe_utils import qgsgeometry_from_geojson, iface
+from ..pe_utils import iface, qgsgeometry_from_geojson
 from ..planet_api.p_client import PlanetClient
 from .pe_filters import filters_as_text_from_request, filters_from_request
 

@@ -28,22 +28,20 @@ import os
 
 from planet.api.exceptions import InvalidAPIKey
 from planet.api.models import MosaicQuads, Mosaics
-from qgis.PyQt import QtCore
+from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
+from qgis.PyQt import QtCore, uic
 from qgis.PyQt.QtCore import QObject, QThread, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QImage, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox, QVBoxLayout
-from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
-from qgis.PyQt import uic
 
 from ..pe_analytics import (
-    analytics_track,
-    BASEMAP_SERVICE_ADDED_TO_MAP,
-    BASEMAP_SERVICE_CONNECTION_ESTABLISHED,
     BASEMAP_COMPLETE_ORDER,
     BASEMAP_PARTIAL_ORDER,
+    BASEMAP_SERVICE_ADDED_TO_MAP,
+    BASEMAP_SERVICE_CONNECTION_ESTABLISHED,
+    analytics_track,
 )
-
 from ..pe_utils import (
     INTERVAL,
     LINKS,

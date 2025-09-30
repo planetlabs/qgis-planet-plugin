@@ -34,14 +34,13 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
-
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
-from ..pe_analytics import analytics_track, SKYSAT_TASK_CREATED
-from ..pe_utils import PLANET_COLOR, open_link_with_browser, iface
+from ..pe_analytics import SKYSAT_TASK_CREATED, analytics_track
+from ..pe_utils import PLANET_COLOR, iface, open_link_with_browser
 from ..planet_api import PlanetClient
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]

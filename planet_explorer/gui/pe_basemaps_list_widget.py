@@ -24,6 +24,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QIcon, QImage, QPalette, QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -37,7 +38,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsApplication
 
 from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR, iface
 

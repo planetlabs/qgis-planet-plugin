@@ -21,25 +21,23 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import json
+import logging
 import os
 import re
-import logging
-import random
-import json
-
+import secrets
+import urllib
 from typing import (
-    Optional,
     List,
+    Optional,
 )
 from urllib.parse import urlparse
-import urllib
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
-from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
-
 
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
+from qgis.core import Qgis, QgsApplication, QgsAuthMethodConfig, QgsMessageLog
+from qgis.PyQt.QtCore import QObject, QSettings, pyqtSignal, pyqtSlot
 
 from ..gui.pe_gui_utils import waitcursor
 
@@ -560,7 +558,7 @@ def tile_service_url(
         tile_url = TILE_SERVICE_URL.format("")
         url = f"{tile_url}/wmts/{tile_hash}?api_key={api_key}"
     elif service.lower() == "xyz":
-        tile_url = TILE_SERVICE_URL.format(random.randint(0, 3))
+        tile_url = TILE_SERVICE_URL.format(secrets.randbelow(4))
         url = (
             f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
             f"api_key={api_key}"

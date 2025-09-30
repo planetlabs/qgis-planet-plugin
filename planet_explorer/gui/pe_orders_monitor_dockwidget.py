@@ -21,27 +21,22 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import json
 import logging
 import os
-import json
 
 import iso8601
 from planet.api.models import Order, Orders
-
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsRasterLayer,
-    QgsProject,
     QgsContrastEnhancement,
+    QgsProject,
+    QgsRasterLayer,
 )
-
 from qgis.PyQt import uic
-
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
-
 from qgis.PyQt.QtGui import QDesktopServices
-
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -52,7 +47,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..pe_utils import orders_download_folder, iface, user_agent
+from ..pe_utils import iface, orders_download_folder, user_agent
 from ..planet_api import PlanetClient
 from ..planet_api.p_order_tasks import OrderProcessorTask, QuadsOrderProcessorTask
 from ..planet_api.p_quad_orders import quad_orders
