@@ -21,6 +21,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import gzip
 import os
 import re
 import logging
@@ -31,11 +32,11 @@ from typing import (
     Optional,
     List,
 )
-from urllib.parse import urlparse
-import urllib
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings
-from qgis.core import QgsAuthMethodConfig, QgsApplication, QgsMessageLog, Qgis
+from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl
+from PyQt5.QtNetwork import QNetworkRequest
+from qgis.core import QgsBlockingNetworkRequest
 
+import requests
 
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
@@ -62,6 +63,43 @@ class LoginException(Exception):
     pass
 
 
+class QGISAdapter:
+    def send(self, request: requests.PreparedRequest, **kwargs):
+        req = QNetworkRequest(QUrl(request.url))
+        for h in request.headers:
+            req.setRawHeader(h.encode(), request.headers[h].encode())
+        req.setRawHeader("Accept-Encoding".encode(), "gzip".encode())
+
+        breq = QgsBlockingNetworkRequest()
+        if request.method == "GET":
+            error = breq.get(req)
+        elif request.method == "POST":
+            body = request.body
+            if not isinstance(body, bytes):
+                body = body.encode()
+            error = breq.post(req, body)
+        if error > 0:
+            msg = breq.errorMessage()
+            if error == 1:
+                raise requests.exceptions.ConnectionError(msg)
+            elif error == 2:
+                raise requests.exceptions.ConnectTimeout(msg)
+            elif error == 3:
+                raise requests.exceptions.RequestException(msg)
+
+        content = breq.reply()
+        resp = requests.Response()
+        for h in content.rawHeaderList():
+            header = h.data().decode()
+            resp.headers[header] = content.rawHeader(h).data().decode()
+        data = content.content().data()
+        if resp.headers["Content-Encoding"] == "gzip":
+            data = gzip.decompress(data)
+        resp._content = data
+        resp.status_code = content.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        return resp
+
+
 class PlanetClient(QObject, ClientV1):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
@@ -77,7 +115,6 @@ class PlanetClient(QObject, ClientV1):
         if PlanetClient.__instance is None:
             PlanetClient()
 
-        PlanetClient.__instance.set_proxy_values()
         return PlanetClient.__instance
 
     def __init__(self):
@@ -101,65 +138,7 @@ class PlanetClient(QObject, ClientV1):
         self._item_types = None
         self._bundles = None
         self._asset_types = {}
-
-    def set_proxy_values(self):
-        settings = QSettings()
-        proxyEnabled = settings.value("proxy/proxyEnabled")
-        base_url = self.base_url.lower()
-        excluded = False
-        noProxyUrls = settings.value("proxy/noProxyUrls") or []
-        excluded = any([base_url.startswith(url.lower()) for url in noProxyUrls])
-        if proxyEnabled and not excluded:
-            proxyType = settings.value("proxy/proxyType")
-            if proxyType == "DefaultProxy":
-                # Try to get system proxy settings
-
-                proxies = urllib.request.getproxies()
-                proxy_url = proxies.get("http") or proxies.get("https")
-                if proxy_url:
-                    # Parse proxy_url, e.g. http://host:port
-                    parsed = urlparse(proxy_url)
-                    proxyHost = parsed.hostname
-                    proxyPort = parsed.port
-                else:
-                    QgsMessageLog.logMessage(
-                        "Planet Explorer: No system proxy found for 'DefaultProxy' proxy type.",
-                        level=Qgis.Warning,
-                    )
-                    return
-            elif proxyType == "HttpProxy":
-                proxyHost = settings.value("proxy/proxyHost")
-                proxyPort = settings.value("proxy/proxyPort")
-            else:
-                QgsMessageLog.logMessage(
-                    "Planet Explorer: Only 'HttpProxy' or 'Default' "
-                    "QGIS Proxy options are supported "
-                    "for connecting to the Planet API.",
-                    level=Qgis.Warning,
-                )
-                return
-
-            url = f"{proxyHost}:{proxyPort}"  # noqa
-            authid = settings.value("proxy/authcfg", "")
-            if authid:
-                authConfig = QgsAuthMethodConfig()
-                QgsApplication.authManager().loadAuthenticationConfig(
-                    authid, authConfig, True
-                )
-                username = authConfig.config("username")
-                password = authConfig.config("password")
-            else:
-                username = settings.value("proxy/proxyUser")
-                password = settings.value("proxy/proxyPassword")
-
-            if username:
-                tokens = url.split("://")
-                url = f"{tokens[0]}://{username}:{password}@{tokens[-1]}"  # noqa: E231
-
-            self.dispatcher.session.proxies["http"] = url
-            self.dispatcher.session.proxies["https"] = url
-        else:
-            self.dispatcher.session.proxies = {}
+        self.dispatcher.session.mount("https://", QGISAdapter())
 
     @waitcursor
     def log_in(self, user, password, api_key=None):
