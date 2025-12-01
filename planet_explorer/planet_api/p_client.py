@@ -33,7 +33,7 @@ from typing import (
     List,
 )
 from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl
-from PyQt5.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.core import QgsBlockingNetworkRequest
 
 import requests
