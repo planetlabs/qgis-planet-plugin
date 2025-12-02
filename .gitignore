@@ -19,3 +19,8 @@ shell.nix
 .privoxy-cache/ca-cert.pem
 .privoxy.pid
 scripts/list_proxies.py
+codeql-db
+.claude
+.pac-server.pid
+proxy.pac
+core
