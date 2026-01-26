@@ -270,6 +270,8 @@ EOF
   fi
   generate_pac
   start_pac_server
+  echo ""
+  echo "📋 To follow logs: $0 logs"
   ;;
 stop)
   if [ -f "$PRIVOXY_PID_FILE" ]; then
