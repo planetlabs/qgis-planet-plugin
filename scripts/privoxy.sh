@@ -191,17 +191,54 @@ show_logs() {
   fi
 }
 
+test_pac_local() {
+  local url="http://127.0.0.1:$PAC_SERVER_PORT/proxy.pac"
+  echo "🧪 Fetching PAC file from localhost: $url"
+  echo ""
+  if command -v curl >/dev/null 2>&1; then
+    curl -sf "$url" && echo "" || echo "❌ Failed to fetch PAC file. Is the PAC server running?"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$url" && echo "" || echo "❌ Failed to fetch PAC file. Is the PAC server running?"
+  else
+    echo "❌ Neither curl nor wget found"
+  fi
+}
+
+test_pac_vlan() {
+  local virsh_ips
+  virsh_ips=$(get_virsh_ips)
+  if [ -z "$virsh_ips" ]; then
+    echo "❌ No virbr* interfaces found. Is libvirt running?"
+    return 1
+  fi
+  for virsh_ip in $virsh_ips; do
+    local url="http://$virsh_ip:$PAC_SERVER_PORT/proxy.pac"
+    echo "🧪 Fetching PAC file from virsh network ($virsh_ip): $url"
+    echo ""
+    if command -v curl >/dev/null 2>&1; then
+      curl -sf "$url" && echo "" || echo "❌ Failed to fetch PAC file. Is the PAC server running?"
+    elif command -v wget >/dev/null 2>&1; then
+      wget -qO- "$url" && echo "" || echo "❌ Failed to fetch PAC file. Is the PAC server running?"
+    else
+      echo "❌ Neither curl nor wget found"
+    fi
+    echo ""
+  done
+}
+
 show_help() {
-  echo "Usage: $0 {start|stop|restart|status|generate-ca|logs|help}"
+  echo "Usage: $0 {start|stop|restart|status|generate-ca|logs|testpac-local|testpac-vlan|help}"
   echo ""
   echo "Commands:"
-  echo "  start        Start privoxy with HTTPS support"
-  echo "  stop         Stop privoxy"
-  echo "  restart      Restart privoxy"
-  echo "  status       Show privoxy status"
-  echo "  generate-ca  Generate a new CA certificate for HTTPS interception"
-  echo "  logs         Follow privoxy logs (uses bat if available, otherwise tail)"
-  echo "  help         Show this help message"
+  echo "  start          Start privoxy with HTTPS support"
+  echo "  stop           Stop privoxy"
+  echo "  restart        Restart privoxy"
+  echo "  status         Show privoxy status"
+  echo "  generate-ca    Generate a new CA certificate for HTTPS interception"
+  echo "  logs           Follow privoxy logs (uses bat if available, otherwise tail)"
+  echo "  testpac-local  Fetch and display PAC file via localhost"
+  echo "  testpac-vlan   Fetch and display PAC file via virsh/libvirt bridge network"
+  echo "  help           Show this help message"
   echo ""
   echo "The CA certificate is required for HTTPS interception. After running 'generate-ca',"
   echo "import $PRIVOXY_CA_CERT_FILE into your browser/system to avoid HTTPS warnings."
@@ -261,6 +298,12 @@ generate-ca)
   ;;
 logs)
   show_logs
+  ;;
+testpac-local)
+  test_pac_local
+  ;;
+testpac-vlan)
+  test_pac_vlan
   ;;
 help | --help | -h)
   show_help
