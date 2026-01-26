@@ -13,6 +13,12 @@ PAC_SERVER_PORT="8080"
 
 mkdir -p "$PRIVOXY_CACHE_DIR"
 
+# Detect virsh/libvirt bridge IPs for VM testing
+get_virsh_ips() {
+  # Look for virbr* interfaces that are UP and extract their IPv4 addresses
+  ip -4 addr show 2>/dev/null | awk '/virbr[0-9]/ && /inet / {print $2}' | cut -d/ -f1
+}
+
 open_firewall() {
   echo "🔥"
   echo "🔥  SECURITY WARNING: OPENING FIREWALL"
@@ -50,6 +56,9 @@ start_pac_server() {
     cd - >/dev/null
     echo "🌐 PAC server started on port $PAC_SERVER_PORT (PID: $(cat "$PAC_SERVER_PID_FILE"))"
     echo "   PAC URL: http://$proxy_ip:$PAC_SERVER_PORT/proxy.pac"
+    for virsh_ip in $(get_virsh_ips); do
+      echo "   PAC URL (virsh VM): http://$virsh_ip:$PAC_SERVER_PORT/proxy.pac"
+    done
   elif command -v python >/dev/null 2>&1; then
     cd "$(dirname "$pac_file")"
     python -m SimpleHTTPServer "$PAC_SERVER_PORT" >/dev/null 2>&1 &
@@ -57,6 +66,9 @@ start_pac_server() {
     cd - >/dev/null
     echo "🌐 PAC server started on port $PAC_SERVER_PORT (PID: $(cat "$PAC_SERVER_PID_FILE"))"
     echo "   PAC URL: http://$proxy_ip:$PAC_SERVER_PORT/proxy.pac"
+    for virsh_ip in $(get_virsh_ips); do
+      echo "   PAC URL (virsh VM): http://$virsh_ip:$PAC_SERVER_PORT/proxy.pac"
+    done
   else
     echo "⚠️  Warning: Neither python3 nor python found - cannot start PAC server"
     echo "   You'll need to serve the PAC file manually or use file:// URLs"
@@ -106,6 +118,17 @@ EOF
   echo "💡 AUTOMATIC CONFIGURATION OPTIONS:"
   echo "   Local file:  file://$pac_file"
   echo "   HTTP server: http://$proxy_ip:$PAC_SERVER_PORT/proxy.pac"
+  echo ""
+  local virsh_ips
+  virsh_ips=$(get_virsh_ips)
+  if [ -n "$virsh_ips" ]; then
+    echo "🖥️  VIRSH/LIBVIRT VM CONFIGURATION:"
+    echo "   Use these addresses when configuring proxy inside a VM:"
+    for virsh_ip in $virsh_ips; do
+      echo "   HTTP Proxy:  $virsh_ip:8123"
+      echo "   PAC URL:     http://$virsh_ip:$PAC_SERVER_PORT/proxy.pac"
+    done
+  fi
 }
 
 generate_ca() {
