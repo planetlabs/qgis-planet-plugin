@@ -130,7 +130,7 @@ class QGISAdapter:
             header = h.data().decode()
             resp.headers[header] = content.rawHeader(h).data().decode()
         data = content.content().data()
-        if resp.headers["Content-Encoding"] == "gzip":
+        if resp.headers.get("Content-Encoding") == "gzip":
             data = gzip.decompress(data)
         resp._content = data
         resp.status_code = content.attribute(QNetworkRequest.HttpStatusCodeAttribute)
