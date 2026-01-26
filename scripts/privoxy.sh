@@ -275,7 +275,7 @@ EOF
   ;;
 stop)
   if [ -f "$PRIVOXY_PID_FILE" ]; then
-    kill "$(cat "$PRIVOXY_PID_FILE")" && rm "$PRIVOXY_PID_FILE"
+    kill "$(cat "$PRIVOXY_PID_FILE")" && rm -f "$PRIVOXY_PID_FILE"
     echo "Stopped privoxy."
   else
     echo "Privoxy is not running."
