@@ -187,6 +187,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             )
             # Stay on login panel if error
             return
+        except Exception:
+            return
         finally:
             self.p_client.blockSignals(False)
 
