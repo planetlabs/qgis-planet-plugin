@@ -242,6 +242,7 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = TaskingDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetTaskingDockWidget")
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
         )

@@ -333,6 +333,7 @@ def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
         dockwidget_instance = PlanetExplorerDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetExplorerDockWidget")
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
         )
