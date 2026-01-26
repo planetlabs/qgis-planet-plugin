@@ -32,9 +32,9 @@ from typing import (
     Optional,
     List,
 )
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl
+from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl, QMetaObject, Qt
 from PyQt5.QtNetwork import QNetworkRequest
-from qgis.core import QgsBlockingNetworkRequest
+from qgis.core import Qgis, QgsBlockingNetworkRequest
 
 import requests
 
@@ -64,7 +64,12 @@ class LoginException(Exception):
 
 
 class QGISAdapter:
+
+    _offline = False
+    _message_bar_item = None
+
     def send(self, request: requests.PreparedRequest, **kwargs):
+        error = 0
         req = QNetworkRequest(QUrl(request.url))
         for h in request.headers:
             req.setRawHeader(h.encode(), request.headers[h].encode())
@@ -80,12 +85,44 @@ class QGISAdapter:
             error = breq.post(req, body)
         if error > 0:
             msg = breq.errorMessage()
+            if not QGISAdapter._offline:
+                QGISAdapter._offline = True
+                msg_lower = msg.lower()
+                if "proxy" in msg_lower:
+                    bar_msg = (
+                        "Proxy connection refused. Check your proxy "
+                        "settings under Settings > Options > Network."
+                    )
+                elif error == 2 or "timed out" in msg_lower or "timeout" in msg_lower:
+                    bar_msg = (
+                        "Connection to Planet timed out. The plugin will "
+                        "resume automatically when connectivity is restored."
+                    )
+                else:
+                    bar_msg = (
+                        "Cannot access the internet. The plugin will resume "
+                        "automatically when connectivity is restored."
+                    )
+                QGISAdapter._offline_msg = bar_msg
+                QMetaObject.invokeMethod(
+                    PlanetClient.getInstance(),
+                    "_show_offline_message",
+                    Qt.QueuedConnection,
+                )
             if error == 1:
                 raise requests.exceptions.ConnectionError(msg)
             elif error == 2:
                 raise requests.exceptions.ConnectTimeout(msg)
             elif error == 3:
                 raise requests.exceptions.RequestException(msg)
+
+        if QGISAdapter._offline:
+            QGISAdapter._offline = False
+            QMetaObject.invokeMethod(
+                PlanetClient.getInstance(),
+                "_clear_offline_message",
+                Qt.QueuedConnection,
+            )
 
         content = breq.reply()
         resp = requests.Response()
@@ -139,6 +176,39 @@ class PlanetClient(QObject, ClientV1):
         self._bundles = None
         self._asset_types = {}
         self.dispatcher.session.mount("https://", QGISAdapter())
+
+    @pyqtSlot()
+    def _show_offline_message(self):
+        from ..pe_utils import iface, PLANET_COLOR
+
+        if QGISAdapter._message_bar_item is None:
+            msg = getattr(QGISAdapter, "_offline_msg", "Cannot access the internet.")
+            QGISAdapter._message_bar_item = iface.messageBar().createMessage(
+                "Planet Explorer",
+                msg,
+            )
+            QGISAdapter._message_bar_item.setStyleSheet(
+                "QgsMessageBarItem {{ background-color: rgb({r},{g},{b}); "
+                "color: white; }}".format(
+                    r=PLANET_COLOR.red(), g=PLANET_COLOR.green(), b=PLANET_COLOR.blue()
+                )
+            )
+            iface.messageBar().pushWidget(
+                QGISAdapter._message_bar_item, Qgis.Warning, 0
+            )
+
+    @pyqtSlot()
+    def _clear_offline_message(self):
+        from ..pe_utils import iface
+        import sip
+
+        if QGISAdapter._message_bar_item is not None:
+            try:
+                if not sip.isdeleted(QGISAdapter._message_bar_item):
+                    iface.messageBar().popWidget(QGISAdapter._message_bar_item)
+            except RuntimeError:
+                pass
+            QGISAdapter._message_bar_item = None
 
     @waitcursor
     def log_in(self, user, password, api_key=None):
