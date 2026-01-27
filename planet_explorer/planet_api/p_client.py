@@ -88,7 +88,20 @@ class QGISAdapter:
             if not QGISAdapter._offline:
                 QGISAdapter._offline = True
                 msg_lower = msg.lower()
-                if "proxy" in msg_lower:
+                if "ssl" in msg_lower or "tls" in msg_lower:
+                    if "proxy" in msg_lower:
+                        bar_msg = (
+                            "SSL/TLS error connecting to Planet via proxy. "
+                            "Your proxy may be interfering with HTTPS. "
+                            "Check Settings > Options > Network."
+                        )
+                    else:
+                        bar_msg = (
+                            "SSL/TLS error connecting to Planet. If you are "
+                            "using a proxy, it may be interfering with HTTPS "
+                            "connections."
+                        )
+                elif "proxy" in msg_lower:
                     bar_msg = (
                         "Proxy connection refused. Check your proxy "
                         "settings under Settings > Options > Network."
