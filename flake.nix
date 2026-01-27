@@ -55,6 +55,7 @@
           pkgs.qt5.qtsvg
           pkgs.qt5.qttools
           pkgs.skate # Distributed key/value store
+          pkgs.tailspin # Beautiful log tailing with syntax highlighting
           pkgs.vim
           pkgs.virtualenv
           pkgs.vscode

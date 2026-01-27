@@ -575,6 +575,7 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = PlanetOrdersMonitorDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetOrdersMonitorDockWidget")
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
         )
