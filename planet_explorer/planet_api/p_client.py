@@ -49,6 +49,7 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 ITEM_ASSET_DL_REGEX = re.compile(r"^assets\.(.*):download$")
+ITEM_STREAM_REGEX = re.compile(r"^webtiles?:stream$")
 
 API_KEY_DEFAULT = "SKIP_ENVIRON"
 
