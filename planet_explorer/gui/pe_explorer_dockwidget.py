@@ -187,6 +187,8 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             )
             # Stay on login panel if error
             return
+        except Exception:
+            return
         finally:
             self.p_client.blockSignals(False)
 
@@ -331,6 +333,7 @@ def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
         dockwidget_instance = PlanetExplorerDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetExplorerDockWidget")
         dockwidget_instance.setAllowedAreas(
             Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
         )

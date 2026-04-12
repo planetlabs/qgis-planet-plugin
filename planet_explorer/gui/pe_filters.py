@@ -1325,7 +1325,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         server_filters = []
         if not self.chkFullCatalog.isChecked():
-            dl_permission_filter = permission_filter("assets:download")
+            # Include both download and streaming permissions so users with
+            # streaming-only access can still see and preview items
+            dl_permission_filter = permission_filter(
+                "assets:download", "webtiles:stream"
+            )
             server_filters.append(dl_permission_filter)
 
         if self.chkStandardQuality.isChecked():

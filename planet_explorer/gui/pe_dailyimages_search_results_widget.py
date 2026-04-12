@@ -21,7 +21,6 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-import logging
 import os
 
 import iso8601
@@ -30,6 +29,8 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsGeometry,
+    QgsMessageLog,
+    Qgis,
     QgsProject,
     QgsRectangle,
     QgsWkbTypes,
@@ -67,7 +68,7 @@ from ..pe_utils import (
     iface,
     qgsgeometry_from_geojson,
 )
-from ..planet_api.p_client import PlanetClient, ITEM_ASSET_DL_REGEX
+from ..planet_api.p_client import PlanetClient, ITEM_ASSET_DL_REGEX, ITEM_STREAM_REGEX
 from .pe_gui_utils import waitcursor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
@@ -100,9 +101,6 @@ SORT_ICON = QIcon(iconPath("sort.svg"))
 LOCK_ICON = QIcon(":/plugins/planet_explorer/lock-light.svg")
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
-LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
-logging.basicConfig(level=LOG_LEVEL)
-log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
@@ -624,28 +622,43 @@ class DateItemWidget(ItemWidgetBase):
 
         geoms = []
         self.downloadable = False
+        self.streamable = False
         for i in range(self.item.childCount()):
             child = self.item.child(i)
             w = self.item.treeWidget().itemWidget(child, 0)
             geoms.append(w.geom)
             if w.downloadable:
                 self.downloadable = True
+            if w.streamable:
+                self.streamable = True
         self.geom = QgsGeometry.collectGeometry(geoms)
-        self.lockLabel.setVisible(not self.downloadable)
+
+        # Lock icon: only show if no access at all
+        has_any_access = self.downloadable or self.streamable
+        self.lockLabel.setVisible(not has_any_access)
+
+        # Checkbox (for ordering): only enable if downloadable
         self.checkBox.setEnabled(self.downloadable)
-        self.labelAddPreview.setEnabled(self.downloadable)
+
+        # Preview: enable if streamable OR downloadable
+        self.labelAddPreview.setEnabled(has_any_access)
 
         nscenes = 0
         for i in range(self.item.childCount()):
             nscenes += self.item.child(i).childCount()
 
         self.setToolTip("")
-        if not self.downloadable:
+        if not has_any_access:
             self.labelAddPreview.setToolTip(
                 "Contact sales to purchase access.\nUse the link in the ⓘ menu."
             )
             self.setToolTip(
                 "Contact sales to purchase access.\nUse the link in the ⓘ menu."
+            )
+            self.labelAddPreview.setEnabled(False)
+        elif self.streamable and not self.downloadable:
+            self.labelAddPreview.setToolTip(
+                "Streaming only - add preview to map (cannot order)"
             )
         elif nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
@@ -695,21 +708,35 @@ class SatelliteItemWidget(ItemWidgetBase):
         geoms = []
         self.ids = []
         self.downloadable = False
+        self.streamable = False
         for i in range(size):
             child = self.item.child(i)
             w = self.item.treeWidget().itemWidget(child, 0)
             geoms.append(w.geom)
             if w.downloadable:
                 self.downloadable = True
+            if w.streamable:
+                self.streamable = True
             self.ids.append(child.image[ID])
         self.geom = QgsGeometry.collectGeometry(geoms)
-        self.lockLabel.setVisible(not self.downloadable)
-        self.checkBox.setEnabled(self.downloadable)
-        self.labelAddPreview.setEnabled(self.downloadable)
 
-        if not self.downloadable:
+        # Lock icon: only show if no access at all
+        has_any_access = self.downloadable or self.streamable
+        self.lockLabel.setVisible(not has_any_access)
+
+        # Checkbox (for ordering): only enable if downloadable
+        self.checkBox.setEnabled(self.downloadable)
+
+        # Preview: enable if streamable OR downloadable
+        self.labelAddPreview.setEnabled(has_any_access)
+
+        if not has_any_access:
             self.labelAddPreview.setToolTip("Contact sales to purchase access")
             self.labelAddPreview.setEnabled(False)
+        elif self.streamable and not self.downloadable:
+            self.labelAddPreview.setToolTip(
+                "Streaming only - add preview to map (cannot order)"
+            )
         elif self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
@@ -754,19 +781,47 @@ class SceneItemWidget(ItemWidgetBase):
         self._setup_ui(text, url)
 
         permissions = image[PERMISSIONS]
+        if os.environ.get("PLANET_DEBUG") == "1":
+            product_id = image.get(ID, "unknown")
+            QgsMessageLog.logMessage(
+                f"Product: {product_id} | Permissions: {permissions}",
+                "Planet",
+                Qgis.Info,
+            )
+
         if len(permissions) == 0:
             self.downloadable = False
+            self.streamable = False
         else:
-            matches = [ITEM_ASSET_DL_REGEX.match(s) is not None for s in permissions]
-            self.downloadable = any(matches)
+            # Check for download permissions (can order/download)
+            dl_matches = [ITEM_ASSET_DL_REGEX.match(s) is not None for s in permissions]
+            self.downloadable = any(dl_matches)
 
-        self.lockLabel.setVisible(not self.downloadable)
+            # Check for streaming permissions (can view on map)
+            stream_matches = [
+                ITEM_STREAM_REGEX.match(s) is not None for s in permissions
+            ]
+            self.streamable = any(stream_matches)
+
+        # Lock icon: only show if user has NO access (neither download nor streaming)
+        has_any_access = self.downloadable or self.streamable
+        self.lockLabel.setVisible(not has_any_access)
+
+        # Checkbox (for ordering): only enable if user can download
         self.checkBox.setEnabled(self.downloadable)
+
         self.geom = qgsgeometry_from_geojson(image[GEOMETRY])
 
-        if not self.downloadable:
+        # Preview button: enable if user can stream OR download
+        if not has_any_access:
             self.labelAddPreview.setToolTip("Contact sales to purchase access")
             self.labelAddPreview.setEnabled(False)
+        elif self.streamable and not self.downloadable:
+            self.labelAddPreview.setToolTip(
+                "Streaming only - add preview to map (cannot order)"
+            )
+            self.labelAddPreview.setEnabled(True)
+        # else: downloadable - default tooltip and enabled state from _setup_ui
 
     def set_metadata_to_show(self, metadata_to_show):
         self.metadata_to_show = metadata_to_show
