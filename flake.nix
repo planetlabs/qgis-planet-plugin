@@ -1,42 +1,37 @@
 {
   description = "NixOS developer environment for QGIS plugins.";
 
-  inputs.geospatial.url = "github:imincik/geospatial-nix.repo";
-  inputs.nixpkgs.follows = "geospatial/nixpkgs";
-
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
   outputs =
     {
       self,
-      geospatial,
       nixpkgs,
-    }:
+      nixpkgs-unstable,
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
+
       profileName = "PLANET";
-      pkgs = import nixpkgs {
+
+      pkgs = import nixpkgs-unstable {
         inherit system;
         config = {
           allowUnfree = true;
-          permittedInsecurePackages = [
-            "qtwebengine-5.15.19"
-          ];
         };
       };
-      extraPythonPackages-qgis3 = ps: [
+
+      extraPythonPackagesQgis4 = ps: [
         ps.jsonschema
         ps.debugpy
         ps.psutil
       ];
-      extraPythonPackages-qgis4 = ps: [
-        ps.jsonschema
-        ps.debugpy
-        ps.psutil
-      ];
-      qgisWithExtras = geospatial.packages.${system}.qgis.override {
-        extraPythonPackages = extraPythonPackages-qgis4;
-      };
-      qgisLtrWithExtras = geospatial.packages.${system}.qgis-ltr.override {
-        extraPythonPackages = extraPythonPackages-qgis3;
+
+      qgisWithExtras = pkgs.qgis.override {
+        extraPythonPackages = extraPythonPackagesQgis4;
       };
 
       # Common packages shared between all devShells (Qt-agnostic)
@@ -54,6 +49,7 @@
         pkgs.pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
         pkgs.python3
         pkgs.tailspin # Beautiful log tailing with syntax highlighting
+        pkgs.uv # Fast python package installer written in Rust
         pkgs.vim
         pkgs.virtualenv
         pkgs.vscode
@@ -75,22 +71,12 @@
           ps.toml
           ps.typer
           ps.paver
-          ps.pyqt5-stubs # For autocompletion in vscode
+          # ps.pyqt5-stubs # For autocompletion in vscode
           ps.debugpy
           ps.numpy
           ps.gdal
           ps.snakeviz # For visualising cprofiler outputs
         ]))
-      ];
-
-      # Qt5 packages for QGIS 3 LTR development
-      # Note: kcachegrind is only available in Qt6, use .#qt6 devShell for profiling
-      qt5Packages = [
-        pkgs.qt5.qtbase
-        pkgs.libsForQt5.qt5.qttools # includes designer
-        pkgs.qt5.qtlocation
-        pkgs.qt5.qtquickcontrols2
-        pkgs.qt5.qtsvg
       ];
 
       # Qt6 packages for QGIS 4 development
@@ -101,116 +87,33 @@
         pkgs.qt6.qtdeclarative
         pkgs.qt6.qtsvg
         pkgs.kdePackages.kcachegrind
+        (pkgs.python3.withPackages (ps: [
+          ps.pyqt6
+          ps.qscintilla-qt6
+        ]))
       ];
 
       commonShellHook = ''
         unset SOURCE_DATE_EPOCH
 
-        # Create a virtual environment in .venv if it doesn't exist
-        if [ ! -d ".venv" ]; then
-          python -m venv .venv
-        fi
+        export QGIS_PREFIX_PATH="${qgisWithExtras}"
+        export PYTHONPATH="$(pwd)/.pyqgis-extra:${qgisWithExtras}/share/qgis/python:${qgisWithExtras}/${pkgs.python3.sitePackages}:$PYTHONPATH"
 
-        # Activate the virtual environment
-        source .venv/bin/activate
-
-        # Upgrade pip and install packages from requirements.txt if it exists
-        pip install --upgrade pip > /dev/null
-        if [ -f requirements.txt ]; then
-          echo "Installing Python requirements from requirements.txt..."
-          pip install -r requirements.txt > .pip-install.log 2>&1
-          if [ $? -ne 0 ]; then
-            echo "❌ Pip install failed. See .pip-install.log for details."
-          fi
-        else
-          echo "No requirements.txt found, skipping pip install."
-        fi
-
-        echo "-----------------------"
-        echo "🌈 Your Dev Environment is prepared."
-        echo "To run QGIS with your profile, use one of these commands:"
-        echo ""
-        echo "  nix run .#qgis        # QGIS 4 (Qt6)"
-        echo "  nix run .#qgis-ltr    # QGIS 3 LTR (Qt5)"
-        echo ""
-        echo " Or use the helper scripts:"
-        echo " scripts/start_qgis.sh      # QGIS 4 (Qt6)"
-        echo " scripts/start_qgis_ltr.sh  # QGIS 3 LTR (Qt5)"
-        echo ""
-        echo "📒 Note:"
-        echo "-----------------------"
-        echo "We provide a ready-to-use"
-        echo "VSCode environment which you"
-        echo "can start like this:"
-        echo ""
-        echo "scripts/vscode.sh"
-        echo "-----------------------"
-        echo "If you want to test the plugin behind an http proxy"
-        echo "we provide a script to run privoxy."
-        echo "🛡️  To start the proxy (Privoxy), run:"
-        echo "   ./scripts/privoxy.sh start"
-        echo "🛑  To stop the proxy, run:"
-        echo "   ./scripts/privoxy.sh stop"
-        echo "-----------------------"
-        echo ""
-
-        pre-commit clean > /dev/null
-        pre-commit install --install-hooks > /dev/null
-        pre-commit run --all-files || true
+        mkdir -p .pyqgis-extra
+        python -m pip install --target .pyqgis-extra astpretty tokenize-rt PyQt6-stubs
       '';
-
     in
     {
-      packages.${system} = {
-        default = qgisWithExtras;
-        qgis-ltr = qgisLtrWithExtras;
-      };
-
       devShells.${system} = {
-        # Default devShell uses Qt5 for QGIS 3 LTR development (most stable)
+        # Default devShell uses Qt6 for QGIS 4 development
         default = pkgs.mkShell {
-          packages = commonPackages ++ qt5Packages;
+          packages = commonPackages ++ qt6Packages ++ [ qgisWithExtras ];
           shellHook = ''
-            echo "🔧 Using Qt5 devShell (for QGIS 3 LTR development)"
-            echo "   Use 'nix develop .#qt6' for QGIS 4/Qt6 development tools"
+            echo "🔧 Using Qt6 devShell (for QGIS 4/Qt6 development)"
+            echo "   Use 'nix develop .#qt5' for QGIS 3 LTR development tools"
             echo ""
           ''
           + commonShellHook;
-        };
-
-        # Qt5 devShell for QGIS 3 LTR development
-        qt5 = pkgs.mkShell {
-          packages = commonPackages ++ qt5Packages;
-          shellHook = ''
-            echo "🔧 Using Qt5 devShell (for QGIS 3 LTR development)"
-            echo ""
-          ''
-          + commonShellHook;
-        };
-
-        # Qt6 devShell for QGIS 4 development
-        qt6 = pkgs.mkShell {
-          packages = commonPackages ++ qt6Packages;
-          shellHook = ''
-            echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
-            echo ""
-          ''
-          + commonShellHook;
-        };
-      };
-
-      apps.${system} = {
-        qgis = {
-          type = "app";
-          program = "${pkgs.writeShellScript "qgis-with-profile" ''
-            exec ${qgisWithExtras}/bin/qgis --profile ${profileName} "$@"
-          ''}";
-        };
-        qgis-ltr = {
-          type = "app";
-          program = "${pkgs.writeShellScript "qgis-ltr-with-profile" ''
-            exec ${qgisLtrWithExtras}/bin/qgis --profile ${profileName} "$@"
-          ''}";
         };
       };
     };

@@ -1,10 +1,3 @@
-click
-requests-futures<1.0
-planet~=1.4
-iso8601
-mercantile
-analytics-python
-sentry-sdk
-monotonic
-backoff
-httpx
+astpretty
+tokenize-rt
+PyQt6-stubs
