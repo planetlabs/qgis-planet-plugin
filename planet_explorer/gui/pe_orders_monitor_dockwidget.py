@@ -139,7 +139,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listOrders.addItem(item)
             self.listOrders.setItemWidget(item, widget)
 
-        self.listOrders.sortItems(Qt.DescendingOrder)
+        self.listOrders.sortItems(Qt.SortOrder.DescendingOrder)
 
 
 class OrderWrapper:
@@ -290,7 +290,7 @@ class OrderItemWidget(QWidget):
                 iface.messageBar().pushMessage(
                     "",
                     "This order is already being downloaded and processed",
-                    level=Qgis.Warning,
+                    level=Qgis.MessageLevel.Warning,
                     duration=5,
                 )
                 return
@@ -300,7 +300,7 @@ class OrderItemWidget(QWidget):
                 "Download order",
                 "This order is already downloaded.\nDownload again?",
             )
-            if ret == QMessageBox.No:
+            if ret == QMessageBox.StandardButton.No:
                 return
 
         self.task = OrderProcessorTask(self.order)
@@ -310,7 +310,7 @@ class OrderItemWidget(QWidget):
         iface.messageBar().pushMessage(
             "",
             "Order download task added to QGIS task manager",
-            level=Qgis.Info,
+            level=Qgis.MessageLevel.Info,
             duration=5,
         )
 
@@ -360,7 +360,8 @@ class OrderItemWidget(QWidget):
             typ = layer.renderer().dataType(1)
             enhancement = QgsContrastEnhancement(typ)
             enhancement.setContrastEnhancementAlgorithm(
-                QgsContrastEnhancement.StretchToMinimumMaximum, True
+                QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum,
+                True,
             )
             band_min, band_max = layer.dataProvider().cumulativeCut(
                 used_bands[0], 0.02, 0.98, sampleSize=10000
@@ -383,7 +384,8 @@ class OrderItemWidget(QWidget):
                 typ = layer.renderer().dataType(b)
                 enhancement = QgsContrastEnhancement(typ)
                 enhancement.setContrastEnhancementAlgorithm(
-                    QgsContrastEnhancement.StretchToMinimumMaximum, True
+                    QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum,
+                    True,
                 )
                 band_min, band_max = layer.dataProvider().cumulativeCut(
                     used_bands[b], 0.02, 0.98, sampleSize=10000
@@ -541,7 +543,7 @@ class QuadsOrderItemWidget(QWidget):
                 iface.messageBar().pushMessage(
                     "",
                     "This order is already being downloaded and processed",
-                    level=Qgis.Warning,
+                    level=Qgis.MessageLevel.Warning,
                     duration=5,
                 )
                 return
@@ -551,7 +553,7 @@ class QuadsOrderItemWidget(QWidget):
                 "Download order",
                 "This order is already downloaded.\nDownload again?",
             )
-            if ret == QMessageBox.No:
+            if ret == QMessageBox.StandardButton.No:
                 return
 
         self.task = QuadsOrderProcessorTask(self.order)
@@ -561,7 +563,7 @@ class QuadsOrderItemWidget(QWidget):
         iface.messageBar().pushMessage(
             "",
             "Order download task added to QGIS task manager",
-            level=Qgis.Info,
+            level=Qgis.MessageLevel.Info,
             duration=5,
         )
 
@@ -577,10 +579,10 @@ def _get_widget_instance():
         dockwidget_instance = PlanetOrdersMonitorDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetOrdersMonitorDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

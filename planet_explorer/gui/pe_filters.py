@@ -288,7 +288,9 @@ class PlanetFilterMixin(QObject):
 
         self._plugin = plugin
 
-    def _show_message(self, message, level=Qgis.Info, duration=None, show_more=None):
+    def _show_message(
+        self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None
+    ):
         self._plugin.show_message(message, level, duration, show_more)
 
 
@@ -313,11 +315,13 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.color = color
 
-        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self._aoi_box = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(color)
         self._aoi_box.setWidth(3)
-        self._aoi_box.setLineStyle(Qt.DashLine)
+        self._aoi_box.setLineStyle(Qt.PenStyle.DashLine)
 
         self._canvas: QgsMapCanvas = iface.mapCanvas()
         # This may later be a nullptr, if no active tool when queried
@@ -337,7 +341,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def reset_aoi_box(self):
         self.leAOI.setText("")
         if self._aoi_box:
-            self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+            self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
 
     def filters(self):
         filters = []
@@ -349,11 +353,13 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     filters.append(geom_filter(geom_json))
                 else:
                     self._show_message(
-                        "AOI not valid GeoJSON polygon", level=Qgis.Warning, duration=10
+                        "AOI not valid GeoJSON polygon",
+                        level=Qgis.MessageLevel.Warning,
+                        duration=10,
                     )
             except Exception:
                 self._show_message(
-                    "AOI not valid JSON", level=Qgis.Warning, duration=10
+                    "AOI not valid JSON", level=Qgis.MessageLevel.Warning, duration=10
                 )
             finally:
                 return filters
@@ -478,7 +484,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     elif not isinstance(layer, QgsVectorLayer):
                         # Skip non-vector layers
                         continue
-                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                    elif (
+                        embedded_layer.geometryType()
+                        == QgsWkbTypes.GeometryType.PolygonGeometry
+                    ):
                         # Only add the embedded layer if it's a valid polygon layer
                         embedded_layers.append(embedded_layer)
 
@@ -486,7 +495,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     # If none of the embedded layers are polygons
                     self._show_message(
                         "None of the embedded layers are valid polygons",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -494,19 +503,23 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             else:
                 # No embedded layers in the file
                 if not layer.isValid():
-                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+                    self._show_message(
+                        "Invalid layer", level=Qgis.MessageLevel.Warning, duration=10
+                    )
                     return
                 elif not isinstance(layer, QgsVectorLayer):
                     self._show_message(
                         "Active layer must be a vector layer.",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
-                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+                elif layer.geometryType() != QgsWkbTypes.GeometryType.PolygonGeometry:
                     # If the geometry is not polygon
                     self._show_message(
-                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
+                        "AOI geometry type invalid",
+                        level=Qgis.MessageLevel.Warning,
+                        duration=10,
                     )
                     return
                 else:
@@ -536,7 +549,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     elif not isinstance(layer, QgsVectorLayer):
                         # Skip non-vector layers
                         continue
-                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                    elif (
+                        embedded_layer.geometryType()
+                        == QgsWkbTypes.GeometryType.PolygonGeometry
+                    ):
                         # Only add the embedded layer if it's a valid polygon layer
                         embedded_layers.append(embedded_layer)
 
@@ -544,7 +560,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                     # If none of the embedded layers are polygons
                     self._show_message(
                         "None of the embedded layers are valid polygons",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -552,19 +568,23 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             else:
                 # No embedded layers in the file
                 if not layer.isValid():
-                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+                    self._show_message(
+                        "Invalid layer", level=Qgis.MessageLevel.Warning, duration=10
+                    )
                     return
                 elif not isinstance(layer, QgsVectorLayer):
                     self._show_message(
                         "Active layer must be a vector layer.",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
-                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+                elif layer.geometryType() != QgsWkbTypes.GeometryType.PolygonGeometry:
                     # If the geometry is not polygon
                     self._show_message(
-                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
+                        "AOI geometry type invalid",
+                        level=Qgis.MessageLevel.Warning,
+                        duration=10,
                     )
                     return
                 else:
@@ -591,7 +611,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         area.setEllipsoid(QgsProject.instance().ellipsoid())
         geometry_area = area.measureArea(geometry)
         geometry_area_sq = area.convertAreaMeasurement(
-            geometry_area, QgsUnitTypes.AreaSquareKilometers
+            geometry_area, QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
 
         return round(geometry_area_sq, 2)
@@ -626,7 +646,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -649,7 +669,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             # There were no features to process
             self._show_message(
-                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+                "Layer(s) contains no valid features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -683,7 +705,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -711,7 +733,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             # There were no features to process
             self._show_message(
-                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+                "Layer(s) contains no valid features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -730,7 +754,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(canvas_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -768,7 +794,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(ml_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -799,7 +827,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(canvas_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -816,7 +846,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_box(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetExtentMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.extentSelected.connect(self.set_draw_aoi)
@@ -824,7 +854,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_circle(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetCircleMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.circleSelected.connect(self.set_draw_aoi)
@@ -832,7 +862,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_polygon(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetPolyMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.polygonSelected.connect(self.set_draw_aoi)
@@ -873,23 +903,31 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 # Fallback to activating pan tool
                 iface.actionPan().trigger()
         else:
-            self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
+            self._show_message(
+                "AOI unable to be set", level=Qgis.MessageLevel.Warning, duration=10
+            )
 
     def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
         if not layer.isValid():
-            self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+            self._show_message(
+                "Invalid layer", level=Qgis.MessageLevel.Warning, duration=10
+            )
             return
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
-                "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                "Active layer must be a vector layer.",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
         feature_count = layer.featureCount()
         if feature_count == 0:
             self._show_message(
-                "Layer contains no features", level=Qgis.Warning, duration=10
+                "Layer contains no features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         else:
@@ -917,7 +955,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -942,7 +980,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         layer = iface.activeLayer()
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
-                "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                "Active layer must be a vector layer.",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -1018,7 +1058,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.text())
         if geom.isEmpty():
             self._show_message(
-                "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON geometry invalid",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -1061,7 +1103,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             json_obj = json.loads(json_txt)
         except ValueError:
             self._show_message(
-                "AOI GeoJSON is invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON is invalid", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
@@ -1072,7 +1114,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         if not json_geom:
             self._show_message(
-                "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON geometry invalid",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -1223,9 +1267,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         dates = self.frameDates.findChildren(QgsDateTimeEdit)
         for date in dates:
             if date.dateTime().isNull():
-                date.lineEdit().setEchoMode(QLineEdit.NoEcho)
+                date.lineEdit().setEchoMode(QLineEdit.EchoMode.NoEcho)
             else:
-                date.lineEdit().setEchoMode(QLineEdit.Normal)
+                date.lineEdit().setEchoMode(QLineEdit.EchoMode.Normal)
 
     def filters(self):
         populated_filters = []
@@ -1236,10 +1280,10 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         end_date = None
         if not self.startDateEdit.dateTime().isNull():
             start_qdate = self.startDateEdit.date()
-            start_date = start_qdate.toString(Qt.ISODate)
+            start_date = start_qdate.toString(Qt.DateFormat.ISODate)
         if not self.endDateEdit.dateTime().isNull():
             end_qdate = self.endDateEdit.date().addDays(1)
-            end_date = end_qdate.toString(Qt.ISODate)
+            end_date = end_qdate.toString(Qt.DateFormat.ISODate)
 
         if start_qdate and end_qdate:
             if start_qdate < end_qdate:
@@ -1247,7 +1291,9 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 populated_filters.append(date_filter)
             else:
                 self._show_message(
-                    "Start date later than end date.", level=Qgis.Warning, duration=10
+                    "Start date later than end date.",
+                    level=Qgis.MessageLevel.Warning,
+                    duration=10,
                 )
         elif start_date:
             start_date_filter = date_range("acquired", gte=start_date)
@@ -1295,7 +1341,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 populated_filters.append(string_ids_filter)
             else:
                 self._show_message(
-                    "No valid ID present", level=Qgis.Warning, duration=10
+                    "No valid ID present", level=Qgis.MessageLevel.Warning, duration=10
                 )
 
         # Publishing stage
@@ -1391,10 +1437,14 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         if filters:
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                self.startDateEdit.setDateTime(QDateTime.fromString(gte, Qt.ISODate))
+                self.startDateEdit.setDateTime(
+                    QDateTime.fromString(gte, Qt.DateFormat.ISODate)
+                )
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                self.endDateEdit.setDateTime(QDateTime.fromString(lte, Qt.ISODate))
+                self.endDateEdit.setDateTime(
+                    QDateTime.fromString(lte, Qt.DateFormat.ISODate)
+                )
         sliders = self.frameRangeSliders.findChildren(PlanetExplorerRangeSlider)
         for slider in sliders:
             filters = filters_from_request(request, slider.filter_key)

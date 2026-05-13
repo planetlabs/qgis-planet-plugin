@@ -70,7 +70,7 @@ class AOICaptureMapTool(QgsMapTool):
         QgsMapTool.__init__(self, canvas)
 
         self.canvas = canvas
-        self.cursor = Qt.CrossCursor
+        self.cursor = Qt.CursorShape.CrossCursor
 
     def activate(self):
         self.canvas.setCursor(self.cursor)
@@ -97,7 +97,7 @@ class AOICaptureMapTool(QgsMapTool):
             pt3857.y() + SIZE / 2,
         )
         rect = transform3857.transform(
-            rect3857, QgsCoordinateTransform.ReverseTransform
+            rect3857, QgsCoordinateTransform.TransformDirection.ReverseTransform
         )
         self.aoi_captured.emit(rect, pt4326)
 
@@ -155,14 +155,18 @@ class TaskingDockWidget(BASE, WIDGET):
         self.prev_map_tool = None
 
         self.btnMapTool.setIcon(TASKING_ICON)
-        self.btnMapTool.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.btnMapTool.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.marker = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PointGeometry)
-        self.marker.setIcon(QgsRubberBand.ICON_SVG)
+        self.marker = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry
+        )
+        self.marker.setIcon(QgsRubberBand.IconType.ICON_SVG)
         self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
@@ -203,8 +207,8 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnOpenDashboard.setEnabled(True)
 
     def cancel_clicked(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.marker.reset(QgsWkbTypes.PointGeometry)
+        self.footprint.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
+        self.marker.reset(QgsWkbTypes.GeometryType.PointGeometry)
         self.btnOpenDashboard.setEnabled(False)
         self.textBrowserPoint.setHtml("")
         self.btnCancel.setEnabled(False)
@@ -244,10 +248,10 @@ def _get_widget_instance():
         dockwidget_instance = TaskingDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetTaskingDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

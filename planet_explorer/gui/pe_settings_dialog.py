@@ -49,7 +49,9 @@ class TextBoxWithLink(QWidget):
         if not editable:
             self.lineEdit.setReadOnly(True)
         self.lineEdit.setText(value)
-        self.lineEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.lineEdit.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
         layout.addWidget(self.lineEdit)
         if text:
             linkLabel = QLabel()
@@ -100,8 +102,10 @@ class SettingsDialog(QDialog):
 
         horizontalLayout = QHBoxLayout()
         self.buttonBox = QDialogButtonBox()
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
+        )
         horizontalLayout.addWidget(self.buttonBox)
         verticalLayout.addStretch()
         verticalLayout.addLayout(horizontalLayout)
@@ -132,9 +136,9 @@ class SettingsDialog(QDialog):
         elif paramtype == BOOL:
             check = QCheckBox(param["label"])
             if param["default"]:
-                check.setCheckState(Qt.Checked)
+                check.setCheckState(Qt.CheckState.Checked)
             else:
-                check.setCheckState(Qt.Unchecked)
+                check.setCheckState(Qt.CheckState.Unchecked)
             return check
         elif paramtype == CHOICE:
             combo = QComboBox()
@@ -149,15 +153,15 @@ class SettingsDialog(QDialog):
             return textEdit
         elif paramtype == VECTOR:
             combo = QgsMapLayerComboBox()
-            combo.setFilters(QgsMapLayerProxyModel.VectorLayer)
+            combo.setFilters(QgsMapLayerProxyModel.Filter.VectorLayer)
             return combo
         elif paramtype == RASTER:
             combo = QgsMapLayerComboBox()
-            combo.setFilters(QgsMapLayerProxyModel.RasterLayer)
+            combo.setFilters(QgsMapLayerProxyModel.Filter.RasterLayer)
             return combo
         elif paramtype == PASSWORD:
             lineEdit = QLineEdit()
-            lineEdit.setEchoMode(QLineEdit.Password)
+            lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
             return lineEdit
         else:
             lineEdit = QLineEdit()

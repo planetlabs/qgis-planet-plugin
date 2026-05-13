@@ -68,11 +68,17 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             PlanetClient.getInstance().delete_search(request["id"])
             self.comboSavedSearch.removeItem(self.comboSavedSearch.currentIndex())
             self.bar.pushMessage(
-                "Delete search", "Search was correctly deleted", Qgis.Success, 5
+                "Delete search",
+                "Search was correctly deleted",
+                Qgis.MessageLevel.Success,
+                5,
             )
         else:
             self.bar.pushMessage(
-                "Delete search", "No search has been selected", Qgis.Warning, 5
+                "Delete search",
+                "No search has been selected",
+                Qgis.MessageLevel.Warning,
+                5,
             )
 
     def update_legacy_search(self):
@@ -122,12 +128,16 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             tokens = []
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                tokens.append(QDateTime.fromString(gte, Qt.ISODate).date().toString())
+                tokens.append(
+                    QDateTime.fromString(gte, Qt.DateFormat.ISODate).date().toString()
+                )
             else:
                 tokens.append("---")
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                tokens.append(QDateTime.fromString(lte, Qt.ISODate).date().toString())
+                tokens.append(
+                    QDateTime.fromString(lte, Qt.DateFormat.ISODate).date().toString()
+                )
             else:
                 tokens.append("---")
             self.labelDateRange.setText(" / ".join(tokens))
@@ -149,5 +159,8 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             self.accept()
         else:
             self.bar.pushMessage(
-                "Saved search", "No search has been selected", Qgis.Warning, 5
+                "Saved search",
+                "No search has been selected",
+                Qgis.MessageLevel.Warning,
+                5,
             )

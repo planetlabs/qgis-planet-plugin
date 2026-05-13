@@ -47,7 +47,7 @@ class ThumbnailManager:
             self.nam.get(QNetworkRequest(QUrl(url)))
 
     def thumbnail_downloaded(self, reply):
-        if reply.error() == QNetworkReply.NoError:
+        if reply.error() == QNetworkReply.NetworkError.NoError:
             url = reply.url().toString()
             img = QImage()
             img.loadFromData(reply.readAll())
@@ -90,7 +90,7 @@ def createCompoundThumbnail(_bboxes, thumbnails):
     globalwidth = globalbox[2] - globalbox[0]
     globalheight = globalbox[3] - globalbox[1]
     pixmap = QPixmap(SIZE, SIZE)
-    pixmap.fill(Qt.transparent)
+    pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     try:
         for i, thumbnail in enumerate(thumbnails):

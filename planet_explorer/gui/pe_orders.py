@@ -180,7 +180,7 @@ class PlanetOrderBundleWidget(QFrame):
             hlayoutudm.addStretch()
             layout.addLayout(hlayoutudm)
         layout.addStretch()
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
         self.setLayout(layout)
         self.checkStateChanged()
 
@@ -226,7 +226,12 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.labelThumbnail = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.labelThumbnail.setPixmap(thumb)
         self.labelThumbnail.setFixedSize(96, 96)
         layout.addWidget(self.labelThumbnail, 0, 0, 3, 1)
@@ -253,8 +258,8 @@ class PlanetOrderItemTypeWidget(QWidget):
         layout.addWidget(self.widgetDetails, 3, 0, 1, 3)
 
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(line, 4, 0, 1, 3)
 
         self.setLayout(layout)
@@ -342,7 +347,9 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.labelMore = QLabel('<a href="#">+ Show More</a>')
         self.labelMore.setOpenExternalLinks(False)
-        self.labelMore.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.labelMore.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+        )
         self.labelMore.linkActivated.connect(self._showMoreClicked)
         layout.addLayout(_center(self.labelMore))
 
@@ -397,13 +404,23 @@ class PlanetOrderItemTypeWidget(QWidget):
     def set_thumbnail(self, img):
         thumbnail = QPixmap(img)
         self.thumbnails.append(
-            thumbnail.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumbnail.scaled(
+                96,
+                96,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         )
 
         if len(self.images) == len(self.thumbnails):
             bboxes = [img[GEOMETRY] for img in self.images]
             pixmap = createCompoundThumbnail(bboxes, self.thumbnails)
-            thumb = pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumb = pixmap.scaled(
+                128,
+                128,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             self.labelThumbnail.setPixmap(thumb)
 
 
@@ -426,7 +443,12 @@ class ImageReviewWidget(QFrame):
         vlayout.addLayout(hlayout)
         self.label = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.label.setPixmap(thumb)
         self.label.setFixedSize(96, 96)
 
@@ -435,7 +457,7 @@ class ImageReviewWidget(QFrame):
         vlayout.addWidget(self.label)
         self.setLayout(vlayout)
 
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
 
     def checkStateChanged(self):
         self.selectedChanged.emit()
@@ -447,7 +469,10 @@ class ImageReviewWidget(QFrame):
     def set_thumbnail(self, img):
         self.thumbnail = QPixmap(img)
         thumb = self.thumbnail.scaled(
-            96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
         self.label.setPixmap(thumb)
 
@@ -491,8 +516,8 @@ class PlanetOrderReviewWidget(QWidget):
         self.widgetDetails = QWidget()
         layout.addWidget(self.widgetDetails)
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(line)
 
         self.setLayout(layout)
@@ -516,9 +541,14 @@ class PlanetOrderReviewWidget(QWidget):
         self.chkComposite = None
         self.chkHarmonize = None
         if self.add_clip:
-            layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
             layout.addWidget(
-                QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter
+                QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignmentFlag.AlignCenter
+            )
+            layout.addWidget(
+                QLabel("Only get items delivered within your AOI"),
+                1,
+                1,
+                Qt.AlignmentFlag.AlignCenter,
             )
             self.chkClip = QCheckBox("Clip items to AOI")
             enabled = QSettings().value(
@@ -526,10 +556,12 @@ class PlanetOrderReviewWidget(QWidget):
             )
             self.chkClip.setChecked(str(enabled).lower() == str(True).lower())
             self.chkClip.stateChanged.connect(self.checkStateChanged)
-            layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkClip, 2, 1, Qt.AlignmentFlag.AlignCenter)
 
         if self.add_composite:
-            layout.addWidget(QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignCenter)
+            layout.addWidget(
+                QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignmentFlag.AlignCenter
+            )
             description_label = QLabel(
                 "The "
                 "<a style='color: #50a94e; text-decoration: none;' "
@@ -542,7 +574,7 @@ class PlanetOrderReviewWidget(QWidget):
                 description_label,
                 4,
                 1,
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
             )
             description_label.setOpenExternalLinks(True)
 
@@ -552,7 +584,7 @@ class PlanetOrderReviewWidget(QWidget):
             )
             self.chkComposite.setChecked(str(enabled).lower() == str(True).lower())
             self.chkComposite.stateChanged.connect(self.compositeStateChanged)
-            layout.addWidget(self.chkComposite, 5, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkComposite, 5, 1, Qt.AlignmentFlag.AlignCenter)
 
             self.radio_btn_all = QRadioButton("All items")
             self.radio_btn_strip = QRadioButton("By strip")
@@ -573,11 +605,13 @@ class PlanetOrderReviewWidget(QWidget):
                 self.radio_btn_all.setVisible(False)
                 self.radio_btn_strip.setVisible(False)
 
-            layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignCenter)
-            layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignCenter)
+            layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignmentFlag.AlignCenter)
 
         if self.add_harmonize:
-            layout.addWidget(QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignCenter)
+            layout.addWidget(
+                QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignmentFlag.AlignCenter
+            )
             layout.addWidget(
                 QLabel(
                     "Radiometrically harmonize imagery captured by one satellite "
@@ -585,7 +619,7 @@ class PlanetOrderReviewWidget(QWidget):
                 ),
                 9,
                 1,
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
             )
             self.chkHarmonize = QCheckBox("Harmonize")
             enabled = QSettings().value(
@@ -593,21 +627,25 @@ class PlanetOrderReviewWidget(QWidget):
             )
             self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
-            layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignmentFlag.AlignCenter)
 
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
-        layout.addWidget(metadata_widget, 11, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.description_label, 12, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget, 11, 1, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(
+            metadata_widget.description_label, 12, 1, Qt.AlignmentFlag.AlignCenter
+        )
+        layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignCenter)
+        layout.addWidget(
+            QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignmentFlag.AlignCenter
+        )
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
             15,
             1,
-            Qt.AlignCenter,
+            Qt.AlignmentFlag.AlignCenter,
         )
 
         sublayout = QGridLayout()
@@ -619,7 +657,7 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 16, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 16, 1, Qt.AlignmentFlag.AlignCenter)
 
         self.widgetDetails.setLayout(layout)
 
@@ -723,7 +761,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         gridLayout.setColumnStretch(0, 1)
         gridLayout.setColumnStretch(2, 1)
 
-        gridLayout.addWidget(title_label, 0, 1, Qt.AlignCenter)
+        gridLayout.addWidget(title_label, 0, 1, Qt.AlignmentFlag.AlignCenter)
 
         layout.addLayout(gridLayout)
 
@@ -766,7 +804,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
             hlayout.addStretch()
             framelayout.addLayout(hlayout)
             frame.setLayout(framelayout)
-            frame.setFrameStyle(QFrame.Panel | QFrame.Raised)
+            frame.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
             layout.addWidget(frame)
         layout.addStretch()
         self.setLayout(layout)
@@ -785,7 +823,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.setupUi(self)
 
         self.bar = QgsMessageBar()
-        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.layout().addWidget(self.bar)
 
         layout = QVBoxLayout()
@@ -948,7 +986,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for widget in self._item_type_widgets.values():
             allbundles.extend(widget.bundles())
         if not allbundles:
-            self.bar.pushMessage("", "No bundles have been selected", Qgis.Warning)
+            self.bar.pushMessage(
+                "", "No bundles have been selected", Qgis.MessageLevel.Warning
+            )
             return
         name = self.txtOrderName.text()
 
@@ -1016,7 +1056,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 self.bar.pushMessage(
                     order_name,
                     err_message,
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
 
                 responses_ok = False
@@ -1030,18 +1070,18 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 "",
                 "All orders correctly processed. Open the Order Monitor to check their"
                 " status",
-                Qgis.Success,
+                Qgis.MessageLevel.Success,
             )
         else:
             self.bar.pushMessage(
                 "",
                 "Not all orders correctly processed. Open the QGIS log for more"
                 " information",
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
 
     def _log(self, msg):
-        QgsMessageLog.logMessage(msg, level=Qgis.Warning)
+        QgsMessageLog.logMessage(msg, level=Qgis.MessageLevel.Warning)
 
     def _process_response(self, item_type: str, response: dict):
         if not item_type:

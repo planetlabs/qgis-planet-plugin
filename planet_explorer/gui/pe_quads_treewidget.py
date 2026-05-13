@@ -211,13 +211,13 @@ class ParentTreeItemWidget(QFrame):
         self.checkBox.blockSignals(True)
         if selected == total:
             self.checkBox.setTristate(False)
-            self.checkBox.setCheckState(Qt.Checked)
+            self.checkBox.setCheckState(Qt.CheckState.Checked)
         elif selected == 0:
             self.checkBox.setTristate(False)
-            self.checkBox.setCheckState(Qt.Unchecked)
+            self.checkBox.setCheckState(Qt.CheckState.Unchecked)
         else:
             self.checkBox.setTristate(True)
-            self.checkBox.setCheckState(Qt.PartiallyChecked)
+            self.checkBox.setCheckState(Qt.CheckState.PartiallyChecked)
         self.checkBox.blockSignals(False)
 
 
@@ -263,13 +263,15 @@ class QuadInstanceItemWidget(QFrame):
 
         download_thumbnail(quad[LINKS][THUMBNAIL], self)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.footprint.setFillColor(QUADS_AOI_COLOR)
         self.footprint.setStrokeColor(QUADS_AOI_COLOR)
         self.footprint.setWidth(2)
 
         self.footprintfill = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
         )
         self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)
         self.footprintfill.setWidth(0)
@@ -282,7 +284,12 @@ class QuadInstanceItemWidget(QFrame):
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setStyleSheet("")
 
@@ -298,20 +305,22 @@ class QuadInstanceItemWidget(QFrame):
         self.footprintfill.setToGeometry(self.geom)
 
     def hide_footprint(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.footprintfill.reset(QgsWkbTypes.PolygonGeometry)
+        self.footprint.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
+        self.footprintfill.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
 
     def show_solid_interior(self):
-        self.footprintfill.setBrushStyle(Qt.SolidPattern)
+        self.footprintfill.setBrushStyle(Qt.BrushStyle.SolidPattern)
         self.footprintfill.updateCanvas()
 
     def hide_solid_interior(self):
-        self.footprintfill.setBrushStyle(Qt.NoBrush)
+        self.footprintfill.setBrushStyle(Qt.BrushStyle.NoBrush)
         self.footprintfill.updateCanvas()
 
     def update_footprint_brush(self):
         self.footprint.setBrushStyle(
-            Qt.BDiagPattern if self.checkBox.isChecked() else Qt.NoBrush
+            Qt.BrushStyle.BDiagPattern
+            if self.checkBox.isChecked()
+            else Qt.BrushStyle.NoBrush
         )
         self.footprint.updateCanvas()
 

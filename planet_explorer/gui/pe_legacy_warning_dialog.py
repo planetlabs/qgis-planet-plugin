@@ -16,7 +16,7 @@ class LegacyWarningDialog(BASE, WIDGET):
 
     def __init__(self, request, parent=None):
         super(LegacyWarningDialog, self).__init__(parent)
-        self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowTitleHint)
         self.setupUi(self)
         self.btnUpdate.clicked.connect(self.accept)
         self.btnContinue.clicked.connect(self.reject)

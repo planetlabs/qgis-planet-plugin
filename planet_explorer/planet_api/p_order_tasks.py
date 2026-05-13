@@ -48,7 +48,7 @@ from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
 
 class OrderProcessorTask(QgsTask):
     def __init__(self, order):
-        super().__init__(f"Processing order {order.name()}", QgsTask.CanCancel)
+        super().__init__(f"Processing order {order.name()}", QgsTask.Flag.CanCancel)
         self.exception = None
         self.order = order
         self.filenames = []
@@ -159,12 +159,12 @@ class OrderProcessorTask(QgsTask):
                     )
                 )
                 widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)
+                iface.messageBar().pushWidget(widget, level=Qgis.MessageLevel.Success)
             else:
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name()}' correctly downloaded and processed",
-                    level=Qgis.Success,
+                    level=Qgis.MessageLevel.Success,
                     duration=5,
                 )
         elif self.exception is not None:
@@ -172,20 +172,20 @@ class OrderProcessorTask(QgsTask):
                 f"Order '{self.order.name()}' could not be"
                 f" downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
                 f"Order '{self.order.name()}' could not be downloaded. See log for"
                 " details",
-                level=Qgis.Warning,
+                level=Qgis.MessageLevel.Warning,
                 duration=5,
             )
 
 
 class QuadsOrderProcessorTask(QgsTask):
     def __init__(self, order):
-        super().__init__(f"Processing order {order.name}", QgsTask.CanCancel)
+        super().__init__(f"Processing order {order.name}", QgsTask.Flag.CanCancel)
         self.exception = None
         self.order = order
         self.filenames = defaultdict(list)
@@ -249,7 +249,7 @@ class QuadsOrderProcessorTask(QgsTask):
                     )
                 )
                 widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)
+                iface.messageBar().pushWidget(widget, level=Qgis.MessageLevel.Success)
             else:
                 if self.order.load_as_virtual:
                     for mosaic, files in self.filenames.items():
@@ -267,19 +267,19 @@ class QuadsOrderProcessorTask(QgsTask):
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name}' correctly downloaded and processed",
-                    level=Qgis.Success,
+                    level=Qgis.MessageLevel.Success,
                     duration=5,
                 )
         elif self.exception is not None:
             QgsMessageLog.logMessage(
                 f"Order '{self.order.name}' could not be downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
                 f"Order '{self.order.name}' could not be downloaded. See log for"
                 " details",
-                level=Qgis.Warning,
+                level=Qgis.MessageLevel.Warning,
                 duration=5,
             )

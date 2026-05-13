@@ -420,16 +420,16 @@ class PlanetExplorer(object):
 
     def add_central_toolbar_button(self):
         widget = QWidget()
-        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout = QHBoxLayout()
         layout.addStretch()
         self.btnLogin = QPushButton()
         palette = self.btnLogin.palette()
-        palette.setColor(QPalette.Button, PLANET_COLOR)
+        palette.setColor(QPalette.ColorRole.Button, PLANET_COLOR)
         self.btnLogin.setPalette(palette)
         self.btnLogin.setText("Log in")
         # self.btnLogin.setAutoRaise(True)
-        self.btnLogin.setAttribute(Qt.WA_TranslucentBackground)
+        self.btnLogin.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.btnLogin.clicked.connect(self.btn_login_clicked)
         icon = QIcon(os.path.join(plugin_path, "resources", "planet-logo-p.svg"))
         labelIcon = QLabel()
@@ -530,7 +530,7 @@ class PlanetExplorer(object):
         )
         btn.setMenu(info_menu)
 
-        btn.setPopupMode(QToolButton.MenuButtonPopup)
+        btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         btn.clicked.connect(btn.showMenu)
 
@@ -550,7 +550,7 @@ class PlanetExplorer(object):
         user_menu.addAction(self.logout_act)
 
         self.user_button = QToolButton()
-        self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.user_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.user_button.setIcon(
             QIcon(
                 os.path.join(plugin_path, "resources", "account.svg"),
@@ -558,7 +558,7 @@ class PlanetExplorer(object):
         )
         self.user_button.setMenu(user_menu)
 
-        self.user_button.setPopupMode(QToolButton.MenuButtonPopup)
+        self.user_button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         self.user_button.clicked.connect(self.user_button.showMenu)
 
@@ -608,7 +608,7 @@ class PlanetExplorer(object):
             self._terms_browser.setSource(
                 QUrl("qrc:/plugins/planet_explorer/terms.html")
             )
-            self._terms_browser.setWindowModality(Qt.ApplicationModal)
+            self._terms_browser.setWindowModality(Qt.WindowModality.ApplicationModal)
         self._terms_browser.show()
 
     def login(self):

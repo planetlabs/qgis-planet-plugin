@@ -64,7 +64,7 @@ def test_aoi_area_size_calculation(name, polygon, expected_size):
     """Tests the filter for calculating the aoi size in square kilometers"""
     aoi_filter = PlanetAOIFilter()
     canvas = iface.mapCanvas() if iface else QgsMapCanvas()
-    aoi_box = QgsRubberBand(canvas, QgsWkbTypes.PolygonGeometry)
+    aoi_box = QgsRubberBand(canvas, QgsWkbTypes.GeometryType.PolygonGeometry)
 
     geometry = QgsGeometry.fromPolygonXY([polygon])
     aoi_box.setToGeometry(geometry)

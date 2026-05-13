@@ -78,7 +78,7 @@ class PointCaptureMapTool(QgsMapToolEmitPoint):
         QgsMapToolEmitPoint.__init__(self, canvas)
 
         self.canvas = canvas
-        self.cursor = Qt.CrossCursor
+        self.cursor = Qt.CursorShape.CrossCursor
 
     def activate(self):
         self.canvas.setCursor(self.cursor)
@@ -292,7 +292,12 @@ class SceneItemWidget(QFrame):
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
         layout = QHBoxLayout()
         layout.setMargin(2)
@@ -313,7 +318,9 @@ class SceneItemWidget(QFrame):
         url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
         self.nam.get(QNetworkRequest(QUrl(url)))
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
@@ -330,7 +337,7 @@ class SceneItemWidget(QFrame):
         open_act = QAction("Open in Search Panel", menu)
         open_act.triggered.connect(self.open_in_explorer)
         menu.addAction(open_act)
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+        menu.exec(self.toolsButton.mapToGlobal(evt.pos()))
 
     def open_in_explorer(self):
         from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
@@ -355,7 +362,12 @@ class SceneItemWidget(QFrame):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
 
     def show_footprint(self):
@@ -368,7 +380,7 @@ class SceneItemWidget(QFrame):
         self.footprint.setToGeometry(QgsGeometry.fromRect(newrect))
 
     def hide_footprint(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
+        self.footprint.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
 
     def enterEvent(self, event):
         self.setStyleSheet("SceneItemWidget{border: 2px solid rgb(0, 157, 165);}")
@@ -390,10 +402,10 @@ def _get_widget_instance():
         dockwidget_instance = PlanetInspectorDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetInspectorDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

@@ -33,7 +33,7 @@ from typing import (
     List,
 )
 from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl, QMetaObject, Qt
-from PyQt5.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.core import Qgis, QgsBlockingNetworkRequest
 
 import requests
@@ -121,7 +121,7 @@ class QGISAdapter:
                 QMetaObject.invokeMethod(
                     PlanetClient.getInstance(),
                     "_show_offline_message",
-                    Qt.QueuedConnection,
+                    Qt.ConnectionType.QueuedConnection,
                 )
             if error == 1:
                 raise requests.exceptions.ConnectionError(msg)
@@ -135,7 +135,7 @@ class QGISAdapter:
             QMetaObject.invokeMethod(
                 PlanetClient.getInstance(),
                 "_clear_offline_message",
-                Qt.QueuedConnection,
+                Qt.ConnectionType.QueuedConnection,
             )
 
         content = breq.reply()
@@ -147,7 +147,9 @@ class QGISAdapter:
         if resp.headers.get("Content-Encoding") == "gzip":
             data = gzip.decompress(data)
         resp._content = data
-        resp.status_code = content.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        resp.status_code = content.attribute(
+            QNetworkRequest.Attribute.HttpStatusCodeAttribute
+        )
         return resp
 
 
@@ -208,7 +210,7 @@ class PlanetClient(QObject, ClientV1):
                 )
             )
             iface.messageBar().pushWidget(
-                QGISAdapter._message_bar_item, Qgis.Warning, 0
+                QGISAdapter._message_bar_item, Qgis.MessageLevel.Warning, 0
             )
 
     @pyqtSlot()

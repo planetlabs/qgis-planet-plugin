@@ -280,4 +280,4 @@ if __name__ == "__main__":
     # layout.setMargin(0)
 
     dlg.show()
-    app.exec_()
+    app.exec()

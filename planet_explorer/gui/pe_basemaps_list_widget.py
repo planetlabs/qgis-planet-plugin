@@ -72,7 +72,7 @@ class BasemapsListWidget(QListWidget):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
         p = self.palette()
-        p.setColor(QPalette.Highlight, ITEM_BACKGROUND_COLOR)
+        p.setColor(QPalette.ColorRole.Highlight, ITEM_BACKGROUND_COLOR)
         self.setPalette(p)
         self.widgets = []
         self.onlysr = False
@@ -100,7 +100,7 @@ class BasemapsListWidget(QListWidget):
                 widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
                 self.widgets.append(widget)
 
-        self.sortItems(Qt.DescendingOrder)
+        self.sortItems(Qt.SortOrder.DescendingOrder)
         self._update_for_only_sr_setting()
 
     def resizeEvent(self, evt):
@@ -163,7 +163,12 @@ class BasemapItemWidget(QWidget):
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.basemapSelected.emit)
@@ -199,7 +204,12 @@ class BasemapItemWidget(QWidget):
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
 
     def showContextMenu(self, evt):
@@ -211,7 +221,7 @@ class BasemapItemWidget(QWidget):
         copy_id_act = QAction("Copy ID to clipboard", menu)
         copy_id_act.triggered.connect(self.copy_id)
         menu.addAction(copy_id_act)
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+        menu.exec(self.toolsButton.mapToGlobal(evt.pos()))
 
     def copy_id(self):
         cb = QgsApplication.clipboard()
@@ -227,7 +237,12 @@ class BasemapItemWidget(QWidget):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
 
     def isSelected(self):

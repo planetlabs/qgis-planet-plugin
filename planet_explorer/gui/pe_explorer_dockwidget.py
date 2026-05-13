@@ -102,7 +102,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 
         self.leUser.addAction(
             QIcon(":/plugins/planet_explorer/envelope-gray.svg"),
-            QLineEdit.LeadingPosition,
+            QLineEdit.ActionPosition.LeadingPosition,
         )
 
         self.lblSignUp.linkActivated[str].connect(
@@ -115,9 +115,11 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             lambda: open_link_with_browser(FORGOT_PASS_URL)
         )
 
-        self.btn_ok = self.buttonBoxLogin.button(QDialogButtonBox.Ok)
+        self.btn_ok = self.buttonBoxLogin.button(QDialogButtonBox.StandardButton.Ok)
         self.btn_ok.setText("Sign In")
-        self.btn_api_key = self.buttonBoxLogin.button(QDialogButtonBox.Abort)
+        self.btn_api_key = self.buttonBoxLogin.button(
+            QDialogButtonBox.StandardButton.Abort
+        )
         self.btn_api_key.setText("Use API key")
         self.btn_api_key.hide()
         self.buttonBoxLogin.accepted.connect(self.login)
@@ -183,7 +185,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
             )
         except LoginException as e:
             self.show_message(
-                "Login failed!", show_more=str(e.__cause__), level=Qgis.Warning
+                "Login failed!",
+                show_more=str(e.__cause__),
+                level=Qgis.MessageLevel.Warning,
             )
             # Stay on login panel if error
             return
@@ -261,7 +265,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def show_mosaics_panel(self):
         self.tabWidgetResourceType.setCurrentIndex(1)
 
-    def show_message(self, message, level=Qgis.Info, duration=None, show_more=None):
+    def show_message(
+        self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None
+    ):
         """Skips bold title, i.e. sets first param (below) to empty string"""
         if duration is None:
             duration = iface.messageTimeout()
@@ -313,7 +319,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def _remove_auth_creds(self):
         if not self._auth_man.removeAuthSetting(AUTH_CREDS_KEY):
             self.show_message(
-                "Credentials setting removal failed", level=Qgis.Warning, duration=10
+                "Credentials setting removal failed",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
 
     def clean_up(self):
@@ -335,10 +343,10 @@ def _get_widget_instance():
         dockwidget_instance = PlanetExplorerDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetExplorerDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.RightDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

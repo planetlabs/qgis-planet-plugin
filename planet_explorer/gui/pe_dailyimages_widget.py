@@ -294,7 +294,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         if not self._sources:
             self.parent.show_message(
-                "No item types selected", level=Qgis.Warning, duration=10
+                "No item types selected", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
@@ -391,7 +391,9 @@ class DailyImagesWidget(BASE, WIDGET):
 
         if not images:
             self.parent.show_message(
-                "No checked items to order", level=Qgis.Warning, duration=10
+                "No checked items to order",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -406,14 +408,14 @@ class DailyImagesWidget(BASE, WIDGET):
         dlg.setMinimumWidth(700)
         dlg.setMinimumHeight(750)
 
-        dlg.exec_()
+        dlg.exec()
 
     @pyqtSlot()
     def copy_checked_ids(self):
         selected = self.searchResultsWidget.selected_images()
         if not selected:
             self.parent.show_message(
-                "No checked IDs to copy", level=Qgis.Warning, duration=10
+                "No checked IDs to copy", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
@@ -428,9 +430,11 @@ class DailyImagesWidget(BASE, WIDGET):
         if self.searchResultsWidget.search_has_been_performed():
             request = self.searchResultsWidget.request_query()
             dlg = ShowCurlDialog(request)
-            dlg.exec_()
+            dlg.exec()
         else:
-            self.parent.show_message("No search has been performed", level=Qgis.Warning)
+            self.parent.show_message(
+                "No search has been performed", level=Qgis.MessageLevel.Warning
+            )
 
     @pyqtSlot()
     def copy_api_key(self):

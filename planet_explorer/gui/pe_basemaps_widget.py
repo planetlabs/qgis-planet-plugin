@@ -279,7 +279,9 @@ class BasemapsWidget(BASE, WIDGET):
         series = self._get_filtered_series(text)
         if len(mosaics) == 0 and len(series) == 0:
             self.parent.show_message(
-                "No results for current filter", level=Qgis.Warning, duration=10
+                "No results for current filter",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         self.comboSeriesName.clear()
@@ -376,7 +378,7 @@ class BasemapsWidget(BASE, WIDGET):
                     self.parent.show_message(
                         "Insufficient privileges. Cannot show mosaics of the selected"
                         " series",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -401,7 +403,7 @@ class BasemapsWidget(BASE, WIDGET):
             if self.btnOneOff.isChecked() and len(selected) > 1:
                 self.parent.show_message(
                     'Only one single serie can be selected in "one off" mode.',
-                    level=Qgis.Warning,
+                    level=Qgis.MessageLevel.Warning,
                     duration=10,
                 )
                 return False
@@ -409,7 +411,9 @@ class BasemapsWidget(BASE, WIDGET):
                 return True
         else:
             self.parent.show_message(
-                "No checked items to order", level=Qgis.Warning, duration=10
+                "No checked items to order",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return False
 
@@ -451,7 +455,7 @@ class BasemapsWidget(BASE, WIDGET):
                     f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD}"
                     " quads.\nAre your sure you want to proceed?",
                 )
-                if ret != QMessageBox.Yes:
+                if ret != QMessageBox.StandardButton.Yes:
                     return
             self.show_order_name_page()
         elif self.radioDownloadAOI.isChecked():
@@ -470,18 +474,20 @@ class BasemapsWidget(BASE, WIDGET):
         geom = self.aoi_filter.aoi_as_4326_geom()
         if geom is None:
             self.parent.show_message(
-                "Wrong AOI definition", level=Qgis.Warning, duration=10
+                "Wrong AOI definition", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
         mosaic_extent = QgsRectangle(*selected[0][BBOX])
         if not geom.intersects(mosaic_extent):
             self.parent.show_message(
-                "No mosaics in the selected area", level=Qgis.Warning, duration=10
+                "No mosaics in the selected area",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         qgsarea = QgsDistanceArea()
         area = qgsarea.convertAreaMeasurement(
-            qgsarea.measureArea(geom), QgsUnitTypes.AreaSquareKilometers
+            qgsarea.measureArea(geom), QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
         if area > MAX_AREA_TO_DOWNLOAD:
             QMessageBox.warning(
@@ -501,7 +507,7 @@ class BasemapsWidget(BASE, WIDGET):
         geom = self.aoi_filter.aoi_as_4326_geom()
         qgsarea = QgsDistanceArea()
         area = qgsarea.convertAreaMeasurement(
-            qgsarea.measureArea(geom), QgsUnitTypes.AreaSquareKilometers
+            qgsarea.measureArea(geom), QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
         quad = self.p_client.get_one_quad(selected[0])
         quadarea = self._area_from_bbox_coords(quad[BBOX])
@@ -571,13 +577,15 @@ class BasemapsWidget(BASE, WIDGET):
                 f"The download will contain more than {MAX_QUADS_TO_DOWNLOAD} quads.\n"
                 "Are your sure you want to proceed?",
             )
-            if ret != QMessageBox.Yes:
+            if ret != QMessageBox.StandardButton.Yes:
                 return
         if selected:
             self.show_order_name_page()
         else:
             self.parent.show_message(
-                "No checked quads to order", level=Qgis.Warning, duration=10
+                "No checked quads to order",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
 
     def back_quads_page_clicked(self):
@@ -625,7 +633,7 @@ class BasemapsWidget(BASE, WIDGET):
         extent = QgsRectangle(*bbox)
         geom = QgsGeometry.fromRect(extent)
         area = qgsarea.convertAreaMeasurement(
-            qgsarea.measureArea(geom), QgsUnitTypes.AreaSquareKilometers
+            qgsarea.measureArea(geom), QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
         return area
 
@@ -754,7 +762,9 @@ class BasemapsWidget(BASE, WIDGET):
         name = self.txtOrderName.text()
         if not bool(name.strip()):
             self.parent.show_message(
-                "Enter a name for the order", level=Qgis.Warning, duration=10
+                "Enter a name for the order",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         if self.radioDownloadComplete.isChecked():
