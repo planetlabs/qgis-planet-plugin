@@ -160,7 +160,9 @@ class PlanetCircleMapTool(QgsMapTool):
             self.center = event.pos()
 
         self.tangent_point = event.pos()
-        self.radius = sqrt(QPointF.dotProduct(self.center, self.tangent_point))
+        self.radius = sqrt(
+            QPointF.dotProduct(QPointF(self.center), QPointF(self.tangent_point))
+        )
         self._set_rubber_band()
 
     def canvasReleaseEvent(self, event):
