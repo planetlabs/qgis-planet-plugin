@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -188,9 +189,7 @@ def qgsgeometry_from_geojson(json_type):
         return geom
 
     try:
-        feats = QgsJsonUtils.stringToFeatureList(
-            json.dumps(json_geom), QgsFields(), None
-        )
+        feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom), QgsFields())
         geom = feats[0].geometry()
     except Exception:
         pass  # will return an empty geom
