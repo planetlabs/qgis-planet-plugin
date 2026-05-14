@@ -30,7 +30,7 @@ from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
+from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout, QDialog
 
 from ..pe_analytics import (
     analytics_track,
@@ -117,7 +117,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
     def open_saved_searches(self, dlg=None):
         dlg = dlg if isinstance(dlg, OpenSavedSearchDialog) else OpenSavedSearchDialog()
-        if dlg.exec() == OpenSavedSearchDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             saved_search_request = dlg.saved_search
             request = {}
             if saved_search_request:
