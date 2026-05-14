@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -57,10 +58,7 @@ LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_explorer_dockwidget.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_explorer_dockwidget.ui")
 )
 
 LOG_NAME = "PlanetExplorer"

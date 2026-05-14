@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -55,12 +56,7 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "dailyimages_widget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "dailyimages_widget.ui"))
 
 SEARCH_HIGHLIGHT = "QToolButton {color: rgb(16, 131, 138);}"
 

@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -55,10 +56,7 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui")
 )
 
 

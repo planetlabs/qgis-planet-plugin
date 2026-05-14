@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -73,10 +74,7 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_orders.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_orders.ui")
 )
 
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"

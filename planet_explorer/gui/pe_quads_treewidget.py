@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2020"
 __copyright__ = "(C) 2020 Planet Inc, https://planet.com"
@@ -35,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
+    QAbstractItemView,
 )
 from qgis.core import QgsGeometry, QgsWkbTypes
 from qgis.gui import QgsRubberBand
@@ -69,7 +71,7 @@ class QuadsTreeWidget(QTreeWidget):
         self.setAutoScroll(True)
         self.setMouseTracking(True)
         self.setAlternatingRowColors(True)
-        self.setSelectionMode(self.NoSelection)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.widgets = {}
         self._updating = False
 

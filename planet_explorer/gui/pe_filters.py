@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -188,16 +189,10 @@ log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 AOI_FILTER_WIDGET, AOI_FILTER_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui")
 )
 DAILY_WIDGET, DAILY_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_daily_filter_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_daily_filter_base.ui")
 )
 
 

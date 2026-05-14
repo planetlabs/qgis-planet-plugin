@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -44,10 +45,7 @@ except ModuleNotFoundError:
     from range_slider import RangeSlider
 
 SLIDER_WIDGET, SLIDER_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_range_slider_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_range_slider_base.ui")
 )
 
 
@@ -152,7 +150,7 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
 
         # This makes the slider look OK (and like Planet Explorer web app's)
         #   across multiple platforms
-        self.rangeSlider.setTickPosition(self.rangeSlider.TicksBelow)
+        self.rangeSlider.setTickPosition(self.rangeSlider.TickPosition.TicksBelow)
         self.rangeSlider.setTickInterval(
             int((self.rangeSlider.maximum() - self.rangeSlider.minimum()) / 2)
         )

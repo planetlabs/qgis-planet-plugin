@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -82,10 +83,7 @@ LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 
 ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_orders_monitor_dockwidget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_orders_monitor_dockwidget.ui")
 )
 
 

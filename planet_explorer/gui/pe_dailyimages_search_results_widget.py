@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -104,10 +105,7 @@ PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_search_results_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_search_results_base.ui")
 )
 
 

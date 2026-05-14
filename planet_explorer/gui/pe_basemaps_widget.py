@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2020"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -81,12 +82,7 @@ MAX_AREA_TO_DOWNLOAD = 100000
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "basemaps_widget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "basemaps_widget.ui"))
 
 
 class BasemapsWidget(BASE, WIDGET):
