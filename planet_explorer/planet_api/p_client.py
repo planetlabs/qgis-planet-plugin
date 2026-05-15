@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -216,7 +217,7 @@ class PlanetClient(QObject, ClientV1):
     @pyqtSlot()
     def _clear_offline_message(self):
         from ..pe_utils import iface
-        import sip
+        from qgis.PyQt import sip
 
         if QGISAdapter._message_bar_item is not None:
             try:
