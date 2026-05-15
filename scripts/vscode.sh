@@ -42,6 +42,8 @@ REQUIRED_EXTENSIONS=(
     waderyan.gitblame@13.0.1
     wholroyd.jinja@0.0.8
     yzhang.markdown-all-in-one@3.6.3
+    jnoortheen.nix-ide@0.5.9
+
 )
 
 # ----------------------------------------------
@@ -138,7 +140,7 @@ QGIS_PREFIX=$(dirname "$(dirname "$QGIS_BIN")")
 # Construct the correct QGIS Python path
 QGIS_PYTHON_PATH="$QGIS_PREFIX/share/qgis/python"
 # Needed for qgis processing module import
-PROCESSING_PATH="$QGIS_PREFIX/share/qgis/python/qgis"
+# PROCESSING_PATH="$QGIS_PREFIX/share/qgis/python/qgis"
 
 # Check if the Python directory exists
 if [[ ! -d "$QGIS_PYTHON_PATH" ]]; then
@@ -311,7 +313,7 @@ if [[ " $* " == *" --verbose "* ]]; then
 fi
 
 # Add VSCode runner configuration
-
+# shellcheck disable=SC2154
 cat <<EOF >.vscode/launch.json
 {
     "version": "0.2.0",

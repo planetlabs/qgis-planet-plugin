@@ -1,7 +1,7 @@
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import pyqtSignal, Qt
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 
 WIDGET, BASE = uic.loadUiType(
     os.path.join(

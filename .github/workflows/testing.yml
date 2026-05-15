@@ -14,19 +14,19 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        qgis_version: [ "3.44", "3.42", "3.40", "3.38" ]
+        qgis_version: [ "4.0", "3.44", "3.42", "3.40", "3.38", "release-3_36" ]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Test on QGIS
         env:
           PLANET_USER: ${{ secrets.PLANET_USER }}
           PLANET_PASSWORD: ${{ secrets.PLANET_PASSWORD }}
-        run: docker compose -f .docker/docker-compose.gh.yml run -e PLANET_USER=${PLANET_USER} -e PLANET_PASSWORD=${PLANET_PASSWORD} qgis /usr/src/.docker/run-docker-tests.sh
+        run: docker compose -f .docker/docker-compose.gh.yml run -e "PLANET_USER=${PLANET_USER}" -e "PLANET_PASSWORD=${PLANET_PASSWORD}" qgis /usr/src/.docker/run-docker-tests.sh

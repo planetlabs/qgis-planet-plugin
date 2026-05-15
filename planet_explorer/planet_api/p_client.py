@@ -23,25 +23,23 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 import gzip
-import os
-import re
-import logging
-import random
 import json
-
+import logging
+import os
+import random
+import re
 from typing import (
-    Optional,
     List,
+    Optional,
 )
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot, QObject, QUrl, QMetaObject, Qt
-from qgis.PyQt.QtNetwork import QNetworkRequest
-from qgis.core import Qgis, QgsBlockingNetworkRequest
 
 import requests
-
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
+from qgis.core import Qgis, QgsBlockingNetworkRequest
+from qgis.PyQt.QtCore import QMetaObject, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from ..gui.pe_gui_utils import waitcursor
 
@@ -196,7 +194,7 @@ class PlanetClient(QObject, ClientV1):
 
     @pyqtSlot()
     def _show_offline_message(self):
-        from ..pe_utils import iface, PLANET_COLOR
+        from ..pe_utils import PLANET_COLOR, iface
 
         if QGISAdapter._message_bar_item is None:
             msg = getattr(QGISAdapter, "_offline_msg", "Cannot access the internet.")
@@ -216,8 +214,9 @@ class PlanetClient(QObject, ClientV1):
 
     @pyqtSlot()
     def _clear_offline_message(self):
-        from ..pe_utils import iface
         from qgis.PyQt import sip
+
+        from ..pe_utils import iface
 
         if QGISAdapter._message_bar_item is not None:
             try:

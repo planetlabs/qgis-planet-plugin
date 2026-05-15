@@ -1,9 +1,9 @@
 import pytest
-
-from planet_explorer.tests.utils import qgis_debug_wait
 from qgis.PyQt import QtCore
-from planet_explorer.gui.pe_tasking_dockwidget import WarningDialog
 from qgis.PyQt.QtWidgets import QTextBrowser
+
+from planet_explorer.gui.pe_tasking_dockwidget import WarningDialog
+from planet_explorer.tests.utils import qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

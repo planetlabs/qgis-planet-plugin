@@ -5,18 +5,21 @@ This directory contains a script to set up and manage a Privoxy proxy server wit
 ## Requirements
 
 ### Ubuntu/Linux
+
 - `privoxy` package
 - `openssl` (usually pre-installed)
 - `iptables` (for firewall management)
 
 Install privoxy:
+
 ```bash
 sudo apt update
 sudo apt install privoxy
 ```
 
 ### Windows
-- Download and install Privoxy from: https://www.privoxy.org/user-manual/installation.html
+
+- Download and install Privoxy from: <https://www.privoxy.org/user-manual/installation.html>
 - Or use WSL with Ubuntu setup above
 
 ## Usage
@@ -29,6 +32,7 @@ sudo apt install privoxy
 ```
 
 This will:
+
 - Generate a CA certificate for HTTPS interception
 - Create privoxy configuration
 - Open firewall port 8123 (with security warning)
@@ -59,6 +63,7 @@ This will:
 ### Ubuntu
 
 #### Firefox
+
 1. Open Firefox preferences
 2. Go to "General" → "Network Settings" → "Settings..."
 3. Select "Automatic proxy configuration URL"
@@ -66,6 +71,7 @@ This will:
 5. Click "OK"
 
 #### Chrome/Chromium
+
 ```bash
 # Start Chrome with PAC file
 google-chrome --proxy-pac-url=file:///path/to/your/project/proxy.pac
@@ -76,6 +82,7 @@ google-chrome --proxy-pac-url=file:///path/to/your/project/proxy.pac
 ```
 
 #### System-wide (Ubuntu)
+
 ```bash
 # Set system proxy via GUI
 gnome-control-center network
@@ -88,6 +95,7 @@ gsettings set org.gnome.system.proxy autoconfig-url 'file:///path/to/your/projec
 ### Windows
 
 #### Internet Explorer/Edge
+
 1. Open Internet Options
 2. Go to "Connections" → "LAN Settings"
 3. Check "Use automatic configuration script"
@@ -95,6 +103,7 @@ gsettings set org.gnome.system.proxy autoconfig-url 'file:///path/to/your/projec
 5. Click "OK"
 
 #### Chrome
+
 1. Open Chrome settings
 2. Advanced → System → "Open your computer's proxy settings"
 3. In "Automatic proxy setup":
@@ -102,6 +111,7 @@ gsettings set org.gnome.system.proxy autoconfig-url 'file:///path/to/your/projec
    - Script address: `file:///C:/path/to/your/project/proxy.pac`
 
 #### Firefox
+
 1. Open Firefox preferences
 2. General → Network Settings → Settings...
 3. Select "Automatic proxy configuration URL"
@@ -121,6 +131,7 @@ Use those addresses when configuring the proxy inside your VM (typically
 ### VM Proxy Configuration (QGIS)
 
 Inside the VM, configure QGIS proxy settings:
+
 1. Go to **Settings > Options > Network**
 2. Set proxy type to **DefaultProxy** or **HttpProxy**
 3. Enter the virsh bridge IP shown by the script (e.g. `192.168.122.1`) as the host
@@ -133,6 +144,7 @@ Or use the PAC URL shown in the script output as the automatic configuration URL
 For HTTPS traffic inspection, you need to install the generated CA certificate:
 
 ### Ubuntu
+
 ```bash
 # Copy the certificate
 sudo cp .privoxy-cache/ca-cert.pem /usr/local/share/ca-certificates/privoxy-ca.crt
@@ -148,6 +160,7 @@ sudo update-ca-certificates
 ```
 
 ### Windows
+
 1. Double-click on `.privoxy-cache/ca-cert.pem`
 2. Click "Install Certificate..."
 3. Choose "Local Machine" → "Next"
@@ -175,10 +188,13 @@ sudo update-ca-certificates
 4. **HTTPS warnings**: Install the CA certificate as described above
 
 ### Logs
+
 Check privoxy logs in `.privoxy-cache/privoxy.log` for debugging.
 
 ### Manual Proxy Configuration
+
 If PAC file doesn't work, manually configure your browser to use:
+
 - HTTP Proxy: `[your-ip]:8123`
 - HTTPS Proxy: `[your-ip]:8123`
 

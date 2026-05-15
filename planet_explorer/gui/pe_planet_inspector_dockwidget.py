@@ -30,8 +30,6 @@ import iso8601
 import mercantile
 from planet.api.filters import build_search_request, string_filter
 from planet.api.models import Mosaics
-from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
-
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -44,7 +42,9 @@ from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QSize, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QIcon, QImage, QPixmap
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
+    QAbstractItemView,
     QAction,
     QFrame,
     QHBoxLayout,
@@ -53,15 +53,13 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QVBoxLayout,
     QWidget,
-    QAbstractItemView,
 )
 
 from ..pe_analytics import (
+    BASEMAP_INSPECTED,
     analytics_track,
     basemap_name_for_analytics,
-    BASEMAP_INSPECTED,
 )
-
 from ..pe_utils import (
     PLANET_COLOR,
     add_menu_section_action,

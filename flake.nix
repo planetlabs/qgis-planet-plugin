@@ -26,46 +26,55 @@
           allowUnfree = true;
         };
       };
-      extraPythonPackages-qgis3 = ps: [
+
+      extraPythonPackages = ps: [
+        ps.pyqtwebengine
         ps.jsonschema
         ps.debugpy
         ps.psutil
       ];
-      extraPythonPackages-qgis4 = ps: [
-        ps.jsonschema
-        ps.debugpy
-        ps.psutil
-      ];
+
       qgisWithExtras = pkgs-unstable.qgis.override {
-        extraPythonPackages = extraPythonPackages-qgis4;
+        extraPythonPackages = extraPythonPackages;
       };
       qgisLtrWithExtras = pkgs.qgis-ltr.override {
-        extraPythonPackages = extraPythonPackages-qgis3;
+        extraPythonPackages = extraPythonPackages;
       };
 
       # Common packages shared between all devShells (Qt-agnostic)
       makeCommonPackages = p: [
+        p.actionlint # for checking gh actions
+        p.bandit
+        p.bearer
         p.chafa
+        p.codeql
+        p.cspell
+        p.detect-secrets
         p.ffmpeg
+        p.glogg
         p.gdb
         p.git
         p.glow # terminal markdown viewer
         p.gource # Software version control visualization
         p.gum # UX for TUIs
+        p.isort
         p.jq
+        p.markdownlint-cli
         p.nixfmt
         p.pre-commit
+        p.privoxy
         p.pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
         p.python3
+        p.shellcheck
+        p.shfmt
         p.tailspin # Beautiful log tailing with syntax highlighting
-        p.uv # Fast python package installer written in Rust
         p.vim
         p.virtualenv
         p.vscode
-        p.privoxy
+        p.yamllint
+        p.yamlfmt
         (p.python3.withPackages (ps: [
           ps.python
-          ps.pip
           ps.setuptools
           ps.wheel
           ps.pytest
@@ -80,10 +89,22 @@
           ps.toml
           ps.typer
           ps.paver
+          ps.detect-secrets
+          ps.flake8
+          # For autocompletion in vscode
+          ps.snakeviz # For visualising cprofiler outputs
+          ps.sqlfmt
+          # This executes some shell code to initialize a venv in $venvDir before
+          # dropping into the shell
+          ps.venvShellHook
+          ps.virtualenv
+          # Those are dependencies that we would like to use from nixpkgs, which will
+          # add them to PYTHONPATH and thus make them accessible from within the venv.
           ps.debugpy
           ps.numpy
           ps.gdal
-          ps.snakeviz # For visualising cprofiler outputs
+          ps.pip
+          ps.pyqtwebengine
         ]))
       ];
       commonPackages = makeCommonPackages pkgs;
@@ -92,10 +113,13 @@
       # Qt5 packages for QGIS 3 LTR development
       # Note: kcachegrind is only available in Qt6, use .#qt6 devShell for profiling
       qt5Packages = [
+        pkgs.libsForQt5.kcachegrind
+        #pkgs.libsForQt5.qt5.qttools # includes designer
+        pkgs.qt5.full # so we get designer
         pkgs.qt5.qtbase
-        pkgs.libsForQt5.qt5.qttools # includes designer
         pkgs.qt5.qtlocation
         pkgs.qt5.qtquickcontrols2
+        pkgs.qt5.qttools
         pkgs.qt5.qtsvg
         (pkgs.python3.withPackages (ps: [
           ps.pyqt5

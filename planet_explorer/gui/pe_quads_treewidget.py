@@ -24,10 +24,13 @@ __revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
+from qgis.core import QgsGeometry, QgsWkbTypes
+from qgis.gui import QgsRubberBand
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -36,10 +39,7 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QAbstractItemView,
 )
-from qgis.core import QgsGeometry, QgsWkbTypes
-from qgis.gui import QgsRubberBand
 
 from ..pe_utils import (
     LINKS,

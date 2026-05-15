@@ -1,14 +1,14 @@
-import os
-import pytest
 import datetime
 import json
+import os
 
-from qgis.PyQt import QtCore
+import pytest
 from qgis.core import QgsProject, QgsVectorLayer
+from qgis.PyQt import QtCore
 
-from planet_explorer.tests.utils import qgis_debug_wait
-from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
 from planet_explorer.gui.pe_filters import PlanetAOIFilter
+from planet_explorer.gui.pe_range_slider import PlanetExplorerRangeSlider
+from planet_explorer.tests.utils import qgis_debug_wait
 
 pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 

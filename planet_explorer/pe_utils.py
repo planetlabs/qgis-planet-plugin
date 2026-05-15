@@ -30,23 +30,13 @@ import logging
 import os
 import re
 import urllib
+from pathlib import Path
 from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
 
 import iso8601
-
 from planet.api.exceptions import APIException
 from planet.api.models import Mosaics
-
-from qgis.PyQt.QtCore import QVariant, QUrl, QSettings
-
-from qgis.PyQt.QtGui import QColor, QDesktopServices
-
-from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QWidgetAction,
-)
-
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -65,7 +55,12 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
-
+from qgis.PyQt.QtCore import QSettings, QUrl, QVariant
+from qgis.PyQt.QtGui import QColor, QDesktopServices
+from qgis.PyQt.QtWidgets import (
+    QLabel,
+    QWidgetAction,
+)
 from qgis.utils import iface as qgisiface
 
 from .planet_api import PlanetClient
@@ -627,3 +622,24 @@ def user_agent():
     return (
         f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
     )
+
+
+SAFE_LOCALE = re.compile(r"^[a-z]{2}(?:_[A-Z]{2})?$")
+
+
+def safe_join(base: Path, *parts: str) -> Path:
+    base = base.resolve()
+    p = base.joinpath(*parts).resolve()
+    if p == base or base not in p.parents:
+        return p
+    raise ValueError("Path traversal detected")
+
+
+def basename_only(name: str) -> str:
+    return Path(name).name  # strips ../../ etc.
+
+
+def safe_locale(loc: str) -> str:
+    if not SAFE_LOCALE.fullmatch(loc):
+        raise ValueError("Invalid locale")
+    return loc
