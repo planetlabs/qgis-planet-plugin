@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -41,7 +42,7 @@ from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton
 
-from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
+from ..pe_utils import QGIS_LOG_SECTION_NAME, iface, safe_join
 
 
 class OrderProcessorTask(QgsTask):
@@ -64,9 +65,9 @@ class OrderProcessorTask(QgsTask):
             ]
             for url, path in zip_locations:
                 local_filename = os.path.basename(path)
-                local_fullpath = os.path.join(download_folder, local_filename)
+                local_fullpath = safe_join(download_folder, local_filename)
                 self.filenames.append(local_fullpath)
-                r = requests.get(url, stream=True)
+                r = requests.get(url, stream=True, timeout=60)
                 file_size = r.headers.get("content-length") or 0
                 file_size = int(file_size)
                 percentage_per_chunk = (100.0 / len(zip_locations)) / (
@@ -97,7 +98,7 @@ class OrderProcessorTask(QgsTask):
             with zipfile.ZipFile(filename, "r") as z:
                 z.extractall(output_folder)
             os.remove(filename)
-            manifest_file = os.path.join(output_folder, "manifest.json")
+            manifest_file = safe_join(output_folder, "manifest.json")
             self.images = self.images_from_manifest(manifest_file)
 
     def images_from_manifest(self, manifest_file):
@@ -113,7 +114,7 @@ class OrderProcessorTask(QgsTask):
                 if asset_type_key in annotations:
                     images.append(
                         (
-                            os.path.join(base_folder, img["path"]),
+                            safe_join(base_folder, img["path"]),
                             img["annotations"]["planet/item_type"],
                         )
                     )
@@ -129,7 +130,7 @@ class OrderProcessorTask(QgsTask):
                         # Adds the composite file
                         images.append(
                             (
-                                os.path.join(base_folder, img["path"]),
+                                safe_join(base_folder, img["path"]),
                                 "composite",  # Item type
                             )
                         )
@@ -200,15 +201,15 @@ class QuadsOrderProcessorTask(QgsTask):
             total = sum([len(x) for x in locations.values()])
             for mosaic, files in locations.items():
                 if files:
-                    folder = os.path.join(download_folder, mosaic)
+                    folder = safe_join(download_folder, mosaic)
                     os.makedirs(folder, exist_ok=True)
                     for url, path in files:
                         local_filename = os.path.basename(path) + ".tif"
-                        local_fullpath = os.path.join(
+                        local_fullpath = safe_join(
                             download_folder, mosaic, local_filename
                         )
                         self.filenames[mosaic].append(local_fullpath)
-                        r = requests.get(url, stream=True)
+                        r = requests.get(url, stream=True, timeout=60)
                         with open(local_fullpath, "wb") as f:
                             for chunk in r.iter_content(chunk_size):
                                 f.write(chunk)
@@ -251,7 +252,7 @@ class QuadsOrderProcessorTask(QgsTask):
             else:
                 if self.order.load_as_virtual:
                     for mosaic, files in self.filenames.items():
-                        vrtpath = os.path.join(
+                        vrtpath = safe_join(
                             self.order.download_folder(), mosaic, f"{mosaic}.vrt"
                         )
                         gdal.BuildVRT(vrtpath, files)

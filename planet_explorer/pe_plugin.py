@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -92,8 +93,10 @@ from planet_explorer.pe_utils import (
     PLANET_COLOR,
     add_menu_section_action,
     add_widget_to_layer,
+    log,
     open_link_with_browser,
     plugin_version,
+    safe_join,
 )
 from planet_explorer.planet_api import PlanetClient
 
@@ -140,7 +143,7 @@ class PlanetExplorer(object):
             locale = locale_value[0:2]
         else:
             locale = str(locale_value)[0:2]
-        locale_path = os.path.join(
+        locale_path = safe_join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
 
@@ -241,6 +244,7 @@ class PlanetExplorer(object):
                     try:
                         sentry_sdk.capture_exception(value)
                     except Exception:
+                        log("Error sending exception to Sentry", exc_info=True)
                         pass  # we swallow all exceptions here, to avoid entering an endless loop
                     self.qgis_hook(t, value, tb)
             else:

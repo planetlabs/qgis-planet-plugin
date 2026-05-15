@@ -1,3 +1,27 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_settings_dialog.py
+    ---------------------
+    Date                 : May 2026
+    Copyright            : (C) 2026 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+
+__author__ = "Planet Federal"
+__date__ = "May 2026"
+__copyright__ = "(C) 2026 Planet Inc, https://planet.com"
+
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = "$Format:%H$"
+
 import json
 import os
 
@@ -19,11 +43,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface
+from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface, log
 
 BOOL = "bool"
 STRING = "string"
-PASSWORD = "password"
+PASSWORD = "password"  # nosec
 TEXT = "text"  # a multiline string
 NUMBER = "number"
 FILES = "files"
@@ -204,6 +228,7 @@ class SettingsDialog(QDialog):
             else:
                 widget.setText(str(value))
         except Exception:
+            log(f"Error setting value {value} in widget {widget} of type {paramtype}")
             pass
 
     def accept(self):

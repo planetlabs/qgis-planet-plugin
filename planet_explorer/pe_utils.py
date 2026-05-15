@@ -187,6 +187,7 @@ def qgsgeometry_from_geojson(json_type):
         feats = QgsJsonUtils.stringToFeatureList(json.dumps(json_geom), QgsFields())
         geom = feats[0].geometry()
     except Exception:
+        log.debug("JSON to geometry conversion failed")
         pass  # will return an empty geom
 
     return geom
@@ -448,7 +449,7 @@ def zoom_canvas_to_aoi(json_type):
 
 
 def resource_file(f):
-    return os.path.join(os.path.dirname(__file__), "resources", f)
+    return safe_join(os.path.dirname(__file__), "resources", f)
 
 
 def orders_download_folder():

@@ -67,6 +67,7 @@ from ..pe_utils import (
     create_preview_group,
     iface,
     qgsgeometry_from_geojson,
+    safe_join,
 )
 from ..planet_api.p_client import ITEM_ASSET_DL_REGEX, ITEM_STREAM_REGEX, PlanetClient
 from .pe_gui_utils import waitcursor
@@ -76,7 +77,7 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 
 def iconPath(f):
-    return os.path.join(plugin_path, "resources", f)
+    return safe_join(plugin_path, "resources", f)
 
 
 TOP_ITEMS_BATCH = 250
@@ -104,7 +105,7 @@ PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_search_results_base.ui")
+    safe_join(plugin_path, "ui", "pe_search_results_base.ui")
 )
 
 

@@ -15,6 +15,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "June 2021"
 __copyright__ = "(C) 2021 Planet Inc, https://planet.com"
@@ -26,6 +27,8 @@ import os
 from collections import Counter
 
 import analytics
+
+from planet_explorer.pe_utils import log
 
 from .planet_api import PlanetClient
 
@@ -100,6 +103,7 @@ def analytics_track(event, properties=None):
             user = PlanetClient.getInstance().user()["email"]
             analytics.track(user, event, properties)
         except Exception:
+            log(f"Error tracking event {event} with properties {properties}")
             pass
 
 

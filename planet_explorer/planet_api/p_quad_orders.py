@@ -1,3 +1,27 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    p_quad_orders.py
+    ---------------------
+    Date                 : May 2026
+    Copyright            : (C) 2026 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
+
+__author__ = "Planet Federal"
+__date__ = "May 2026"
+__copyright__ = "(C) 2026 Planet Inc, https://planet.com"
+
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = "$Format:%H$"
+
 import datetime
 import json
 import os
@@ -6,7 +30,7 @@ import uuid
 from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
-from ..pe_utils import orders_download_folder, user_agent
+from ..pe_utils import log, orders_download_folder, safe_join, user_agent
 from .p_client import PlanetClient
 
 
@@ -60,6 +84,9 @@ def quad_orders():
                     )
                 orders.append(order)
         except Exception:
+            log.error(
+                "Error reading quad orders file. The file may be corrupted or malformed."
+            )
             pass  # will return an empty array if the file is corrupted
         return orders
     else:
@@ -110,7 +137,7 @@ class QuadOrder:
         return locations
 
     def download_folder(self):
-        return os.path.join(orders_download_folder(), "basemaps", self.name)
+        return safe_join(orders_download_folder(), "basemaps", self.name)
 
     def downloaded(self):
         return os.path.exists(self.download_folder())

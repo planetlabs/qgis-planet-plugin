@@ -15,6 +15,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -29,7 +30,7 @@ from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QImage, QPainter, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from ..pe_utils import qgsgeometry_from_geojson
+from ..pe_utils import log, qgsgeometry_from_geojson
 
 
 class ThumbnailManager:
@@ -56,6 +57,7 @@ class ThumbnailManager:
                 try:
                     w.set_thumbnail(img)
                 except Exception:
+                    log("Error setting thumbnail for widget")
                     # the widget might have been deleted
                     pass
 

@@ -12,6 +12,7 @@ repos:
       - id: check-yaml
       - id: check-json
         exclude: ^(planet_explorer/planet_api/request-result-samples/)
+
   - repo: https://github.com/psf/black
     rev: 24.4.0
     hooks:
@@ -19,6 +20,7 @@ repos:
         name: "🖤 black"
         language_version: python3
         additional_dependencies: []
+
   - repo: local
     hooks:
       - id: remove-core-file
@@ -27,6 +29,7 @@ repos:
         language: system
         stages:
           - pre-commit
+
   - repo: local
     hooks:
       - id: ensure-utf8-encoding
@@ -35,6 +38,7 @@ repos:
         language: system
         types: [python]
         stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: ensure-google-docstrings
@@ -43,6 +47,7 @@ repos:
         language: system
         types: [python]
         stages: [pre-commit]
+
   - repo: https://github.com/PyCQA/flake8
     rev: 6.0.0
     hooks:
@@ -50,6 +55,7 @@ repos:
         name: "🐍 flake8 Python Linter"
         language_version: python3
         args: ['--extend-ignore=E203']
+
   - repo: https://github.com/PyCQA/isort
     rev: 6.0.1
     hooks:
@@ -59,6 +65,7 @@ repos:
         language: python
         types: [python]
         stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: nixfmt
@@ -68,6 +75,7 @@ repos:
         language: system
         args: ["--"]
         types: [nix]
+
   - repo: local
     hooks:
       - id: markdownlint
@@ -76,6 +84,7 @@ repos:
         language: system
         types: [markdown]
         stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: cspell
@@ -84,6 +93,7 @@ repos:
         language: system
         types: [markdown]
         stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: yamllint
@@ -92,6 +102,7 @@ repos:
         language: system
         types: [yaml]
         stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: actionlint
@@ -101,14 +112,7 @@ repos:
         types: [yaml]
         files: ^\.github/workflows/.*\.ya?ml$
         stages: [pre-commit]
-  - repo: local
-    hooks:
-      - id: bandit-scripts
-        name: "🔒 Bandit - Python security analysis"
-        entry: bandit -r scripts
-        language: system
-        types: [python]
-        stages: [pre-commit]
+
   - repo: local
     hooks:
       - id: shellcheck-scripts
@@ -126,7 +130,26 @@ repos:
         language: system
         pass_filenames: false
 
-  # - repo: local
+  - repo: local
+    hooks:
+      - id: bandit
+        name: "🔒 Bandit - Python security analysis"
+        entry: bandit -r scripts planet_explorer -c bandit.yaml
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: detect-secrets
+        name: "🔒 Detect Secrets"
+        entry: detect-secrets-hook --baseline .secrets.baseline
+        language: system
+        types: [text]
+        stages: [pre-commit]
+
+
+    # - repo: local
   #   hooks:
   #     - id: codeql-scan
   #       name: "🔎 CodeQL - Static code analysis"
