@@ -96,6 +96,7 @@ from planet_explorer.pe_utils import (
     log,
     open_link_with_browser,
     plugin_version,
+    safe_join,
 )
 from planet_explorer.planet_api import PlanetClient
 
@@ -142,7 +143,7 @@ class PlanetExplorer(object):
             locale = locale_value[0:2]
         else:
             locale = str(locale_value)[0:2]
-        locale_path = os.path.join(
+        locale_path = safe_join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
 

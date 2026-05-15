@@ -30,6 +30,7 @@ import logging
 import os
 import re
 import urllib
+from pathlib import Path
 from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
 
@@ -458,7 +459,7 @@ def zoom_canvas_to_aoi(json_type):
 
 
 def resource_file(f):
-    return os.path.join(os.path.dirname(__file__), "resources", f)
+    return safe_join(os.path.dirname(__file__), "resources", f)
 
 
 def orders_download_folder():
@@ -632,3 +633,28 @@ def user_agent():
     return (
         f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
     )
+
+
+SAFE_LOCALE = re.compile(r"^[a-z]{2}(?:_[A-Z]{2})?$")
+
+
+def safe_join(base_dir: str, *parts: str) -> str:
+    base = Path(base_dir).resolve()
+    candidate = base.joinpath(*parts).resolve()
+
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        raise ValueError("Path traversal detected") from None
+
+    return str(candidate)
+
+
+def basename_only(name: str) -> str:
+    return Path(name).name  # strips ../../ etc.
+
+
+def safe_locale(loc: str) -> str:
+    if not SAFE_LOCALE.fullmatch(loc):
+        raise ValueError("Invalid locale")
+    return loc

@@ -42,7 +42,7 @@ from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton
 
-from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
+from ..pe_utils import QGIS_LOG_SECTION_NAME, iface, safe_join
 
 
 class OrderProcessorTask(QgsTask):
@@ -98,7 +98,7 @@ class OrderProcessorTask(QgsTask):
             with zipfile.ZipFile(filename, "r") as z:
                 z.extractall(output_folder)
             os.remove(filename)
-            manifest_file = os.path.join(output_folder, "manifest.json")
+            manifest_file = safe_join(output_folder, "manifest.json")
             self.images = self.images_from_manifest(manifest_file)
 
     def images_from_manifest(self, manifest_file):
@@ -114,7 +114,7 @@ class OrderProcessorTask(QgsTask):
                 if asset_type_key in annotations:
                     images.append(
                         (
-                            os.path.join(base_folder, img["path"]),
+                            safe_join(base_folder, img["path"]),
                             img["annotations"]["planet/item_type"],
                         )
                     )
@@ -130,7 +130,7 @@ class OrderProcessorTask(QgsTask):
                         # Adds the composite file
                         images.append(
                             (
-                                os.path.join(base_folder, img["path"]),
+                                safe_join(base_folder, img["path"]),
                                 "composite",  # Item type
                             )
                         )

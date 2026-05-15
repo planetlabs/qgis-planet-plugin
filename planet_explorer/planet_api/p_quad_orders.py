@@ -30,7 +30,7 @@ import uuid
 from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
-from ..pe_utils import log, orders_download_folder, user_agent
+from ..pe_utils import log, orders_download_folder, safe_join, user_agent
 from .p_client import PlanetClient
 
 
@@ -137,7 +137,7 @@ class QuadOrder:
         return locations
 
     def download_folder(self):
-        return os.path.join(orders_download_folder(), "basemaps", self.name)
+        return safe_join(orders_download_folder(), "basemaps", self.name)
 
     def downloaded(self):
         return os.path.exists(self.download_folder())
