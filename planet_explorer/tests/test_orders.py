@@ -236,7 +236,7 @@ class TestOrders(unittest.TestCase):
             order_dialog.close()
 
         QtCore.QTimer.singleShot(1000, _order_dialog_interact)
-        order_dialog.exec_()
+        order_dialog.exec()
 
         # make sure the new order is shown in the order_monitor page
         if qgis_version > 32600:

@@ -60,7 +60,7 @@ class TestAOIFilter(unittest.TestCase):
         for name, polygon, expected_size in test_cases:
             aoi_filter = PlanetAOIFilter()
             canvas = iface.mapCanvas() if iface else QgsMapCanvas()
-            aoi_box = QgsRubberBand(canvas, QgsWkbTypes.PolygonGeometry)
+            aoi_box = QgsRubberBand(canvas, QgsWkbTypes.GeometryType.PolygonGeometry)
 
             geometry = QgsGeometry.fromPolygonXY([polygon])
             aoi_box.setToGeometry(geometry)
