@@ -53,6 +53,7 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QVBoxLayout,
     QWidget,
+    QAbstractItemView,
 )
 
 from ..pe_analytics import (
@@ -133,7 +134,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         self.listScenes.setVisible(False)
 
         self.listScenes.setAlternatingRowColors(True)
-        self.listScenes.setSelectionMode(self.listScenes.NoSelection)
+        self.listScenes.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
         self.map_tool = PointCaptureMapTool(iface.mapCanvas())
         self.map_tool.canvasClicked.connect(self.point_captured)
