@@ -155,7 +155,7 @@ PYTHONPATH=$QGIS_PYTHON_PATH:$QTPOSITIONING
 # needed for launch.json
 QGIS_EXECUTABLE=$QGIS_BIN
 QGIS_PREFIX_PATH=$QGIS_PREFIX
-PYQT5_PATH="$QGIS_PREFIX/share/qgis/python/PyQt"
+PYQT6_PATH="$QGIS_PREFIX/share/qgis/python/PyQt"
 QT_QPA_PLATFORM=offscreen
 EOF
 
@@ -339,7 +339,7 @@ cat <<EOF >.vscode/launch.json
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}/planet_explorer", // Local path on your machine
-                    "remoteRoot": "${env:HOME}/.local/share/QGIS/QGIS3/profiles/PLANET/python/plugins/planet_explorer" // Uses $HOME instead of hardcoding username
+                    "remoteRoot": "${env:HOME}/.local/share/QGIS/QGIS4/profiles/PLANET/python/plugins/planet_explorer" // Uses $HOME instead of hardcoding username
                 }
             ]
         }
