@@ -599,7 +599,10 @@ class BasemapsWidget(BASE, WIDGET):
         self.labelStreamingOrderDescription.setText(description)
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
         thumb = pixmap.scaled(
-            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            48,
+            48,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
         )
         self.labelStreamingOrderIcon.setPixmap(thumb)
         if THUMB in selected[0][LINKS]:
@@ -664,7 +667,10 @@ class BasemapsWidget(BASE, WIDGET):
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
         thumb = pixmap.scaled(
-            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            48,
+            48,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
         )
         self.labelOrderIcon.setPixmap(thumb)
         if THUMB in selected[0][LINKS]:
@@ -695,7 +701,10 @@ class BasemapsWidget(BASE, WIDGET):
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
         thumb = pixmap.scaled(
-            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            48,
+            48,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
         )
         if self.radioStreaming.isChecked():
             self.labelStreamingOrderIcon.setPixmap(thumb)

@@ -244,7 +244,10 @@ class QuadInstanceItemWidget(QFrame):
         self.iconLabel = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
         thumb = pixmap.scaled(
-            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            48,
+            48,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
         )
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
