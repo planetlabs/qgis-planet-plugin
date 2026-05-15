@@ -24,3 +24,6 @@ codeql-db
 .pac-server.pid
 proxy.pac
 core
+# Log files
+vscode.log
+.pip-install.log
