@@ -96,7 +96,6 @@ from planet_explorer.pe_utils import (
     log,
     open_link_with_browser,
     plugin_version,
-    safe_join,
 )
 from planet_explorer.planet_api import PlanetClient
 
@@ -143,7 +142,7 @@ class PlanetExplorer(object):
             locale = locale_value[0:2]
         else:
             locale = str(locale_value)[0:2]
-        locale_path = safe_join(
+        locale_path = os.path.join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
 
@@ -257,11 +256,11 @@ class PlanetExplorer(object):
 
         We implement this ourselves since we do not inherit QObject.
 
-        :param message: String for translation.
-        :type message: str, QString
+        Args:
+            message (str | QString): String for translation.
 
-        :returns: Translated version of message.
-        :rtype: QString
+        Returns:
+            QString: Translated version of message.
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate(PE, message)
@@ -280,41 +279,27 @@ class PlanetExplorer(object):
     ):
         """Add a toolbar icon to the toolbar.
 
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
+        Args:
+            icon_path (str): Path to the icon for this action. Can be a resource
+                path (for example, ':/plugins/foo/bar.png') or a normal file system
+                path.
+            text (str): Text shown in menu items for this action.
+            callback (function): Function called when the action is triggered.
+            enabled_flag (bool): Whether the action should be enabled by default.
+                Defaults to True.
+            add_to_menu (bool): Whether the action should also be added to the
+                menu. Defaults to True.
+            add_to_toolbar (bool): Whether the action should also be added to the
+                toolbar. Defaults to True.
+            status_tip (str): Optional text to show in a popup when the mouse
+                pointer hovers over the action.
+            whats_this (str): Optional text to show in the status bar when the
+                mouse pointer hovers over the action.
+            parent (QWidget): Parent widget for the new action. Defaults to None.
 
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
+        Returns:
+            QAction: The action that was created. The action is also added to
+                self.actions.
         """
 
         icon = QIcon(icon_path)

@@ -42,7 +42,7 @@ from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton
 
-from ..pe_utils import QGIS_LOG_SECTION_NAME, iface, safe_join
+from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
 
 
 class OrderProcessorTask(QgsTask):
@@ -65,7 +65,7 @@ class OrderProcessorTask(QgsTask):
             ]
             for url, path in zip_locations:
                 local_filename = os.path.basename(path)
-                local_fullpath = safe_join(download_folder, local_filename)
+                local_fullpath = os.path.join(download_folder, local_filename)
                 self.filenames.append(local_fullpath)
                 r = requests.get(url, stream=True, timeout=60)
                 file_size = r.headers.get("content-length") or 0
@@ -98,7 +98,7 @@ class OrderProcessorTask(QgsTask):
             with zipfile.ZipFile(filename, "r") as z:
                 z.extractall(output_folder)
             os.remove(filename)
-            manifest_file = safe_join(output_folder, "manifest.json")
+            manifest_file = os.path.join(output_folder, "manifest.json")
             self.images = self.images_from_manifest(manifest_file)
 
     def images_from_manifest(self, manifest_file):
@@ -114,7 +114,7 @@ class OrderProcessorTask(QgsTask):
                 if asset_type_key in annotations:
                     images.append(
                         (
-                            safe_join(base_folder, img["path"]),
+                            os.path.join(base_folder, img["path"]),
                             img["annotations"]["planet/item_type"],
                         )
                     )
@@ -130,7 +130,7 @@ class OrderProcessorTask(QgsTask):
                         # Adds the composite file
                         images.append(
                             (
-                                safe_join(base_folder, img["path"]),
+                                os.path.join(base_folder, img["path"]),
                                 "composite",  # Item type
                             )
                         )
@@ -201,11 +201,11 @@ class QuadsOrderProcessorTask(QgsTask):
             total = sum([len(x) for x in locations.values()])
             for mosaic, files in locations.items():
                 if files:
-                    folder = safe_join(download_folder, mosaic)
+                    folder = os.path.join(download_folder, mosaic)
                     os.makedirs(folder, exist_ok=True)
                     for url, path in files:
                         local_filename = os.path.basename(path) + ".tif"
-                        local_fullpath = safe_join(
+                        local_fullpath = os.path.join(
                             download_folder, mosaic, local_filename
                         )
                         self.filenames[mosaic].append(local_fullpath)
@@ -252,7 +252,7 @@ class QuadsOrderProcessorTask(QgsTask):
             else:
                 if self.order.load_as_virtual:
                     for mosaic, files in self.filenames.items():
-                        vrtpath = safe_join(
+                        vrtpath = os.path.join(
                             self.order.download_folder(), mosaic, f"{mosaic}.vrt"
                         )
                         gdal.BuildVRT(vrtpath, files)

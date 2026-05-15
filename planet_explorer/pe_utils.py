@@ -30,7 +30,6 @@ import logging
 import os
 import re
 import urllib
-from pathlib import Path
 from typing import List, Optional, Tuple  # Union,
 from urllib.parse import quote
 
@@ -163,10 +162,14 @@ def qgsrectangle_for_canvas_from_4326_bbox_coords(coords):
 
 
 def qgsgeometry_from_geojson(json_type):
-    """
-    :param json_type: GeoJSON (as string or `json` object)
-    :type json_type: str | dict
-    :rtype: QgsGeometry
+    """Create a QGIS geometry from GeoJSON.
+
+    Args:
+        json_type (str | dict): GeoJSON as a string or JSON object.
+
+    Returns:
+        QgsGeometry: Geometry created from the GeoJSON. Returns an empty
+            geometry if the input is invalid or cannot be converted.
     """
     geom = QgsGeometry()
     json_geom = geometry_from_json_str_or_obj(json_type)
@@ -208,16 +211,20 @@ def area_coverage_for_image(image, request):
 
 
 def add_menu_section_action(text, menu, tag="b", pad=0.5):
-    """Because QMenu.addSection() fails to render with some UI styles, and
-    QWidgetAction defaults to no padding.
-    :param text: Text for action's title
-    :type text: str
-    :param menu: QMenu to add section action
-    :type menu: QMenu
-    :param tag: Simple HTML tag (sans < or >) to style the text, e.g. b, i, u
-    :type tag: str
-    :param pad: Value for QLabel qss em and ex padding
-    :type pad: float
+    """Add a styled section action to a menu.
+
+    Because `QMenu.addSection()` fails to render with some UI styles, and
+    `QWidgetAction` defaults to no padding.
+
+    Args:
+        text (str): Text for the action title.
+        menu (QMenu): Menu to add the section action to.
+        tag (str): Simple HTML tag, without angle brackets, used to style the
+            text, for example `b`, `i`, or `u`.
+        pad (float): Padding value for the `QLabel` QSS `em` and `ex` units.
+
+    Returns:
+        QWidgetAction: The created section action.
     """
     lbl = QLabel(f"<{tag}>{text}</{tag}>", menu)
     lbl.setStyleSheet(
@@ -234,11 +241,13 @@ def tile_service_data_src_uri(
     item_type_ids: List[str], tile_hash: Optional[str] = None, service: str = "xyz"
 ) -> Optional[str]:
     """
-    :param item_type_ids: List of item 'Type:IDs'
-    :param api_key: Planet API key
-    :param tile_hash: Tile service hash
-    :param service: Either 'xyz' or 'wmts'
-    :return: Tile service data source URI
+    Args:
+        item_type_ids (list[str]): List of item type IDs.
+        tile_hash (str): Tile service hash.
+        service (str): Either "xyz" or "wmts".
+
+    Returns:
+        str: Tile service data source URI.
     """
 
     tile_url = tile_service_url(item_type_ids, tile_hash=tile_hash, service=service)
@@ -449,7 +458,7 @@ def zoom_canvas_to_aoi(json_type):
 
 
 def resource_file(f):
-    return safe_join(os.path.dirname(__file__), "resources", f)
+    return os.path.join(os.path.dirname(__file__), "resources", f)
 
 
 def orders_download_folder():
@@ -623,24 +632,3 @@ def user_agent():
     return (
         f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
     )
-
-
-SAFE_LOCALE = re.compile(r"^[a-z]{2}(?:_[A-Z]{2})?$")
-
-
-def safe_join(base: Path, *parts: str) -> Path:
-    base = base.resolve()
-    p = base.joinpath(*parts).resolve()
-    if p == base or base not in p.parents:
-        return p
-    raise ValueError("Path traversal detected")
-
-
-def basename_only(name: str) -> str:
-    return Path(name).name  # strips ../../ etc.
-
-
-def safe_locale(loc: str) -> str:
-    if not SAFE_LOCALE.fullmatch(loc):
-        raise ValueError("Invalid locale")
-    return loc
