@@ -27,3 +27,5 @@ core
 # Log files
 vscode.log
 .pip-install.log
+# Secrets
+.secrets

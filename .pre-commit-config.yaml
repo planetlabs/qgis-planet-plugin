@@ -2,24 +2,39 @@
 # See https://pre-commit.com/hooks.html for more hooks
 ---
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+  - repo: local
     hooks:
       - id: end-of-file-fixer
+        name: "➡️ Fix End of Files"
+        entry: end-of-file-fixer
+        language: system
+        types: [text]
         exclude: ^(planet_explorer/tests/data/)
       - id: trailing-whitespace
+        name: "🧹 Trim Trailing Whitespace"
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [text]
         exclude: ^(planet_explorer/tests/data/)
       - id: check-yaml
+        name: "🔍 Check YAML Syntax"
+        entry: check-yaml
+        language: system
+        types: [yaml]
       - id: check-json
+        name: "🔍 Check JSON Syntax"
+        entry: check-json
+        language: system
+        types: [json]
         exclude: ^(planet_explorer/planet_api/request-result-samples/)
 
-  - repo: https://github.com/psf/black
-    rev: 24.4.0
+  - repo: local
     hooks:
       - id: black
         name: "🖤 black"
-        language_version: python3
-        additional_dependencies: []
+        entry: black
+        language: system
+        types: [python]
 
   - repo: local
     hooks:
@@ -27,8 +42,7 @@ repos:
         name: "🗑️ Remove core file if it exists"
         entry: bash -c '[[ -f core && ! -d core ]] && rm core || exit 0'
         language: system
-        stages:
-          - pre-commit
+        stages: [pre-commit]
 
   - repo: local
     hooks:
@@ -48,21 +62,21 @@ repos:
         types: [python]
         stages: [pre-commit]
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+  - repo: local
     hooks:
       - id: flake8
-        name: "🐍 flake8 Python Linter"
-        language_version: python3
-        args: ['--extend-ignore=E203']
+        name: " flake8 Python Linter"
+        entry: flake8
+        args: ['--extend-ignore=E203,W503', '--ignore=DAR']
+        language: system
+        types: [python]
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 6.0.1
+  - repo: local
     hooks:
       - id: isort
         name: "📦 isort - sort Python imports"
         entry: isort --check --diff
-        language: python
+        language: system
         types: [python]
         stages: [pre-commit]
 

@@ -1,12 +1,14 @@
 {
   description = "NixOS developer environment for QGIS plugins.";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    darglint-repo.url = "github:vikineema/darglint-nix";
   };
   outputs =
     {
       self,
+      darglint-repo,
       nixpkgs,
       nixpkgs-unstable,
       ...
@@ -26,7 +28,7 @@
           allowUnfree = true;
         };
       };
-
+      darglint = darglint-repo.packages.${system}.darglint;
       extraPythonPackages = ps: [
         ps.pyqtwebengine
         ps.jsonschema
@@ -44,6 +46,7 @@
       # Common packages shared between all devShells (Qt-agnostic)
       makeCommonPackages = p: [
         p.actionlint # for checking gh actions
+        p.act # for running github actions locally
         p.bandit
         p.bearer
         p.chafa
@@ -61,7 +64,6 @@
         p.jq
         p.markdownlint-cli
         p.nixfmt
-        p.pre-commit
         p.privoxy
         p.pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
         p.python3
@@ -73,6 +75,7 @@
         p.vscode
         p.yamllint
         p.yamlfmt
+        darglint
         (p.python3.withPackages (ps: [
           ps.python
           ps.setuptools
@@ -105,6 +108,8 @@
           ps.gdal
           ps.pip
           ps.pyqtwebengine
+          ps.pre-commit-hooks
+          # darglint
         ]))
       ];
       commonPackages = makeCommonPackages pkgs;
@@ -162,19 +167,6 @@
           fi
         else
           echo "No requirements.txt found, skipping pip install."
-        fi
-
-        QGIS3_PLUGIN_DIR="$HOME/.local/share/QGIS/QGIS3/profiles/${profileName}/python/plugins"
-        QGIS4_PLUGIN_DIR="$HOME/.local/share/QGIS/QGIS4/profiles/${profileName}/python/plugins"
-
-        if [ ! -e "$QGIS3_PLUGIN_DIR/planet_explorer" ]; then
-          mkdir -p $QGIS3_PLUGIN_DIR
-          ln -s "$(pwd)/planet_explorer" "$QGIS3_PLUGIN_DIR/planet_explorer"
-        fi
-
-        if [ ! -e "$QGIS4_PLUGIN_DIR/planet_explorer" ]; then
-          mkdir -p $QGIS4_PLUGIN_DIR
-          ln -s "$(pwd)/planet_explorer" "$QGIS4_PLUGIN_DIR/planet_explorer"
         fi
 
         echo "-----------------------"
