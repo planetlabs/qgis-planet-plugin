@@ -8,4 +8,4 @@ sentry-sdk
 monotonic
 backoff
 httpx
-PyQt6-stubs
+PyQt6-stubs==20250824
