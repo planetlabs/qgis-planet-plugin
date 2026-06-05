@@ -162,14 +162,6 @@ repos:
         types: [text]
         stages: [pre-commit]
 
-  - repo: https://github.com/Weird-Sheep-Labs/coverage-pre-commit
-    rev: 0.1.1
-    hooks:
-      - id: coverage-xml
-        args: ["-o", "reports/coverage/coverage.xml"]
-      - id: coverage-badge
-        args: ["-i", "reports/coverage/coverage.xml", "-o", "reports/coverage/coverage-badge.svg"]
-
     # - repo: local
   #   hooks:
   #     - id: codeql-scan
