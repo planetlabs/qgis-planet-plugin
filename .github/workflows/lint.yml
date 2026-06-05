@@ -27,6 +27,18 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install nixfmt binary for GitHub Actions
+        run: |
+          # Download the official stable binary (fixes the 404 error)
+          curl -sSfL -o nixfmt https://github.com/NixOS/nixfmt/releases/download/v1.3.1/nixfmt
+          chmod +x nixfmt
+
+          # Move it to your local runner path
+          sudo mv nixfmt /usr/local/bin/
+
+          # Create an alias so both 'nixfmt' and 'nixfmt-rfc-style' commands function perfectly
+          sudo ln -s /usr/local/bin/nixfmt /usr/local/bin/nixfmt-rfc-style
+
       - name: Main Install system dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \

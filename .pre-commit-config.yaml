@@ -80,8 +80,7 @@ repos:
         types: [python]
         stages: [pre-commit]
 
-  - repo: https://github.com/NixOS/nixfmt
-    rev: v1.3.1
+  - repo: local
     hooks:
       - id: nixfmt
         name: "❄️ Nixfmt (RFC style)"
