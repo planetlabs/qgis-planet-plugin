@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python environment
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Set up Node.js environment
         uses: actions/setup-node@v4
@@ -54,9 +54,9 @@ jobs:
           sudo update-ca-certificates
           echo -e "Types: deb\nURIs: https://apt.fury.io/bearer/\nSuites: /\nTrusted: yes" | sudo tee /etc/apt/sources.list.d/fury.sources
           sudo apt-get update
-          sudo apt-get install bearer
+          sudo apt-get install bearer=2.0.1
 
-          npm install -g markdownlint-cli cspell
+          npm install -g markdownlint-cli@0.48.0 cspell@9.7.0
       - name: Install pre-commit
         run: pip install pre-commit
 
