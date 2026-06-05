@@ -6,6 +6,7 @@ import types
 from unittest.mock import MagicMock
 
 import pytest
+from qgis.core import Qgis
 from qgis.PyQt import QtCore
 from qgis.testing import start_app
 
@@ -331,10 +332,27 @@ def tasking_widget(qgis_debug_enabled, qtbot):
 
 
 def pytest_configure(config):
-    # Prints the exact QGIS version being used at the start of the test session.
+    """
+    Prints the exact QGIS version being used at the start of the test session.
+
+    Args:
+        config: The pytest config object.
+    """
     try:
-        from qgis.core import Qgis
 
         print(f"\n[QGIS VERSION CHECK] Running tests on QGIS Version: {Qgis.version()}")
     except ImportError:
         print("\n[QGIS VERSION CHECK] Failed to import qgis.core")
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Forces the process to exit immediately after tests finish,
+    preserving the correct exit status while bypassing the segfault.
+
+    Args:
+        session: The pytest session object.
+        exitstatus: The integer status code returned by the test runner.
+    """
+    os._exit(exitstatus)
