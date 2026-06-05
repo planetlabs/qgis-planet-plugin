@@ -1,6 +1,6 @@
+# -*- coding: utf-8 -*-
 import os
 import shutil
-import unittest
 
 import pytest
 from qgis.core import QgsProject
@@ -28,14 +28,16 @@ def checked_images(
     qgis_debug_wait(qtbot, qgis_debug_enabled)
     qtbot.keyClicks(daily_images_widget._aoi_filter.leAOI, sample_aoi)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
-    qtbot.mouseClick(daily_images_widget.btnSearch, QtCore.Qt.LeftButton)
+    qtbot.mouseClick(daily_images_widget.btnSearch, QtCore.Qt.MouseButton.LeftButton)
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
     # order the first result
     results_tree = daily_images_widget.searchResultsWidget.tree
     checkbox = results_tree.itemWidget(results_tree.topLevelItem(0), 0).checkBox
     qtbot.mouseClick(
-        checkbox, QtCore.Qt.LeftButton, pos=QtCore.QPoint(2, int(checkbox.height() / 2))
+        checkbox,
+        QtCore.Qt.MouseButton.LeftButton,
+        pos=QtCore.QPoint(2, int(checkbox.height() / 2)),
     )
     qgis_debug_wait(qtbot, qgis_debug_enabled)
 
@@ -59,7 +61,7 @@ def get_order_dialog(qtbot, daily_images_widget):
     return dlg
 
 
-class TestOrders(unittest.TestCase):
+class TestOrders:
     def test_order_download(
         self,
         qtbot,
@@ -68,9 +70,24 @@ class TestOrders(unittest.TestCase):
         order_monitor_widget,
         qgis_version,
     ):
-        """
+        """Verify the downloading workflow for completed imagery orders.
+
+        Validates that the 'Only Downloadable' filter filter checkbox isolates the
+        correct order types in the UI panel list, checks that matching items expose
+        valid download interaction interfaces, and verifies that executing a direct
+        download successfully updates the asset object state flag upon completion.
+
         Verifies:
             - PLQGIS-TC07
+
+        Args:
+            qtbot: The pytest-qt bot instance for simulating UI interactions.
+            logged_in_explorer_dock_widget: Factory fixture for an authenticated
+                dock widget interface instance.
+            qgis_debug_enabled: Boolean flag indicating if GUI wait states are active.
+            order_monitor_widget: Factory fixture providing the order monitor panel.
+            qgis_version: Integer representation of the running QGIS version
+                (e.g., 32800 for 3.28).
         """
         dock_widget = logged_in_explorer_dock_widget()
         order_monitor = order_monitor_widget(dock_widget)
@@ -79,10 +96,17 @@ class TestOrders(unittest.TestCase):
         checkbox = order_monitor.chkOnlyDownloadable
         qtbot.mouseClick(
             checkbox,
-            QtCore.Qt.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
             pos=QtCore.QPoint(2, int(checkbox.height() / 2)),
         )
         qgis_debug_wait(qtbot, qgis_debug_enabled)
+
+        qtbot.waitUntil(
+            lambda: order_monitor.listOrders.count() > 0
+            and order_monitor.listOrders.itemWidget(order_monitor.listOrders.item(0))
+            is not None,
+            timeout=15000,
+        )
 
         for index in range(order_monitor.listOrders.count()):
             item = order_monitor.listOrders.item(index)
@@ -128,12 +152,24 @@ class TestOrders(unittest.TestCase):
         image_name,
         root_dir,
     ):
-        """This test is performed on the 'Add to map' button of the orders monitor widget.
-        An image is copied from the plugin directory/repo to the Planet orders directory.
-        This directory stores the downloaded orders. The widget of a particular download is
-        initilalized and added to the QGIS canvas instance. If the image could not be added,
-        the test will fail. If the image cannot be found in the map layers list of the canvas
-        after adding the image, the test will also fail.
+        """Verify that downloaded order assets can be added successfully to the QGIS map canvas.
+
+        Copies mock test imagery data from the repository location to the active Planet orders
+        download directory to simulate a completed order. Iterates through the orders list
+        tracker to find the matching item identifier, triggers its internal map loading routine,
+        and validates that the corresponding raster layer is correctly registered within the
+        global QGIS project layer registry.
+
+        Args:
+            qtbot: The pytest-qt bot instance for simulating UI interactions.
+            logged_in_explorer_dock_widget: Factory fixture for an authenticated
+                dock widget interface instance.
+            qgis_debug_enabled: Boolean flag indicating if GUI wait states are active.
+            order_monitor_widget: Factory fixture providing the order monitor panel.
+            qgis_version: Integer representation of the running QGIS version.
+            image_id: String uuid representing the specific Planet scene asset tracker.
+            image_name: String representing the baseline filename or layer identifier.
+            root_dir: String file path pointing to the project's data test directory.
         """
         dock_widget = logged_in_explorer_dock_widget()
         order_monitor = order_monitor_widget(dock_widget)
@@ -198,9 +234,28 @@ class TestOrders(unittest.TestCase):
         order_monitor_widget,
         qgis_version,
     ):
-        """
+        """Verify the scene ordering wizard workflow.
+
+        Validates the step-by-step interactive workflow of the ordering
+        wizard dialog, including changing page names, asset selection
+        confirmations, STAC metadata button toggling behaviors, and
+        backend order entry placement. Finally, verifies that the placed
+        order correctly populates into the order monitor UI list.
+
         Verifies:
             - PLQGIS-TC06
+
+        Args:
+            qtbot: The pytest-qt bot instance for simulating UI
+                interactions.
+            qgis_debug_enabled: Boolean flag indicating if GUI wait
+                states are active.
+            checked_images: A tuple containing the parent dock widget
+                and the daily images selection panel widget.
+            order_monitor_widget: Factory fixture providing the
+                initialized order monitor panel.
+            qgis_version: Integer representation of the running QGIS
+                version used for version checking.
         """
         dock_widget, daily_images_widget = checked_images
 
@@ -216,22 +271,30 @@ class TestOrders(unittest.TestCase):
             qtbot.keyClicks(order_dialog.txtOrderName, order_name)
             qgis_debug_wait(qtbot, qgis_debug_enabled)
             self.assertTrue(order_dialog.btnContinueName.isEnabled())
-            qtbot.mouseClick(order_dialog.btnContinueName, QtCore.Qt.LeftButton)
+            qtbot.mouseClick(
+                order_dialog.btnContinueName, QtCore.Qt.MouseButton.LeftButton
+            )
             qgis_debug_wait(qtbot, qgis_debug_enabled)
 
             # assets page
-            qtbot.mouseClick(order_dialog.btnContinueAssets, QtCore.Qt.LeftButton)
+            qtbot.mouseClick(
+                order_dialog.btnContinueAssets, QtCore.Qt.MouseButton.LeftButton
+            )
             qgis_debug_wait(qtbot, qgis_debug_enabled)
 
             # check STAC button state
             stac_order = order_dialog.stac_order
-            qtbot.mouseClick(order_dialog.metadata_widget.btnSTAC, QtCore.Qt.LeftButton)
+            qtbot.mouseClick(
+                order_dialog.metadata_widget.btnSTAC, QtCore.Qt.MouseButton.LeftButton
+            )
             self.assertNotEqual(order_dialog.stac_order, stac_order)
 
             # review page and place the order. note we only actually place the order
             # on the latest version of QGIS to keep the total number of orders down.
             if qgis_version > 32600:
-                qtbot.mouseClick(order_dialog.btnPlaceOrder, QtCore.Qt.LeftButton)
+                qtbot.mouseClick(
+                    order_dialog.btnPlaceOrder, QtCore.Qt.MouseButton.LeftButton
+                )
                 qgis_debug_wait(qtbot, qgis_debug_enabled)
             order_dialog.close()
 
