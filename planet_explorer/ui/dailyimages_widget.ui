@@ -111,12 +111,14 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <!--
            <property name="font">
             <font>
              <weight>50</weight>
              <bold>false</bold>
             </font>
            </property>
+           -->
            <property name="toolTip">
             <string>Perform archive search</string>
            </property>

@@ -62,7 +62,7 @@ LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "dailyimages_widget.ui"))
 
-SEARCH_HIGHLIGHT = "QToolButton {color: rgb(16, 131, 138);}"
+SEARCH_HIGHLIGHT = "QToolButton {color: rgb(0, 0, 0);}"
 
 
 class DailyImagesWidget(BASE, WIDGET):
