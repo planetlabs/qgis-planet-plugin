@@ -15,23 +15,46 @@ jobs:
     steps:
       - name: Check out source repository
         uses: actions/checkout@v5
+
       - name: Set up Python environment
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Main Install system dependencies
+        run: |
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            libhunspell-dev \
+            hunspell \
+            jq \
+            shellcheck \
+            git
+
+          npm install -g markdownlint-cli cspell
+
+          sudo curl -Lo /usr/local/bin/nixfmt https://github.com/NixOS/nixfmt/releases/download/v0.6.0/nixfmt-linux-amd64
+          sudo chmod +x /usr/local/bin/nixfmt
+
+          curl -sfL https://raw.githubusercontent.com/bearer/bearer/main/scripts/install.sh | sudo sh -s -- -b /usr/local/bin
+
       - name: Install pre-commit
         run: pip install pre-commit
+
       - name: Install Python dependencies
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f dev-requirements.txt ]; then pip install -r dev-requirements.txt; fi
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-          # Add any other system dependencies here
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
       - name: Run pre-commit
         run: pre-commit run --all --verbose
+
       - name: Analysis (git diff)
         if: failure()
         run: git diff

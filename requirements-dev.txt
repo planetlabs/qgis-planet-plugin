@@ -1,2 +1,11 @@
+actionlint-py
+bandit
+bearer
+black
 darglint
+detect-secrets
+gibberish-detector
+flake8
 isort
+pre-commit-hooks
+yamllint
