@@ -23,6 +23,8 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+  v2.5.0 (2026-06-05)
+  * Add support for QGIS 4.0
   v2.3.6 (2025-12-02)
   * Use QgsBlockingNetworkRequest for API calls.
   v2.3.5 (2025-06-18)
