@@ -92,9 +92,6 @@ jobs:
       - name: Pull qgis image
         run: docker pull "qgis/qgis:${QGIS_TEST_VERSION}"
 
-      - name: Verify package exists
-        run: ls -lah *.zip
-
       - name: Run install test
         timeout-minutes: 2
         run: |
