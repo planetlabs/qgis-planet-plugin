@@ -1,4 +1,4 @@
-ARG QGIS_TEST_VERSION=4.0.3-trixie
+ARG QGIS_TEST_VERSION=latest
 FROM qgis/qgis:${QGIS_TEST_VERSION}
 
 RUN apt-get update \

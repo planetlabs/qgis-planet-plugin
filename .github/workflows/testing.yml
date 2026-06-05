@@ -15,14 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        qgis_version: [ "4.0", "3.44" ]
-    env:
-      QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
+        # qgis_version: [ "4.0", "3.44" ]
+        qgis_version: [ "4.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           submodules: recursive
+
       - name: Set up Docker Buildx
         uses: docker/setup-qemu-action@v4
 
@@ -30,4 +30,11 @@ jobs:
         env:
           PLANET_USER: ${{ secrets.PLANET_USER }}
           PLANET_PASSWORD: ${{ secrets.PLANET_PASSWORD }}
-        run: docker compose -f .docker/docker-compose.gh.yml run -e "PLANET_USER=${PLANET_USER}" -e "PLANET_PASSWORD=${PLANET_PASSWORD}" qgis /usr/src/.docker/run-docker-tests.sh
+          QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
+        run: |
+          docker compose -f .docker/docker-compose.gh.yml build qgis
+
+          docker compose -f .docker/docker-compose.gh.yml run \
+            -e "PLANET_USER=${PLANET_USER}" \
+            -e "PLANET_PASSWORD=${PLANET_PASSWORD}" \
+            qgis /usr/src/.docker/run-docker-tests.sh

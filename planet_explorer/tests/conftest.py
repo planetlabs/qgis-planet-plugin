@@ -328,3 +328,13 @@ def tasking_widget(qgis_debug_enabled, qtbot):
     from planet_explorer.tests.utils import pe_tasking_dockwidget
 
     pe_tasking_dockwidget.dockwidget_instance = None
+
+
+def pytest_configure(config):
+    # Prints the exact QGIS version being used at the start of the test session.
+    try:
+        from qgis.core import Qgis
+
+        print(f"\n[QGIS VERSION CHECK] Running tests on QGIS Version: {Qgis.version()}")
+    except ImportError:
+        print("\n[QGIS VERSION CHECK] Failed to import qgis.core")
