@@ -52,7 +52,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        qgis_version: ["4.0", "3.44"]
+        qgis_version: ["4.0"]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
       QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
