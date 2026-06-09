@@ -1,7 +1,12 @@
 name: Build
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
 
 env:
   PYTHON_VERSION: "3.12"
@@ -51,7 +56,7 @@ jobs:
         qgis_version: ["4.0"]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
-      QGIS_COMMAND: qgis --noplugins --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
+      QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
 
     steps:
       - name: Set up Docker Buildx
@@ -96,18 +101,8 @@ jobs:
         timeout-minutes: 2
         run: |
           docker run --rm \
+            -e QT_QPA_PLATFORM=offscreen \
             -v "$(pwd)":/tests_directory \
-            -t \
             -w /tests_directory \
-            "qgis/qgis:${QGIS_TEST_VERSION}" \
-            sh -c "xvfb-run ${QGIS_COMMAND}"
-
-      - name: Show install debug log
-        if: ${{ always() }}
-        run: |
-          if [ -f install_plugin_debug.log ]; then
-            echo "=== install_plugin_debug.log ==="
-            cat install_plugin_debug.log
-          else
-            echo "install_plugin_debug.log not found"
-          fi
+            "qgis/qgis:${QGIS_TEST_VERSION}-questing" \
+            sh -lc 'LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0 qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
