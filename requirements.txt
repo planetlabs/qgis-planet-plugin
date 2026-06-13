@@ -1,6 +1,6 @@
 click
 requests-futures<1.0
-planet~=1.4
+planet==3.6.0
 iso8601
 mercantile
 six
@@ -10,3 +10,14 @@ monotonic
 backoff
 httpx
 PyQt6-stubs==20250824
+
+cffi
+cryptography
+geojson
+planet-auth==2.3.1
+prompt-toolkit
+PyJWT
+pyqrcode
+StrEnum
+tqdm
+wcwidth
