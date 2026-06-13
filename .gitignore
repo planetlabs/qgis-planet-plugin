@@ -1,19 +1,20 @@
-**/__pycache__
-**/.vscode
+# Vscode
+**/.vscode/**
+**/.vscode-extensions/**
+# Pycharm
+.idea
+# Python
+.venv/**
+**/__pycache__/**
+# Planet plugin
 planet_explorer/extlibs
 pyq5-examples
 planet_explorer*.zip
 bundles-util.js
 qgis_resources.py
-venv
-.idea
 # Nixos Direnv Dev Environment
-.envrc
-shell.nix
-.vscode
-.vscode-extensions
-.venv
 .env
+.envrc
 .privoxy-config
 .privoxy-cache/ca-key.pem
 .privoxy-cache/ca-cert.pem
@@ -24,8 +25,15 @@ codeql-db
 .pac-server.pid
 proxy.pac
 core
+shell.nix
 # Log files
 vscode.log
 .pip-install.log
+# Local development files
+Makefile
+# Antigravity
+.antigravity/**
+.antigravity-extensions/**
+antigravity.log
 # Secrets
-.secrets
+**/.secrets
