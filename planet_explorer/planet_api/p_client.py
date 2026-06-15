@@ -34,9 +34,15 @@ from typing import (
 )
 
 import requests
+from planet import Auth, Session
+from planet.exceptions import InvalidAPIKey, InvalidIdentity
+from planet.sync.client import Planet
+
+"""
 from planet.api import ClientV1, auth
 from planet.api import models as api_models
 from planet.api.exceptions import APIException, InvalidIdentity
+"""
 from qgis.core import Qgis, QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QMetaObject, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
@@ -50,11 +56,13 @@ log = logging.getLogger(__name__)
 ITEM_ASSET_DL_REGEX = re.compile(r"^assets\.(.*):download$")
 ITEM_STREAM_REGEX = re.compile(r"^webtiles?:stream$")
 
-API_KEY_DEFAULT = "SKIP_ENVIRON"
-
 QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscriptions"
 
 TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
+
+# TODO: Replace once a custom Client ID is provided
+# PROFILE_NAME = "planet-qgis-plugin"
+PROFILE_NAME = "planet-user"
 
 
 class LoginException(Exception):
@@ -152,7 +160,7 @@ class QGISAdapter:
         return resp
 
 
-class PlanetClient(QObject, ClientV1):
+class PlanetClient(QObject):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
     a Qt object.
@@ -174,11 +182,16 @@ class PlanetClient(QObject, ClientV1):
             raise Exception("Singleton class")
 
         QObject.__init__(self)
-        # NOTE: We pass in API_KEY_DEFAULT to keep the API client from looking
-        #       elsewhere on the system or within the environ
-        ClientV1.__init__(self, api_key=API_KEY_DEFAULT)
 
         PlanetClient.__instance = self
+
+        os.environ["PL_AUTH_PROFILE"] = PROFILE_NAME
+
+        # Login
+        self.auth = None
+        self.session = None
+        self.mosaics_client = None
+        self.client = None
 
         self._user_quota = {
             "enabled": False,
@@ -190,7 +203,7 @@ class PlanetClient(QObject, ClientV1):
         self._item_types = None
         self._bundles = None
         self._asset_types = {}
-        self.dispatcher.session.mount("https://", QGISAdapter())
+        # self.dispatcher.session.mount("https://", QGISAdapter())
 
     @pyqtSlot()
     def _show_offline_message(self):
@@ -226,38 +239,94 @@ class PlanetClient(QObject, ClientV1):
                 pass
             QGISAdapter._message_bar_item = None
 
+    def get_auth_context(self):
+        """Create auth context to use to log in to Planet API"""
+        if not self.auth:
+            # This is a placeholder until a custom Client ID is provided
+            # TODO: Remove this once a custom Client ID is provided
+            self.auth = Auth.from_user_default_session()
+            """
+            self.auth = Auth.from_oauth_user_device_code(
+                client_id="__MUST_BE_APP_DEVELOPER_SUPPLIED__",
+                requested_scopes=[
+                    # Request access to Planet APIs
+                    planet.PlanetOAuthScopes.PLANET,
+                    # Request a refresh token so repeated browser logins are not required
+                    planet.PlanetOAuthScopes.OFFLINE_ACCESS,
+                ],
+                profile_name=PROFILE_NAME,
+                save_state_to_storage=True,
+                )
+            """
+        return self.auth
+
     @waitcursor
-    def log_in(self, user, password, api_key=None):
-        old_api_key = self.api_key()
+    def complete_log_in(self, login_info):
+        """
+        Complete the login process started in the Authentication Dialog.
+        """
+        old_session = self.session
 
-        if api_key:
-            self.auth = auth.APIKey(api_key)
-        else:
-            try:
-                res = self.login(user, password)
-            except (APIException, InvalidIdentity) as exc:
-                raise LoginException from exc
+        self.auth.device_user_login_complete(login_info)
 
-            if "user_id" in res:
-                self.p_user = res
-                self.auth = auth.APIKey(self.p_user["api_key"])
-                self.update_user_quota()
-            else:
-                raise LoginException()
+        self.session = Session(self.auth)
+        self.mosaics_client = self.session.client("mosaics")
+        self.client = Planet(self.session)
 
-        if old_api_key != self.api_key():
-            self.loginChanged.emit(self.has_api_key())
+        if old_session != self.session:
+            self.loginChanged.emit(True)
+
+    def validate_credentials(self):
+        """Validate the current credentials by making a simple API call."""
+        log.debug("Validating Client ...")
+        try:
+            for _ in self.client.data.list_searches(limit=1):
+                break
+            log.debug("Success! Your Credentials are valid.")
+        except (InvalidAPIKey, InvalidIdentity) as exc:
+            raise LoginException from exc
 
     def log_out(self):
-        old_api_key = self.api_key()
+        """
+        Logout of the Planet API by clearing the auth context and Planet SDK client.
+        """
+        old_session = self.session
 
-        # Do log out
-        self.auth = auth.APIKey(API_KEY_DEFAULT)
-        self.p_user = None
+        self.auth = None
+        self.session = None
+        self.mosaics_client = None
+        self.client = None
 
-        if old_api_key != self.api_key():
-            self.loginChanged.emit(self.has_api_key())
+        if old_session != self.session:
+            self.loginChanged.emit(False)
 
+    def is_initialized(self):
+        """Returns True if the download engines are built and the token is active."""
+        if not self.auth:
+            self.get_auth_context()
+
+        if self.auth and self.auth.is_initialized():
+            if not self.client or not self.session:
+                try:
+                    self.session = Session(self.auth)
+                    self.mosaics_client = self.session.client("mosaics")
+                    self.client = Planet(self.session)
+                except Exception:
+                    return False
+            try:
+                self.validate_credentials()
+                return True  # Success! The token on disk is alive and valid.
+            except Exception as e:
+                log.warning(f"Saved token found, but validation failed: {str(e)}")
+                # Clear out invalid configuration state so a fresh login can fix it
+                self.session = None
+                self.mosaics_client = None
+                self.client = None
+                return False
+
+        return False
+
+    """
     def user(self):
         return self.p_user
 
@@ -270,9 +339,10 @@ class PlanetClient(QObject, ClientV1):
         if hasattr(self.auth, "value"):
             return self.auth.value not in [None, "", API_KEY_DEFAULT]
         return False
-
+    """
+    '''
     def has_access_to_mosaics(self):
-        url = self._url("basemaps/v1/mosaics")
+        url = self._url("basemaps/v1/moe and self.session is not None and self.asaics")
         params = {"_page_size": 1}
         response = self._get(url, api_models.Mosaics, params=params).get_body().get()
         return len(response) > 0
@@ -633,3 +703,4 @@ def tile_service_url(
         )
 
     return url
+    '''
