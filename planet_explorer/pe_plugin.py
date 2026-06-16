@@ -60,13 +60,18 @@ from qgis.PyQt.QtWidgets import (
 )
 from requests import exceptions
 
+"""
 from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
-from planet_explorer.gui.pe_explorer_dockwidget import (
-    remove_explorer,
-    show_explorer,
-    toggle_images_search,
-    toggle_mosaics_search,
-)
+"""
+from planet_explorer.gui.pe_auth_dialog import PlanetAuthenticationDialog
+
+# from planet_explorer.gui.pe_explorer_dockwidget import (
+# remove_explorer,
+# show_explorer,
+# toggle_images_search,
+# toggle_mosaics_search,
+# )
+"""
 from planet_explorer.gui.pe_orders_monitor_dockwidget import (
     hide_orders_monitor,
     remove_orders_monitor,
@@ -77,22 +82,26 @@ from planet_explorer.gui.pe_planet_inspector_dockwidget import (
     remove_inspector,
     toggle_inspector,
 )
+)
+"""
 from planet_explorer.gui.pe_settings_dialog import SettingsDialog
+
+"""
 from planet_explorer.gui.pe_tasking_dockwidget import (
     remove_tasking_widget,
     toggle_tasking_widget,
 )
+"""
 from planet_explorer.pe_analytics import (
     is_segments_write_key_valid,
     is_sentry_dsn_valid,
     segments_write_key,
     sentry_dsn,
 )
-from planet_explorer.pe_utils import (
+from planet_explorer.pe_utils import (  # add_widget_to_layer,
     BASE_URL,
     PLANET_COLOR,
     add_menu_section_action,
-    add_widget_to_layer,
     log,
     open_link_with_browser,
     plugin_version,
@@ -230,7 +239,7 @@ class PlanetExplorer(object):
                         "ProxyError.\n Verify that your proxy is correctly configured"
                         " in the QGIS settings"
                     )
-                elif issubclass(t, planet.api.exceptions.ServerError):
+                elif issubclass(t, planet.exceptions.ServerError):
                     s = "Server Error.\n Please, try again later"
                 elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
                     s = (
@@ -322,7 +331,7 @@ class PlanetExplorer(object):
 
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
-
+        """
         self.showdailyimages_act = self.add_action(
             os.path.join(plugin_path, "resources", "search.svg"),
             text=self.tr(P_E),
@@ -331,7 +340,9 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
+        """
 
+        """
         self.showbasemaps_act = self.add_action(
             os.path.join(plugin_path, "resources", "basemap.svg"),
             text=self.tr("Show Basemaps Search"),
@@ -340,7 +351,9 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
+        """
 
+        """
         self.showinspector_act = self.add_action(
             os.path.join(plugin_path, "resources", "inspector.svg"),
             text=self.tr("Show Planet Inspector..."),
@@ -349,7 +362,9 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
+        """
 
+        """
         self.showtasking_act = self.add_action(
             os.path.join(plugin_path, "resources", "tasking.svg"),
             text=self.tr("Show Tasking..."),
@@ -358,9 +373,11 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
+        """
 
         self.add_central_toolbar_button()
 
+        """
         self.showorders_act = self.add_action(
             os.path.join(plugin_path, "resources", "orders.svg"),
             text=self.tr("Show Orders Monitor..."),
@@ -369,8 +386,9 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-
+        """
         self.add_user_button()
+
         self.add_info_button()
 
         self.settings_act = self.add_action(
@@ -381,16 +399,17 @@ class PlanetExplorer(object):
             add_to_toolbar=False,
             parent=self.iface.mainWindow(),
         )
-
+        """
         self.provider = BasemapLayerWidgetProvider()
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
+        """
 
+        """
         QgsProject.instance().projectSaved.connect(self.project_saved)
         QgsProject.instance().layersAdded.connect(self.layers_added)
         QgsProject.instance().layerRemoved.connect(self.layer_removed)
-
+        """
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
-
         self.enable_buttons(False)
 
     def add_central_toolbar_button(self):
@@ -419,28 +438,33 @@ class PlanetExplorer(object):
         self.toolbar.addWidget(widget)
 
     def btn_login_clicked(self):
-        if PlanetClient.getInstance().has_api_key():
+        if PlanetClient.getInstance().client_is_setup():
             self.logout()
         else:
             self.login()
 
+    """
     def layer_removed(self, layer):
         self.provider.layerWasRemoved(layer)
+    """
 
+    """
     def layers_added(self, layers):
         for layer in layers:
             add_widget_to_layer(layer)
+    """
 
     def login_changed(self, loggedin):
-        self.provider.updateLayerWidgets()
+        # self.provider.updateLayerWidgets()
         try:
             self.enable_buttons(loggedin)
         except RuntimeError:
             pass
 
         if not loggedin:
-            hide_orders_monitor()
-            hide_inspector()
+            # hide_orders_monitor()
+            # hide_inspector()
+            pass
 
     def add_info_button(self):
         info_menu = QMenu()
@@ -543,8 +567,7 @@ class PlanetExplorer(object):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
         PlanetClient.getInstance().log_out()
-        self.provider.updateLayerWidgets()
-
+        # self.provider.updateLayerWidgets()
         for action in self.actions:
             self.iface.removePluginWebMenu(self.tr("&{0}".format(P_E)), action)
             self.iface.removeToolBarIcon(action)
@@ -553,6 +576,7 @@ class PlanetExplorer(object):
         if self.toolbar is not None:
             del self.toolbar
 
+        """
         remove_inspector()
         remove_explorer()
         remove_orders_monitor()
@@ -565,9 +589,9 @@ class PlanetExplorer(object):
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
         QgsProject.instance().layersAdded.disconnect(self.layers_added)
         QgsProject.instance().layerRemoved.disconnect(self.layer_removed)
+        """
 
     # -----------------------------------------------------------
-
     def show_settings(self):
         dlg = SettingsDialog()
         dlg.exec()
@@ -603,7 +627,14 @@ class PlanetExplorer(object):
                 " page here</a>."
             )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
-        show_explorer()
+        try:
+            self.auth_dialog_window = PlanetAuthenticationDialog(
+                self.iface.mainWindow()
+            )
+            self.auth_dialog_window.exec()
+
+        except Exception as e:
+            traceback.print_exc()
 
     def logout(self):
         PlanetClient.getInstance().log_out()
@@ -612,32 +643,40 @@ class PlanetExplorer(object):
         self.btnLogin.setVisible(not loggedin)
         labelText = "<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>"
         self.labelLoggedIn.setText(labelText)
-        self.showdailyimages_act.setEnabled(loggedin)
-        self.showbasemaps_act.setEnabled(loggedin)
-        self.showinspector_act.setEnabled(loggedin)
-        self.showorders_act.setEnabled(loggedin)
-        self.showtasking_act.setEnabled(loggedin)
-        self.user_button.setEnabled(loggedin)
-        self.user_button.setText(
-            PlanetClient.getInstance().user()["user_name"] if loggedin else ""
-        )
-        if loggedin:
-            self.showdailyimages_act.setToolTip(
-                "Show / Hide the Planet Imagery Search Panel"
-            )
-            self.showbasemaps_act.setToolTip(
-                "Show / Hide the Planet Basemaps Search Panel"
-            )
-            self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
-            self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
-            self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
-        else:
-            self.showdailyimages_act.setToolTip("Login to access Imagery Search")
-            self.showbasemaps_act.setToolTip("Login to access Basemaps Search")
-            self.showorders_act.setToolTip("Login to access Order Status")
-            self.showinspector_act.setToolTip("Login to access Planet Inspector")
-            self.showtasking_act.setToolTip("Login to access Tasking Panel")
 
+        features_to_toggle = {
+            "showdailyimages_act": (
+                "Show / Hide the Planet Imagery Search Panel",
+                "Login to access Imagery Search",
+            ),
+            "showbasemaps_act": (
+                "Show / Hide the Planet Basemaps Search Panel",
+                "Login to access Basemaps Search",
+            ),
+            "showorders_act": (
+                "Show / Hide the Order Status Panel",
+                "Login to access Order Status",
+            ),
+            "showinspector_act": (
+                "Show / Hide the Planet Inspector Panel",
+                "Login to access Planet Inspector",
+            ),
+            "showtasking_act": (
+                "Show / Hide the Tasking Panel",
+                "Login to access Tasking Panel",
+            ),
+        }
+
+        for attr_name, (login_tip, logout_tip) in features_to_toggle.items():
+            action = getattr(self, attr_name, None)
+            if action:
+                action.setEnabled(loggedin)
+                action.setToolTip(login_tip if loggedin else logout_tip)
+
+        self.user_button.setEnabled(loggedin)
+        self.user_button.setText("Logged in" if loggedin else "")
+
+    """
     def project_saved(self):
         if PlanetClient.getInstance().has_api_key():
 
@@ -680,5 +719,5 @@ class PlanetExplorer(object):
                         " file.\nThe project that you have just saved might contain"
                         " Planet API keys in plain text.",
                     )
-
-            QTimer.singleShot(100, resave)
+    """
+    # QTimer.singleShot(100, resave)

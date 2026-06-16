@@ -269,9 +269,7 @@ class PlanetClient(QObject):
 
         self.auth.device_user_login_complete(login_info)
 
-        self.session = Session(self.auth)
-        self.mosaics_client = self.session.client("mosaics")
-        self.client = Planet(self.session)
+        self.build_engines()
 
         if old_session != self.session:
             self.loginChanged.emit(True)
@@ -300,31 +298,47 @@ class PlanetClient(QObject):
         if old_session != self.session:
             self.loginChanged.emit(False)
 
-    def is_initialized(self):
+    def has_client(self) -> bool:
+        """Returns True if the Planet SDK client is initialized."""
+        return self.client is not None
+
+    def auth_is_valid(self) -> bool:
+        """Returns True if the auth context is valid."""
+        if not self.auth:
+            return False
+
+        return self.auth.is_initialized()
+
+    def client_is_setup(self) -> bool:
         """Returns True if the download engines are built and the token is active."""
         if not self.auth:
             self.get_auth_context()
 
-        if self.auth and self.auth.is_initialized():
-            if not self.client or not self.session:
-                try:
-                    self.session = Session(self.auth)
-                    self.mosaics_client = self.session.client("mosaics")
-                    self.client = Planet(self.session)
-                except Exception:
-                    return False
-            try:
-                self.validate_credentials()
-                return True  # Success! The token on disk is alive and valid.
-            except Exception as e:
-                log.warning(f"Saved token found, but validation failed: {str(e)}")
-                # Clear out invalid configuration state so a fresh login can fix it
-                self.session = None
-                self.mosaics_client = None
-                self.client = None
-                return False
+        if not self.auth_is_valid():
+            return False
 
-        return False
+        if self.client is None or self.mosaics_client is None or self.session is None:
+            return False
+
+        return True
+
+    def build_engines(self) -> bool:
+        """Explicitly instantiates the download engines using the current auth context."""
+        if not self.auth_is_valid():
+            log.warning(
+                "Cannot build engines: Authentication context is missing or invalid."
+            )
+            return False
+
+        try:
+            self.session = Session(self.auth)
+            self.mosaics_client = self.session.client("mosaics")
+            self.client = Planet(self.session)
+            return True
+        except Exception as e:
+            log.error(f"Failed to assemble client engine instances: {str(e)}")
+            self.log_out()  # Clean up half-baked state safely
+            return False
 
     """
     def user(self):
