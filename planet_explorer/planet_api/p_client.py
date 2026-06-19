@@ -14,7 +14,6 @@
 *                                                                         *
 ***************************************************************************
 """
-
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -22,32 +21,29 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import asyncio
 import gzip
-import json
 import logging
 import os
 import re
-import secrets
+import threading
+from collections.abc import Coroutine
 from typing import (
-    List,
-    Optional,
+    Any,
+    TypeVar,
 )
 
 import requests
-from planet import Auth, Session
+from planet import Auth, PlanetOAuthScopes, Session
+from planet.auth_builtins import _SDK_CLIENT_ID_PROD
 from planet.exceptions import InvalidAPIKey, InvalidIdentity
 from planet.sync.client import Planet
-
-"""
-from planet.api import ClientV1, auth
-from planet.api import models as api_models
-from planet.api.exceptions import APIException, InvalidIdentity
-"""
 from qgis.core import Qgis, QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QMetaObject, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from ..gui.pe_gui_utils import waitcursor
+from .p_decorators import verify_async_runner, verify_mosaics_client, verify_session
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -61,22 +57,51 @@ QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscripti
 TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 
 # TODO: Replace once a custom Client ID is provided
-# PROFILE_NAME = "planet-qgis-plugin"
-PROFILE_NAME = "planet-user"
+CLIENT_ID = _SDK_CLIENT_ID_PROD
+PROFILE_NAME = "planet-qgis-plugin"
+
+T = TypeVar("T")
 
 
 class LoginException(Exception):
-    """Issues raised during client login"""
+    """Raised when the Planet API login process fails."""
 
     pass
 
 
 class QGISAdapter:
+    """Bridges the Planet SDK's HTTP requests through QGIS's network stack.
+
+    Replaces the default requests transport so all network calls go through
+    ``QgsBlockingNetworkRequest``, respecting QGIS proxy and SSL settings.
+    Displays a message bar item when the connection is lost and clears it
+    when connectivity is restored.
+    """
 
     _offline = False
     _message_bar_item = None
 
     def send(self, request: requests.PreparedRequest, **kwargs):
+        """Execute a prepared HTTP request via QGIS's blocking network stack.
+
+        Handles GET and POST methods. On network error, shows a QGIS message
+        bar notification and raises the appropriate ``requests`` exception.
+
+        Args:
+            request (requests.PreparedRequest): The prepared HTTP request to send.
+            **kwargs: Unused; present for ``requests`` transport API compatibility.
+
+        Returns:
+            requests.Response: The HTTP response with headers, status code, and content.
+
+        Raises:
+            ConnectionError: Raised if the network request
+                fails with a connection error (error code 1).
+            ConnectTimeout: Raised if the network request
+                times out (error code 2).
+            RequestException: Raised for any other general
+                QGIS network request failures (error code 3).
+        """
         error = 0
         req = QNetworkRequest(QUrl(request.url))
         for h in request.headers:
@@ -164,6 +189,14 @@ class PlanetClient(QObject):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
     a Qt object.
+
+    Manages authentication, session lifecycle, and all Planet API calls.
+    Exposes both async (``_aget_*``) and synchronous (``get_*``) methods;
+    sync methods block by running the coroutine on a dedicated ``AsyncRunner``.
+
+    Signals:
+        loginChanged (bool): Emitted when the login state changes.
+            True on login, False on logout.
     """
 
     loginChanged = pyqtSignal(bool)
@@ -172,12 +205,24 @@ class PlanetClient(QObject):
 
     @staticmethod
     def getInstance():
+        """Return the singleton ``PlanetClient`` instance, creating it if needed.
+
+        Returns:
+            PlanetClient: The singleton instance.
+        """
         if PlanetClient.__instance is None:
             PlanetClient()
 
         return PlanetClient.__instance
 
     def __init__(self):
+        """
+        Initialize the singleton client.
+
+        Raises:
+            Exception: If this singleton class initialization is called
+                more than once.
+        """
         if PlanetClient.__instance is not None:
             raise Exception("Singleton class")
 
@@ -186,12 +231,17 @@ class PlanetClient(QObject):
         PlanetClient.__instance = self
 
         os.environ["PL_AUTH_PROFILE"] = PROFILE_NAME
+        self.profile_name = PROFILE_NAME
+
+        # Base url needed for basemaps API
+        self.base_url = "https://api.planet.com"
 
         # Login
         self.auth = None
         self.session = None
         self.mosaics_client = None
         self.client = None
+        self.runner = None
 
         self._user_quota = {
             "enabled": False,
@@ -207,6 +257,7 @@ class PlanetClient(QObject):
 
     @pyqtSlot()
     def _show_offline_message(self):
+        """Display a QGIS message bar item indicating loss of connectivity."""
         from ..pe_utils import PLANET_COLOR, iface
 
         if QGISAdapter._message_bar_item is None:
@@ -227,6 +278,7 @@ class PlanetClient(QObject):
 
     @pyqtSlot()
     def _clear_offline_message(self):
+        """Remove the offline connectivity message bar item if present."""
         from qgis.PyQt import sip
 
         from ..pe_utils import iface
@@ -239,31 +291,37 @@ class PlanetClient(QObject):
                 pass
             QGISAdapter._message_bar_item = None
 
-    def get_auth_context(self):
-        """Create auth context to use to log in to Planet API"""
+    def get_auth_context(self) -> Auth:
+        """Return the OAuth auth context, creating it if it does not exist.
+
+        Returns:
+            Auth: The initialized Planet OAuth auth object.
+        """
         if not self.auth:
-            # This is a placeholder until a custom Client ID is provided
-            # TODO: Remove this once a custom Client ID is provided
-            self.auth = Auth.from_user_default_session()
-            """
+            # TODO: Replace the CLIENT_ID with the custom CLIENT_ID once it is available
+            # NOTE: if profile name not provided profile defaults to client id
             self.auth = Auth.from_oauth_user_device_code(
-                client_id="__MUST_BE_APP_DEVELOPER_SUPPLIED__",
+                client_id=CLIENT_ID,
                 requested_scopes=[
                     # Request access to Planet APIs
-                    planet.PlanetOAuthScopes.PLANET,
+                    PlanetOAuthScopes.PLANET,
                     # Request a refresh token so repeated browser logins are not required
-                    planet.PlanetOAuthScopes.OFFLINE_ACCESS,
+                    PlanetOAuthScopes.OFFLINE_ACCESS,
                 ],
                 profile_name=PROFILE_NAME,
                 save_state_to_storage=True,
-                )
-            """
+            )
         return self.auth
 
     @waitcursor
     def complete_log_in(self, login_info):
-        """
-        Complete the login process started in the Authentication Dialog.
+        """Complete the OAuth device code login flow and initialize the client.
+
+        Finalizes the device code exchange, builds the API engines, fetches
+        the user quota, and emits ``loginChanged`` if the session changed.
+
+        Args:
+            login_info: The login info object returned by the device code flow.
         """
         old_session = self.session
 
@@ -271,11 +329,17 @@ class PlanetClient(QObject):
 
         self.build_engines()
 
+        self.update_user_quota()
+
         if old_session != self.session:
             self.loginChanged.emit(True)
 
     def validate_credentials(self):
-        """Validate the current credentials by making a simple API call."""
+        """Confirm the current credentials are accepted by the Planet API.
+
+        Raises:
+            LoginException: If the API key or identity is rejected.
+        """
         log.debug("Validating Client ...")
         try:
             for _ in self.client.data.list_searches(limit=1):
@@ -286,7 +350,9 @@ class PlanetClient(QObject):
 
     def log_out(self):
         """
-        Logout of the Planet API by clearing the auth context and Planet SDK client.
+        Logout of the Planet API by clearing the auth context and shut down all API engines.
+
+        Emits ``loginChanged(False)`` if the session was active.
         """
         old_session = self.session
 
@@ -294,23 +360,31 @@ class PlanetClient(QObject):
         self.session = None
         self.mosaics_client = None
         self.client = None
-
+        if self.runner is not None:
+            self.runner.close()
+            self.runner = None
+        # TODO: full logout , file should go into QGIS profile in use
+        # auth should revoke token server side and delete file
         if old_session != self.session:
             self.loginChanged.emit(False)
 
-    def has_client(self) -> bool:
-        """Returns True if the Planet SDK client is initialized."""
-        return self.client is not None
-
     def auth_is_valid(self) -> bool:
-        """Returns True if the auth context is valid."""
+        """Return True if the auth context exists and is initialized.
+
+        Returns:
+            bool: True if auth is ready for use.
+        """
         if not self.auth:
             return False
 
         return self.auth.is_initialized()
 
     def client_is_setup(self) -> bool:
-        """Returns True if the download engines are built and the token is active."""
+        """Returns True if the download engines are built and the token is active.
+
+        Returns:
+            bool: True if the client is ready for API calls.
+        """
         if not self.auth:
             self.get_auth_context()
 
@@ -323,7 +397,11 @@ class PlanetClient(QObject):
         return True
 
     def build_engines(self) -> bool:
-        """Explicitly instantiates the download engines using the current auth context."""
+        """Initialize the session, mosaics client, Planet client, and async runner.
+
+        Returns:
+            bool: True on success, False if auth is invalid or initialization fails.
+        """
         if not self.auth_is_valid():
             log.warning(
                 "Cannot build engines: Authentication context is missing or invalid."
@@ -334,141 +412,372 @@ class PlanetClient(QObject):
             self.session = Session(self.auth)
             self.mosaics_client = self.session.client("mosaics")
             self.client = Planet(self.session)
+            if self.runner is None:
+                self.runner = AsyncRunner()
             return True
         except Exception as e:
             log.error(f"Failed to assemble client engine instances: {str(e)}")
             self.log_out()  # Clean up half-baked state safely
             return False
 
-    """
-    def user(self):
-        return self.p_user
+    async def _aget_one_mosaic(self) -> dict[str, Any] | None:
+        try:
+            mosaics = self.mosaics_client.list_mosaics()
+            first_mosaic = await anext(mosaics, None)
+            return first_mosaic
+        except Exception:
+            log.exception("Failed to get one mosaic")
+            return None
 
-    def api_key(self):
-        if hasattr(self.auth, "value"):
-            return self.auth.value
-        return None
+    @verify_mosaics_client
+    @verify_async_runner
+    def has_access_to_mosaics(self) -> bool:
+        """Return True if the current user has access to the mosaics.
 
-    def has_api_key(self):
-        if hasattr(self.auth, "value"):
-            return self.auth.value not in [None, "", API_KEY_DEFAULT]
-        return False
-    """
-    '''
-    def has_access_to_mosaics(self):
-        url = self._url("basemaps/v1/moe and self.session is not None and self.asaics")
-        params = {"_page_size": 1}
-        response = self._get(url, api_models.Mosaics, params=params).get_body().get()
-        return len(response) > 0
-
-    def list_mosaic_series(self, name_contains=None):
-        """List all available mosaic series
-        :returns: :py:Class:`planet.api.models.JSON`
+        Returns:
+            bool: True if mosaics are accessible.
         """
-        params = {}
-        if name_contains:
-            params["name__contains"] = name_contains
-        url = self._url("basemaps/v1/series/")
-        return self._get(url, api_models.Mosaics, params=params).get_body()
+        first_mosaic = self.runner.run(self._aget_one_mosaic())
+
+        return first_mosaic is not None
+
+    async def _alist_mosaic_series(
+        self, name_contains: str | None = None
+    ) -> list[dict[str, Any]]:
+        try:
+            mosaic_series = self.mosaics_client.list_series(name_contains=name_contains)
+            return [series async for series in mosaic_series]
+        except Exception:
+            log.exception(
+                f"Failed to list available mosaic series with filter: {name_contains}"
+            )
+            return []
+
+    @verify_mosaics_client
+    @verify_async_runner
+    def list_mosaic_series(
+        self, name_contains: str | None = None
+    ) -> list[dict[str, Any]]:
+        """
+        List available mosaic series, optionally filtered by name.
+
+        Args:
+            name_contains (str | None): Optional string to filter mosaic series by name.
+
+        Returns:
+            list[dict[str, Any]]: List of mosaic series as dictionaries.
+        """
+        name_filter = name_contains.strip() if name_contains else None
+
+        return self.runner.run(self._alist_mosaic_series(name_filter))
+
+    async def _aget_mosaics(
+        self, name_contains: str | None = None
+    ) -> list[dict[str, Any]]:
+        try:
+            mosaics = self.mosaics_client.list_mosaics(name_contains=name_contains)
+            return [mosaic async for mosaic in mosaics]
+        except Exception:
+            log.exception(
+                f"Failed to list available mosaics with filter: {name_contains}"
+            )
+            return []
 
     @waitcursor
-    def get_mosaics(self, name_contains=None):
-        """List all available mosaics
-        :returns: :py:Class:`planet.api.models.JSON`
+    @verify_mosaics_client
+    @verify_async_runner
+    def get_mosaics(self, name_contains: str | None = None) -> list[dict[str, Any]]:
+        """List available mosaics, optionally filtered by name.
+
+        Args:
+            name_contains (str | None): Substring to filter mosaic names by.
+
+        Returns:
+            list[dict[str, Any]]: List of mosaic dictionaries.
         """
-        params = {"v": "1.5", "_page_size": 10000}
-        if name_contains:
-            params["name__contains"] = name_contains
-        url = self._url("basemaps/v1/mosaics")
-        return self._get(url, api_models.Mosaics, params=params).get_body()
+        name_filter = name_contains.strip() if name_contains else None
+        return self.runner.run(self._aget_mosaics(name_filter))
 
-    def get_mosaics_for_series(self, series_id):
-        url = self._url("basemaps/v1/series/{}/mosaics?v=1.5".format(series_id))
-        return self._get(url, api_models.Mosaics).get_body()
+    async def _aget_mosaics_for_series(self, series_id: str) -> list[dict[str, Any]]:
+        try:
+            mosaics = self.mosaics_client.list_series_mosaics(series_id)
+            return [mosaic async for mosaic in mosaics]
+        except Exception:
+            log.exception(f"Failed to list mosaics for the series with id {series_id}")
+            return []
 
-    def get_quads_for_mosaic(self, mosaic, bbox=None, minimal=False):
-        """List all available quad for a given mosaic
-        :returns: :py:Class:`planet.api.models.JSON`
+    @verify_mosaics_client
+    @verify_async_runner
+    def get_mosaics_for_series(self, series_id: str) -> list[dict[str, Any]]:
+        """List all mosaics belonging to a specific series.
+
+        Args:
+            series_id (str): ID of the mosaic series.
+
+        Returns:
+            list[dict[str, Any]]: List of mosaic dictionaries.
+        """
+        return self.runner.run(self._aget_mosaics_for_series(series_id))
+
+    async def _aget_mosaic(self, mosaic_name_or_id: str) -> dict[str, Any] | None:
+        try:
+            mosaic = await self.mosaics_client.get_mosaic(mosaic_name_or_id)
+            return mosaic
+        except Exception:
+            log.exception(f"Failed to fetch mosaic with name/id {mosaic_name_or_id}")
+            return None
+
+    @verify_mosaics_client
+    @verify_async_runner
+    def get_mosaic(self, mosaic_name_or_id: str) -> dict[str, Any] | None:
+        """Fetch a single mosaic by name or ID.
+
+        Args:
+            mosaic_name_or_id (str): Name or ID of the mosaic.
+
+        Returns:
+            dict[str, Any] | None: Mosaic dictionary, or None if not found.
+        """
+        return self.runner.run(self._aget_mosaic(mosaic_name_or_id))
+
+    def _url(self, endpoint: str) -> str:
+        """Build a full Planet API URL from a relative endpoint.
+
+        Args:
+            endpoint (str): Relative API endpoint path.
+
+        Returns:
+            str: Full URL.
+        """
+        return "{}/{}".format(self.base_url, endpoint)
+
+    async def _aget(self, url: str, params: dict[Any, Any] | None = None):
+        try:
+            if params:
+                response = await self.session.request(
+                    method="GET", url=url, params=params
+                )
+            else:
+                response = await self.session.request(method="GET", url=url)
+            return response.json()
+        except Exception:
+            log_base = f"Async raw GET request failed for URL: {url}"
+            if params:
+                log.exception(f"{log_base} with params: {params}")
+            else:
+                log.exception(log_base)
+            return None
+
+    @verify_session
+    @verify_async_runner
+    def _get(self, url: str, **params) -> dict[Any, Any]:
+        """
+        Sends a GET request to a Planet API url
+
+        Args:
+            url (str): Full URL to send the GET request to.
+            **params: Optional query parameters to include in the request.
+
+        Returns:
+            dict[Any, Any] | None: JSON response as a dictionary, or None on failure.
+
+        Example:
+            self._get(url, minimal=True, page_size=50)
+        """
+        query_params = params if params else None
+        return self.runner.run(self._aget(url, query_params))
+
+    async def _apage_iterator(self, endpoint: str, key: str, params: dict[str, Any]):
+        url = self._url(endpoint)
+        counter = 1
+        while url:
+            if counter > 1:
+                response_data = await self._aget(url=url)
+            else:
+                response_data = await self._aget(url=url, params=params)
+
+            if response_data is None:
+                break
+
+            items = response_data.get(key, None)
+            if items is None:
+                break
+            else:
+                yield items
+
+            links = response_data.get("_links", {})
+            if "_next" in links:
+                url = links["_next"]
+                counter += 1
+            else:
+                break
+
+    @verify_session
+    @verify_async_runner
+    def _consume_pages(self, endpoint: str, key: str, **params):
+        """
+        Walk a paginated Planet API endpoint, yielding individual items.
+
+        Args:
+            endpoint (str): Relative API endpoint to paginate.
+            key (str): Key to extract items from the response.
+            **params: Optional query parameters to include in the request.
+
+        Yields:
+            dict[str, Any]: Individual items across all pages.
+        """
+        async_gen = self._apage_iterator(endpoint, key, params)
+        while True:
+            try:
+                page_items = self.runner.run(async_gen.__anext__())
+
+                for item in page_items:
+                    yield item
+
+            except StopAsyncIteration:
+                break
+
+    async def _aget_one_quad(self, mosaic_id: str) -> dict[str, Any]:
+        try:
+            quads = self.mosaics_client.list_quads(mosaic_id, full_extent=True)
+            first_quad = await anext(quads, {})
+            return first_quad
+        except Exception:
+            log.debug(f"Failed to get one quad for the mosaic with id {mosaic_id}")
+            return {}
+
+    @verify_mosaics_client
+    @verify_async_runner
+    def get_one_quad(self, mosaic: str | dict[str, Any]) -> dict[str, Any]:
+        """
+        Fetch a single quad from a mosaic.
+
+        Args:
+            mosaic (str | dict[str, Any]): Mosaic ID or mosaic dictionary.
+
+        Returns:
+            dict[str, Any]: Quad as a dictionary, or empty dict if none found.
         """
         if isinstance(mosaic, str):
-            mosaicid = mosaic
+            mosaic_id = mosaic
         else:
-            mosaicid = mosaic["id"]
+            mosaic_id = mosaic["id"]
 
-        url = self._url(
-            f"basemaps/v1/mosaics/{mosaicid}/quads?bbox="
-            f"{bbox[0]}, {bbox[1]}, {bbox[2]}, {bbox[3]}"
-        )
+        return self.runner.run(self._aget_one_quad(mosaic_id))
+
+    async def _ahas_access_to_quads(self) -> bool:
+        """Return True if the current user can access quads.
+
+        Returns:
+            bool: True if at least one quad is accessible.
+        """
+        mosaic = await self._aget_one_mosaic()
+        if not mosaic:
+            return False
+
+        mosaic_id = mosaic["id"]
+        quad = await self._aget_one_quad(mosaic_id)
+        return bool(quad)
+
+    @verify_mosaics_client
+    @verify_async_runner
+    def has_access_to_quads(self) -> bool:
+        """Check if the logged in user has access to quads
+
+        Returns:
+            bool: True if the user has access to at least one quad, False otherwise.
+        """
+
+        return self.runner.run(self._ahas_access_to_quads())
+
+    # NOTE: User may have access to mosaics but unable to download the quads.
+    # Using the SDK functions in this case throws an error. The quad functions
+    # below use raw API calls using the SDK Session request module.
+    # to be able to preview the quads even if a user cannot download them.
+    def get_quads_for_mosaic(
+        self,
+        mosaic: str | dict[str, Any],
+        bbox: list | None = None,
+        minimal: bool = False,
+    ) -> list[dict[str, Any]]:
+        """List all quads for a mosaic, optionally clipped to a bounding box.
+
+        Args:
+            mosaic (str | dict[str, Any]): Mosaic ID or mosaic dictionary.
+            bbox (list | None): Bounding box as [min_lon, min_lat, max_lon, max_lat].
+                Defaults to the mosaic's full extent if omitted.
+            minimal (bool): If True, return minimal quad metadata.
+
+        Returns:
+            list[dict[str, Any]]: List of quad dictionaries.
+        """
+        if isinstance(mosaic, str):
+            mosaic_id = mosaic
+        else:
+            mosaic_id = mosaic["id"]
+
         if bbox is None:
             if isinstance(mosaic, str):
                 bbox = [-180, -85, 180, 85]
             else:
                 bbox = mosaic["bbox"]
-        bbox = (
-            max(-180, bbox[0]),
-            max(-84.99, bbox[1]),
-            min(180, bbox[2]),
-            min(84.99, bbox[3]),
-        )
-        url = url.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
-        if minimal:
-            url += "&minimal=true"
-        return self._get(url, api_models.MosaicQuads).get_body()
+        else:
+            bbox = [
+                max(-180, bbox[0]),
+                max(-84.99, bbox[1]),
+                min(180, bbox[2]),
+                min(84.99, bbox[3]),
+            ]
 
-    def get_one_quad(self, mosaic):
-        url = self._url(f'basemaps/v1/mosaics/{mosaic["id"]}/quads')
-        params = {"_page_size": 1, "bbox": ",".join(str(v) for v in mosaic["bbox"])}
-        response = self._get(url, api_models.MosaicQuads, params=params)
-        quad = response.get_body().get().get("items")[0]
-        return quad
+        bbox_str = "{lx},{ly},{ux},{uy}"
+        bbox_str = bbox_str.format(lx=bbox[0], ly=bbox[1], ux=bbox[2], uy=bbox[3])
 
-    def get_items_for_quad(self, mosaicid, quadid):
-        url = self._url(f"basemaps/v1/mosaics/{mosaicid}/quads/{quadid}/items")
-        response = self._get(url, api_models.JSON)
-        item_descriptions = []
-        items = response.get_body().get().get("items")
-        for item in items:
-            if item["link"].startswith("https://api.planet.com"):
-                response = self._get(item["link"], api_models.JSON)
-                item_descriptions.append(response.get_body().get())
+        endpoint = f"basemaps/v1/mosaics/{mosaic_id}/quads"
+        key = "items"
 
-        return item_descriptions
+        quads = self._consume_pages(endpoint, key, bbox=bbox_str, minimal=minimal)
 
-    def create_order(self, request):
-        api_key = PlanetClient.getInstance().api_key()
-        url = self._url("compute/ops/orders/v2")
-        headers = {"X-Planet-App": "qgis"}
-        session = PlanetClient.getInstance().dispatcher.session
-        res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
+        return list(quads)
 
-        return res
+    @verify_session
+    @verify_async_runner
+    def get_items_for_quad(self, mosaic_id: str, quad_id: str) -> list[dict[str, Any]]:
+        """
+        Fetch a mosaic's quad information. It fetches all items contributing to
+        a specific quad.
 
-    def update_search(self, request, searchid):
-        body = json.dumps(request)
-        return self.dispatcher.response(
-            api_models.Request(
-                self._url(f"data/v1/searches/{searchid}"),
-                self.auth,
-                body_type=api_models.JSON,
-                data=body,
-                method="PUT",
-            )
-        ).get_body()
+        Args:
+            mosaic_id (str): Mosaic ID.
+            quad_id (str): Quad ID.
 
-    def delete_search(self, searchid):
-        return self.dispatcher.response(
-            api_models.Request(
-                self._url(f"data/v1/searches/{searchid}"),
-                self.auth,
-                body_type=api_models.JSON,
-                method="DELETE",
-            )
-        ).get_body()
+        Returns:
+            list[dict[str, Any]]: List of item dictionaries.
+        """
+        endpoint = f"basemaps/v1/mosaics/{mosaic_id}/quads/{quad_id}/items"
+        key = "items"
+        items = self._consume_pages(endpoint, key)
+        items = list(items)
+
+        async def get_item_descriptions(
+            items: list[dict[str, Any]],
+        ) -> list[dict[str, Any]]:
+            item_descriptions = []
+            for item in items:
+                url = item["link"]
+                response = await self._aget(url=url)
+                item_descriptions.append(response)
+            return item_descriptions
+
+        return self.runner.run(get_item_descriptions(items))
 
     @pyqtSlot(result=bool)
-    def update_user_quota(self):
-        """
-        Example quota response
+    def update_user_quota(self) -> bool:
+        """Fetch and cache the current user's area quota from the Planet API.
+
+        Returns:
+            bool: True if quota data was retrieved and cached, False otherwise.
+
+        Example quota response:
 
         [
           {
@@ -510,35 +819,22 @@ class PlanetClient(QObject):
           ...
         ]
         """
-        if not self.api_key():
-            log.warning("No API key found for getting quota")
-            return False
-
-        # TODO: Catch errors
-        # TODO: Switch to async call
-        # response = self.dispatcher.dispatch_request(
-        #     method="GET", url=QUOTA_URL, auth=self.auth)
-
-        resp: api_models.JSON = self.dispatcher.response(
-            api_models.Request(
-                QUOTA_URL, auth=self.auth, body_type=api_models.JSON, method="GET"
-            )
-        ).get_body()
-
-        resp_data = resp.get()
-        log.debug(f"resp_data:\n{resp_data}")  # noqa: E231
-        if not resp_data:
+        response = self._get(url=QUOTA_URL)
+        if not response:
             log.warning("No response data found for getting quota")
             return False
 
+        response_data = response[0]
+        log.debug(f"resp_data:\n{response_data}")  # noqa: E231
+
         quota_keys = ["quota_enabled", "quota_sqkm", "quota_used"]
-        has_quota_data = all([q in resp_data for q in quota_keys])
+        has_quota_data = all([q in response_data for q in quota_keys])
 
         if has_quota_data:
-            quota_enabled = bool(resp_data["quota_enabled"])
+            quota_enabled = bool(response_data["quota_enabled"])
             self._user_quota["enabled"] = quota_enabled
-            self._user_quota["sqkm"] = resp_data["quota_sqkm"]
-            self._user_quota["used"] = resp_data["quota_used"]
+            self._user_quota["sqkm"] = response_data["quota_sqkm"]
+            self._user_quota["used"] = response_data["quota_used"]
             log.debug(
                 f""" Quota (sqkm)
               Enabled: {str(self.user_quota_enabled())}
@@ -553,16 +849,36 @@ class PlanetClient(QObject):
 
         return True
 
-    def user_quota_enabled(self):
+    def user_quota_enabled(self) -> bool:
+        """Return True if the user's area quota is enabled.
+
+        Returns:
+            bool: True if quota tracking is active.
+        """
         return bool(self._user_quota["enabled"])
 
-    def user_quota_size(self):
+    def user_quota_size(self) -> bool:
+        """Return True if the user's quota size is enabled.
+
+        Returns:
+            bool: True if quota size tracking is active.
+        """
         return bool(self._user_quota["sqkm"])
 
-    def user_quota_used(self):
+    def user_quota_used(self) -> bool:
+        """Return True if the user's quota usage is enabled.
+
+        Returns:
+            bool: True if quota usage tracking is active.
+        """
         return bool(self._user_quota["used"])
 
     def user_quota_remaining(self):
+        """Return the user's remaining quota in square kilometres.
+
+        Returns:
+            float | None: Remaining quota in sqkm, or None if quota is not enabled.
+        """
         # if not self.update_user_quota():
         #     return None
 
@@ -570,6 +886,65 @@ class PlanetClient(QObject):
             return float(self._user_quota["sqkm"]) - float(self._user_quota["used"])
 
         return None
+
+    async def aget_image_bytes(self, image_url: str) -> bytes | None:
+        response = await self.session._client.request(method="GET", url=image_url)
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            log.exception(
+                f"Failed to fetch image from url: {image_url} due to: {str(e)}"
+            )
+            return None
+
+        raw_bytes = response.content
+        return raw_bytes
+
+    @verify_session
+    @verify_async_runner
+    def get_image_bytes(self, image_url: str) -> bytes | None:
+        """Fetch raw image bytes from a URL.
+
+        Args:
+            image_url (str): The URL of the image to fetch.
+
+        Returns:
+            bytes | None: Raw image bytes, or None if the request failed.
+        """
+        return self.runner.run(self.aget_image_bytes(image_url))
+
+    '''
+    def create_order(self, request):
+        api_key = PlanetClient.getInstance().api_key()
+        url = self._url("compute/ops/orders/v2")
+        headers = {"X-Planet-App": "qgis"}
+        session = PlanetClient.getInstance().dispatcher.session
+        res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
+
+        return res
+
+    def update_search(self, request, searchid):
+        body = json.dumps(request)
+        return self.dispatcher.response(
+            api_models.Request(
+                self._url(f"data/v1/searches/{searchid}"),
+                self.auth,
+                body_type=api_models.JSON,
+                data=body,
+                method="PUT",
+            )
+        ).get_body()
+
+    def delete_search(self, searchid):
+        return self.dispatcher.response(
+            api_models.Request(
+                self._url(f"data/v1/searches/{searchid}"),
+                self.auth,
+                body_type=api_models.JSON,
+                method="DELETE",
+            )
+        ).get_body()
+
 
     def asset_types_for_item_type(self, item_type):
         if item_type not in self._asset_types:
@@ -718,3 +1093,40 @@ def tile_service_url(
 
     return url
     '''
+
+
+class AsyncRunner:
+    def __init__(self) -> None:
+        self._closed = False
+        self._ready = threading.Event()
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(
+            target=self._start_loop,
+            name="AsyncRunner",
+            daemon=True,
+        )
+        self._thread.start()
+        self._ready.wait()
+
+    def _start_loop(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._ready.set()
+        self._loop.run_forever()
+
+    def run(self, coro: Coroutine[Any, Any, T]) -> T:
+        if self._closed:
+            raise RuntimeError(
+                "Async runner is closed. "
+                "Reconnect or reinitialize the client before making requests."
+            )
+
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return future.result()
+
+    def close(self) -> None:
+        if self._closed:
+            return
+
+        self._closed = True
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._thread.join()
