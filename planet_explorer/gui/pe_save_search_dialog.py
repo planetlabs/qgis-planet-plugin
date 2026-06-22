@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_save_search_dialog.py
+    ------------------------
+    Date                 : August 2019
+    Copyright            : (C) 2019 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
 import copy
 import json
 import os
@@ -60,8 +76,8 @@ class SaveSearchDialog(BASE, WIDGET):
         if self._folder_names is None:
             self._folder_names = [""]
             client = PlanetClient.getInstance()
-            res = client.get_searches().get()
-            for search in res["searches"]:
+            searches = list(client.client.data.list_searches(limit=0))
+            for search in searches:
                 tokens = search["name"].split("/")
                 if len(tokens) > 1 and tokens[0] not in self._folder_names:
                     self._folder_names.append(tokens[0])

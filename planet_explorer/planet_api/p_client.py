@@ -26,6 +26,7 @@ import gzip
 import logging
 import os
 import re
+import secrets
 import threading
 from collections.abc import Coroutine
 from typing import (
@@ -59,6 +60,8 @@ TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 # TODO: Replace once a custom Client ID is provided
 CLIENT_ID = _SDK_CLIENT_ID_PROD
 PROFILE_NAME = "planet-qgis-plugin"
+
+API_KEY_DEFAULT = "SKIP_ENVIRON"
 
 T = TypeVar("T")
 
@@ -237,6 +240,7 @@ class PlanetClient(QObject):
         self.base_url = "https://api.planet.com"
 
         # Login
+        self.api_key = API_KEY_DEFAULT
         self.auth = None
         self.session = None
         self.mosaics_client = None
@@ -329,6 +333,13 @@ class PlanetClient(QObject):
 
         self.build_engines()
 
+        # WARNING: Use of API Keys is strongly discouraged in v3 of the
+        # planet sdk but required here for tile urls to be added
+        # to QGIS.
+        # TODO: Find work around for tile urls and remove
+        # this.
+        self.api_key = self.get_api_key()
+
         self.update_user_quota()
 
         if old_session != self.session:
@@ -356,6 +367,7 @@ class PlanetClient(QObject):
         """
         old_session = self.session
 
+        self.api_key = None
         self.auth = None
         self.session = None
         self.mosaics_client = None
@@ -913,53 +925,93 @@ class PlanetClient(QObject):
         """
         return self.runner.run(self.aget_image_bytes(image_url))
 
-    '''
-    def create_order(self, request):
-        api_key = PlanetClient.getInstance().api_key()
-        url = self._url("compute/ops/orders/v2")
-        headers = {"X-Planet-App": "qgis"}
-        session = PlanetClient.getInstance().dispatcher.session
-        res = session.post(url, auth=(api_key, ""), json=request, headers=headers)
+    def update_search(self, request: dict[str, Any], search_id: str) -> dict[str, Any]:
+        """Update an existing saved search.
 
-        return res
+        Args:
+            request (dict[str, Any]): The request data for updating the search.
+            search_id (str): Saved search identifier.
 
-    def update_search(self, request, searchid):
-        body = json.dumps(request)
-        return self.dispatcher.response(
-            api_models.Request(
-                self._url(f"data/v1/searches/{searchid}"),
-                self.auth,
-                body_type=api_models.JSON,
-                data=body,
-                method="PUT",
-            )
-        ).get_body()
+        Returns:
+            dict[str, Any]: Description of the saved search.
 
-    def delete_search(self, searchid):
-        return self.dispatcher.response(
-            api_models.Request(
-                self._url(f"data/v1/searches/{searchid}"),
-                self.auth,
-                body_type=api_models.JSON,
-                method="DELETE",
-            )
-        ).get_body()
+        """
+        search = self.p_client.data.update_search(
+            search_id=search_id,
+            item_types=request["item_types"],
+            search_filter=request["filter"],
+            name=request["name"],
+        )
 
+        return search
 
-    def asset_types_for_item_type(self, item_type):
+    def create_search(self, request: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a new saved structured item search.
+
+        Args:
+            request (dict[str, Any]): _description_
+
+        Returns:
+            dict[str, Any]: Description of the saved search.
+
+        """
+
+        return self.p_client.data.create_search(
+            item_types=request["item_types"],
+            search_filter=request["search_filter"],
+            name=request["name"],
+        )
+
+    def asset_types_for_item_type(self, item_type: str) -> list[dict[str, Any]]:
+        """Return the available asset types for a given item type.
+
+        Args:
+            item_type: The item type ID (e.g. ``"PSScene"``).
+
+        Returns:
+            A list of asset type objects as returned by the Planet Data API.
+        """
         if item_type not in self._asset_types:
             url = self._url(f"data/v1/item-types/{item_type}/asset-types")
-            asset_types = (
-                self._get(url, api_models.JSON).get_body().get()["asset_types"]
-            )
+            response_data = self._get(url)
+            asset_types = response_data["asset_types"]
             self._asset_types[item_type] = asset_types
         return self._asset_types[item_type]
 
-    def asset_types_for_item_type_as_dict(self, item_type):
+    def asset_types_for_item_type_as_dict(
+        self, item_type: str
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Return the available asset types for a given item type,
+        keyed by asset type ID.
+
+        Convenience wrapper around :meth:`asset_types_for_item_type`
+        that transforms the list into a dictionary for O(1)
+        lookups by asset type ID.
+
+        Args:
+            item_type: The item type ID (e.g. ``"PSScene"``).
+
+        Returns:
+            A mapping of asset type ID to asset type object
+            (e.g. ``{"ortho_analytic_4b": {...}}``).
+
+        """
         asset_types = self.asset_types_for_item_type(item_type)
         return {a["id"]: a for a in asset_types}
 
     def psscene_asset_types_for_nbands(self, nbands):
+        """Return PSScene asset type IDs that have at least
+        the specified number of bands.
+
+        Args:
+            nbands: Minimum number of bands required.
+
+        Returns:
+            A list of asset type IDs whose band count is greater
+            than or equal to ``nbands``.
+        """
         asset_types = self.asset_types_for_item_type("PSScene")
         return [
             asset["id"]
@@ -967,26 +1019,56 @@ class PlanetClient(QObject):
             if "bands" in asset and len(asset.get("bands")) >= nbands
         ]
 
-    def item_types(self):
+    def item_types(self) -> list[dict[str, Any]]:
+        """Return all available item types,
+        filtered to those with a multi-word display name.
+
+        Returns:
+            A list of item type objects as returned by the Planet Data API.
+        """
         if self._item_types is None:
             url = self._url("data/v1/item-types/")
-            self._item_types = (
-                self._get(url, api_models.JSON).get_body().get()["item_types"]
-            )
+            response_data = self._get(url)
+            self._item_types = response_data["item_types"]
             self._item_types = [v for v in self._item_types if " " in v["display_name"]]
         return self._item_types
 
-    def item_types_names(self):
+    def item_types_names(self) -> dict[str, str]:
+        """Return a mapping of item type ID to display name.
+
+        Convenience wrapper around :meth:`item_types`.
+
+        Returns:
+            A mapping of item type ID to display name
+            (e.g. ``{"PSScene": "PlanetScope Scene"}``).
+        """
         item_types = self.item_types()
         return {t["id"]: t["display_name"] for t in item_types}
 
-    def bundles(self):
+    def bundles(self) -> dict[str, Any]:
+        """Return the available product bundles from Planet's bundle registry.
+
+        Returns:
+            A mapping of bundle ID to bundle definition, as returned by the
+            Planet product bundles endpoint.
+        """
         url = "https://us-central1-planet-webapps-prod.cloudfunctions.net/productBundles/latest"
         if self._bundles is None:
-            self._bundles = self._get(url, api_models.JSON).get_body().get()
+            self._bundles = self._get(url)
         return self._bundles
 
-    def bundles_for_item_type(self, item_type):
+    def bundles_for_item_type(self, item_type: str) -> dict[str, Any]:
+        """Return available product bundles for a given item type,
+        keyed by bundle ID.
+
+        Excludes NITF bundles and bundles whose auxiliary files are UDM-only.
+
+        Args:
+            item_type: The item type ID (e.g. ``"PSScene"``).
+
+        Returns:
+            A mapping of bundle ID to bundle definition.
+        """
         bundles = self.bundles()
         bndls_per_it = {
             b["id"]: b
@@ -995,7 +1077,29 @@ class PlanetClient(QObject):
         }
         return bndls_per_it
 
-    def bundles_for_item_type_and_permissions(self, item_type, permissions):
+    def bundles_for_item_type_and_permissions(
+        self, item_type: str, permissions: list[list[str]]
+    ) -> dict[str, Any]:
+        """Return bundles for an item type that are downloadable given
+        a set of asset permissions.
+
+        Filters the available bundles for ``item_type`` to only those
+        whose required assets are all present in every set of permissions
+        provided. Permissions are parsed via ``ITEM_ASSET_DL_REGEX``
+        to extract the asset type ID from each permission string.
+
+        Args:
+            item_type: The item type ID (e.g. ``"PSScene"``).
+            permissions: A list of per-image permission lists,
+                where each inner list contains raw permission strings
+                (e.g. ``["assets.ortho_analytic_4b:download"]``).
+                A bundle is included only if all its assets are permitted
+                across every image.
+
+        Returns:
+            A mapping of bundle ID to bundle definition for bundles that
+            are fully accessible under the provided permissions.
+        """
         bundles = self.bundles_for_item_type(item_type)
 
         permissions_cleaned = []
@@ -1020,15 +1124,138 @@ class PlanetClient(QObject):
 
         return allowed_bundles
 
+    async def _apost(
+        self, url: str, json_data: dict[Any, Any], params: dict[Any, Any] | None = None
+    ) -> dict[Any, Any]:
+        try:
+            response = await self.session.request(
+                method="POST", url=url, json=json_data, params=params
+            )
+            return response.json()
+        except Exception:
+            log.exception(
+                f"Async raw POST request failed for URL: {url} with parameters: {params}"
+            )
+            return {}
 
-def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
+    @verify_session
+    @verify_async_runner
+    def _post(self, url: str, json_data: dict[Any, Any], **params) -> dict[Any, Any]:
+        """
+        Sends a POST request to a Planet API url
+
+        Args:
+            url: Full URL to send the POST request to
+            json_data: JSON data to include in the POST request
+            params: Optional query parameters to include in the request
+
+        Returns:
+            dict[Any, Any]: JSON response as a dictionary, or empty dict on failure
+
+        Example usage: self._post(url, json_data={"key": "value"}, minimal=True, page_size=50)
+        """
+        return self.runner.run(self._apost(url, json_data, params))
+
+    @verify_mosaics_client
+    @verify_async_runner
+    def get_api_key(self):
+        # WARNING: This is a very hacky way to get the api key
+        # for the tile service url for QGIS.
+        # TODO: Work around needed for QGIS to be able to authenticate
+        # a tile service url using the planet auth object.
+        if self.has_access_to_mosaics():
+            first_mosaic = self.runner.run(self._aget_one_mosaic())
+            tile_url = first_mosaic["_links"]["tiles"]
+            api_key = tile_url.split("?")[-1].strip("api_key=")
+            return api_key
+        else:
+            # TODO: API Key if user only has access to daily imagery
+            pass
+
+        return ""
+
+    def has_api_key(self):
+        if hasattr(self, "api_key"):
+            return self.api_key not in [None, "", API_KEY_DEFAULT]
+        return False
+
     """
-    :param item_type_ids: List of item Type:IDs
-    :param api_key: API key string
-    :return: Tile service hash that can be used in tile URLs
+    def stats(self, request: dict[str, Any]) -> dict:
+        return self.client.data.get_stats(
+            item_types=request["item_types"],
+            search_filter=request["filter"],
+            interval=request["interval"]
+            )
     """
 
-    api_key = PlanetClient.getInstance().api_key()
+    async def _aget_stats(self, request: dict[str, Any]) -> dict:
+        url = "https://api.planet.com/data/v1/stats"
+        payload = {
+            "item_types": request["item_types"],
+            "filter": request["filter"],
+            "interval": request["interval"],
+        }
+        response = await self.session.request(method="POST", url=url, json=payload)
+        return response.json()
+
+    @verify_session
+    @verify_async_runner
+    def stats(self, request: dict[str, Any]) -> dict:
+        try:
+            return self.runner.run(self._aget_stats(request))
+        except Exception as e:
+            log.error(request)
+            log.exception(f"Failed to get stats: {e}")
+            raise
+
+    """
+    async def _aget_quick_search_page(
+        self, request: dict[str, Any], page_size: int, sort: str
+    ) -> dict:
+        url = "https://api.planet.com/data/v1/quick-search"
+        payload = {
+            "item_types": request["item_types"],
+            "filter": request["filter"],
+        }
+        params = {"_page_size": page_size, "_sort": sort}
+        response = await self.session.request(
+            method="POST", url=url, json=payload, params=params
+        )
+        return response.json()
+
+    @verify_session
+    @verify_async_runner
+    def quick_search(
+        self, request: dict[str, Any], page_size: int = 250, sort: str = "acquired desc"
+    ):
+        try:
+            first_page = self.runner.run(
+                self._aget_quick_search_page(request, page_size, sort)
+            )
+            return QuickSearchResponse(first_page, self, request, page_size, sort)
+        except Exception as e:
+            log.error(request)
+            log.exception(f"Failed to perform quick search: {e}")
+            raise
+    """
+
+
+def tile_service_hash(item_type_ids: list[str]) -> str | None:
+    """Return a tile service hash for the given item type IDs.
+
+    Registers the provided items with the Planet tile service and returns
+    the resulting hash, which can be used to construct tile URLs. Items are
+    registered in reverse order. Returns ``None`` if the list is empty or
+    if the request fails.
+
+    Args:
+        item_type_ids: List of item type:ID strings (e.g. ``["PSScene:20221003_002705_38_2461"]``).
+
+    Returns:
+        The tile service hash string, or ``None`` if registration failed or
+        no IDs were provided.
+    """
+    p_client = PlanetClient.getInstance()
 
     if not item_type_ids:
         log.debug("No item type:ids passed, skipping tile hash")
@@ -1039,33 +1266,41 @@ def tile_service_hash(item_type_ids: List[str]) -> Optional[str]:
 
     tile_url = TILE_SERVICE_URL.format("")
 
-    session = PlanetClient.getInstance().dispatcher.session
-    res = session.post(tile_url, auth=(api_key, ""), data=data)
-    if res.ok:
-        res_json = res.json()
+    try:
+        res_json = p_client._post(tile_url, json_data=data)
         if "name" in res_json:
             return res_json["name"]
-    else:
+    except Exception as e:
         log.debug(
             f"Tile service hash request failed:\n"  # noqa: E231
-            f"status_code: {res.status_code}\n"  # noqa: E231
-            f"reason: {res.reason}"
+            f"reason: {e}"
         )
 
     return None
 
 
 def tile_service_url(
-    item_type_ids: List[str], tile_hash: Optional[str] = None, service: str = "xyz"
-) -> Optional[str]:
+    item_type_ids: list[str], tile_hash: str | None = None, service: str = "xyz"
+) -> str | None:
+    """Return a tile service URL for the given items.
+
+    Constructs a tile URL for either XYZ or WMTS tile services. If no
+    ``tile_hash`` is provided, one is obtained by calling :func:`tile_service_hash`
+    with ``item_type_ids``. Returns ``None`` if neither a hash nor valid item IDs
+    are available, or if the hash cannot be obtained.
+
+    Args:
+        item_type_ids: List of item type:ID strings (e.g. ``["PSScene:20221003_002705_38_2461"]``).
+            Only used if ``tile_hash`` is not provided.
+        tile_hash: Pre-computed tile service hash. If provided, ``item_type_ids`` is ignored.
+        service: Tile service type, either ``"xyz"`` (default) or ``"wmts"``.
+            XYZ URLs include a random subdomain for load balancing.
+
+    Returns:
+        The tile service URL string, or ``None`` if a hash could not be
+        obtained or no IDs were provided.
     """
-    :param item_type_ids: List of item 'Type:IDs'
-    :param api_key: Planet API key
-    :param tile_hash: Tile service hash
-    :param service: Either 'xyz' or 'wmts'
-    :return: Tile service URL
-    """
-    api_key = PlanetClient.getInstance().api_key()
+    p_client = PlanetClient.getInstance()
 
     if not tile_hash:
         if not item_type_ids:
@@ -1082,21 +1317,40 @@ def tile_service_url(
     url = None
     if service.lower() == "wmts":
         tile_url = TILE_SERVICE_URL.format("")
-        url = f"{tile_url}/wmts/{tile_hash}?api_key={api_key}"
+        url = f"{tile_url}/wmts/{tile_hash}?api_key={p_client.api_key}"
     elif service.lower() == "xyz":
-        tile_url = TILE_SERVICE_URL.format(secrets.randbelow(4))
+        tile_url = TILE_SERVICE_URL.format(secrets.choice([0, 1, 2, 3]))
         url = (
             f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?"
-            f"api_key={api_key}"
+            f"api_key={p_client.api_key}"
             f"&ua={user_agent()}"
         )
 
     return url
-    '''
 
 
 class AsyncRunner:
+    """Runs async coroutines from synchronous code using a dedicated background thread.
+
+    Manages a persistent event loop running in a daemon thread, allowing
+    synchronous callers to execute coroutines and block until they complete.
+    This avoids the need to create a new event loop per call and is safe to
+    use from any thread.
+
+    Example::
+
+        runner = AsyncRunner()
+        result = runner.run(some_coroutine())
+        runner.close()
+
+    The runner should be closed when no longer needed. It can also be used
+    as a context manager if wrapped accordingly. Once closed, calls to
+    :meth:`run` will raise a ``RuntimeError``.
+    """
+
     def __init__(self) -> None:
+        """Start the background event loop thread
+        and block until it is ready."""
         self._closed = False
         self._ready = threading.Event()
         self._loop = asyncio.new_event_loop()
@@ -1114,6 +1368,18 @@ class AsyncRunner:
         self._loop.run_forever()
 
     def run(self, coro: Coroutine[Any, Any, T]) -> T:
+        """Submit a coroutine to the background event
+        loop and block until it completes.
+
+        Args:
+            coro: The coroutine to execute.
+
+        Returns:
+            The return value of the coroutine.
+
+        Raises:
+            RuntimeError: If the runner has been closed.
+        """
         if self._closed:
             raise RuntimeError(
                 "Async runner is closed. "
@@ -1124,6 +1390,11 @@ class AsyncRunner:
         return future.result()
 
     def close(self) -> None:
+        """Stop the background event loop and join the thread.
+
+        Safe to call multiple times.
+        Subsequent calls after the first are no-ops.
+        """
         if self._closed:
             return
 
