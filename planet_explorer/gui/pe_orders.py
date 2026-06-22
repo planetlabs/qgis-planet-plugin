@@ -28,6 +28,7 @@ import os
 from collections import OrderedDict, defaultdict
 from functools import partial
 
+from planet.exceptions import APIError
 from qgis.core import Qgis, QgsMessageLog
 from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
@@ -1037,11 +1038,9 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         responses_ok = True
         for order in orders:
-            resp = self._p_client.create_order(order)
-            resp_json = resp.json()
-
-            # If the order request failed
-            if resp.status_code >= 400:
+            try:
+                resp_json = self._p_client.orders.create_order(order)
+            except APIError:
                 order_name = order["name"]
 
                 if resp_json and resp_json["general"][0]["message"]:

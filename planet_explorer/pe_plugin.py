@@ -60,18 +60,14 @@ from qgis.PyQt.QtWidgets import (
 )
 from requests import exceptions
 
-"""
-from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
-"""
 from planet_explorer.gui.pe_auth_dialog import PlanetAuthenticationDialog
-
-# from planet_explorer.gui.pe_explorer_dockwidget import (
-# remove_explorer,
-# show_explorer,
-# toggle_images_search,
-# toggle_mosaics_search,
-# )
-"""
+from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
+from planet_explorer.gui.pe_explorer_dockwidget import (
+    remove_explorer,
+    show_explorer,
+    toggle_images_search,
+    toggle_mosaics_search,
+)
 from planet_explorer.gui.pe_orders_monitor_dockwidget import (
     hide_orders_monitor,
     remove_orders_monitor,
@@ -82,16 +78,11 @@ from planet_explorer.gui.pe_planet_inspector_dockwidget import (
     remove_inspector,
     toggle_inspector,
 )
-)
-"""
 from planet_explorer.gui.pe_settings_dialog import SettingsDialog
-
-"""
 from planet_explorer.gui.pe_tasking_dockwidget import (
     remove_tasking_widget,
     toggle_tasking_widget,
 )
-"""
 from planet_explorer.pe_analytics import (
     is_segments_write_key_valid,
     is_sentry_dsn_valid,
@@ -102,6 +93,7 @@ from planet_explorer.pe_utils import (  # add_widget_to_layer,
     BASE_URL,
     PLANET_COLOR,
     add_menu_section_action,
+    add_widget_to_layer,
     log,
     open_link_with_browser,
     plugin_version,
@@ -331,7 +323,7 @@ class PlanetExplorer(object):
 
         self.toolbar = self.iface.addToolBar(P_E)
         self.toolbar.setObjectName(P_E)
-        """
+
         self.showdailyimages_act = self.add_action(
             os.path.join(plugin_path, "resources", "search.svg"),
             text=self.tr(P_E),
@@ -340,9 +332,6 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-        """
-
-        """
         self.showbasemaps_act = self.add_action(
             os.path.join(plugin_path, "resources", "basemap.svg"),
             text=self.tr("Show Basemaps Search"),
@@ -351,9 +340,7 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-        """
 
-        """
         self.showinspector_act = self.add_action(
             os.path.join(plugin_path, "resources", "inspector.svg"),
             text=self.tr("Show Planet Inspector..."),
@@ -362,9 +349,7 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-        """
 
-        """
         self.showtasking_act = self.add_action(
             os.path.join(plugin_path, "resources", "tasking.svg"),
             text=self.tr("Show Tasking..."),
@@ -373,11 +358,9 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-        """
 
         self.add_central_toolbar_button()
 
-        """
         self.showorders_act = self.add_action(
             os.path.join(plugin_path, "resources", "orders.svg"),
             text=self.tr("Show Orders Monitor..."),
@@ -386,7 +369,7 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-        """
+
         self.add_user_button()
 
         self.add_info_button()
@@ -399,16 +382,14 @@ class PlanetExplorer(object):
             add_to_toolbar=False,
             parent=self.iface.mainWindow(),
         )
-        """
+
         self.provider = BasemapLayerWidgetProvider()
         QgsGui.layerTreeEmbeddedWidgetRegistry().addProvider(self.provider)
-        """
 
-        """
         QgsProject.instance().projectSaved.connect(self.project_saved)
         QgsProject.instance().layersAdded.connect(self.layers_added)
         QgsProject.instance().layerRemoved.connect(self.layer_removed)
-        """
+
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
         self.enable_buttons(False)
 
@@ -443,16 +424,12 @@ class PlanetExplorer(object):
         else:
             self.login()
 
-    """
     def layer_removed(self, layer):
         self.provider.layerWasRemoved(layer)
-    """
 
-    """
     def layers_added(self, layers):
         for layer in layers:
             add_widget_to_layer(layer)
-    """
 
     def login_changed(self, loggedin):
         # self.provider.updateLayerWidgets()
@@ -462,8 +439,8 @@ class PlanetExplorer(object):
             pass
 
         if not loggedin:
-            # hide_orders_monitor()
-            # hide_inspector()
+            hide_orders_monitor()
+            hide_inspector()
             pass
 
     def add_info_button(self):
@@ -576,9 +553,9 @@ class PlanetExplorer(object):
         if self.toolbar is not None:
             del self.toolbar
 
-        """
         remove_inspector()
         remove_explorer()
+
         remove_orders_monitor()
         remove_tasking_widget()
 
@@ -589,7 +566,6 @@ class PlanetExplorer(object):
         QgsProject.instance().projectSaved.disconnect(self.project_saved)
         QgsProject.instance().layersAdded.disconnect(self.layers_added)
         QgsProject.instance().layerRemoved.disconnect(self.layer_removed)
-        """
 
     # -----------------------------------------------------------
     def show_settings(self):
@@ -633,8 +609,10 @@ class PlanetExplorer(object):
             )
             self.auth_dialog_window.exec()
 
-        except Exception as e:
+        except Exception:
             traceback.print_exc()
+        else:
+            show_explorer()
 
     def logout(self):
         PlanetClient.getInstance().log_out()
@@ -676,8 +654,8 @@ class PlanetExplorer(object):
         self.user_button.setEnabled(loggedin)
         self.user_button.setText("Logged in" if loggedin else "")
 
-    """
     def project_saved(self):
+        # TODO: Remove API keys from QGIS project file after saving, if any
         if PlanetClient.getInstance().has_api_key():
 
             def resave():
@@ -687,7 +665,7 @@ class PlanetExplorer(object):
                         with open(path, encoding="utf-8") as f:
                             s = f.read()
                         with open(path, "w", encoding="utf-8") as f:
-                            f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
+                            f.write(s.replace(PlanetClient.getInstance().api_key, ""))
                     else:
                         tmpfilename = path + ".temp"
                         qgsfilename = (
@@ -702,7 +680,7 @@ class PlanetExplorer(object):
                                     else:
                                         s = zin.read(item.filename).decode("utf-8")
                                         s = s.replace(
-                                            PlanetClient.getInstance().api_key(), ""
+                                            PlanetClient.getInstance().api_key, ""
                                         )
                                         qgsfilename = item.filename
                         os.remove(path)
@@ -719,5 +697,5 @@ class PlanetExplorer(object):
                         " file.\nThe project that you have just saved might contain"
                         " Planet API keys in plain text.",
                     )
-    """
-    # QTimer.singleShot(100, resave)
+
+            QTimer.singleShot(100, resave)

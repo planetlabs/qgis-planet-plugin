@@ -50,7 +50,6 @@ from ..pe_utils import (
     mosaic_title,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
 )
-from ..planet_api import PlanetClient
 from .pe_thumbnails import download_thumbnail
 
 ID = "id"
@@ -192,13 +191,10 @@ class BasemapItemWidget(QWidget):
             download_thumbnail(mosaic[LINKS][THUMB], self)
         else:
             THUMBNAIL_DEFAULT_URL = (
-                "https://tiles.planet.com/basemaps/v1/planet-tiles/"
-                "{name}/thumb?api_key={apikey}"
+                "https://tiles.planet.com/basemaps/v1/planet-tiles/" "{name}/thumb"
             )
             download_thumbnail(
-                THUMBNAIL_DEFAULT_URL.format(
-                    name=mosaic[NAME], apikey=PlanetClient.getInstance().api_key()
-                ),
+                THUMBNAIL_DEFAULT_URL.format(name=mosaic[NAME]),
                 self,
             )
 

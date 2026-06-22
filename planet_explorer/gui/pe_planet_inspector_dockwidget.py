@@ -28,8 +28,7 @@ import re
 
 import iso8601
 import mercantile
-from planet.api.filters import build_search_request, string_filter
-from planet.api.models import Mosaics
+from planet.data_filter import string_in_filter
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -153,9 +152,7 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         mosaicname = self._mosaic_name_from_current_layer()
         if mosaicname:
             client = PlanetClient.getInstance()
-            mosaic = (
-                client.get_mosaic_by_name(mosaicname).get().get(Mosaics.ITEM_KEY)[0]
-            )
+            mosaic = client.get_mosaic(mosaicname)
             analytics_track(
                 BASEMAP_INSPECTED, {"mosaic_type": basemap_name_for_analytics(mosaic)}
             )
@@ -339,9 +336,10 @@ class SceneItemWidget(QFrame):
     def open_in_explorer(self):
         from .pe_explorer_dockwidget import show_explorer_and_search_daily_images
 
-        request = build_search_request(
-            string_filter("id", self.scene[ID]), [self.properties[ITEM_TYPE]]
-        )
+        request = {
+            "item_types": [self.properties[ITEM_TYPE]],
+            "filter": string_in_filter("id", [self.scene[ID]]),
+        }
         show_explorer_and_search_daily_images(request)
 
     def zoom_to_extent(self):

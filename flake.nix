@@ -26,6 +26,8 @@
         ps.jsonschema
         ps.debugpy
         ps.psutil
+        ps.httpcore
+        ps.anyio
       ];
       qgisWithExtras = pkgs.qgis.override {
         extraPythonPackages = extraPythonPackages;
@@ -55,9 +57,11 @@
         p.jq
         p.markdownlint-cli
         p.nixfmt
+        p.pipewire
         p.privoxy
         p.pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
         p.python3
+        p.ripgrep
         p.shellcheck
         p.shfmt
         p.tailspin # Beautiful log tailing with syntax highlighting
@@ -131,6 +135,14 @@
         (python3.withPackages (ps: [
           ps.pyqt6
           ps.qscintilla-qt6
+        ]))
+      ];
+
+      # Jupyter notebooks
+      jupyterEnv =  with pkgs; [
+        (python3.withPackages (ps: [
+          ps.jupyterlab
+          ps.pillow
         ]))
       ];
       precommitHook = ''
@@ -217,16 +229,20 @@
             echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
             echo ""
             export QTPOSITIONING="${pkgs.python3Packages.pyqt6}/${pkgs.python3.sitePackages}"
+            # Dynamically links the pipewire libraries so Qt can resolve the symbols
+            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
           ''
           + commonShellHook;
         };
 
         pyqgis-qt6 = pkgs.mkShell {
-          packages = commonPackages ++ qt6Packages ++ [ qgisWithExtras ];
+          packages = commonPackages ++ qt6Packages ++ [ qgisWithExtras ] ++ jupyterEnv;
           shellHook = ''
             echo "🔧 Using PyQGIS and Qt6 devShell (for QGIS 4 development)"
             echo ""
             export PYTHONPATH="${qgisWithExtras}/share/qgis/python:${qgisWithExtras}/${pkgs.python3.sitePackages}:$PYTHONPATH"
+            export QTPOSITIONING="${pkgs.python3Packages.pyqt6}/${pkgs.python3.sitePackages}"
+            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
           ''
           + commonShellHook;
         };

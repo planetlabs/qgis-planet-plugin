@@ -27,7 +27,6 @@ import logging
 import os
 
 import iso8601
-from planet.api.models import Order, Orders
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -108,10 +107,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     @waitcursor
     def populate_orders_list(self):
-        orders: Orders = self.p_client.get_orders()
-        ordersArray = []
-        for page in orders.iter():
-            ordersArray.extend(page.get().get(Orders.ITEM_KEY))
+        ordersArray = list(self.p_client.client.orders.list_orders(limit=0))
         self.listOrders.clear()
         for order in ordersArray:
             wrapper = OrderWrapper(order, self.p_client)
@@ -184,16 +180,16 @@ class OrderWrapper:
     def downloaded(self):
         return os.path.exists(self.download_folder())
 
-    def locations(self):
-        order_detail = self.p_client._get(
-            self.order[Order.LINKS_KEY]["_self"]
-        ).get_body()
-        links = order_detail.get()[Order.LINKS_KEY]
-        results = links[Order.RESULTS_KEY]
-        locations = [
-            (f"{r[Order.LOCATION_KEY]}&ua={user_agent()}", r[NAME]) for r in results
-        ]
+    async def _alocations(self):
+        order_id = self.order["id"]
+        order_detail = await self._p_client.orders_client.get_order(order_id)
+
+        results = order_detail.get("_links", {}).get("results", [])
+        locations = [(f"{r['location']}&ua={user_agent()}", r["name"]) for r in results]
         return locations
+
+    def locations(self):
+        return self._p_client.runner.run(self._alocations())
 
 
 class BaseWidgetItem(QListWidgetItem):

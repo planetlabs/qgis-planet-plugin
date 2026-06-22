@@ -21,3 +21,5 @@ pyqrcode
 StrEnum
 tqdm
 wcwidth
+httpcore[asyncio]
+h11

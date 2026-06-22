@@ -936,7 +936,7 @@ class PlanetClient(QObject):
             dict[str, Any]: Description of the saved search.
 
         """
-        search = self.p_client.data.update_search(
+        search = self.p_client.client.data.update_search(
             search_id=search_id,
             item_types=request["item_types"],
             search_filter=request["filter"],
@@ -957,7 +957,7 @@ class PlanetClient(QObject):
 
         """
 
-        return self.p_client.data.create_search(
+        return self.p_client.client.data.create_search(
             item_types=request["item_types"],
             search_filter=request["search_filter"],
             name=request["name"],
@@ -1179,15 +1179,6 @@ class PlanetClient(QObject):
             return self.api_key not in [None, "", API_KEY_DEFAULT]
         return False
 
-    """
-    def stats(self, request: dict[str, Any]) -> dict:
-        return self.client.data.get_stats(
-            item_types=request["item_types"],
-            search_filter=request["filter"],
-            interval=request["interval"]
-            )
-    """
-
     async def _aget_stats(self, request: dict[str, Any]) -> dict:
         url = "https://api.planet.com/data/v1/stats"
         payload = {
@@ -1201,6 +1192,8 @@ class PlanetClient(QObject):
     @verify_session
     @verify_async_runner
     def stats(self, request: dict[str, Any]) -> dict:
+        # NOTE: Using direct API call instead of SDK get_stats method due
+        # SDK get_stats method breaking background stream.
         try:
             return self.runner.run(self._aget_stats(request))
         except Exception as e:
@@ -1208,36 +1201,13 @@ class PlanetClient(QObject):
             log.exception(f"Failed to get stats: {e}")
             raise
 
-    """
-    async def _aget_quick_search_page(
-        self, request: dict[str, Any], page_size: int, sort: str
-    ) -> dict:
-        url = "https://api.planet.com/data/v1/quick-search"
-        payload = {
-            "item_types": request["item_types"],
-            "filter": request["filter"],
-        }
-        params = {"_page_size": page_size, "_sort": sort}
-        response = await self.session.request(
-            method="POST", url=url, json=payload, params=params
-        )
-        return response.json()
+    def quick_search(self, request: dict[str, Any], sort: str):
 
-    @verify_session
-    @verify_async_runner
-    def quick_search(
-        self, request: dict[str, Any], page_size: int = 250, sort: str = "acquired desc"
-    ):
-        try:
-            first_page = self.runner.run(
-                self._aget_quick_search_page(request, page_size, sort)
-            )
-            return QuickSearchResponse(first_page, self, request, page_size, sort)
-        except Exception as e:
-            log.error(request)
-            log.exception(f"Failed to perform quick search: {e}")
-            raise
-    """
+        item_types = request["item_types"]
+        search_filter = request["filter"]
+        return self.client.data.search(
+            item_types, search_filter=search_filter, limit=0, sort=sort
+        )
 
 
 def tile_service_hash(item_type_ids: list[str]) -> str | None:

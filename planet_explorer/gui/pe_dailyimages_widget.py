@@ -25,7 +25,7 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from planet.api.filters import and_filter, build_search_request, or_filter
+from planet.data_filter import and_filter, or_filter
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
@@ -117,7 +117,10 @@ class DailyImagesWidget(BASE, WIDGET):
         self.lblWarning.setHidden(True)
 
         self._collect_sources_filters()
-        self._default_filter_values = build_search_request(self._filters, self._sources)
+        self._default_filter_values = {
+            "item_types": self._sources,
+            "filter": self._filters,
+        }
 
     def open_saved_searches(self, dlg=None):
         dlg = dlg if isinstance(dlg, OpenSavedSearchDialog) else OpenSavedSearchDialog()
@@ -139,7 +142,7 @@ class DailyImagesWidget(BASE, WIDGET):
         if self.legacy_request is not None and self.current_saved_search is not None:
             self.legacy_request = None
             self._collect_sources_filters()
-            request = build_search_request(self._filters, self._sources)
+            request = {"item_types": self._sources, "filter": self._filters}
             request["name"] = self.current_saved_search["name"]
             PlanetClient.getInstance().update_search(
                 request, self.current_saved_search["id"]
@@ -259,12 +262,12 @@ class DailyImagesWidget(BASE, WIDGET):
 
             item_type_filters.append(item_type_filter)
 
-        all_filters.append(or_filter(*item_type_filters))
+        all_filters.append(or_filter(item_type_filters))
 
         if id_filters:
             all_filters = [id_filters[0]]
 
-        self._filters = and_filter(*all_filters)
+        self._filters = and_filter(all_filters)
         self._sources = list(sources.keys())
 
     @pyqtSlot(bool)
@@ -298,7 +301,7 @@ class DailyImagesWidget(BASE, WIDGET):
             )
             return
 
-        search_request = build_search_request(self._filters, self._sources)
+        search_request = {"item_types": self._sources, "filter": self._filters}
 
         self._request = search_request
 

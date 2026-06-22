@@ -361,6 +361,8 @@ class BasemapLayerWidget(QWidget):
 
     def change_source(self):
         try:
+            # TODO: Find workaround for authenticating url using api key
+            # to use sdk client.
             # Searches for api_key parameter in the layer source, if
             # found it will later be used as API key for authentication
             # instead of the stored logged-in user API key from the plugin
@@ -454,7 +456,7 @@ class BasemapLayerWidget(QWidget):
 
         item = findLayerItem()
         if item is not None:
-            if not PlanetClient.getInstance().has_api_key():
+            if not PlanetClient.getInstance().client_is_setup():
                 item.setExpanded(True)
             isExpanded = item.isExpanded()
             item.setExpanded(not isExpanded)

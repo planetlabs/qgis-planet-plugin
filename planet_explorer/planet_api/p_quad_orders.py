@@ -27,7 +27,6 @@ import json
 import os
 import uuid
 
-from planet.api.models import MosaicQuads
 from qgis.core import QgsApplication
 
 from ..pe_utils import log, orders_download_folder, safe_join, user_agent
@@ -162,10 +161,7 @@ class QuadCompleteOrder(QuadOrder):
         p_client = PlanetClient.getInstance()
         locations = {}
         for mosaic in self.mosaics:
-            json_quads = []
-            quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)
-            for page in quads.iter():
-                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
+            json_quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)
             locations[mosaic[NAME]] = [
                 (quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads
             ]

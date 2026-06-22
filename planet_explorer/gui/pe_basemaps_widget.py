@@ -27,8 +27,7 @@ __revision__ = "$Format:%H$"
 import math
 import os
 
-from planet.api.exceptions import InvalidAPIKey
-from planet.api.models import MosaicQuads, Mosaics
+from planet.exceptions import InvalidAPIKey
 from qgis.core import Qgis, QgsDistanceArea, QgsGeometry, QgsRectangle, QgsUnitTypes
 from qgis.PyQt import QtCore, uic
 from qgis.PyQt.QtCore import QObject, QThread, QUrl, pyqtSignal
@@ -261,10 +260,10 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def series(self):
         if self._series is None:
-            self._series = []
-            response = self.p_client.list_mosaic_series()
-            for page in response.iter():
-                self._series.extend(page.get().get(SERIES))
+            self._series = self.p_client.list_mosaic_series()
+            # response = self.p_client.list_mosaic_series()
+            # for page in response.iter():
+            #    self._series.extend(page.get().get(SERIES))
         return self._series
 
     def _apply_filter(self):
@@ -287,15 +286,12 @@ class BasemapsWidget(BASE, WIDGET):
             self.comboSeriesName.addItem(s[NAME], (s, True))
 
     def _get_filtered_mosaics(self, text):
-        mosaics = []
-        response = self.p_client.get_mosaics(text)
-        for page in response.iter():
-            mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
+        mosaics = self.p_client.get_mosaics(text)
         mosaics = [m for m in mosaics if m[PRODUCT_TYPE] != TIMELAPSE]
         return mosaics
 
     def _get_filtered_series(self, text):
-        return self.p_client.list_mosaic_series(text).get()[SERIES]
+        return self.p_client.list_mosaic_series(text)
 
     def _only_sr_basemaps_changed(self):
         self.mosaicsList.set_only_sr_basemaps(self.chkOnlySRBasemaps.isChecked())
@@ -335,10 +331,7 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def one_off_mosaics(self):
         if self.oneoff is None:
-            all_mosaics = []
-            response = self.p_client.get_mosaics()
-            for page in response.iter():
-                all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
+            all_mosaics = self.p_client.get_mosaics()
             self.oneoff = [m for m in all_mosaics if m[PRODUCT_TYPE] != TIMELAPSE]
 
         return self.oneoff
@@ -354,10 +347,7 @@ class BasemapsWidget(BASE, WIDGET):
     @waitcursor
     def mosaics_for_serie(self, serie):
         mosaics = self.p_client.get_mosaics_for_series(serie[ID])
-        all_mosaics = []
-        for page in mosaics.iter():
-            all_mosaics.extend(page.get().get(Mosaics.ITEM_KEY))
-        return all_mosaics
+        return mosaics
 
     def serie_selected(self):
         self.mosaicsList.clear()
@@ -862,14 +852,8 @@ class QuadFinder(QObject):
         ]
         for i, mosaic in enumerate(self.mosaics):
             self.mosaicStarted.emit(i + 1, mosaic.get(NAME))
-            json_quads = []
             self.pageRead.emit(1)
-            quads = self.client.get_quads_for_mosaic(mosaic, bbox)
-            for j, page in enumerate(quads.iter()):
-                json_quads.extend(page.get().get(MosaicQuads.ITEM_KEY))
-                self.pageRead.emit(j + 2)
-                if self.canceled:
-                    return
+            json_quads = self.client.get_quads_for_mosaic(mosaic, bbox)
             all_quads.append(json_quads)
         self.finished.emit(all_quads)
 

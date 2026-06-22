@@ -26,17 +26,18 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
 from math import floor
+from typing import Any
 
-from planet.api.filters import (
-    date_range,
-    geom_filter,
+from planet.data_filter import (
+    date_range_filter,
+    geometry_filter,
     not_filter,
-    permission_filter,
     range_filter,
-    string_filter,
+    string_in_filter,
 )
-from planet.api.utils import geometry_from_json
+from planet.geojson import geom_from_geojson
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -196,7 +197,11 @@ DAILY_WIDGET, DAILY_BASE = uic.loadUiType(
 )
 
 
-def filters_from_request(request, field_name=None, filter_type=None):
+def filters_from_request(
+    request: dict[str, Any],
+    field_name: str | None = None,
+    filter_type: str | None = None,
+):
     filters = []
 
     def _add_filter(filterdict):
@@ -345,7 +350,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
                 if not qgsgeom.isEmpty():
                     geom_json = json.loads(qgsgeom.asJson())
-                    filters.append(geom_filter(geom_json))
+                    filters.append(geometry_filter(geom_json))
                 else:
                     self._show_message(
                         "AOI not valid GeoJSON polygon",
@@ -1103,7 +1108,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             return
 
         try:
-            json_geom = geometry_from_json(json_obj)
+            json_geom = geom_from_geojson(json_obj)
         except Exception:
             json_geom = None
 
@@ -1282,7 +1287,11 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         if start_qdate and end_qdate:
             if start_qdate < end_qdate:
-                date_filter = date_range("acquired", gte=start_date, lte=end_date)
+                date_filter = date_range_filter(
+                    "acquired",
+                    gte=datetime.fromisoformat(start_date),
+                    lte=datetime.fromisoformat(end_date),
+                )
                 populated_filters.append(date_filter)
             else:
                 self._show_message(
@@ -1291,10 +1300,14 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                     duration=10,
                 )
         elif start_date:
-            start_date_filter = date_range("acquired", gte=start_date)
+            start_date_filter = date_range_filter(
+                "acquired", gte=datetime.fromisoformat(start_date)
+            )
             populated_filters.append(start_date_filter)
         elif end_date:
-            end_date_filter = date_range("acquired", lte=end_date)
+            end_date_filter = date_range_filter(
+                "acquired", lte=datetime.fromisoformat(end_date)
+            )
             populated_filters.append(end_date_filter)
 
         # TODO: double check actual domain/range of sliders
@@ -1332,7 +1345,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if ids_actual:
                 s_ids_list = ["id"]
                 s_ids_list.extend(ids_actual)
-                string_ids_filter = string_filter(*s_ids_list)
+                string_ids_filter = string_in_filter(*s_ids_list)
                 populated_filters.append(string_ids_filter)
             else:
                 self._show_message(
@@ -1354,33 +1367,36 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             # Adds the Publishing stage to the filters if any were active
             # Metadata name is "publishing_stage"
             # Publishing stage filters will only be used for SkySat and PlanetScope
-            publish_filters = string_filter("publishing_stage", *publish_types)
+            publish_filters = string_in_filter("publishing_stage", publish_types)
 
         instruments = []
         for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
             if chk.isChecked():
                 instruments.append(chk.property("api-name"))
         if instruments:
-            instrument_filter = string_filter("instrument", *instruments)
+            instrument_filter = string_in_filter("instrument", *instruments)
             populated_filters.append(instrument_filter)
 
         server_filters = []
         if not self.chkFullCatalog.isChecked():
             # Include both download and streaming permissions so users with
             # streaming-only access can still see and preview items
-            dl_permission_filter = permission_filter(
-                "assets:download", "webtiles:stream"
-            )
+            # NOTE: SDK permission_filter limits to permission downloads.
+            # dl_permission_filter = permission_filter()
+            dl_permission_filter = {
+                "type": "PermissionFilter",
+                "config": ["assets:download", "webtiles:stream"],
+            }
             server_filters.append(dl_permission_filter)
 
         if self.chkStandardQuality.isChecked():
-            quality_filter = string_filter("quality_category", "standard")
+            quality_filter = string_in_filter("quality_category", ["standard"])
             server_filters.append(quality_filter)
 
         # Ground_control can be 'true', 'false, or a numeric value
         # Safest to check for not 'false'
         if self.chkGroundControl.isChecked():
-            gc_filter = not_filter(string_filter("ground_control", "false"))
+            gc_filter = not_filter(string_in_filter("ground_control", ["false"]))
             server_filters.append(gc_filter)
 
         server_filters.extend(

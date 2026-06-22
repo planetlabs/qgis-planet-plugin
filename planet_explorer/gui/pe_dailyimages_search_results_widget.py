@@ -217,23 +217,35 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
     def load_more_link_clicked(self):
         self.load_more()
 
+    # @waitcursor
     @waitcursor
     def update_request(self, request, local_filters):
         self._image_count = 0
         self._request = request
         self._local_filters = local_filters
         self.tree.clear()
+
         stats_request = {"interval": "year"}
         stats_request.update(self._request)
-        resp = self._p_client.stats(stats_request).get()
-        self._total_count = sum([b["count"] for b in resp["buckets"]])
+        try:
+            resp = self._p_client.stats(stats_request)
+            self._total_count = sum([b["count"] for b in resp["buckets"]])
+        except Exception as e:
+            print(f"Stats request failed: {e}")
+            self._total_count = 0
+
         if self._total_count:
-            response = self._p_client.quick_search(
-                self._request,
-                page_size=TOP_ITEMS_BATCH,
-                sort=" ".join(self.sort_order()),
+            # NOTE: Using direct API call instead of SDK search method due
+            # SDK search method breaking background stream.
+            response = self._p_client._post(
+                self._p_client._url("data/v1/quick-search"),
+                json_data=self._request,
+                _page_size=TOP_ITEMS_BATCH,
+                _sort=" ".join(self.sort_order()),
             )
-            self._response_iterator = response.iter()
+            self._current_page = response
+            self._has_more = response.get("_links", {}).get("_next") is not None
+
             self.load_more()
             self._set_widgets_visibility(True)
         else:
@@ -241,58 +253,66 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     @waitcursor
     def load_more(self):
-        page = next(self._response_iterator, None)
-        if page is not None:
-            for i in range(self.tree.topLevelItemCount()):
-                date_item = self.tree.topLevelItem(i)
-                date_widget = self.tree.itemWidget(date_item, 0)
-                date_widget.has_new = False
-                for j in range(date_item.childCount()):
-                    satellite_item = date_item.child(j)
-                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                    satellite_widget.has_new = False
-
-            links = page.get()[page.LINKS_KEY]
-            next_ = links.get(page.NEXT_KEY, None)
-            self._has_more = next_ is not None
-            images = page.get().get(page.ITEM_KEY)
-            for i, image in enumerate(images):
-                if self._passes_area_coverage_filter(image):
-                    sort_criteria = "acquired"
-                    date_item, satellite_item = self._find_items_for_satellite(image)
-                    date_widget = self.tree.itemWidget(date_item, 0)
-                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                    item = SceneItem(image, sort_criteria)
-                    widget = SceneItemWidget(
-                        image,
-                        sort_criteria,
-                        self._metadata_to_show,
-                        item,
-                        self._request,
-                    )
-                    widget.checkedStateChanged.connect(self.checked_count_changed)
-                    widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
-                    item.setSizeHint(0, widget.sizeHint())
-                    satellite_item.addChild(item)
-                    self.tree.setItemWidget(item, 0, widget)
-                    date_widget.update_for_children()
-                    self._image_count += 1
-
-            for i in range(self.tree.topLevelItemCount()):
-                date_item = self.tree.topLevelItem(i)
-                date_widget = self.tree.itemWidget(date_item, 0)
-                for j in range(date_item.childCount()):
-                    satellite_item = date_item.child(j)
-                    satellite_widget = self.tree.itemWidget(satellite_item, 0)
-                    satellite_widget.update_for_children()
-                    satellite_widget.update_thumbnail()
-                    satellite_item.sortChildren(0, Qt.SortOrder.AscendingOrder)
-                date_widget.update_for_children()
-                date_widget.update_thumbnail()
-            self.item_count_changed()
-        else:
+        if self._current_page is None:
             self._has_more = False
             self.item_count_changed()
+            return
+
+        for i in range(self.tree.topLevelItemCount()):
+            date_item = self.tree.topLevelItem(i)
+            date_widget = self.tree.itemWidget(date_item, 0)
+            date_widget.has_new = False
+            for j in range(date_item.childCount()):
+                satellite_item = date_item.child(j)
+                satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                satellite_widget.has_new = False
+
+        links = self._current_page.get("_links", {})
+        next_url = links.get("_next")
+        self._has_more = next_url is not None
+
+        images = self._current_page.get("features", [])
+        for image in images:
+            if self._passes_area_coverage_filter(image):
+                sort_criteria = "acquired"
+                date_item, satellite_item = self._find_items_for_satellite(image)
+                date_widget = self.tree.itemWidget(date_item, 0)
+                satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                item = SceneItem(image, sort_criteria)
+                widget = SceneItemWidget(
+                    image,
+                    sort_criteria,
+                    self._metadata_to_show,
+                    item,
+                    self._request,
+                )
+                widget.checkedStateChanged.connect(self.checked_count_changed)
+                widget.thumbnailChanged.connect(satellite_widget.update_thumbnail)
+                item.setSizeHint(0, widget.sizeHint())
+                satellite_item.addChild(item)
+                self.tree.setItemWidget(item, 0, widget)
+                date_widget.update_for_children()
+                self._image_count += 1
+
+        for i in range(self.tree.topLevelItemCount()):
+            date_item = self.tree.topLevelItem(i)
+            date_widget = self.tree.itemWidget(date_item, 0)
+            for j in range(date_item.childCount()):
+                satellite_item = date_item.child(j)
+                satellite_widget = self.tree.itemWidget(satellite_item, 0)
+                satellite_widget.update_for_children()
+                satellite_widget.update_thumbnail()
+                satellite_item.sortChildren(0, Qt.SortOrder.AscendingOrder)
+            date_widget.update_for_children()
+            date_widget.update_thumbnail()
+
+        # Fetch next page for subsequent load_more calls
+        if next_url:
+            self._current_page = self._p_client._get(next_url)
+        else:
+            self._current_page = None
+
+        self.item_count_changed()
 
     def _local_filter(self, name):
         for f in self._local_filters:
@@ -791,7 +811,7 @@ class SceneItemWidget(ItemWidgetBase):
         self.date = datetime.strftime("%b %d, %Y")
 
         text = self._get_text()
-        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        url = f"{image['_links']['thumbnail']}"
 
         self._setup_ui(text, url)
 
