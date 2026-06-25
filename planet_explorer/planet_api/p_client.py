@@ -36,7 +36,6 @@ from typing import (
 
 import requests
 from planet import Auth, PlanetOAuthScopes, Session
-from planet.auth_builtins import _SDK_CLIENT_ID_PROD
 from planet.exceptions import InvalidAPIKey, InvalidIdentity
 from planet.sync.client import Planet
 from qgis.core import Qgis, QgsBlockingNetworkRequest
@@ -57,8 +56,7 @@ QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscripti
 
 TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 
-# TODO: Replace once a custom Client ID is provided
-CLIENT_ID = _SDK_CLIENT_ID_PROD
+CLIENT_ID = "v4diVLw0ykprJeGEybxt3aiOVSwMVvjC"
 PROFILE_NAME = "planet-qgis-plugin"
 
 API_KEY_DEFAULT = "SKIP_ENVIRON"
@@ -563,7 +561,9 @@ class PlanetClient(QObject):
         """
         return "{}/{}".format(self.base_url, endpoint)
 
-    async def _aget(self, url: str, params: dict[Any, Any] | None = None):
+    async def _aget(
+        self, url: str, params: dict[Any, Any] | None = None
+    ) -> dict[Any, Any]:
         try:
             if params:
                 response = await self.session.request(
@@ -578,7 +578,7 @@ class PlanetClient(QObject):
                 log.exception(f"{log_base} with params: {params}")
             else:
                 log.exception(log_base)
-            return None
+            raise
 
     @verify_session
     @verify_async_runner
@@ -1027,7 +1027,7 @@ class PlanetClient(QObject):
             A list of item type objects as returned by the Planet Data API.
         """
         if self._item_types is None:
-            url = self._url("data/v1/item-types/")
+            url = self._url("data/v1/item-types")
             response_data = self._get(url)
             self._item_types = response_data["item_types"]
             self._item_types = [v for v in self._item_types if " " in v["display_name"]]
