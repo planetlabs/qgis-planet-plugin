@@ -10,7 +10,8 @@ monotonic
 backoff
 httpx
 PyQt6-stubs==20250824
-
+anyio
+sniffio
 cffi
 cryptography
 geojson
@@ -23,3 +24,9 @@ tqdm
 wcwidth
 httpcore[asyncio]
 h11
+typing-extensions
+jsonschema
+attrs
+referencing
+rpds-py
+jsonschema-specifications
