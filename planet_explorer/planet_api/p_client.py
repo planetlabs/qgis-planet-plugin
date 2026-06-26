@@ -247,9 +247,16 @@ class QGISProfileStorageProvider(_SOPSAwareFilesystemObjectStorageProvider):
     """
 
     def __init__(self):
-        active_profile_dir = Path(QgsApplication.qgisSettingsDirPath())
-
-        super().__init__(root=active_profile_dir)
+        active_profile_dir = QgsApplication.qgisSettingsDirPath()
+        if not bool(active_profile_dir):
+            planet_auth_dir = Path.home() / ".planet"
+            log.info(f"Using default Planet auth storage directory: {planet_auth_dir}")
+        else:
+            planet_auth_dir = Path(active_profile_dir)
+            log.info(
+                f"Using QGIS profile directory for Planet auth storage: {planet_auth_dir}"
+            )
+        super().__init__(root=planet_auth_dir)
 
 
 class PlanetClient(QObject):
@@ -305,7 +312,9 @@ class PlanetClient(QObject):
 
         # Login
         self.api_key = API_KEY_DEFAULT
+        self.auth_storage_provider = None
         self.auth = None
+        self.auth_storage_dir = None
         self.session = None
         self.mosaics_client = None
         self.client = None
@@ -365,6 +374,8 @@ class PlanetClient(QObject):
         Returns:
             Auth: The initialized Planet OAuth auth object.
         """
+        if not self.auth_storage_provider:
+            self.auth_storage_provider = QGISProfileStorageProvider()
         if not self.auth:
             # NOTE: if profile name not provided profile defaults to client id
             self.auth = Auth.from_oauth_user_device_code(
@@ -377,7 +388,11 @@ class PlanetClient(QObject):
                 ],
                 profile_name=PROFILE_NAME,
                 save_state_to_storage=True,
-                storage_provider=QGISProfileStorageProvider(),
+                storage_provider=self.auth_storage_provider,
+            )
+        if not self.auth_storage_dir:
+            self.auth_storage_dir = (
+                self.auth_storage_provider._storage_root / PROFILE_NAME
             )
         return self.auth
 
@@ -432,7 +447,9 @@ class PlanetClient(QObject):
         old_session = self.session
 
         self.api_key = None
+        self.auth_storage_provider = None
         self.auth = None
+        self.auth_storage_dir = None
         self.session = None
         self.mosaics_client = None
         self.client = None
