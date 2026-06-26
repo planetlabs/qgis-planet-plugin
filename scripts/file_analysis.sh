@@ -21,7 +21,7 @@ get_files() {
     # 1. find skips 'extlibs' and '.git' directories entirely using -prune
     # 2. git check-ignore filters out anything matched by .gitignore
     find "$TARGET" \
-        -type d \( -name "extlibs" -o -name ".git" \) -prune \
+        -type d \( -name "extlibs" -o -name ".git" -o -name "tests" -o -name "resources" \) -prune \
         -o -type f -print0 | \
         xargs -0 -I {} sh -c 'git check-ignore -q "{}" || echo -n "{}\0"'
 }
