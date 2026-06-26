@@ -29,6 +29,7 @@ import re
 import secrets
 import threading
 from collections.abc import Coroutine
+from pathlib import Path
 from typing import (
     Any,
     TypeVar,
@@ -38,7 +39,8 @@ import requests
 from planet import Auth, PlanetOAuthScopes, Session
 from planet.exceptions import InvalidAPIKey, InvalidIdentity
 from planet.sync.client import Planet
-from qgis.core import Qgis, QgsBlockingNetworkRequest
+from planet_auth.storage_utils import _SOPSAwareFilesystemObjectStorageProvider
+from qgis.core import Qgis, QgsApplication, QgsBlockingNetworkRequest
 from qgis.PyQt.QtCore import QMetaObject, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
@@ -238,6 +240,18 @@ class QGISAdapter:
         return self._build_response(breq)
 
 
+class QGISProfileStorageProvider(_SOPSAwareFilesystemObjectStorageProvider):
+    """Custom Planet storage provider inheriting directly from the SDK code,
+
+    forcing the file storage root into the active QGIS profile directory.
+    """
+
+    def __init__(self):
+        active_profile_dir = Path(QgsApplication.qgisSettingsDirPath())
+
+        super().__init__(root=active_profile_dir)
+
+
 class PlanetClient(QObject):
     """
     Wrapper class for ``planet`` Python package, to abstract calls and make it
@@ -352,7 +366,6 @@ class PlanetClient(QObject):
             Auth: The initialized Planet OAuth auth object.
         """
         if not self.auth:
-            # TODO: Replace the CLIENT_ID with the custom CLIENT_ID once it is available
             # NOTE: if profile name not provided profile defaults to client id
             self.auth = Auth.from_oauth_user_device_code(
                 client_id=CLIENT_ID,
@@ -364,6 +377,7 @@ class PlanetClient(QObject):
                 ],
                 profile_name=PROFILE_NAME,
                 save_state_to_storage=True,
+                storage_provider=QGISProfileStorageProvider(),
             )
         return self.auth
 
