@@ -54,16 +54,7 @@ def error_catcher(msg, tag, level):
         ERROR_MSG = msg
 
 
-try:
-    try:
-        import pyplugin_installer
-    except ImportError as e:
-        logger.exception("Failed to import pyplugin_installer")
-        raise PluginInstallException(
-            "Cannot install plugin as 'pyplugin_installer' could not be imported."
-            " Is the script running in the QGIS env?"
-        ) from e
-
+def find_plugin_zip_file():
     cwd = pathlib.Path(".").absolute()
     zip_files = list(cwd.glob("*.zip"))
     zip_files_str = (
@@ -85,36 +76,35 @@ try:
         plugin_install_zip = str(zip_files[0].absolute())
         logger.info(f"Using plugin zip file: {plugin_install_zip}")
 
-    plugin_installer = pyplugin_installer.instance()
+    return plugin_install_zip
 
-    # Make sure plugin is not installed
+
+def uninstall_plugin():
+    # Uninstall the plugin
+    plugin_installer.uninstallPlugin(PLUGIN_KEY, quiet=True)
     if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
-        logger.info(f"Uninstalling existing plugin: {PLUGIN_KEY}")
-        plugin_installer.uninstallPlugin(PLUGIN_KEY)
-        logger.info(f"Plugin {PLUGIN_KEY} uninstalled successfully!")
-
-    # Attach the error catcher
-    QgsApplication.messageLog().messageReceived.connect(error_catcher)
-
-    # Install from the zip file
-    logger.info(
-        f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ..."
-    )
-    plugin_installer.installFromZipFile(plugin_install_zip)
-    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
-        logger.info(f"Plugin '{PLUGIN_KEY}' installed successfully!")
+        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to uninstall.")
     else:
-        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to install.")
+        logger.info(f"Plugin '{PLUGIN_KEY}' uninstalled successfully.")
 
-    # unload plugin so we can test load/unload
+
+def unload_plugin():
+    # Unload the plugin
+    if not utils.unloadPlugin(PLUGIN_KEY):
+        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to unload.")
+    else:
+        logger.info(f"Plugin '{PLUGIN_KEY}' unloaded successfully.")
     if PLUGIN_KEY in utils.active_plugins:
-        utils.unloadPlugin(PLUGIN_KEY)
-
-    if ERROR_OCCURRED:
         raise PluginInstallException(
-            f"Python exception hit during plugin install: \n {ERROR_MSG}"
+            f"Plugin '{PLUGIN_KEY}' failed to unload and is still an active plugin."
+        )
+    else:
+        logger.info(
+            f"Plugin '{PLUGIN_KEY}' is no longer active as expected after unload."
         )
 
+
+def start_load_plugin():
     # Start/Load the plugin
     if not utils.loadPlugin(PLUGIN_KEY):
         raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to load.")
@@ -133,26 +123,51 @@ try:
     else:
         logger.info(f"Plugin '{PLUGIN_KEY}' is active as expected after startup.")
 
-    # Unload the plugin
-    if not utils.unloadPlugin(PLUGIN_KEY):
-        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to unload.")
-    else:
-        logger.info(f"Plugin '{PLUGIN_KEY}' unloaded successfully.")
-    if PLUGIN_KEY in utils.active_plugins:
+
+try:
+    try:
+        import pyplugin_installer
+    except ImportError as e:
+        logger.exception("Failed to import pyplugin_installer")
         raise PluginInstallException(
-            f"Plugin '{PLUGIN_KEY}' failed to unload and is still an active plugin."
-        )
+            "Cannot install plugin as 'pyplugin_installer' could not be imported."
+            " Is the script running in the QGIS env?"
+        ) from e
+
+    plugin_installer = pyplugin_installer.instance()
+
+    # Make sure plugin is not installed
+    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
+        logger.info(f"Uninstalling existing plugin: {PLUGIN_KEY}")
+        plugin_installer.uninstallPlugin(PLUGIN_KEY)
+        logger.info(f"Plugin {PLUGIN_KEY} uninstalled successfully!")
+
+    # Attach the error catcher
+    QgsApplication.messageLog().messageReceived.connect(error_catcher)
+
+    plugin_install_zip = find_plugin_zip_file()
+
+    # Install from the zip file
+    logger.info(
+        f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ..."
+    )
+    plugin_installer.installFromZipFile(plugin_install_zip)
+    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
+        logger.info(f"Plugin '{PLUGIN_KEY}' installed successfully!")
     else:
-        logger.info(
-            f"Plugin '{PLUGIN_KEY}' is no longer active as expected after unload."
+        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to install.")
+
+    if PLUGIN_KEY in utils.active_plugins:
+        unload_plugin()
+
+    if ERROR_OCCURRED:
+        raise PluginInstallException(
+            f"Python exception hit during plugin install: \n {ERROR_MSG}"
         )
 
-    # Uninstall the plugin
-    plugin_installer.uninstallPlugin(PLUGIN_KEY, quiet=True)
-    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
-        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to uninstall.")
-    else:
-        logger.info(f"Plugin '{PLUGIN_KEY}' uninstalled successfully.")
+    start_load_plugin()
+    unload_plugin()
+    uninstall_plugin()
 
     if ERROR_OCCURRED:
         raise PluginInstallException(

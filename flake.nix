@@ -111,7 +111,7 @@
       # Qt5 packages for QGIS 3 LTR development
       # Note: kcachegrind is only available in Qt6, use .#qt6 devShell for profiling
       qt5Packages = with pkgs; [
-        libsForQt5.kcachegrind
+        kdePackages.kcachegrind
         libsForQt5.qt5.qttools # includes designer
         qt5.qtbase
         qt5.qtlocation
@@ -120,7 +120,6 @@
         qt5.qtsvg
         (python3.withPackages (ps: [
           ps.pyqt5
-          ps.pyqt5-stubs # For autocompletion in vscode
         ]))
       ];
 
@@ -257,7 +256,17 @@
           ''
           + commonShellHook;
         };
-
+        pyqgis-qt5 = pkgs.mkShell {
+          packages = commonPackages ++ qt5Packages ++ [ qgisLtrWithExtras ] ++ jupyterEnv;
+          shellHook = ''
+            echo "🔧 Using PyQGIS and Qt5 devShell (for QGIS 3 LTR development)"
+            echo ""
+            export PYTHONPATH="${qgisLtrWithExtras}/share/qgis/python:${qgisLtrWithExtras}/${pkgs.python3.sitePackages}:$PYTHONPATH"
+            export QTPOSITIONING="${pkgs.python3Packages.pyqt5}/${pkgs.python3.sitePackages}"
+            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
+          ''
+          + commonShellHook;
+        };
       };
       apps.${system} = {
         qgis = {

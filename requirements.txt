@@ -10,6 +10,7 @@ monotonic
 backoff
 httpx
 PyQt6-stubs==20250824
+PyQt5-stubs
 anyio
 sniffio
 cffi

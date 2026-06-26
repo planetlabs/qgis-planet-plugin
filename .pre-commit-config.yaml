@@ -68,7 +68,7 @@ repos:
         name: " flake8 Python Linter"
         entry: bash scripts/flake8_check.sh
         language: system
-        types: [python]
+        pass_filenames: false
 
   - repo: local
     hooks:
@@ -147,7 +147,16 @@ repos:
     hooks:
       - id: bandit
         name: "🔒 Bandit - Python security analysis"
-        entry: bandit -r scripts planet_explorer -c bandit.yaml
+        entry: bash scripts/bandit_check.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: filecheck
+        name: "📂 File Check - File analysis"
+        entry: bash scripts/file_analysis.sh
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -156,10 +165,9 @@ repos:
     hooks:
       - id: detect-secrets
         name: "🔒 Detect Secrets"
-        entry: detect-secrets-hook --baseline .secrets.baseline
+        entry: bash scripts/detect_secrets.sh
+        pass_filenames: false
         language: system
-        types: [text]
-        stages: [pre-commit]
 
     # - repo: local
   #   hooks:

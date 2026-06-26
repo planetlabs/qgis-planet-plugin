@@ -82,95 +82,118 @@ class QGISAdapter:
     _offline = False
     _message_bar_item = None
 
-    def send(self, request: requests.PreparedRequest, **kwargs):
-        """Execute a prepared HTTP request via QGIS's blocking network stack.
-
-        Handles GET and POST methods. On network error, shows a QGIS message
-        bar notification and raises the appropriate ``requests`` exception.
+    def _make_network_request(
+        self, breq: QgsBlockingNetworkRequest, request: requests.PreparedRequest
+    ) -> int:
+        """Execute the network request via QGIS blocking network stack.
 
         Args:
-            request (requests.PreparedRequest): The prepared HTTP request to send.
-            **kwargs: Unused; present for ``requests`` transport API compatibility.
+            breq (QgsBlockingNetworkRequest): The QGIS blocking network request.
+            request (requests.PreparedRequest): The prepared HTTP request.
 
         Returns:
-            requests.Response: The HTTP response with headers, status code, and content.
-
-        Raises:
-            ConnectionError: Raised if the network request
-                fails with a connection error (error code 1).
-            ConnectTimeout: Raised if the network request
-                times out (error code 2).
-            RequestException: Raised for any other general
-                QGIS network request failures (error code 3).
+            int: Error code (0 = success).
         """
-        error = 0
-        req = QNetworkRequest(QUrl(request.url))
-        for h in request.headers:
-            req.setRawHeader(h.encode(), request.headers[h].encode())
-        req.setRawHeader("Accept-Encoding".encode(), "gzip".encode())
-
-        breq = QgsBlockingNetworkRequest()
         if request.method == "GET":
-            error = breq.get(req)
+            return breq.get(self._build_qnetwork_request(request))
         elif request.method == "POST":
             body = request.body
             if not isinstance(body, bytes):
                 body = body.encode()
-            error = breq.post(req, body)
-        if error > 0:
-            msg = breq.errorMessage()
-            if not QGISAdapter._offline:
-                QGISAdapter._offline = True
-                msg_lower = msg.lower()
-                if "ssl" in msg_lower or "tls" in msg_lower:
-                    if "proxy" in msg_lower:
-                        bar_msg = (
-                            "SSL/TLS error connecting to Planet via proxy. "
-                            "Your proxy may be interfering with HTTPS. "
-                            "Check Settings > Options > Network."
-                        )
-                    else:
-                        bar_msg = (
-                            "SSL/TLS error connecting to Planet. If you are "
-                            "using a proxy, it may be interfering with HTTPS "
-                            "connections."
-                        )
-                elif "proxy" in msg_lower:
-                    bar_msg = (
-                        "Proxy connection refused. Check your proxy "
-                        "settings under Settings > Options > Network."
-                    )
-                elif error == 2 or "timed out" in msg_lower or "timeout" in msg_lower:
-                    bar_msg = (
-                        "Connection to Planet timed out. The plugin will "
-                        "resume automatically when connectivity is restored."
-                    )
-                else:
-                    bar_msg = (
-                        "Cannot access the internet. The plugin will resume "
-                        "automatically when connectivity is restored."
-                    )
-                QGISAdapter._offline_msg = bar_msg
-                QMetaObject.invokeMethod(
-                    PlanetClient.getInstance(),
-                    "_show_offline_message",
-                    Qt.ConnectionType.QueuedConnection,
-                )
-            if error == 1:
-                raise requests.exceptions.ConnectionError(msg)
-            elif error == 2:
-                raise requests.exceptions.ConnectTimeout(msg)
-            elif error == 3:
-                raise requests.exceptions.RequestException(msg)
+            return breq.post(self._build_qnetwork_request(request), body)
+        return 0
 
-        if QGISAdapter._offline:
-            QGISAdapter._offline = False
+    def _build_qnetwork_request(
+        self, request: requests.PreparedRequest
+    ) -> QNetworkRequest:
+        """Build a QNetworkRequest from a prepared requests object.
+
+        Args:
+            request (requests.PreparedRequest): The prepared HTTP request.
+
+        Returns:
+            QNetworkRequest: The QGIS network request.
+        """
+        req = QNetworkRequest(QUrl(request.url))
+        for h in request.headers:
+            req.setRawHeader(h.encode(), request.headers[h].encode())
+        req.setRawHeader("Accept-Encoding".encode(), "gzip".encode())
+        return req
+
+    def _get_offline_message(self, error: int, msg: str) -> str:
+        """Get the appropriate offline message for the error.
+
+        Args:
+            error (int): Error code.
+            msg (str): Error message from QGIS.
+
+        Returns:
+            str: User-facing message bar text.
+        """
+        msg_lower = msg.lower()
+        if "ssl" in msg_lower or "tls" in msg_lower:
+            if "proxy" in msg_lower:
+                return (
+                    "SSL/TLS error connecting to Planet via proxy. "
+                    "Your proxy may be interfering with HTTPS. "
+                    "Check Settings > Options > Network."
+                )
+            return (
+                "SSL/TLS error connecting to Planet. If you are "
+                "using a proxy, it may be interfering with HTTPS "
+                "connections."
+            )
+        if "proxy" in msg_lower:
+            return (
+                "Proxy connection refused. Check your proxy "
+                "settings under Settings > Options > Network."
+            )
+        if error == 2 or "timed out" in msg_lower or "timeout" in msg_lower:
+            return (
+                "Connection to Planet timed out. The plugin will "
+                "resume automatically when connectivity is restored."
+            )
+        return (
+            "Cannot access the internet. The plugin will resume "
+            "automatically when connectivity is restored."
+        )
+
+    def _handle_network_error(self, error: int, msg: str) -> None:
+        """Handle a network error by showing a message bar and raising an exception.
+
+        Args:
+            error (int): Error code.
+            msg (str): Error message from QGIS.
+
+        Raises:
+            ConnectionError: If error code is 1.
+            ConnectTimeout: If error code is 2.
+            RequestException: If error code is 3.
+        """
+        if not QGISAdapter._offline:
+            QGISAdapter._offline = True
+            QGISAdapter._offline_msg = self._get_offline_message(error, msg)
             QMetaObject.invokeMethod(
                 PlanetClient.getInstance(),
-                "_clear_offline_message",
+                "_show_offline_message",
                 Qt.ConnectionType.QueuedConnection,
             )
+        if error == 1:
+            raise requests.exceptions.ConnectionError(msg)
+        elif error == 2:
+            raise requests.exceptions.ConnectTimeout(msg)
+        elif error == 3:
+            raise requests.exceptions.RequestException(msg)
 
+    def _build_response(self, breq: QgsBlockingNetworkRequest) -> requests.Response:
+        """Build a requests.Response from a completed QGIS network request.
+
+        Args:
+            breq (QgsBlockingNetworkRequest): The completed QGIS network request.
+
+        Returns:
+            requests.Response: The HTTP response.
+        """
         content = breq.reply()
         resp = requests.Response()
         for h in content.rawHeaderList():
@@ -184,6 +207,35 @@ class QGISAdapter:
             QNetworkRequest.Attribute.HttpStatusCodeAttribute
         )
         return resp
+
+    def send(self, request: requests.PreparedRequest, **kwargs) -> requests.Response:
+        """Execute a prepared HTTP request via QGIS's blocking network stack.
+
+        Handles GET and POST methods. On network error, shows a QGIS message
+        bar notification and raises the appropriate ``requests`` exception.
+
+        Args:
+            request (requests.PreparedRequest): The prepared HTTP request to send.
+            **kwargs: Unused; present for ``requests`` transport API compatibility.
+
+        Returns:
+            requests.Response: The HTTP response with headers, status code, and content.
+        """
+        breq = QgsBlockingNetworkRequest()
+        error = self._make_network_request(breq, request)
+
+        if error > 0:
+            self._handle_network_error(error, breq.errorMessage())
+
+        if QGISAdapter._offline:
+            QGISAdapter._offline = False
+            QMetaObject.invokeMethod(
+                PlanetClient.getInstance(),
+                "_clear_offline_message",
+                Qt.ConnectionType.QueuedConnection,
+            )
+
+        return self._build_response(breq)
 
 
 class PlanetClient(QObject):

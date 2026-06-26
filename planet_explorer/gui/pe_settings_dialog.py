@@ -139,58 +139,158 @@ class SettingsDialog(QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
-    def widgetFromParameter(self, param):
-        paramtype = param["type"]
-        if paramtype == FILES:
+    def _widget_for_files(self, param) -> TextBoxWithLink:
+        """Create a file browser widget.
 
-            def edit(textbox):
-                f = QFileDialog.getOpenFileNames(self, "Select file", "", "*.*")
-                if f:
-                    textbox.value = ",".join(f)
+        Args:
+            param (dict): Parameter definition.
 
-            return TextBoxWithLink("Browse", edit, None, True)
-        elif paramtype == FOLDER:
+        Returns:
+            TextBoxWithLink: File browser widget.
+        """
 
-            def edit(textbox):
-                f = QFileDialog.getExistingDirectory(self, "Select folder", "")
-                if f:
-                    textbox.value = f
+        def edit(textbox):
+            f = QFileDialog.getOpenFileNames(self, "Select file", "", "*.*")
+            if f:
+                textbox.value = ",".join(f)
 
-            return TextBoxWithLink("Browse", edit, None, True)
-        elif paramtype == BOOL:
-            check = QCheckBox(param["label"])
-            if param["default"]:
-                check.setCheckState(Qt.CheckState.Checked)
-            else:
-                check.setCheckState(Qt.CheckState.Unchecked)
-            return check
-        elif paramtype == CHOICE:
-            combo = QComboBox()
-            for option in param["options"]:
-                combo.addItem(option)
-            idx = combo.findText(str(param["default"]))
-            combo.setCurrentIndex(idx)
-            return combo
-        elif paramtype == TEXT:
-            textEdit = QTextEdit()
-            textEdit.setPlainText(param["default"])
-            return textEdit
-        elif paramtype == VECTOR:
-            combo = QgsMapLayerComboBox()
-            combo.setFilters(QgsMapLayerProxyModel.Filter.VectorLayer)
-            return combo
-        elif paramtype == RASTER:
-            combo = QgsMapLayerComboBox()
-            combo.setFilters(QgsMapLayerProxyModel.Filter.RasterLayer)
-            return combo
-        elif paramtype == PASSWORD:
-            lineEdit = QLineEdit()
-            lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
-            return lineEdit
+        return TextBoxWithLink("Browse", edit, None, True)
+
+    def _widget_for_folder(self, param) -> TextBoxWithLink:
+        """Create a folder browser widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            TextBoxWithLink: Folder browser widget.
+        """
+
+        def edit(textbox):
+            f = QFileDialog.getExistingDirectory(self, "Select folder", "")
+            if f:
+                textbox.value = f
+
+        return TextBoxWithLink("Browse", edit, None, True)
+
+    def _widget_for_bool(self, param) -> QCheckBox:
+        """Create a checkbox widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QCheckBox: Checkbox widget.
+        """
+        check = QCheckBox(param["label"])
+        if param["default"]:
+            check.setCheckState(Qt.CheckState.Checked)
         else:
-            lineEdit = QLineEdit()
-            lineEdit.setText(str(param["default"]))
-            return lineEdit
+            check.setCheckState(Qt.CheckState.Unchecked)
+        return check
+
+    def _widget_for_choice(self, param) -> QComboBox:
+        """Create a combo box widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QComboBox: Combo box widget.
+        """
+        combo = QComboBox()
+        for option in param["options"]:
+            combo.addItem(option)
+        idx = combo.findText(str(param["default"]))
+        combo.setCurrentIndex(idx)
+        return combo
+
+    def _widget_for_text(self, param) -> QTextEdit:
+        """Create a text edit widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QTextEdit: Text edit widget.
+        """
+        textEdit = QTextEdit()
+        textEdit.setPlainText(param["default"])
+        return textEdit
+
+    def _widget_for_vector(self, param) -> QgsMapLayerComboBox:
+        """Create a vector layer combo box widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QgsMapLayerComboBox: Vector layer combo box widget.
+        """
+        combo = QgsMapLayerComboBox()
+        combo.setFilters(QgsMapLayerProxyModel.Filter.VectorLayer)
+        return combo
+
+    def _widget_for_raster(self, param) -> QgsMapLayerComboBox:
+        """Create a raster layer combo box widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QgsMapLayerComboBox: Raster layer combo box widget.
+        """
+        combo = QgsMapLayerComboBox()
+        combo.setFilters(QgsMapLayerProxyModel.Filter.RasterLayer)
+        return combo
+
+    def _widget_for_password(self, param) -> QLineEdit:
+        """Create a password line edit widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QLineEdit: Password line edit widget.
+        """
+        lineEdit = QLineEdit()
+        lineEdit.setEchoMode(QLineEdit.EchoMode.Password)
+        return lineEdit
+
+    def _widget_default(self, param) -> QLineEdit:
+        """Create a default line edit widget.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QLineEdit: Line edit widget.
+        """
+        lineEdit = QLineEdit()
+        lineEdit.setText(str(param["default"]))
+        return lineEdit
+
+    def widgetFromParameter(self, param: dict) -> QWidget:
+        """Create a widget for the given parameter.
+
+        Args:
+            param (dict): Parameter definition.
+
+        Returns:
+            QWidget: Widget for the parameter.
+        """
+        widget_builders = {
+            FILES: self._widget_for_files,
+            FOLDER: self._widget_for_folder,
+            BOOL: self._widget_for_bool,
+            CHOICE: self._widget_for_choice,
+            TEXT: self._widget_for_text,
+            VECTOR: self._widget_for_vector,
+            RASTER: self._widget_for_raster,
+            PASSWORD: self._widget_for_password,
+        }
+        builder = widget_builders.get(param["type"], self._widget_default)
+        return builder(param)
 
     def valueFromWidget(self, widget, paramtype):
         try:

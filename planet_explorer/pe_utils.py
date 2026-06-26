@@ -371,6 +371,110 @@ def create_preview_vector_layer(image):
     return vlayer
 
 
+def _register_xyz_connection(catalog_layer_name: str, uri: str) -> None:
+    """Register a tile URL in QGIS XYZ connections registry.
+
+    Args:
+        catalog_layer_name (str): Name to register the connection under.
+        uri (str): Tile datasource URI.
+    """
+    url = uri.split("url=")[-1]
+    s = QSettings()
+    s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/username", "")
+    s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/password", "")
+    s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/authcfg", "")
+    s.setValue(
+        f"qgis/connections-xyz/{catalog_layer_name}/url",
+        url.replace(PlanetClient.getInstance().api_key, ""),
+    )
+
+
+def _build_raster_layer(
+    item_ids: list,
+    tile_service: str,
+    catalog_layer_name: str | None,
+) -> QgsRasterLayer | None:
+    """Build a raster layer from the tile service URI.
+
+    Args:
+        item_ids (list): List of Planet item IDs.
+        tile_service (str): Tile service type (xyz or wmts).
+        catalog_layer_name (str | None): Name to register XYZ connection under.
+
+    Returns:
+        QgsRasterLayer | None: Raster layer or None if URI is not available.
+    """
+    uri = tile_service_data_src_uri(item_ids, service=tile_service)
+    if not uri:
+        log.debug("No tile URI for preview group")
+        return None
+
+    log.debug(f"Tile datasource URI: \n{uri}")
+    rlayer = QgsRasterLayer(uri, "Image previews", "wms")
+    rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
+
+    if tile_service == "xyz" and catalog_layer_name is not None:
+        _register_xyz_connection(catalog_layer_name, uri)
+
+    return rlayer
+
+
+def _build_vector_layer(
+    images: list[dict],
+    footprints_filename: str | None,
+    search_query: str | None,
+    sort_order: tuple[str, str] | None,
+) -> QgsVectorLayer | None:
+    """Build a vector layer from image footprints.
+
+    Args:
+        images (list[dict]): List of Planet image dictionaries.
+        footprints_filename (str | None): Path to save footprints as GeoPackage.
+        search_query (str | None): Search query to store on each feature.
+        sort_order (tuple[str, str] | None): Sort field and direction.
+
+    Returns:
+        QgsVectorLayer | None: Vector layer or None if no images.
+    """
+    if not images:
+        return None
+
+    vlayer = create_preview_vector_layer(images[0])
+    vlayer.startEditing()
+    dp = vlayer.dataProvider()
+    fields: list[QgsField] = vlayer.fields()
+    f_names = [f.name() for f in fields]
+
+    for img in images:
+        feat = QgsFeature()
+        feat.setFields(fields)
+        feat.setGeometry(qgsgeometry_from_geojson(img["geometry"]))
+
+        if "item_id" in f_names:
+            feat["item_id"] = img[ID]
+        if search_query and "search_query" in f_names:
+            feat["search_query"] = json.dumps(search_query)
+        if sort_order and "sort_order" in f_names and len(sort_order) > 1:
+            feat["sort_order"] = " ".join(sort_order)
+
+        for k, v in img["properties"].items():
+            if k in f_names:
+                feat[k] = v
+
+        dp.addFeature(feat)
+
+    vlayer.commitChanges()
+
+    if footprints_filename:
+        QgsVectorFileWriter.writeAsVectorFormat(vlayer, footprints_filename, "UTF-8")
+        gpkglayer = QgsVectorLayer(footprints_filename, "Footprints")
+        gpkglayer.setRenderer(vlayer.renderer().clone())
+        vlayer = gpkglayer
+
+    QgsProject.instance().addMapLayer(vlayer, False)
+    return vlayer
+
+
 def create_preview_group(
     group_name: str,
     images: list[dict],
@@ -407,69 +511,11 @@ def create_preview_group(
         return
 
     item_ids = [f"{img['properties'][ITEM_TYPE]}:{img[ID]}" for img in images]
-    uri = tile_service_data_src_uri(item_ids, service=tile_service)
-
-    if uri:
-        log.debug(f"Tile datasource URI: \n{uri}")
-
-        rlayer = QgsRasterLayer(uri, "Image previews", "wms")
-        rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
-
-        if tile_service == "xyz" and catalog_layer_name is not None:
-            url = uri.split("url=")[-1]
-            s = QSettings()
-            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/username", "")
-            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/password", "")
-            s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/authcfg", "")
-            s.setValue(
-                f"qgis/connections-xyz/{catalog_layer_name}/url",
-                url.replace(PlanetClient.getInstance().api_key, ""),
-            )
-    else:
-        log.debug("No tile URI for preview group")
+    rlayer = _build_raster_layer(item_ids, tile_service, catalog_layer_name)
+    if rlayer is None:
         return
 
-    vlayer = None
-    if images:
-        vlayer = create_preview_vector_layer(images[0])
-
-        vlayer.startEditing()
-        dp = vlayer.dataProvider()
-        fields: list[QgsField] = vlayer.fields()
-
-        for img in images:
-            feat = QgsFeature()
-            feat.setFields(fields)
-            qgs_geom = qgsgeometry_from_geojson(img["geometry"])
-            feat.setGeometry(qgs_geom)
-
-            f_names = [f.name() for f in fields]
-
-            if "item_id" in f_names:
-                feat["item_id"] = img[ID]
-
-            if search_query and "search_query" in f_names:
-                feat["search_query"] = json.dumps(search_query)
-            if sort_order and "sort_order" in f_names and len(sort_order) > 1:
-                feat["sort_order"] = " ".join(sort_order)
-
-            props: dict = img["properties"]
-            for k, v in props.items():
-                if k in f_names:
-                    feat[k] = v
-
-            dp.addFeature(feat)
-
-        vlayer.commitChanges()
-
-        if footprints_filename:
-            QgsVectorFileWriter.writeAsVectorFormat(
-                vlayer, footprints_filename, "UTF-8"
-            )
-            gpkglayer = QgsVectorLayer(footprints_filename, "Footprints")
-            gpkglayer.setRenderer(vlayer.renderer().clone())
-            vlayer = gpkglayer
-        QgsProject.instance().addMapLayer(vlayer, False)
+    vlayer = _build_vector_layer(images, footprints_filename, search_query, sort_order)
 
     # noinspection PyArgumentList
     QgsProject.instance().addMapLayer(rlayer, False)

@@ -131,14 +131,8 @@ PLUGIN_NAMESPACE = "planet_explorer"
 
 
 class PlanetExplorer(object):
-    def __init__(self, iface):
-
-        self.iface = iface
-
-        # Initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
-
-        # Initialize locale
+    def _init_locale(self) -> None:
+        """Initialize plugin locale and translations."""
         locale_value = QSettings().value("locale/userLocale", QLocale().name())
         if isinstance(locale_value, str):
             locale = locale_value[0:2]
@@ -147,111 +141,121 @@ class PlanetExplorer(object):
         locale_path = safe_join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
-
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # Declare instance attributes
+    def _init_sentry(self) -> None:
+        """Initialize Sentry error tracking if DSN is valid."""
+        if not is_sentry_dsn_valid():
+            return
+        try:
+            sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+            sentry_sdk.set_context(
+                "qgis",
+                {
+                    "type": "runtime",
+                    "name": Qgis.QGIS_RELEASE_NAME,
+                    "version": Qgis.QGIS_VERSION,
+                },
+            )
+            self._init_sentry_os_context()
+        except Exception:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "Error",
+                "Error initializing Planet Explorer.\n"
+                "Please restart QGIS to load updated libraries.",
+            )
+
+    def _init_sentry_os_context(self) -> None:
+        """Set Sentry OS context based on the current platform."""
+        system = platform.system()
+        if system == "Darwin":
+            sentry_sdk.set_context(
+                "mac",
+                {
+                    "type": "os",
+                    "name": "macOS",
+                    "version": platform.mac_ver()[0],
+                    "kernel_version": platform.uname().release,
+                },
+            )
+        elif system == "Linux":
+            sentry_sdk.set_context(
+                "linux",
+                {
+                    "type": "os",
+                    "name": "Linux",
+                    "version": platform.release(),
+                    "build": platform.version(),
+                },
+            )
+        elif system == "Windows":
+            sentry_sdk.set_context(
+                "windows",
+                {
+                    "type": "os",
+                    "name": "Windows",
+                    "version": platform.version(),
+                },
+            )
+
+    def __init__(self, iface):
+        self.iface = iface
+        self.plugin_dir = os.path.dirname(__file__)
+
+        self._init_locale()
+
         self.actions = []
         self.menu = self.tr("&{0}".format(P_E))
         self.toolbar = None
-
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
         self._terms_browser = None
 
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
-        if is_sentry_dsn_valid():
-            try:
-                sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
-                sentry_sdk.set_context(
-                    "qgis",
-                    {
-                        "type": "runtime",
-                        "name": Qgis.QGIS_RELEASE_NAME,
-                        "version": Qgis.QGIS_VERSION,
-                    },
-                )
-                system = platform.system()
-                if system == "Darwin":
-                    sentry_sdk.set_context(
-                        "mac",
-                        {
-                            "type": "os",
-                            "name": "macOS",
-                            "version": platform.mac_ver()[0],
-                            "kernel_version": platform.uname().release,
-                        },
-                    )
-                if system == "Linux":
-                    sentry_sdk.set_context(
-                        "linux",
-                        {
-                            "type": "os",
-                            "name": "Linux",
-                            "version": platform.release(),
-                            "build": platform.version(),
-                        },
-                    )
-                if system == "Windows":
-                    sentry_sdk.set_context(
-                        "windows",
-                        {
-                            "type": "os",
-                            "name": "Windows",
-                            "version": platform.version(),
-                        },
-                    )
-            except Exception:
-                QMessageBox.warning(
-                    self.iface.mainWindow(),
-                    "Error",
-                    "Error initializing Planet Explorer.\n"
-                    "Please restart QGIS to load updated libraries.",
-                )
+
+        self._init_sentry()
 
         self.qgis_hook = sys.excepthook
 
-        def plugin_hook(t, value, tb):
-            trace = "".join(traceback.format_exception(t, value, tb))
-            if PLUGIN_NAMESPACE in trace.lower():
-                s = ""
-                if issubclass(t, exceptions.Timeout):
-                    s = "Connection to Planet server timed out."
-                elif issubclass(t, exceptions.ConnectionError):
-                    s = (
-                        "Connection error.\n Verify that your computer is correctly"
-                        " connected to the Internet"
-                    )
-                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
-                    s = (
-                        "ProxyError.\n Verify that your proxy is correctly configured"
-                        " in the QGIS settings"
-                    )
-                elif issubclass(t, planet.exceptions.ServerError):
-                    s = "Server Error.\n Please, try again later"
-                elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
-                    s = (
-                        "Proxy Error\n Proxy URL must start with 'http://' or"
-                        " 'https://'"
-                    )
+        sys.excepthook = self._plugin_exception_hook
 
-                if s:
-                    QMessageBox.warning(self.iface.mainWindow(), "Error", s)
-                else:
-                    try:
-                        sentry_sdk.capture_exception(value)
-                    except Exception:
-                        log("Error sending exception to Sentry", exc_info=True)
-                        pass  # we swallow all exceptions here, to avoid entering an endless loop
-                    self.qgis_hook(t, value, tb)
+    def _plugin_exception_hook(self, t, value, tb):
+        trace = "".join(traceback.format_exception(t, value, tb))
+        if PLUGIN_NAMESPACE in trace.lower():
+            s = ""
+            if issubclass(t, exceptions.Timeout):
+                s = "Connection to Planet server timed out."
+            elif issubclass(t, exceptions.ConnectionError):
+                s = (
+                    "Connection error.\n Verify that your computer is correctly"
+                    " connected to the Internet"
+                )
+            elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
+                s = (
+                    "ProxyError.\n Verify that your proxy is correctly configured"
+                    " in the QGIS settings"
+                )
+            elif issubclass(t, planet.exceptions.ServerError):
+                s = "Server Error.\n Please, try again later"
+            elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
+                s = "Proxy Error\n Proxy URL must start with 'http://' or" " 'https://'"
+
+            if s:
+                QMessageBox.warning(self.iface.mainWindow(), "Error", s)
             else:
+                try:
+                    sentry_sdk.capture_exception(value)
+                except Exception:
+                    log("Error sending exception to Sentry", exc_info=True)
+                    pass  # we swallow all exceptions here, to avoid entering an endless loop
                 self.qgis_hook(t, value, tb)
-
-        sys.excepthook = plugin_hook
+        else:
+            self.qgis_hook(t, value, tb)
 
     def tr(self, message):
         """Get the translation for a string using Qt translation API.

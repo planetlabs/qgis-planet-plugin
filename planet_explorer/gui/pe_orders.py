@@ -268,37 +268,28 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.populate_details()
 
-    def populate_details(self):
-        self.bundleWidgets = []
+    def _center(self, obj):
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(obj)
+        hlayout.addStretch()
+        return hlayout
 
-        client = PlanetClient.getInstance()
-        permissions = [img[PERMISSIONS] for img in self.images]
-        item_bundles = client.bundles_for_item_type_and_permissions(
-            self.item_type, permissions=permissions
-        )
-        default = default_bundles.get(self.item_type, [])
+    def _build_rectified_grid(
+        self, layout: QVBoxLayout, item_bundles: dict, default: list
+    ):
+        """Build and add rectified asset grid to layout.
 
-        def _center(obj):
-            hlayout = QHBoxLayout()
-            hlayout.addStretch()
-            hlayout.addWidget(obj)
-            hlayout.addStretch()
-            return hlayout
+        Args:
+            layout (QVBoxLayout): Layout to add the rectified grid to.
+            item_bundles (dict): Available item bundles.
+            default (list): Default bundle IDs.
+        """
 
-        layout = QVBoxLayout()
-        layout.setMargin(0)
-        layout.setSpacing(20)
-
-        layout.addLayout(_center(QLabel("<b>RECTIFIED ASSETS</b>")))
+        layout.addLayout(self._center(QLabel("<b>RECTIFIED ASSETS</b>")))
 
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
-
-        assets = PlanetClient.getInstance().asset_types_for_item_type(self.item_type)
-        assets_and_bands = {}
-        for a in assets:
-            if "bands" in a:
-                assets_and_bands[a["id"]] = len(a["bands"])
 
         widgets = {}
         i = 0
@@ -324,8 +315,15 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         layout.addLayout(gridlayout)
 
+    def _build_unrectified_grid(self, layout: QVBoxLayout, item_bundles: dict):
+        """Build widget containing grid of unrectified assets.
+
+        Args:
+            layout (QVBoxLayout): Layout to add the unrectified grid to.
+            item_bundles (dict): Available item bundles.
+        """
         self.labelUnrectified = QLabel("<b>UNRECTIFIED ASSETS</b>")
-        layout.addLayout(_center(self.labelUnrectified))
+        layout.addLayout(self._center(self.labelUnrectified))
 
         self.widgetUnrectified = QWidget()
 
@@ -350,7 +348,30 @@ class PlanetOrderItemTypeWidget(QWidget):
             Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
         self.labelMore.linkActivated.connect(self._showMoreClicked)
-        layout.addLayout(_center(self.labelMore))
+        layout.addLayout(self._center(self.labelMore))
+
+    def populate_details(self):
+        self.bundleWidgets = []
+
+        client = PlanetClient.getInstance()
+        permissions = [img[PERMISSIONS] for img in self.images]
+        item_bundles = client.bundles_for_item_type_and_permissions(
+            self.item_type, permissions=permissions
+        )
+        default = default_bundles.get(self.item_type, [])
+
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        layout.setSpacing(20)
+
+        assets = PlanetClient.getInstance().asset_types_for_item_type(self.item_type)
+        assets_and_bands = {}
+        for a in assets:
+            if "bands" in a:
+                assets_and_bands[a["id"]] = len(a["bands"])
+
+        self._build_rectified_grid(layout, item_bundles, default)
+        self._build_unrectified_grid(layout, item_bundles)
 
         self.widgetUnrectified.hide()
         self.labelUnrectified.hide()
@@ -529,16 +550,13 @@ class PlanetOrderReviewWidget(QWidget):
     def _stac_box_clicked(self, checked):
         self.stac_order = checked
 
-    def populate_details(self):
-        self.imgWidgets = []
-        layout = QGridLayout()
-        layout.setMargin(0)
-        layout.setVerticalSpacing(15)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(2, 1)
-        self.chkClip = None
-        self.chkComposite = None
-        self.chkHarmonize = None
+    def _add_clip_section(self, layout: QGridLayout) -> None:
+        """Add clipping section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+
+        """
         if self.add_clip:
             layout.addWidget(
                 QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignmentFlag.AlignCenter
@@ -557,6 +575,12 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_composite_section(self, layout: QGridLayout) -> None:
+        """Add composite section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         if self.add_composite:
             layout.addWidget(
                 QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignmentFlag.AlignCenter
@@ -607,6 +631,12 @@ class PlanetOrderReviewWidget(QWidget):
             layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_harmonize_section(self, layout: QGridLayout) -> None:
+        """Add harmonization section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         if self.add_harmonize:
             layout.addWidget(
                 QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignmentFlag.AlignCenter
@@ -628,6 +658,12 @@ class PlanetOrderReviewWidget(QWidget):
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_metadata_section(self, layout: QGridLayout) -> None:
+        """Add metadata section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
@@ -637,6 +673,12 @@ class PlanetOrderReviewWidget(QWidget):
         )
         layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_review_section(self, layout: QGridLayout) -> None:
+        """Add image review section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         layout.addWidget(
             QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignmentFlag.AlignCenter
         )
@@ -657,6 +699,23 @@ class PlanetOrderReviewWidget(QWidget):
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
         layout.addLayout(sublayout, 16, 1, Qt.AlignmentFlag.AlignCenter)
+
+    def populate_details(self) -> None:
+        self.imgWidgets = []
+        layout = QGridLayout()
+        layout.setMargin(0)
+        layout.setVerticalSpacing(15)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(2, 1)
+        self.chkClip = None
+        self.chkComposite = None
+        self.chkHarmonize = None
+
+        self._add_clip_section(layout)
+        self._add_composite_section(layout)
+        self._add_harmonize_section(layout)
+        self._add_metadata_section(layout)
+        self._add_review_section(layout)
 
         self.widgetDetails.setLayout(layout)
 
@@ -979,63 +1038,72 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.labelNumberOfOrders.setText(f"{norders}")
 
-    @waitcursor
-    def _process_orders(self):
-        allbundles = []
-        for widget in self._item_type_widgets.values():
-            allbundles.extend(widget.bundles())
-        if not allbundles:
-            self.bar.pushMessage(
-                "", "No bundles have been selected", Qgis.MessageLevel.Warning
-            )
-            return
-        name = self.txtOrderName.text()
+    def _build_order(
+        self,
+        name: str,
+        item_type: str,
+        bundle: dict,
+        w: "PlanetOrderReviewWidget",
+        aoi: dict,
+    ) -> OrderedDict:
+        """Build a single order dictionary.
 
-        aoi = None
-        if self.tool_resources.get("aoi") is not None:
-            aoi = json.loads(self.tool_resources.get("aoi"))
+        Args:
+            name (str): Order name.
+            item_type (str): Item type.
+            bundle (dict): Bundle details.
+            w (PlanetOrderReviewWidget): Review widget for the bundle.
+            aoi (dict): Area of interest.
 
-        orders = []
-        for item_type, widget in self._item_type_widgets.items():
-            for bundle in widget.bundles():
-                w = self._review_widget_for_bundle(item_type, bundle["name"])
-                images = w.selected_images()
-                ids = [img["id"] for img in images]
-                # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
-                #            their order in Explorer web app
-                order = OrderedDict()  # necessary to maintain toolchain order
-                order["name"] = f'{name.replace(" ", "_")}_{item_type}'
-                order["order_type"] = "partial"
-                order["products"] = [
-                    {
-                        "item_ids": ids,
-                        "item_type": item_type,
-                        "product_bundle": bundle["id"],
-                    }
-                ]
-                order["delivery"] = {
-                    "archive_filename": f"{name}_QGIS.zip",
-                    "archive_type": "zip",
-                    "single_archive": True,
-                }
-                order["notifications"] = {"email": True}
+        Returns:
+            OrderedDict: Order dictionary.
+        """
+        images = w.selected_images()
+        ids = [img["id"] for img in images]
+        # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
+        #            their order in Explorer web app
+        order = OrderedDict()  # necessary to maintain toolchain order
+        order["name"] = f'{name.replace(" ", "_")}_{item_type}'
+        order["order_type"] = "partial"
+        order["products"] = [
+            {
+                "item_ids": ids,
+                "item_type": item_type,
+                "product_bundle": bundle["id"],
+            }
+        ]
+        order["delivery"] = {
+            "archive_filename": f"{name}_QGIS.zip",
+            "archive_type": "zip",
+            "single_archive": True,
+        }
+        order["notifications"] = {"email": True}
 
-                if w.stac_order:
-                    order["metadata"] = {"stac": {}}
-                tools = []
-                if w.clipping():
-                    tools.append({"clip": {"aoi": aoi}})
-                if w.composite():
-                    # 'order' or 'strip_id' for 'group_by'
-                    composite_type = w.getCompositeType()
-                    tools.append({"composite": {"group_by": composite_type}})
-                if w.harmonize():
-                    tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
-                if bundle["filetype"] == "NITF":
-                    tools.append({"file_format": {"format": "PL_NITF"}})
-                order["tools"] = tools
-                orders.append(order)
+        if w.stac_order:
+            order["metadata"] = {"stac": {}}
+        tools = []
+        if w.clipping():
+            tools.append({"clip": {"aoi": aoi}})
+        if w.composite():
+            # 'order' or 'strip_id' for 'group_by'
+            composite_type = w.getCompositeType()
+            tools.append({"composite": {"group_by": composite_type}})
+        if w.harmonize():
+            tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
+        if bundle["filetype"] == "NITF":
+            tools.append({"file_format": {"format": "PL_NITF"}})
+        order["tools"] = tools
+        return order
 
+    def _submit_orders(self, orders: list) -> bool:
+        """Submit orders to the Planet API.
+
+        Args:
+            orders (list): List of order dictionaries.
+
+        Returns:
+            bool: True if all orders were successful, False otherwise.
+        """
         responses_ok = True
         for order in orders:
             try:
@@ -1061,19 +1129,42 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 # Order were a success
                 responses_ok = responses_ok and resp_json
                 send_analytics_for_order(order)
+        return responses_ok
 
-        if responses_ok:
+    @waitcursor
+    def _process_orders(self):
+        allbundles = []
+        for widget in self._item_type_widgets.values():
+            allbundles.extend(widget.bundles())
+        if not allbundles:
+            self.bar.pushMessage(
+                "", "No bundles have been selected", Qgis.MessageLevel.Warning
+            )
+            return
+        name = self.txtOrderName.text()
+
+        aoi = None
+        if self.tool_resources.get("aoi") is not None:
+            aoi = json.loads(self.tool_resources.get("aoi"))
+
+        orders = []
+        for item_type, widget in self._item_type_widgets.items():
+            for bundle in widget.bundles():
+                w = self._review_widget_for_bundle(item_type, bundle["name"])
+                # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
+                #  their order in Explorer web app
+                orders.append(self._build_order(name, item_type, bundle, w, aoi))
+
+        if self._submit_orders(orders):
             self.bar.pushMessage(
                 "",
-                "All orders correctly processed. Open the Order Monitor to check their"
-                " status",
+                "All orders correctly processed. Open the Order Monitor to check their status",
                 Qgis.MessageLevel.Success,
             )
         else:
             self.bar.pushMessage(
                 "",
-                "Not all orders correctly processed. Open the QGIS log for more"
-                " information",
+                "Not all orders correctly processed. Open the QGIS log for more information",
                 Qgis.MessageLevel.Warning,
             )
 
