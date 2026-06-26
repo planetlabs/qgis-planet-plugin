@@ -139,7 +139,7 @@
       ];
 
       # Jupyter notebooks
-      jupyterEnv =  with pkgs; [
+      jupyterEnv = with pkgs; [
         (python3.withPackages (ps: [
           ps.jupyterlab
           ps.pillow

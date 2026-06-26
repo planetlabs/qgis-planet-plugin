@@ -66,8 +66,7 @@ repos:
     hooks:
       - id: flake8
         name: " flake8 Python Linter"
-        entry: flake8
-        args: ['--extend-ignore=E203,W503', '--ignore=DAR']
+        entry: bash scripts/flake8_check.sh
         language: system
         types: [python]
 
