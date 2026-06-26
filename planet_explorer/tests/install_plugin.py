@@ -124,6 +124,18 @@ def start_load_plugin():
         logger.info(f"Plugin '{PLUGIN_KEY}' is active as expected after startup.")
 
 
+def install_plugin(plugin_install_zip: str):
+    # Install from the zip file
+    logger.info(
+        f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ..."
+    )
+    plugin_installer.installFromZipFile(plugin_install_zip)
+    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
+        logger.info(f"Plugin '{PLUGIN_KEY}' installed successfully!")
+    else:
+        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to install.")
+
+
 try:
     try:
         import pyplugin_installer
@@ -147,18 +159,11 @@ try:
 
     plugin_install_zip = find_plugin_zip_file()
 
-    # Install from the zip file
-    logger.info(
-        f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ..."
-    )
-    plugin_installer.installFromZipFile(plugin_install_zip)
-    if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
-        logger.info(f"Plugin '{PLUGIN_KEY}' installed successfully!")
-    else:
-        raise PluginInstallException(f"Plugin '{PLUGIN_KEY}' failed to install.")
+    install_plugin(plugin_install_zip)
 
+    # unload plugin so we can test load/unload
     if PLUGIN_KEY in utils.active_plugins:
-        unload_plugin()
+        utils.unloadPlugin(PLUGIN_KEY)
 
     if ERROR_OCCURRED:
         raise PluginInstallException(
