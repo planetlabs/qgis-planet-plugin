@@ -1368,7 +1368,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             list: Publishing stage filters.
         """
         publish_types = []
-        publish_filters = []
+        publish_filters = None
         for chk in [
             self.cb_publish_preview,
             self.cb_publish_standard,
@@ -1381,7 +1381,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             # Adds the Publishing stage to the filters if any were active
             # Metadata name is "publishing_stage"
             # Publishing stage filters will only be used for SkySat and PlanetScope
-            publish_filters.append(string_in_filter("publishing_stage", publish_types))
+            publish_filters = string_in_filter("publishing_stage", publish_types)
         return publish_filters
 
     def _build_server_filters(self, populated_filters: list) -> list:
