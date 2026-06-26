@@ -104,4 +104,12 @@ jobs:
             -v "$(pwd)":/tests_directory \
             -w /tests_directory \
             "qgis/qgis:${QGIS_TEST_VERSION}-questing" \
-            sh -lc 'LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0 qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
+            sh -lc '
+              LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0
+
+              # 1. Install the missing system dependencies inside the GitHub container
+              apt-get update && apt-get install -y python3-cffi
+
+              # 3. Run the exact test that just passed locally
+              qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py
+            '
