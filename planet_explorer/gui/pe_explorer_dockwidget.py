@@ -144,7 +144,17 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def show_message(
         self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None
     ):
-        """Skips bold title, i.e. sets first param (below) to empty string"""
+        """Displays a message in the QGIS message bar omitting the bold title.
+
+        Args:
+            message (str): The primary notification text to display.
+            level (Qgis.MessageLevel, optional): The severity level of the message.
+                Defaults to Qgis.MessageLevel.Info.
+            duration (int, optional): Dismiss timeout in seconds. If None, falls
+                back to the global QGIS message timeout. Defaults to None.
+            show_more (str, optional): Detailed text or traceback displayed when
+                clicking an interactive 'Show more' link. Defaults to None.
+        """
         if duration is None:
             duration = iface.messageTimeout()
 
@@ -189,6 +199,12 @@ def toggle_explorer():
 def show_explorer():
     instance = _get_widget_instance()
     instance.show()
+
+
+def hide_explorer():
+    wdgt = _get_widget_instance()
+    if wdgt is not None:
+        wdgt.hide()
 
 
 def show_explorer_and_search_daily_images(request):

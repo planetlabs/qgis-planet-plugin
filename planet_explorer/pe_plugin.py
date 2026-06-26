@@ -63,6 +63,7 @@ from requests import exceptions
 from planet_explorer.gui.pe_auth_dialog import PlanetAuthenticationDialog
 from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
 from planet_explorer.gui.pe_explorer_dockwidget import (
+    hide_explorer,
     remove_explorer,
     show_explorer,
     toggle_images_search,
@@ -436,16 +437,16 @@ class PlanetExplorer(object):
             add_widget_to_layer(layer)
 
     def login_changed(self, loggedin):
-        # self.provider.updateLayerWidgets()
+        self.provider.updateLayerWidgets()
         try:
             self.enable_buttons(loggedin)
         except RuntimeError:
             pass
 
         if not loggedin:
+            hide_explorer()
             hide_orders_monitor()
             hide_inspector()
-            pass
 
     def add_info_button(self):
         info_menu = QMenu()
@@ -548,7 +549,8 @@ class PlanetExplorer(object):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
         PlanetClient.getInstance().log_out()
-        # self.provider.updateLayerWidgets()
+        self.provider.updateLayerWidgets()
+
         for action in self.actions:
             self.iface.removePluginWebMenu(self.tr("&{0}".format(P_E)), action)
             self.iface.removeToolBarIcon(action)
