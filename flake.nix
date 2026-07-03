@@ -37,90 +37,94 @@
       };
 
       # Common packages shared between all devShells (Qt-agnostic)
-      makeCommonPackages = p: [
-        p.actionlint # for checking gh actions
-        p.act # for running github actions locally
-        p.bandit
-        p.bearer
-        p.chafa
-        # p.codeql # Build time is too long
-        p.cspell
-        p.detect-secrets
-        p.ffmpeg
-        p.glogg
-        p.gdb
-        p.git
-        p.glow # terminal markdown viewer
-        p.gource # Software version control visualization
-        p.gum # UX for TUIs
-        p.isort
-        p.jq
-        p.markdownlint-cli
-        p.nixfmt
-        p.pipewire
-        p.privoxy
-        p.pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
-        p.python3
-        p.ripgrep
-        p.shellcheck
-        p.shfmt
-        p.tailspin # Beautiful log tailing with syntax highlighting
-        p.vim
-        p.virtualenv
-        p.vscode
-        p.yamllint
-        p.yamlfmt
-        darglint
-        (p.python3.withPackages (ps: [
-          ps.python
-          ps.setuptools
-          ps.wheel
-          ps.pytest
-          ps.pytest-qt
-          ps.black
-          ps.click # needed by black
-          ps.jsonschema
-          ps.pandas
-          ps.odfpy
-          ps.psutil
-          ps.httpx
-          ps.toml
-          ps.typer
-          ps.paver
-          ps.detect-secrets
-          ps.flake8
-          # For autocompletion in vscode
-          ps.snakeviz # For visualising cprofiler outputs
-          ps.sqlfmt
-          # This executes some shell code to initialize a venv in $venvDir before
-          # dropping into the shell
-          ps.venvShellHook
-          ps.virtualenv
-          # Those are dependencies that we would like to use from nixpkgs, which will
-          # add them to PYTHONPATH and thus make them accessible from within the venv.
-          ps.debugpy
-          ps.numpy
-          ps.gdal
-          ps.pip
-          ps.pyqtwebengine
-          ps.pre-commit-hooks
-        ]))
-      ];
+      makeCommonPackages =
+        p: with p; [
+          actionlint # for checking gh actions
+          act # for running github actions locally
+          bandit
+          bearer
+          chafa
+          # p.codeql # Build time is too long
+          cspell
+          detect-secrets
+          ffmpeg
+          glogg
+          gdb
+          git
+          glow # terminal markdown viewer
+          gource # Software version control visualization
+          gum # UX for TUIs
+          isort
+          jq
+          markdownlint-cli
+          nixfmt
+          pipewire
+          privoxy
+          pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
+          python3
+          ripgrep
+          shellcheck
+          shfmt
+          tailspin # Beautiful log tailing with syntax highlighting
+          vim
+          virtualenv
+          vscode
+          yamllint
+          yamlfmt
+          darglint
+          (python3.withPackages (
+            ps: with ps; [
+              python
+              setuptools
+              wheel
+              pytest
+              pytest-qt
+              black
+              click # needed by black
+              jsonschema
+              pandas
+              odfpy
+              psutil
+              httpx
+              toml
+              typer
+              paver
+              detect-secrets
+              flake8
+              # For autocompletion in vscode
+              snakeviz # For visualising cprofiler outputs
+              sqlfmt
+              # This executes some shell code to initialize a venv in $venvDir before
+              # dropping into the shell
+              venvShellHook
+              virtualenv
+              # Those are dependencies that we would like to use from nixpkgs, which will
+              # add them to PYTHONPATH and thus make them accessible from within the venv.
+              debugpy
+              numpy
+              gdal
+              pip
+              pyqtwebengine
+              pre-commit-hooks
+            ]
+          ))
+        ];
       commonPackages = makeCommonPackages pkgs;
 
       # Qt5 packages for QGIS 3 LTR development
       # Note: kcachegrind is only available in Qt6, use .#qt6 devShell for profiling
       qt5Packages = with pkgs; [
-        kdePackages.kcachegrind
         libsForQt5.qt5.qttools # includes designer
         qt5.qtbase
         qt5.qtlocation
         qt5.qtquickcontrols2
         qt5.qttools
         qt5.qtsvg
-        (python3.withPackages (ps: [
-          ps.pyqt5
-        ]))
+        (python3.withPackages (
+          ps: with ps; [
+            pyqt5
+          ]
+        ))
       ];
 
       # Qt6 packages for QGIS 4 development
@@ -131,18 +135,22 @@
         qt6.qtdeclarative
         qt6.qtsvg
         kdePackages.kcachegrind
-        (python3.withPackages (ps: [
-          ps.pyqt6
-          ps.qscintilla-qt6
-        ]))
+        (python3.withPackages (
+          ps: with ps; [
+            pyqt6
+            qscintilla-qt6
+          ]
+        ))
       ];
 
       # Jupyter notebooks
       jupyterEnv = with pkgs; [
-        (python3.withPackages (ps: [
-          ps.jupyterlab
-          ps.pillow
-        ]))
+        (python3.withPackages (
+          ps: with ps; [
+            jupyterlab
+            pillow
+          ]
+        ))
       ];
       precommitHook = ''
         pre-commit clean > /dev/null
@@ -211,6 +219,7 @@
       devShells.${system} = {
         # Default devShell uses Qt6 for QGIS 4 development
         default = pkgs.mkShell {
+          name = "default";
           packages = commonPackages ++ qt6Packages;
           shellHook = ''
             echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
@@ -223,6 +232,7 @@
 
         # Qt6 devShell for QGIS 4 development
         qt6 = pkgs.mkShell {
+          name = "qt6";
           packages = commonPackages ++ qt6Packages;
           shellHook = ''
             echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
@@ -235,6 +245,7 @@
         };
 
         pyqgis-qt6 = pkgs.mkShell {
+          name = "pyqgis-qt6";
           packages = commonPackages ++ qt6Packages ++ [ qgisWithExtras ] ++ jupyterEnv;
           shellHook = ''
             echo "🔧 Using PyQGIS and Qt6 devShell (for QGIS 4 development)"
@@ -248,6 +259,7 @@
 
         # Qt5 devShell for QGIS 3 LTR development
         qt5 = pkgs.mkShell {
+          name = "qt5";
           packages = commonPackages ++ qt5Packages;
           shellHook = ''
             echo "🔧 Using Qt5 devShell (for QGIS 3 LTR development)"
@@ -256,7 +268,9 @@
           ''
           + commonShellHook;
         };
+
         pyqgis-qt5 = pkgs.mkShell {
+          name = "pyqgis-qt5";
           packages = commonPackages ++ qt5Packages ++ [ qgisLtrWithExtras ] ++ jupyterEnv;
           shellHook = ''
             echo "🔧 Using PyQGIS and Qt5 devShell (for QGIS 3 LTR development)"
