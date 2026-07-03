@@ -1,5 +1,6 @@
 name: Build
-
+# This workflow tests if the plugin can be built and installed in
+# QGIS 3.44 (LTR) and 4.0. It is triggered on push to master and on pull requests.
 on:
   push:
     branches:
