@@ -9,7 +9,7 @@ on:
       - '**'
 
 env:
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   build:
@@ -55,10 +55,10 @@ jobs:
     needs: build
     strategy:
       matrix:
-        qgis_version: ["4.0.3"]
+        qgis_version: ["3.44", "4.0"]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
-      QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
+      QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
 
     steps:
       - name: Set up Docker Buildx
@@ -107,4 +107,4 @@ jobs:
             -v "$(pwd)":/tests_directory \
             -w /tests_directory \
             "qgis/qgis:${QGIS_TEST_VERSION}-questing" \
-            sh -lc 'LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0 qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
+            sh -lc 'LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0 ${QGIS_COMMAND}'
