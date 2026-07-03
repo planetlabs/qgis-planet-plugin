@@ -26,6 +26,8 @@ __revision__ = "$Format:%H$"
 import os
 import sys
 
+from qgis.PyQt.QtCore import PYQT_VERSION_STR
+
 extlibs = os.path.abspath(os.path.dirname(__file__) + "/extlibs")
 if os.path.exists(extlibs) and extlibs not in sys.path:
     sys.path.insert(0, extlibs)
@@ -33,7 +35,13 @@ if os.path.exists(extlibs) and extlibs not in sys.path:
 
 # noinspection PyPep8Naming
 def classFactory(iface):
-    import planet_explorer.resources.resources  # noqa: F401
+    if PYQT_VERSION_STR.startswith("6"):
+        import planet_explorer.resources.resources  # noqa: F401
+    else:
+        import planet_explorer.resources.resources as _resources_mod
+
+        sys.modules["resources_rc"] = _resources_mod
+
     from planet_explorer.pe_plugin import PlanetExplorer
 
     return PlanetExplorer(iface)
