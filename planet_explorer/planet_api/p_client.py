@@ -311,7 +311,7 @@ class PlanetClient(QObject):
         self.base_url = "https://api.planet.com"
 
         # Login
-        self.api_key = API_KEY_DEFAULT
+        self.api_key = None
         self.auth_storage_provider = None
         self.auth = None
         self.auth_storage_dir = None
@@ -408,7 +408,8 @@ class PlanetClient(QObject):
         """
         old_session = self.session
 
-        self.auth.device_user_login_complete(login_info)
+        if login_info is not None:
+            self.auth.device_user_login_complete(login_info)
 
         self.build_engines()
 
@@ -1252,6 +1253,7 @@ class PlanetClient(QObject):
             api_key = tile_url.split("?")[-1].strip("api_key=")
             return api_key
         else:
+
             # TODO: API Key if user only has access to daily imagery
             pass
 

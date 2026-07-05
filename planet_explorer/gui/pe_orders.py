@@ -236,7 +236,7 @@ class PlanetOrderItemTypeWidget(QWidget):
         layout.addWidget(self.labelThumbnail, 0, 0, 3, 1)
 
         for image in images:
-            url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+            url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key}"
             download_thumbnail(url, self)
 
         labelName = IconLabel(
@@ -472,7 +472,7 @@ class ImageReviewWidget(QFrame):
         self.label.setPixmap(thumb)
         self.label.setFixedSize(96, 96)
 
-        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key}"
         download_thumbnail(url, self)
         vlayout.addWidget(self.label)
         self.setLayout(vlayout)

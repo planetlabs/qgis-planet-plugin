@@ -149,6 +149,8 @@
           ps: with ps; [
             jupyterlab
             pillow
+            folium
+            shapely
           ]
         ))
       ];

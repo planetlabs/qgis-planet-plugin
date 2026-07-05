@@ -43,12 +43,12 @@ class LoginWorker(QThread):
                 return
 
         if self.token_exists and not self.clean_session:
-            built_engines = self.p_client.build_engines()
-            if built_engines:
+            try:
+                self.p_client.complete_log_in(None)
                 self.finished_signal.emit(True, "Success")
-            else:
+            except Exception as e:
                 self.finished_signal.emit(
-                    False, "Token exists but failed to initialize client!"
+                    False, f"Token exists but failed to initialize client! {str(e)}"
                 )
         else:
             try:

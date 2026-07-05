@@ -196,8 +196,16 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.textBrowser.setVisible(True)
             self.listScenes.setVisible(False)
 
-    def parse_utfgrid(self, utf):
-        """Convert a utfgrid formatted array into an integer array."""
+    def parse_utfgrid(self, utf) -> list[int]:
+        """Convert a utfgrid formatted array into an integer array.
+
+        Args:
+            utf: The utfgrid data, given as an iterable of strings,
+                where each string represents one row of encoded grid values.
+
+        Returns:
+            A 2D list of integers representing the decoded grid.
+        """
 
         def _convert_char(character):
             val = ord(character)
@@ -213,7 +221,19 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     def read_val_at_pixel(self, grid, lat, lon, zoom):
         """Interpolate the row/column of a webtile from a lat/lon/zoom and extract
-        the corresponding value from `grid`."""
+        the corresponding value from `grid`.
+
+        Args:
+            grid: A 2D array (list of lists) of decoded utfgrid values for
+                the tile.
+            lat: Latitude of the point to sample, in decimal degrees.
+            lon: Longitude of the point to sample, in decimal degrees.
+            zoom: The zoom level of the tile that `grid` was decoded from.
+
+        Returns:
+            The value from `grid` at the row/column corresponding to
+            the given lat/lon.
+        """
         tile = mercantile.tile(lon, lat, zoom)
         size = len(grid)
         box = mercantile.xy_bounds(tile)
@@ -309,7 +329,7 @@ class SceneItemWidget(QFrame):
         self.setLayout(layout)
         self.nam = QNetworkAccessManager()
         self.nam.finished.connect(self.iconDownloaded)
-        url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key}"
         self.nam.get(QNetworkRequest(QUrl(url)))
 
         self.footprint = QgsRubberBand(

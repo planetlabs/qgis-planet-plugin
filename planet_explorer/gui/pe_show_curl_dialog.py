@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import os
 
@@ -53,12 +54,12 @@ class ShowCurlDialog(BASE, WIDGET):
     def setText(self):
         if self.comboType.currentText() == "cURL":
             txt = curl_template % (
-                PlanetClient.getInstance().api_key(),
+                PlanetClient.getInstance().api_key,
                 json.dumps(self.request),
             )
         else:
             txt = python_template % (
-                PlanetClient.getInstance().api_key(),
+                PlanetClient.getInstance().api_key,
                 json.dumps(self.request, indent=4),
             )
         self.textBrowser.setPlainText(txt)

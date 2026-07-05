@@ -185,10 +185,10 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
 
         groove_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SubControl.SC_SliderGroove, self
+            style.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderGroove, self
         )
         handle_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self
+            style.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self
         )
 
         slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
@@ -289,9 +289,9 @@ class RangeSlider(QSlider):
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
                 hit = style.hitTestComplexControl(
-                    style.CC_Slider, opt, event.pos(), self
+                    style.ComplexControl.CC_Slider, opt, event.pos(), self
                 )
-                if hit == style.SC_SliderHandle:
+                if hit == style.SubControl.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
 
@@ -385,8 +385,12 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
         style = self.style()
 
-        gr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderGroove, self)
-        sr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderHandle, self)
+        gr = style.subControlRect(
+            style.ComplexControl.CC_Slider, opt, style.SubControl.SC_SliderGroove, self
+        )
+        sr = style.subControlRect(
+            style.ComplexControl.CC_Slider, opt, style.SubControl.SC_SliderHandle, self
+        )
 
         if self.orientation() == Qt.Orientation.Horizontal:
             slider_length = sr.width()

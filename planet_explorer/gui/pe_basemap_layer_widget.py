@@ -383,7 +383,7 @@ class BasemapLayerWidget(QWidget):
             self.renderingOptionsWidget.setVisible(has_api_key)
 
             api_key = (
-                PlanetClient.getInstance().api_key()
+                PlanetClient.getInstance().api_key
                 if not passed_api_key or passed_api_key == ""
                 else passed_api_key
             )

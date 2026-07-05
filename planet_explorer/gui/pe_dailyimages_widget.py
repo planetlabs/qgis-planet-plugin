@@ -442,7 +442,7 @@ class DailyImagesWidget(BASE, WIDGET):
     @pyqtSlot()
     def copy_api_key(self):
         cb = QgsApplication.clipboard()
-        cb.setText(PlanetClient.getInstance().api_key())
+        cb.setText(PlanetClient.getInstance().api_key)
         self.parent.show_message("API key copied to clipboard")
         analytics_track(API_KEY_COPIED)
 
