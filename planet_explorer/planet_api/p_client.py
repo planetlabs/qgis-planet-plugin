@@ -514,13 +514,19 @@ class PlanetClient(QObject):
             self.log_out()  # Clean up half-baked state safely
             return False
 
-    async def _aget_one_mosaic(self) -> dict[str, Any] | None:
+    async def _aget_one_mosaic(
+        self, raise_on_error: bool = False
+    ) -> dict[str, Any] | None:
         try:
             mosaics = self.mosaics_client.list_mosaics()
             first_mosaic = await anext(mosaics, None)
+            if first_mosaic is None:
+                log.info("No mosaics/basemaps found for the current user.")
             return first_mosaic
         except Exception:
             log.exception("Failed to get one mosaic")
+            if raise_on_error:
+                raise
             return None
 
     @verify_mosaics_client
@@ -540,7 +546,12 @@ class PlanetClient(QObject):
     ) -> list[dict[str, Any]]:
         try:
             mosaic_series = self.mosaics_client.list_series(name_contains=name_contains)
-            return [series async for series in mosaic_series]
+            mosaic_series_ = [series async for series in mosaic_series]
+            if not mosaic_series_:
+                log.info(
+                    f"No mosaic series found for the current user with filter: {name_contains}"
+                )
+            return mosaic_series_
         except Exception:
             log.exception(
                 f"Failed to list available mosaic series with filter: {name_contains}"
@@ -570,7 +581,12 @@ class PlanetClient(QObject):
     ) -> list[dict[str, Any]]:
         try:
             mosaics = self.mosaics_client.list_mosaics(name_contains=name_contains)
-            return [mosaic async for mosaic in mosaics]
+            mosaics_ = [mosaic async for mosaic in mosaics]
+            if not mosaics_:
+                log.info(
+                    f"No mosaics found for the current user with filter: {name_contains}"
+                )
+            return mosaics_
         except Exception:
             log.exception(
                 f"Failed to list available mosaics with filter: {name_contains}"
@@ -595,7 +611,10 @@ class PlanetClient(QObject):
     async def _aget_mosaics_for_series(self, series_id: str) -> list[dict[str, Any]]:
         try:
             mosaics = self.mosaics_client.list_series_mosaics(series_id)
-            return [mosaic async for mosaic in mosaics]
+            mosaics_ = [mosaic async for mosaic in mosaics]
+            if not mosaics_:
+                log.info(f"No mosaics found for the series with id {series_id}")
+            return mosaics_
         except Exception:
             log.exception(f"Failed to list mosaics for the series with id {series_id}")
             return []
@@ -737,9 +756,11 @@ class PlanetClient(QObject):
         try:
             quads = self.mosaics_client.list_quads(mosaic_id, full_extent=True)
             first_quad = await anext(quads, {})
+            if not first_quad:
+                log.info(f"No quads found for mosaic with id {mosaic_id}")
             return first_quad
         except Exception:
-            log.debug(f"Failed to get one quad for the mosaic with id {mosaic_id}")
+            log.exception(f"Failed to get one quad for the mosaic with id {mosaic_id}")
             return {}
 
     @verify_mosaics_client

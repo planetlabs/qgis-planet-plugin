@@ -1107,7 +1107,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         responses_ok = True
         for order in orders:
             try:
-                resp_json = self._p_client.orders.create_order(order)
+                resp_json = self._p_client.client.orders.create_order(order)
             except APIError:
                 order_name = order["name"]
 

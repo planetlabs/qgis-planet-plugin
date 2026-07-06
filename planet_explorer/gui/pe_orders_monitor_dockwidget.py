@@ -189,7 +189,7 @@ class OrderWrapper:
 
     async def _alocations(self):
         order_id = self.order["id"]
-        order_detail = await self._p_client.orders_client.get_order(order_id)
+        order_detail = await self._p_client.client.orders.get_order(order_id)
 
         results = order_detail.get("_links", {}).get("results", [])
         locations = [(f"{r['location']}&ua={user_agent()}", r["name"]) for r in results]

@@ -419,6 +419,16 @@ class BasemapsWidget(BASE, WIDGET):
         if self.radioDownloadComplete.isChecked():
             mosaics = self.mosaicsList.selected_mosaics()
             quad = self.p_client.get_one_quad(mosaics[0])
+            if not quad:
+                QMessageBox.warning(
+                    self,
+                    "Complete Download",
+                    "No quads found for the selected mosaic. <br>Check"
+                    " if quota is available for basemap tiles at <a"
+                    " href='https://www.planet.com/account/#/plans'>account"
+                    " plans</a>.",
+                )
+                return
             quadarea = self._area_from_bbox_coords(quad[BBOX])
             mosaicarea = self._area_from_bbox_coords(mosaics[0][BBOX])
             if mosaicarea > MAX_AREA_TO_DOWNLOAD:
@@ -494,6 +504,16 @@ class BasemapsWidget(BASE, WIDGET):
             qgsarea.measureArea(geom), QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
         quad = self.p_client.get_one_quad(selected[0])
+        if not quad:
+            QMessageBox.warning(
+                self,
+                "Quad Download",
+                "No quads found for the selected mosaic. <br>Check"
+                " if quota is available for basemap tiles at <a"
+                " href='https://www.planet.com/account/#/plans'>account"
+                " plans</a>.",
+            )
+            return
         quadarea = self._area_from_bbox_coords(quad[BBOX])
         numpages = math.ceil(area / quadarea / QUADS_PER_PAGE)
 
