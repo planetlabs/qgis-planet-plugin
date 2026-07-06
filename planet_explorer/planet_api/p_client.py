@@ -1317,7 +1317,11 @@ def tile_service_hash(item_type_ids: list[str]) -> str | None:
         return None
 
     item_type_ids.reverse()
-    data = {"ids": ",".join(item_type_ids)}
+
+    # TODO: Delete commented line once verified that
+    # tiles are able to be previewed.
+    # data = {"ids": ",".join(item_type_ids)}
+    data = {"ids": item_type_ids}
 
     tile_url = TILE_SERVICE_URL.format("")
 
