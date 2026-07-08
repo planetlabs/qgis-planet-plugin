@@ -1,18 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_open_saved_search_dialog.py
+    ------------------------------
+    Date                 : August 2019
+    Copyright            : (C) 2019 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
 import os
-
-from qgis.PyQt import uic
-
-from .pe_filters import filters_as_text_from_request, filters_from_request
-from .pe_legacy_warning_dialog import LegacyWarningDialog
-from .pe_gui_utils import waitcursor
-from ..pe_analytics import analytics_track, SAVED_SEARCH_ACCESSED
-from ..planet_api import PlanetClient
-from ..pe_utils import iface
-
-from qgis.PyQt.QtCore import QDateTime, Qt
+from typing import Any
 
 from qgis.core import Qgis
 from qgis.gui import QgsMessageBar
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QDateTime, Qt
+
+from ..pe_analytics import SAVED_SEARCH_ACCESSED, analytics_track
+from ..pe_utils import iface
+from ..planet_api import PlanetClient
+from .pe_filters import filters_as_text_from_request, filters_from_request
+from .pe_gui_utils import waitcursor
+from .pe_legacy_warning_dialog import LegacyWarningDialog
 
 WIDGET, BASE = uic.loadUiType(
     os.path.join(
@@ -26,6 +41,7 @@ WIDGET, BASE = uic.loadUiType(
 class OpenSavedSearchDialog(BASE, WIDGET):
     def __init__(self):
         super(OpenSavedSearchDialog, self).__init__(iface.mainWindow())
+        self.p_client = PlanetClient.getInstance()
         self.saved_search = None
         self.setupUi(self)
 
@@ -48,8 +64,8 @@ class OpenSavedSearchDialog(BASE, WIDGET):
     def populate_saved_searches(self):
         self.comboSavedSearch.blockSignals(True)
         self.comboSavedSearch.clear()
-        res = PlanetClient.getInstance().get_searches().get()
-        for search in res["searches"]:
+        searches = list(self.p_client.client.data.list_searches(limit=0))
+        for search in searches:
             self.comboSavedSearch.addItem(search["name"], search)
         self.comboSavedSearch.blockSignals(False)
 
@@ -65,14 +81,20 @@ class OpenSavedSearchDialog(BASE, WIDGET):
     def delete_search(self):
         request = self.comboSavedSearch.currentData()
         if request:
-            PlanetClient.getInstance().delete_search(request["id"])
+            self.p_client.client.data.delete_search(request["id"])
             self.comboSavedSearch.removeItem(self.comboSavedSearch.currentIndex())
             self.bar.pushMessage(
-                "Delete search", "Search was correctly deleted", Qgis.Success, 5
+                "Delete search",
+                "Search was correctly deleted",
+                Qgis.MessageLevel.Success,
+                5,
             )
         else:
             self.bar.pushMessage(
-                "Delete search", "No search has been selected", Qgis.Warning, 5
+                "Delete search",
+                "No search has been selected",
+                Qgis.MessageLevel.Warning,
+                5,
             )
 
     def update_legacy_search(self):
@@ -109,25 +131,40 @@ class OpenSavedSearchDialog(BASE, WIDGET):
                 "type": "AndFilter",
             }
         cleared_request["name"] = request["name"]
-        PlanetClient.getInstance().update_search(cleared_request, request["id"])
+        self.p_client.update_search(cleared_request, request["id"])
         return cleared_request
 
-    def check_for_legacy_request(self, request):
+    def check_for_legacy_request(self, request: dict[str, Any]) -> bool:
+        """
+        Checks if the search is a legacy search
+        (i.e. contains PSScene3Band or PSScene4Band item types) and needs
+        to be updated to the new PSScene item type.
+
+        Args:
+            request (dict[str, Any]): The search request data.
+
+        Returns:
+            bool: True if the search is a legacy search, False otherwise.
+        """
         sources = request["item_types"]
         return "PSScene3Band" in sources or "PSScene4Band" in sources
 
-    def set_from_request(self, request):
+    def set_from_request(self, request: dict[str, Any]):
         filters = filters_from_request(request, "acquired")
         if filters:
             tokens = []
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                tokens.append(QDateTime.fromString(gte, Qt.ISODate).date().toString())
+                tokens.append(
+                    QDateTime.fromString(gte, Qt.DateFormat.ISODate).date().toString()
+                )
             else:
                 tokens.append("---")
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                tokens.append(QDateTime.fromString(lte, Qt.ISODate).date().toString())
+                tokens.append(
+                    QDateTime.fromString(lte, Qt.DateFormat.ISODate).date().toString()
+                )
             else:
                 tokens.append("---")
             self.labelDateRange.setText(" / ".join(tokens))
@@ -149,5 +186,8 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             self.accept()
         else:
             self.bar.pushMessage(
-                "Saved search", "No search has been selected", Qgis.Warning, 5
+                "Saved search",
+                "No search has been selected",
+                Qgis.MessageLevel.Warning,
+                5,
             )

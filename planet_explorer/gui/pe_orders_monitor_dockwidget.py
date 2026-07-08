@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -21,27 +22,22 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+import json
 import logging
 import os
-import json
+from pathlib import Path
 
 import iso8601
-from planet.api.models import Order, Orders
-
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsRasterLayer,
-    QgsProject,
     QgsContrastEnhancement,
+    QgsProject,
+    QgsRasterLayer,
 )
-
 from qgis.PyQt import uic
-
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl
-
 from qgis.PyQt.QtGui import QDesktopServices
-
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -52,7 +48,13 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..pe_utils import orders_download_folder, iface, user_agent
+from ..pe_utils import (
+    basename_only,
+    iface,
+    orders_download_folder,
+    safe_join,
+    user_agent,
+)
 from ..planet_api import PlanetClient
 from ..planet_api.p_order_tasks import OrderProcessorTask, QuadsOrderProcessorTask
 from ..planet_api.p_quad_orders import quad_orders
@@ -82,10 +84,7 @@ LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 
 ORDERS_MONITOR_WIDGET, ORDERS_MONITOR_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_orders_monitor_dockwidget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_orders_monitor_dockwidget.ui")
 )
 
 
@@ -115,10 +114,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
 
     @waitcursor
     def populate_orders_list(self):
-        orders: Orders = self.p_client.get_orders()
-        ordersArray = []
-        for page in orders.iter():
-            ordersArray.extend(page.get().get(Orders.ITEM_KEY))
+        ordersArray = list(self.p_client.client.orders.list_orders(limit=0))
         self.listOrders.clear()
         for order in ordersArray:
             wrapper = OrderWrapper(order, self.p_client)
@@ -139,7 +135,7 @@ class PlanetOrdersMonitorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             self.listOrders.addItem(item)
             self.listOrders.setItemWidget(item, widget)
 
-        self.listOrders.sortItems(Qt.DescendingOrder)
+        self.listOrders.sortItems(Qt.SortOrder.DescendingOrder)
 
 
 class OrderWrapper:
@@ -191,16 +187,16 @@ class OrderWrapper:
     def downloaded(self):
         return os.path.exists(self.download_folder())
 
-    def locations(self):
-        order_detail = self.p_client._get(
-            self.order[Order.LINKS_KEY]["_self"]
-        ).get_body()
-        links = order_detail.get()[Order.LINKS_KEY]
-        results = links[Order.RESULTS_KEY]
-        locations = [
-            (f"{r[Order.LOCATION_KEY]}&ua={user_agent()}", r[NAME]) for r in results
-        ]
+    async def _alocations(self):
+        order_id = self.order["id"]
+        order_detail = await self._p_client.client.orders.get_order(order_id)
+
+        results = order_detail.get("_links", {}).get("results", [])
+        locations = [(f"{r['location']}&ua={user_agent()}", r["name"]) for r in results]
         return locations
+
+    def locations(self):
+        return self._p_client.runner.run(self._alocations())
 
 
 class BaseWidgetItem(QListWidgetItem):
@@ -290,7 +286,7 @@ class OrderItemWidget(QWidget):
                 iface.messageBar().pushMessage(
                     "",
                     "This order is already being downloaded and processed",
-                    level=Qgis.Warning,
+                    level=Qgis.MessageLevel.Warning,
                     duration=5,
                 )
                 return
@@ -300,7 +296,7 @@ class OrderItemWidget(QWidget):
                 "Download order",
                 "This order is already downloaded.\nDownload again?",
             )
-            if ret == QMessageBox.No:
+            if ret == QMessageBox.StandardButton.No:
                 return
 
         self.task = OrderProcessorTask(self.order)
@@ -310,7 +306,7 @@ class OrderItemWidget(QWidget):
         iface.messageBar().pushMessage(
             "",
             "Order download task added to QGIS task manager",
-            level=Qgis.Info,
+            level=Qgis.MessageLevel.Info,
             duration=5,
         )
 
@@ -318,17 +314,13 @@ class OrderItemWidget(QWidget):
         """Finds the band number associated with the provided name (e.g. 'blue'),
         otherwise returns a default value.
 
-        :param layer: Raster layer. Both single band and multiband.
-        :type layer: QgsRasterLayer
+        Args:
+            layer (QgsRasterLayer): Raster layer. Both single band and multiband.
+            name (str): Band name (e.g. 'blue').
+            default (int): Default band number to use.
 
-        :param name: Band name (e.g. 'blue')
-        :type name: str
-
-        :param default: Default band number to use
-        :type default: int
-
-        :returns: Band number
-        "rtype: int
+        Returns:
+            int: Band number.
         """
         name = name.lower()
         for i in range(layer.bandCount()):
@@ -341,8 +333,8 @@ class OrderItemWidget(QWidget):
         Rasters with less than 3 bands will be added as
         a grey scale layer, whereas multiband will be added as True colour RGB.
 
-        :param layer: Raster layer. Both single band and multiband.
-        :type layer: QgsRasterLayer
+        Args:
+            layer (QgsRasterLayer): Raster layer. Both single band and multiband.
         """
 
         band_cnt = layer.bandCount()
@@ -360,7 +352,8 @@ class OrderItemWidget(QWidget):
             typ = layer.renderer().dataType(1)
             enhancement = QgsContrastEnhancement(typ)
             enhancement.setContrastEnhancementAlgorithm(
-                QgsContrastEnhancement.StretchToMinimumMaximum, True
+                QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum,
+                True,
             )
             band_min, band_max = layer.dataProvider().cumulativeCut(
                 used_bands[0], 0.02, 0.98, sampleSize=10000
@@ -383,7 +376,8 @@ class OrderItemWidget(QWidget):
                 typ = layer.renderer().dataType(b)
                 enhancement = QgsContrastEnhancement(typ)
                 enhancement.setContrastEnhancementAlgorithm(
-                    QgsContrastEnhancement.StretchToMinimumMaximum, True
+                    QgsContrastEnhancement.ContrastEnhancementAlgorithm.StretchToMinimumMaximum,
+                    True,
                 )
                 band_min, band_max = layer.dataProvider().cumulativeCut(
                     used_bands[b], 0.02, 0.98, sampleSize=10000
@@ -400,85 +394,110 @@ class OrderItemWidget(QWidget):
             layer.setRenderer(r)
             QgsProject.instance().addMapLayer(layer)
 
-    def add_to_map(self):
+    def _get_order_folder(self) -> str | None:
+        """Get the order subfolder from the download root.
+
+        Returns:
+            str | None: Path to the order folder, or None if not found.
+        """
+        root = self.order.download_folder()
+        for content in os.listdir(root):
+            full_path = os.path.join(root, content)
+            if os.path.isdir(full_path):
+                return full_path
+        return None
+
+    def _is_valid_raster(self, json_file: dict) -> bool:
+        """Check if a manifest file entry is a valid raster to load.
+
+        Args:
+            json_file (dict): File entry from manifest.
+
+        Returns:
+            bool: True if the file should be loaded as a raster layer.
+        """
+        media_type = json_file["media_type"]
+        raster_types = ["image/tiff", "application/vnd.lotus-notes"]
+        if media_type not in raster_types:
+            return False
+
+        annotations = json_file["annotations"]
+        asset_type_key = "planet/asset_type"
+
+        if asset_type_key in annotations:
+            asset_type = annotations[asset_type_key]
+            return not (asset_type.endswith("_udm") or asset_type.endswith("_udm2"))
+        else:
+            # workaround for composite
+            image_path = json_file["path"]
+            return image_path.endswith("composite.tif") or image_path.endswith(
+                "composite_file_format.ntf"
+            )
+
+    def _load_rasters_from_manifest(self, final_path: str) -> bool:
+        """Load raster layers from a manifest.json file.
+
+        Args:
+            final_path (str): Path to the order folder containing manifest.json.
+
+        Returns:
+            bool: True if at least one raster was loaded, False otherwise.
+        """
+        sanitized_final_path = os.path.abspath(os.path.realpath(final_path))
+
+        try:
+            manifest_file_path = safe_join(sanitized_final_path, "manifest.json")
+        except ValueError:
+            self.qgs_error_message(
+                "Cannot add data to map", "Invalid order directory path"
+            )
+            return False
+
+        if not Path(manifest_file_path).exists():
+            self.qgs_error_message("Cannot add data to map", "Manifest file is missing")
+            return False
+
+        with open(manifest_file_path) as manifest_file:
+            manifest_data = json.load(manifest_file)
+
+        data_found = False
+        for json_file in manifest_data["files"]:
+            if not self._is_valid_raster(json_file):
+                continue
+            image_dir = safe_join(sanitized_final_path, json_file["path"])
+            if Path(image_dir).exists():
+                layer = QgsRasterLayer(image_dir, basename_only(image_dir))
+                self.load_layer(layer)
+                data_found = True
+
+        if not data_found:
+            self.qgs_error_message(
+                "Cannot add data to map", "Image layer(s) is missing"
+            )
+        return data_found
+
+    def add_to_map(self) -> bool:
         """Called when the add to map button is clicked.
         Adds the selected remotely sensed image in the order monitor list to QGIS.
         The data needs to be downloaded.
+
+        Returns:
+            bool: True if at least one layer was added, False otherwise.
         """
-
-        # Gets the folder name in the root folder to access the manifest.json file
-        # There should always be only one folder, so this will be the selected folder
-        # All files will be ignored
-        final_path = None
-        root = self.order.download_folder()
-        dir_contents = os.listdir(root)
-        for content in dir_contents:
-            full_path = os.path.join(root, content)
-            if os.path.isdir(full_path):
-                final_path = full_path
-                break
-
-        manifest_dir = "{}/{}".format(final_path, "manifest.json")
-
-        data_found = False
-        if os.path.exists(manifest_dir):
-            manifest_file = open(manifest_dir)
-            manifest_data = json.load(manifest_file)
-
-            list_files = manifest_data["files"]
-            for json_file in list_files:
-                media_type = json_file["media_type"]
-                raster_types = ["image/tiff", "application/vnd.lotus-notes"]
-
-                if media_type in raster_types:
-                    annotations = json_file["annotations"]
-                    asset_type_key = "planet/asset_type"
-
-                    if asset_type_key in annotations:
-                        asset_type = annotations[asset_type_key]
-                        if asset_type.endswith("_udm") or asset_type.endswith("_udm2"):
-                            # Skips all 'udm' asset rasters
-                            continue
-                    else:
-                        # A workaround for composite
-                        image_path = json_file["path"]
-                        if not image_path.endswith(
-                            "composite.tif"
-                        ) and not image_path.endswith("composite_file_format.ntf"):
-                            # Skips if it's not a composite file
-                            continue
-
-                    image_path = json_file["path"]
-                    image_dir = "{}/{}".format(final_path, image_path)
-
-                    if os.path.exists(image_dir):
-                        layer = QgsRasterLayer(image_dir, os.path.basename(image_dir))
-                        self.load_layer(layer)
-                        data_found = True
-            if not data_found:
-                # The raster(s) specified in the manifest.json file is missing
-                self.qgs_error_message(
-                    "Cannot add data to map", "Image layer(s) is missing"
-                )
-            # True returned if atleast one data were loaded, otherwise False
-            return data_found
-        else:
-            # The manifest.json file is missing
-            # This file contains information on the downloaded data
-            self.qgs_error_message("Cannot add data to map", "Manifest file is missing")
+        final_path = self._get_order_folder()
+        if final_path is None:
+            self.qgs_error_message("Cannot add data to map", "Order folder not found")
             return False
+        return self._load_rasters_from_manifest(final_path)
 
     def qgs_error_message(self, error_title="Error", error_desciption=""):
         """Displays an error message on the QGIS message bar.
         A buttons is included which will open a message box.
 
-        :param error_title: Error message title
-        :type error_title: str
-
-        :param error_desciption: Error message description
-        :type error_desciption: str
+        Args:
+            error_title (str): Error message title.
+            error_desciption (str): Error message description.
         """
-
         message_bar = iface.messageBar()
         message_bar.pushInfo(error_title, message=error_desciption)
 
@@ -541,7 +560,7 @@ class QuadsOrderItemWidget(QWidget):
                 iface.messageBar().pushMessage(
                     "",
                     "This order is already being downloaded and processed",
-                    level=Qgis.Warning,
+                    level=Qgis.MessageLevel.Warning,
                     duration=5,
                 )
                 return
@@ -551,7 +570,7 @@ class QuadsOrderItemWidget(QWidget):
                 "Download order",
                 "This order is already downloaded.\nDownload again?",
             )
-            if ret == QMessageBox.No:
+            if ret == QMessageBox.StandardButton.No:
                 return
 
         self.task = QuadsOrderProcessorTask(self.order)
@@ -561,7 +580,7 @@ class QuadsOrderItemWidget(QWidget):
         iface.messageBar().pushMessage(
             "",
             "Order download task added to QGIS task manager",
-            level=Qgis.Info,
+            level=Qgis.MessageLevel.Info,
             duration=5,
         )
 
@@ -575,11 +594,12 @@ def _get_widget_instance():
         if not PlanetClient.getInstance().has_api_key():
             return None
         dockwidget_instance = PlanetOrdersMonitorDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetOrdersMonitorDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

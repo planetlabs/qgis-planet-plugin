@@ -12,17 +12,62 @@ jobs:
   pre-commit-lint:
     runs-on: ubuntu-latest
     name: Lint
+
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
+
       - name: Set up Python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.13"
+
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install nixfmt binary for GitHub Actions
+        run: |
+          # Download the official stable binary (fixes the 404 error)
+          curl -sSfL -o nixfmt https://github.com/NixOS/nixfmt/releases/download/v1.3.1/nixfmt
+          chmod +x nixfmt
+
+          # Move it to your local runner path
+          sudo mv nixfmt /usr/local/bin/
+
+          # Create an alias so both 'nixfmt' and 'nixfmt-rfc-style' commands function perfectly
+          sudo ln -s /usr/local/bin/nixfmt /usr/local/bin/nixfmt-rfc-style
+
+      - name: Main Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libhunspell-dev \
+            hunspell \
+            jq \
+            shellcheck \
+            git \
+            ca-certificates \
+            apt-transport-https
+
+          # Install bearer CLI
+          sudo update-ca-certificates
+          echo -e "Types: deb\nURIs: https://apt.fury.io/bearer/\nSuites: /\nTrusted: yes" | sudo tee /etc/apt/sources.list.d/fury.sources
+          sudo apt-get update
+          sudo apt-get install bearer=2.0.1
+
+          npm install -g markdownlint-cli@0.48.0 cspell@9.7.0
       - name: Install pre-commit
         run: pip install pre-commit
+
+      - name: Install Python dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
       - name: Run pre-commit
         run: pre-commit run --all --verbose
+
       - name: Analysis (git diff)
         if: failure()
         run: git diff

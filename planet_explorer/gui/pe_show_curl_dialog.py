@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 import json
 import os
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtGui import QGuiApplication
 
-from ..pe_analytics import analytics_track, CURL_REQUEST_COPIED
+from ..pe_analytics import CURL_REQUEST_COPIED, analytics_track
 from ..planet_api import PlanetClient
 
 python_template = """
@@ -53,12 +54,12 @@ class ShowCurlDialog(BASE, WIDGET):
     def setText(self):
         if self.comboType.currentText() == "cURL":
             txt = curl_template % (
-                PlanetClient.getInstance().api_key(),
+                PlanetClient.getInstance().api_key,
                 json.dumps(self.request),
             )
         else:
             txt = python_template % (
-                PlanetClient.getInstance().api_key(),
+                PlanetClient.getInstance().api_key,
                 json.dumps(self.request, indent=4),
             )
         self.textBrowser.setPlainText(txt)

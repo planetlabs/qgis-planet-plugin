@@ -24,20 +24,23 @@ __revision__ = "$Format:%H$"
 import json
 import logging
 import os
-from typing import Optional, Union
 
-from planet.api.utils import geometry_from_json
+from planet.geojson import geom_from_geojson
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 
 
-def json_str_or_obj_to_obj(json_type: Union[str, dict]) -> Optional[dict]:
-    """
-    :param json_type: JSON as string or `json` object
-    :type json_type: str | dict
-    :rtype: dict | None
+def json_str_or_obj_to_obj(json_type: str | dict) -> dict | None:
+    """Convert a JSON string or object to a Python dictionary.
+
+    Args:
+        json_type (str | dict): JSON as a string or Python dictionary.
+
+    Returns:
+        dict | None: Python dictionary representation of the JSON.
+        Returns None if the input is invalid.
     """
     json_obj = None
     if isinstance(json_type, (str, bytes, bytearray)):
@@ -52,19 +55,23 @@ def json_str_or_obj_to_obj(json_type: Union[str, dict]) -> Optional[dict]:
     elif isinstance(json_type, dict):
         json_obj = json_type
 
-    if not json_obj:
+    if json_obj is None:
         log.debug("JSON Python object invalid")
         return None
 
     return json_obj
 
 
-def geometry_from_json_str_or_obj(json_type: Union[str, dict]) -> Optional[dict]:
+def geometry_from_json_str_or_obj(json_type: str | dict) -> dict | None:
     """
-    :param json_type: GeoJSON feature, feature collection or geometry as
-    string or `json` object
-    :type json_type: str | dict
-    :rtype: dict | None
+    Create a geometry dictionary from a GeoJSON string or object.
+
+    Args:
+        json_type (str | dict): GeoJSON feature, feature collection,
+            or geometry as a string or Python dictionary.
+
+    Returns:
+        dict | None: Geometry dictionary. Returns None if the input is invalid.
     """
     json_obj = json_str_or_obj_to_obj(json_type)
 
@@ -72,19 +79,24 @@ def geometry_from_json_str_or_obj(json_type: Union[str, dict]) -> Optional[dict]
         return None
 
     # Strip outer Feature or FeatureCollection
-    json_geom = geometry_from_json(json_obj)
+    json_geom = geom_from_geojson(json_obj)
 
     if not json_geom:
         log.debug("GeoJSON geometry invalid")
+        return None
 
     return json_geom
 
 
-def geometry_from_request(request: Union[str, dict]) -> Optional[dict]:
+def geometry_from_request(request: str | dict) -> dict | None:
     """
-    :param request: JSON request as string or `json` object
-    :type request: str | dict
-    :rtype: dict | None
+    Create a geometry dictionary from a JSON request.
+
+    Args:
+        request (str | dict): JSON request as a string or Python dictionary.
+
+    Returns:
+        dict | None: Geometry dictionary. Returns None if the input is invalid.
     """
     req_obj = json_str_or_obj_to_obj(request)
     if req_obj is None:
@@ -94,7 +106,7 @@ def geometry_from_request(request: Union[str, dict]) -> Optional[dict]:
     geom = None
     fltr = req_obj.get("filter", None)
     if fltr:
-        config = fltr.get("config", None)
+        config = fltr.get("config", [])
 
     for conf in config:
         if isinstance(conf, dict) and conf.get("field_name", None) == "geometry":

@@ -1,5 +1,6 @@
 name: Build
-
+# This workflow tests if the plugin can be built and installed in
+# QGIS 3.44 (LTR) and 4.0. It is triggered on push to master and on pull requests.
 on:
   push:
     branches:
@@ -7,74 +8,104 @@ on:
   pull_request:
     branches:
       - '**'
+
+env:
+  PYTHON_VERSION: "3.13"
+
 jobs:
   build:
-    name: "Build"
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
-    - name: Get source code
-      uses: actions/checkout@v2
+      - name: Get source code
+        uses: actions/checkout@v5
+        with:
+          clean: true
+          fetch-depth: 1
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install plugin dependencies
-      run: pip3 install --break-system-packages -r ./requirements.txt
-    - name: Setup
-      run: |
-        pip install --break-system-packages paver
-        paver setup
+      - name: Install and build package
+        env:
+          SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
+          SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python -m pip install --break-system-packages -r requirements.txt
+          python -m pip install --break-system-packages paver
+          paver setup
 
-    - name: Build package
-      env:
-        SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
-        SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
-        GITHUB_REF: ${{ github.ref }}
-        GITHUB_SHA: ${{ github.sha}}
-      run: |
-        paver package.sentry=${SENTRY_KEY} package.segments=$SEGMENTS_KEY package.version=${GITHUB_SHA::7} package
-        mkdir tmp
-        unzip planet_explorer.zip -d tmp
+          paver package.sentry="${SENTRY_KEY}" package.segments="${SEGMENTS_KEY}" package.version="${GITHUB_SHA::7}" package
+          ls -lah planet_explorer.zip
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: planet_explorer_${{github.sha}}
-        path: tmp
+      - name: Upload package artifact
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: planet_explorer_${{ github.sha }}
+          path: planet_explorer.zip
 
   install:
-    name: "Install"
+    name: Install
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        qgis_version: [ "3.44", "3.42", "3.40", "3.38", "release-3_36" ]
+        qgis_version: ["3.44", "4.0"]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
-      # cf https://docs.qgis.org/3.16/en/docs/user_manual/introduction/qgis_configuration.html#running-qgis-with-advanced-settings
-      QGIS_COMMAND: qgis --noplugins --noversioncheck --nologo --version-migration --code ./planet_explorer/tests/install_plugin.py
+      QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
 
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Download artifact
+        if: ${{ !env.ACT }}
         uses: actions/download-artifact@v4
         with:
-          name: planet_explorer_${{github.sha}}
-          path: tmp
+          name: planet_explorer_${{ github.sha }}
+          path: .
 
-      - name: Zip artifact
-        run: (cd tmp && zip -r ../planet_explorer_${{github.sha}}.zip .)
+      - name: Build package locally for act
+        if: ${{ env.ACT }}
+        env:
+          SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
+          SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python -m pip install --break-system-packages -r requirements.txt
+          python -m pip install --break-system-packages paver
+          paver setup
+
+          paver package.sentry="${SENTRY_KEY}" package.segments="${SEGMENTS_KEY}" package.version="${GITHUB_SHA::7}" package
+          ls -lah planet_explorer.zip
 
       - name: Pull qgis image
-        run: docker pull qgis/qgis:${QGIS_TEST_VERSION}
+        run: docker pull "qgis/qgis:${QGIS_TEST_VERSION}-questing"
 
       - name: Run install test
-        run: docker run --rm -v `pwd`:/tests_directory -t -w /tests_directory qgis/qgis:${QGIS_TEST_VERSION} sh -c "xvfb-run ${QGIS_COMMAND}"
+        timeout-minutes: 2
+        run: |
+          docker run --rm \
+            -e QT_QPA_PLATFORM=offscreen \
+            -v "$(pwd)":/tests_directory \
+            -w /tests_directory \
+            "qgis/qgis:${QGIS_TEST_VERSION}-questing" \
+            sh -lc 'LANG=C.utf8 LC_ALL=C.utf8 DISPLAY=:0 ${QGIS_COMMAND}'

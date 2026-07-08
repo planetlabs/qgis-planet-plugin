@@ -1,0 +1,20 @@
+{
+  "b96ee51bac26b53bef2c0b7b35bad630_0": {
+    "author": "Tim Sutton",
+    "comment": "User must be able to download to a directory of their choosing.",
+    "false_positive": true,
+    "ignored_at": "2025-08-12T15:22:30Z"
+  },
+  "b96ee51bac26b53bef2c0b7b35bad630_1": {
+    "author": "Tim Sutton",
+    "comment": "User must be able to download to a directory of their choosing.",
+    "false_positive": true,
+    "ignored_at": "2025-08-12T15:20:16Z"
+  },
+  "b96ee51bac26b53bef2c0b7b35bad630_2": {
+    "author": "Tim Sutton",
+    "comment": "User must be able to download to a directory of their choosing.",
+    "false_positive": true,
+    "ignored_at": "2025-08-12T15:19:01Z"
+  }
+}
