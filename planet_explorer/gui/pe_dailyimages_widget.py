@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -24,30 +25,34 @@ __revision__ = "$Format:%H$"
 import logging
 import os
 
-from planet.api.filters import and_filter, or_filter, build_search_request
+from planet.data_filter import and_filter, or_filter
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSlot
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMenu, QVBoxLayout
+from qgis.PyQt.QtWidgets import QAction, QDialog, QMenu, QVBoxLayout
 
 from ..pe_analytics import (
+    API_KEY_COPIED,
+    ITEM_IDS_COPIED,
     analytics_track,
     send_analytics_for_search,
-    ITEM_IDS_COPIED,
-    API_KEY_COPIED,
 )
-
-from ..pe_utils import add_menu_section_action
+from ..pe_utils import (
+    LANDSAT_ID,
+    RAPIDEYE_ID,
+    RAPIDEYE_ORTHO_ID,
+    SENTINEL_ID,
+    add_menu_section_action,
+)
 from ..planet_api import PlanetClient
 from .pe_dailyimages_search_results_widget import DailyImagesSearchResultsWidget
-from .pe_filters import PlanetDailyFilter, PlanetAOIFilter, filters_from_request
-from .pe_orders import PlanetOrdersDialog
-from .pe_show_curl_dialog import ShowCurlDialog
+from .pe_filters import PlanetAOIFilter, PlanetDailyFilter, filters_from_request
+from .pe_gui_utils import waitcursor
 from .pe_legacy_warning_widget import LegacyWarningWidget
 from .pe_open_saved_search_dialog import OpenSavedSearchDialog
-from .pe_gui_utils import waitcursor
-from ..pe_utils import LANDSAT_ID, SENTINEL_ID, RAPIDEYE_ID, RAPIDEYE_ORTHO_ID
+from .pe_orders import PlanetOrdersDialog
+from .pe_show_curl_dialog import ShowCurlDialog
 
 LOG_LEVEL = os.environ.get("PYTHON_LOG_LEVEL", "WARNING").upper()
 logging.basicConfig(level=LOG_LEVEL)
@@ -55,14 +60,9 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "dailyimages_widget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "dailyimages_widget.ui"))
 
-SEARCH_HIGHLIGHT = "QToolButton {color: rgb(16, 131, 138);}"
+SEARCH_HIGHLIGHT = "QToolButton {color: rgb(0, 0, 0);}"
 
 
 class DailyImagesWidget(BASE, WIDGET):
@@ -117,11 +117,14 @@ class DailyImagesWidget(BASE, WIDGET):
         self.lblWarning.setHidden(True)
 
         self._collect_sources_filters()
-        self._default_filter_values = build_search_request(self._filters, self._sources)
+        self._default_filter_values = {
+            "item_types": self._sources,
+            "filter": self._filters,
+        }
 
     def open_saved_searches(self, dlg=None):
         dlg = dlg if isinstance(dlg, OpenSavedSearchDialog) else OpenSavedSearchDialog()
-        if dlg.exec() == OpenSavedSearchDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             saved_search_request = dlg.saved_search
             request = {}
             if saved_search_request:
@@ -139,7 +142,7 @@ class DailyImagesWidget(BASE, WIDGET):
         if self.legacy_request is not None and self.current_saved_search is not None:
             self.legacy_request = None
             self._collect_sources_filters()
-            request = build_search_request(self._filters, self._sources)
+            request = {"item_types": self._sources, "filter": self._filters}
             request["name"] = self.current_saved_search["name"]
             PlanetClient.getInstance().update_search(
                 request, self.current_saved_search["id"]
@@ -259,12 +262,12 @@ class DailyImagesWidget(BASE, WIDGET):
 
             item_type_filters.append(item_type_filter)
 
-        all_filters.append(or_filter(*item_type_filters))
+        all_filters.append(or_filter(item_type_filters))
 
         if id_filters:
             all_filters = [id_filters[0]]
 
-        self._filters = and_filter(*all_filters)
+        self._filters = and_filter(all_filters)
         self._sources = list(sources.keys())
 
     @pyqtSlot(bool)
@@ -294,11 +297,11 @@ class DailyImagesWidget(BASE, WIDGET):
 
         if not self._sources:
             self.parent.show_message(
-                "No item types selected", level=Qgis.Warning, duration=10
+                "No item types selected", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
-        search_request = build_search_request(self._filters, self._sources)
+        search_request = {"item_types": self._sources, "filter": self._filters}
 
         self._request = search_request
 
@@ -391,7 +394,9 @@ class DailyImagesWidget(BASE, WIDGET):
 
         if not images:
             self.parent.show_message(
-                "No checked items to order", level=Qgis.Warning, duration=10
+                "No checked items to order",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -406,14 +411,14 @@ class DailyImagesWidget(BASE, WIDGET):
         dlg.setMinimumWidth(700)
         dlg.setMinimumHeight(750)
 
-        dlg.exec_()
+        dlg.exec()
 
     @pyqtSlot()
     def copy_checked_ids(self):
         selected = self.searchResultsWidget.selected_images()
         if not selected:
             self.parent.show_message(
-                "No checked IDs to copy", level=Qgis.Warning, duration=10
+                "No checked IDs to copy", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
@@ -428,14 +433,16 @@ class DailyImagesWidget(BASE, WIDGET):
         if self.searchResultsWidget.search_has_been_performed():
             request = self.searchResultsWidget.request_query()
             dlg = ShowCurlDialog(request)
-            dlg.exec_()
+            dlg.exec()
         else:
-            self.parent.show_message("No search has been performed", level=Qgis.Warning)
+            self.parent.show_message(
+                "No search has been performed", level=Qgis.MessageLevel.Warning
+            )
 
     @pyqtSlot()
     def copy_api_key(self):
         cb = QgsApplication.clipboard()
-        cb.setText(PlanetClient.getInstance().api_key())
+        cb.setText(PlanetClient.getInstance().api_key)
         self.parent.show_message("API key copied to clipboard")
         analytics_track(API_KEY_COPIED)
 

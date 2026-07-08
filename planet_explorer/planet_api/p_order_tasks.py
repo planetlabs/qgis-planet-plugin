@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -30,7 +31,6 @@ from collections import defaultdict
 
 import requests
 from osgeo import gdal
-
 from qgis.core import (
     Qgis,
     QgsMessageLog,
@@ -38,17 +38,16 @@ from qgis.core import (
     QgsRasterLayer,
     QgsTask,
 )
-
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import QPushButton
 
-from ..pe_utils import QGIS_LOG_SECTION_NAME, iface
+from ..pe_utils import QGIS_LOG_SECTION_NAME, iface, safe_join
 
 
 class OrderProcessorTask(QgsTask):
     def __init__(self, order):
-        super().__init__(f"Processing order {order.name()}", QgsTask.CanCancel)
+        super().__init__(f"Processing order {order.name()}", QgsTask.Flag.CanCancel)
         self.exception = None
         self.order = order
         self.filenames = []
@@ -68,7 +67,7 @@ class OrderProcessorTask(QgsTask):
                 local_filename = os.path.basename(path)
                 local_fullpath = os.path.join(download_folder, local_filename)
                 self.filenames.append(local_fullpath)
-                r = requests.get(url, stream=True)
+                r = requests.get(url, stream=True, timeout=60)
                 file_size = r.headers.get("content-length") or 0
                 file_size = int(file_size)
                 percentage_per_chunk = (100.0 / len(zip_locations)) / (
@@ -99,7 +98,7 @@ class OrderProcessorTask(QgsTask):
             with zipfile.ZipFile(filename, "r") as z:
                 z.extractall(output_folder)
             os.remove(filename)
-            manifest_file = os.path.join(output_folder, "manifest.json")
+            manifest_file = safe_join(output_folder, "manifest.json")
             self.images = self.images_from_manifest(manifest_file)
 
     def images_from_manifest(self, manifest_file):
@@ -115,7 +114,7 @@ class OrderProcessorTask(QgsTask):
                 if asset_type_key in annotations:
                     images.append(
                         (
-                            os.path.join(base_folder, img["path"]),
+                            safe_join(base_folder, img["path"]),
                             img["annotations"]["planet/item_type"],
                         )
                     )
@@ -131,7 +130,7 @@ class OrderProcessorTask(QgsTask):
                         # Adds the composite file
                         images.append(
                             (
-                                os.path.join(base_folder, img["path"]),
+                                safe_join(base_folder, img["path"]),
                                 "composite",  # Item type
                             )
                         )
@@ -159,12 +158,12 @@ class OrderProcessorTask(QgsTask):
                     )
                 )
                 widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)
+                iface.messageBar().pushWidget(widget, level=Qgis.MessageLevel.Success)
             else:
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name()}' correctly downloaded and processed",
-                    level=Qgis.Success,
+                    level=Qgis.MessageLevel.Success,
                     duration=5,
                 )
         elif self.exception is not None:
@@ -172,20 +171,20 @@ class OrderProcessorTask(QgsTask):
                 f"Order '{self.order.name()}' could not be"
                 f" downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
                 f"Order '{self.order.name()}' could not be downloaded. See log for"
                 " details",
-                level=Qgis.Warning,
+                level=Qgis.MessageLevel.Warning,
                 duration=5,
             )
 
 
 class QuadsOrderProcessorTask(QgsTask):
     def __init__(self, order):
-        super().__init__(f"Processing order {order.name}", QgsTask.CanCancel)
+        super().__init__(f"Processing order {order.name}", QgsTask.Flag.CanCancel)
         self.exception = None
         self.order = order
         self.filenames = defaultdict(list)
@@ -210,7 +209,7 @@ class QuadsOrderProcessorTask(QgsTask):
                             download_folder, mosaic, local_filename
                         )
                         self.filenames[mosaic].append(local_fullpath)
-                        r = requests.get(url, stream=True)
+                        r = requests.get(url, stream=True, timeout=60)
                         with open(local_fullpath, "wb") as f:
                             for chunk in r.iter_content(chunk_size):
                                 f.write(chunk)
@@ -249,7 +248,7 @@ class QuadsOrderProcessorTask(QgsTask):
                     )
                 )
                 widget.layout().addWidget(button)
-                iface.messageBar().pushWidget(widget, level=Qgis.Success)
+                iface.messageBar().pushWidget(widget, level=Qgis.MessageLevel.Success)
             else:
                 if self.order.load_as_virtual:
                     for mosaic, files in self.filenames.items():
@@ -267,19 +266,19 @@ class QuadsOrderProcessorTask(QgsTask):
                 iface.messageBar().pushMessage(
                     "Planet Explorer",
                     f"Order '{self.order.name}' correctly downloaded and processed",
-                    level=Qgis.Success,
+                    level=Qgis.MessageLevel.Success,
                     duration=5,
                 )
         elif self.exception is not None:
             QgsMessageLog.logMessage(
                 f"Order '{self.order.name}' could not be downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME,
-                Qgis.Warning,
+                Qgis.MessageLevel.Warning,
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
                 f"Order '{self.order.name}' could not be downloaded. See log for"
                 " details",
-                level=Qgis.Warning,
+                level=Qgis.MessageLevel.Warning,
                 duration=5,
             )

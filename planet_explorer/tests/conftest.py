@@ -1,12 +1,16 @@
-import os
+# -*- coding: utf-8 -*-
 import json
-import pytest
-
-from planet_explorer import classFactory
+import os
+import sys
+import types
 from unittest.mock import MagicMock
+
+import pytest
+from qgis.core import Qgis
 from qgis.PyQt import QtCore
 from qgis.testing import start_app
 
+from planet_explorer import classFactory
 
 if os.environ.get("IS_DOCKER_CONTAINER") and os.environ["IS_DOCKER_CONTAINER"].lower()[
     0
@@ -16,10 +20,18 @@ if os.environ.get("IS_DOCKER_CONTAINER") and os.environ["IS_DOCKER_CONTAINER"].l
     # and results in a seg-fault
     start_app()
 
+if "resources_rc" not in sys.modules:
+    sys.modules["resources_rc"] = types.ModuleType("resources_rc")
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_addoption(parser) -> None:
-    """Add some custom ini values"""
+    """Add some custom ini values.
+
+    Args:
+        parser: The pytest command line and ini file parser
+            object.
+    """
     parser.addini(
         "qgis_window_height",
         "Set the window height for QGIS",
@@ -36,7 +48,20 @@ def pytest_addoption(parser) -> None:
 
 @pytest.fixture(scope="session")
 def qgis_debug_enabled(request, pytestconfig):
-    gui_enabled = request.config._plugin_settings.gui_enabled
+    """Determine if QGIS GUI debugging/interaction is enabled for the session.
+
+    Args:
+        request: The pytest _pytest.fixtures.FixtureRequest object.
+        pytestconfig: The pytest _pytest.config.Config object.
+
+    Yields:
+        bool: True if GUI debugging is enabled, False otherwise.
+    """
+    plugin_settings = getattr(request.config, "_plugin_settings", None)
+    if plugin_settings and hasattr(plugin_settings, "gui_enabled"):
+        gui_enabled = plugin_settings.gui_enabled
+    else:
+        gui_enabled = False  # Safe default when pytest-qgis internals shift
     yield gui_enabled
 
 
@@ -44,7 +69,14 @@ def qgis_debug_enabled(request, pytestconfig):
 def pe_qgis_iface(qgis_iface):
     """
     Patch the pytest-qgis's qgis_iface to include some specific methods
-    for the Planet Explorer plugin.
+    for the Planet Explorer plugin. Adds required mock methods to the
+    standard QGIS interface fixture needed by the Planet Explorer plugin.
+
+    Args:
+        qgis_iface: The base QGIS interface fixture provided by pytest-qgis.
+
+    Yields:
+        MagicMock: The patched QGIS interface with mocked plugin methods.
     """
     for method in [
         "addPluginToWebMenu",
@@ -64,6 +96,16 @@ def plugin(pytestconfig, pe_qgis_iface, qgis_parent, qgis_new_project):
     Initialize and return the plugin object.
 
     Resize the parent window according to config.
+
+    Args:
+        pytestconfig: The pytest configuration object used to read ini settings.
+        pe_qgis_iface: The patched QGIS interface fixture.
+        qgis_parent: The parent QGIS main window widget.
+        qgis_new_project: Fixture that ensures a fresh QGIS project state.
+
+    Yields:
+        PlanetExplorer: The initialized instance of the Planet Explorer plugin.
+
     """
     qgis_parent.resize(
         QtCore.QSize(
@@ -80,6 +122,21 @@ def plugin(pytestconfig, pe_qgis_iface, qgis_parent, qgis_new_project):
 
 @pytest.fixture
 def plugin_toolbar(pytestconfig, plugin, qgis_debug_enabled, qtbot):
+    """Retrieve and configure the plugin's toolbar for testing.
+
+    Resizes the toolbar according to the project's configuration settings,
+    handles conditional visibility for debugging, and registers the widget
+    with qtbot for automated UI interactions.
+
+    Args:
+        pytestconfig: The pytest configuration object used to read ini settings.
+        plugin: The initialized instance of the Planet Explorer plugin.
+        qgis_debug_enabled: Boolean flag indicating if GUI debugging is active.
+        qtbot: The pytest-qt bot instance for managing Qt widgets during tests.
+
+    Yields:
+        QToolBar: The configured and registered plugin toolbar widget.
+    """
     toolbar = plugin.toolbar
     toolbar.resize(int(pytestconfig.getini("qgis_window_width")), 70)
     if qgis_debug_enabled:
@@ -128,8 +185,22 @@ def large_aoi():
 def explorer_dock_widget(
     plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
 ):
-    """
-    Convenience fixture for instantiating the explorer dock widget
+    """Provide a factory function to instantiate the explorer dock widget.
+
+    This convenience fixture returns a callable that safely creates, configures,
+    and registers the dock widget with qtbot. On teardown, it ensures the internal
+    singleton reference is cleanly reset to prevent cross-test state leakage.
+
+    Args:
+        plugin: The initialized instance of the Planet Explorer plugin.
+        plugin_toolbar: The configured plugin toolbar widget.
+        qgis_debug_enabled: Boolean flag indicating if GUI debugging is active.
+        qtbot: The pytest-qt bot instance for managing Qt widgets during tests.
+        pe_qgis_iface: The patched QGIS interface fixture.
+
+    Yields:
+        callable: A factory function (`_get_widget`) that returns an initialized
+            explorer dock widget instance when called.
     """
 
     def _get_widget():
@@ -154,8 +225,23 @@ def explorer_dock_widget(
 def logged_in_explorer_dock_widget(
     plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
 ):
-    """
-    Convenience fixture for instantiating the explorer dock widget
+    """Provide a factory function to instantiate an authenticated explorer dock widget.
+
+    This convenience fixture returns a callable that safely creates, logs into,
+    configures, and registers the dock widget with qtbot. On teardown, it ensures
+    the internal singleton reference is cleanly reset to prevent cross-test state
+    leakage.
+
+    Args:
+        plugin: The initialized instance of the Planet Explorer plugin.
+        plugin_toolbar: The configured plugin toolbar widget.
+        qgis_debug_enabled: Boolean flag indicating if GUI debugging is active.
+        qtbot: The pytest-qt bot instance for managing Qt widgets during tests.
+        pe_qgis_iface: The patched QGIS interface fixture.
+
+    Yields:
+        callable: A factory function (`_get_widget`) that returns an authenticated
+            explorer dock widget instance when called.
     """
 
     def _get_widget():
@@ -178,8 +264,20 @@ def logged_in_explorer_dock_widget(
 
 @pytest.fixture
 def order_monitor_widget(qgis_debug_enabled, qtbot):
-    """
-    Convenience fixture for getting the order monitor widget
+    """Provide a factory function to instantiate the order monitor widget.
+
+    This convenience fixture returns a callable that handles the creation,
+    UI automation bot registration, and conditional display configuration
+    for the plugin's order monitoring sub-panel. On teardown, it ensures
+    the internal singleton instance is safely cleaned up.
+
+    Args:
+        qgis_debug_enabled: Boolean flag indicating if GUI debugging is active.
+        qtbot: The pytest-qt bot instance for managing Qt widgets during tests.
+
+    Yields:
+        callable: A factory function (`_get_widget`) that accepts a parent
+            explorer dock widget and returns an initialized order monitor widget.
     """
 
     def _get_widget(explorer_dockwidget):
@@ -201,8 +299,19 @@ def order_monitor_widget(qgis_debug_enabled, qtbot):
 
 @pytest.fixture
 def tasking_widget(qgis_debug_enabled, qtbot):
-    """
-    Convenience fixture for getting the order monitor widget
+    """Provide a factory function to instantiate the tasking order monitor widget.
+
+    This convenience fixture returns a callable that handles the instantiation,
+    Qt bot tracking, and dynamic visibility settings for the tasking panel.
+    On teardown, it safely cleans up the internal singleton instance.
+
+    Args:
+        qgis_debug_enabled: Boolean flag indicating if GUI debugging is active.
+        qtbot: The pytest-qt bot instance for managing Qt widgets during tests.
+
+    Yields:
+        callable: A factory function (`_get_widget`) that accepts a parent
+            explorer dock widget and returns an initialized tasking widget.
     """
 
     def _get_widget(explorer_dockwidget):
@@ -220,3 +329,30 @@ def tasking_widget(qgis_debug_enabled, qtbot):
     from planet_explorer.tests.utils import pe_tasking_dockwidget
 
     pe_tasking_dockwidget.dockwidget_instance = None
+
+
+def pytest_configure(config):
+    """
+    Prints the exact QGIS version being used at the start of the test session.
+
+    Args:
+        config: The pytest config object.
+    """
+    try:
+
+        print(f"\n[QGIS VERSION CHECK] Running tests on QGIS Version: {Qgis.version()}")
+    except ImportError:
+        print("\n[QGIS VERSION CHECK] Failed to import qgis.core")
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Forces the process to exit immediately after tests finish,
+    preserving the correct exit status while bypassing the segfault.
+
+    Args:
+        session: The pytest session object.
+        exitstatus: The integer status code returned by the test runner.
+    """
+    os._exit(exitstatus)

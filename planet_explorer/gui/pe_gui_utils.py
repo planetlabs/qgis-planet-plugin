@@ -46,7 +46,7 @@ class PlanetClickableLabel(QLabel):
         super().__init__(parent=parent)
 
         self._show_tooltip_on_hover = False
-        self.setAttribute(Qt.WA_Hover)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
 
     def set_show_tooltip_on_hover(self, show) -> None:
         self._show_tooltip_on_hover = show
@@ -59,7 +59,7 @@ class PlanetClickableLabel(QLabel):
 
     def event(self, event: QEvent) -> bool:
         if self._show_tooltip_on_hover and self.toolTip():
-            if event.type() == QEvent.HoverEnter:
+            if event.type() == QEvent.Type.HoverEnter:
                 QToolTip.showText(self.mapToGlobal(event.pos()), self.toolTip(), self)
             event.accept()
 
@@ -69,7 +69,7 @@ class PlanetClickableLabel(QLabel):
 def waitcursor(method):
     def func(*args, **kw):
         try:
-            QApplication.setOverrideCursor(Qt.WaitCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
             return method(*args, **kw)
         except Exception as ex:
             raise ex

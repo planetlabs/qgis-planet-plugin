@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -21,99 +22,88 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-from builtins import object
-
 import os
 import platform
-import zipfile
 import sys
 import traceback
-import urllib3
-from requests import exceptions
-import planet
+import zipfile
+from builtins import object
 
 import analytics
+import planet
 import sentry_sdk
-
-
+import urllib3
 from qgis.core import Qgis, QgsProject
-
 from qgis.gui import QgsGui
-
 from qgis.PyQt.QtCore import (
-    QSettings,
-    QTranslator,
     QCoreApplication,
     QLocale,
+    QSettings,
+    QSize,
     Qt,
     QTimer,
+    QTranslator,
     QUrl,
-    QSize,
 )
-
-from qgis.PyQt.QtGui import QIcon, QDesktopServices, QPalette
-
+from qgis.PyQt.QtGui import QDesktopServices, QIcon, QPalette
 from qgis.PyQt.QtWidgets import (
     QAction,
-    QToolButton,
-    QPushButton,
-    QMenu,
-    QTextBrowser,
-    QWidget,
     QHBoxLayout,
-    QSizePolicy,
     QLabel,
+    QMenu,
     QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTextBrowser,
+    QToolButton,
+    QWidget,
 )
+from requests import exceptions
+
+from planet_explorer.gui.pe_auth_dialog import PlanetAuthenticationDialog
+from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
+from planet_explorer.gui.pe_explorer_dockwidget import (
+    hide_explorer,
+    remove_explorer,
+    show_explorer,
+    toggle_images_search,
+    toggle_mosaics_search,
+)
+from planet_explorer.gui.pe_orders_monitor_dockwidget import (
+    hide_orders_monitor,
+    remove_orders_monitor,
+    toggle_orders_monitor,
+)
+from planet_explorer.gui.pe_planet_inspector_dockwidget import (
+    hide_inspector,
+    remove_inspector,
+    toggle_inspector,
+)
+from planet_explorer.gui.pe_settings_dialog import SettingsDialog
+from planet_explorer.gui.pe_tasking_dockwidget import (
+    remove_tasking_widget,
+    toggle_tasking_widget,
+)
+from planet_explorer.pe_analytics import (
+    is_segments_write_key_valid,
+    is_sentry_dsn_valid,
+    segments_write_key,
+    sentry_dsn,
+)
+from planet_explorer.pe_utils import (  # add_widget_to_layer,
+    BASE_URL,
+    PLANET_COLOR,
+    add_menu_section_action,
+    add_widget_to_layer,
+    log,
+    open_link_with_browser,
+    plugin_version,
+    safe_join,
+)
+from planet_explorer.planet_api import PlanetClient
 
 # Initialize Qt resources from file resources.py
 from planet_explorer.resources import resources  # noqa: F401
-
-from planet_explorer.gui.pe_explorer_dockwidget import (
-    show_explorer,
-    remove_explorer,
-    toggle_mosaics_search,
-    toggle_images_search,
-)
-
-from planet_explorer.pe_utils import (
-    add_menu_section_action,
-    BASE_URL,
-    open_link_with_browser,
-    add_widget_to_layer,
-    PLANET_COLOR,
-    plugin_version,
-)
-
-from planet_explorer.pe_analytics import (
-    sentry_dsn,
-    is_sentry_dsn_valid,
-    is_segments_write_key_valid,
-    segments_write_key,
-)
-
-from planet_explorer.planet_api import PlanetClient
-
-from planet_explorer.gui.pe_basemap_layer_widget import BasemapLayerWidgetProvider
-
-from planet_explorer.gui.pe_settings_dialog import SettingsDialog
-
-from planet_explorer.gui.pe_orders_monitor_dockwidget import (
-    toggle_orders_monitor,
-    hide_orders_monitor,
-    remove_orders_monitor,
-)
-
-from planet_explorer.gui.pe_planet_inspector_dockwidget import (
-    toggle_inspector,
-    hide_inspector,
-    remove_inspector,
-)
-
-from planet_explorer.gui.pe_tasking_dockwidget import (
-    toggle_tasking_widget,
-    remove_tasking_widget,
-)
 
 PLANET_COM = "https://planet.com"
 SAT_SPECS_PDF = (
@@ -142,137 +132,142 @@ PLUGIN_NAMESPACE = "planet_explorer"
 
 
 class PlanetExplorer(object):
-    def __init__(self, iface):
-
-        self.iface = iface
-
-        # Initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
-
-        # Initialize locale
+    def _init_locale(self) -> None:
+        """Initialize plugin locale and translations."""
         locale_value = QSettings().value("locale/userLocale", QLocale().name())
         if isinstance(locale_value, str):
             locale = locale_value[0:2]
         else:
             locale = str(locale_value)[0:2]
-        locale_path = os.path.join(
+        locale_path = safe_join(
             self.plugin_dir, "i18n", "{0}Plugin_{1}.qm".format(PE, locale)
         )
-
         if os.path.exists(locale_path):
             self.translator = QTranslator()
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # Declare instance attributes
+    def _init_sentry(self) -> None:
+        """Initialize Sentry error tracking if DSN is valid."""
+        if not is_sentry_dsn_valid():
+            return
+        try:
+            sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
+            sentry_sdk.set_context(
+                "qgis",
+                {
+                    "type": "runtime",
+                    "name": Qgis.QGIS_RELEASE_NAME,
+                    "version": Qgis.QGIS_VERSION,
+                },
+            )
+            self._init_sentry_os_context()
+        except Exception:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "Error",
+                "Error initializing Planet Explorer.\n"
+                "Please restart QGIS to load updated libraries.",
+            )
+
+    def _init_sentry_os_context(self) -> None:
+        """Set Sentry OS context based on the current platform."""
+        system = platform.system()
+        if system == "Darwin":
+            sentry_sdk.set_context(
+                "mac",
+                {
+                    "type": "os",
+                    "name": "macOS",
+                    "version": platform.mac_ver()[0],
+                    "kernel_version": platform.uname().release,
+                },
+            )
+        elif system == "Linux":
+            sentry_sdk.set_context(
+                "linux",
+                {
+                    "type": "os",
+                    "name": "Linux",
+                    "version": platform.release(),
+                    "build": platform.version(),
+                },
+            )
+        elif system == "Windows":
+            sentry_sdk.set_context(
+                "windows",
+                {
+                    "type": "os",
+                    "name": "Windows",
+                    "version": platform.version(),
+                },
+            )
+
+    def __init__(self, iface):
+        self.iface = iface
+        self.plugin_dir = os.path.dirname(__file__)
+
+        self._init_locale()
+
         self.actions = []
         self.menu = self.tr("&{0}".format(P_E))
         self.toolbar = None
-
         # noinspection PyTypeChecker
         self.explorer_dock_widget = None
         self._terms_browser = None
 
         if is_segments_write_key_valid():
             analytics.write_key = segments_write_key()
-        if is_sentry_dsn_valid():
-            try:
-                sentry_sdk.init(sentry_dsn(), release=plugin_version(True))
-                sentry_sdk.set_context(
-                    "qgis",
-                    {
-                        "type": "runtime",
-                        "name": Qgis.QGIS_RELEASE_NAME,
-                        "version": Qgis.QGIS_VERSION,
-                    },
-                )
-                system = platform.system()
-                if system == "Darwin":
-                    sentry_sdk.set_context(
-                        "mac",
-                        {
-                            "type": "os",
-                            "name": "macOS",
-                            "version": platform.mac_ver()[0],
-                            "kernel_version": platform.uname().release,
-                        },
-                    )
-                if system == "Linux":
-                    sentry_sdk.set_context(
-                        "linux",
-                        {
-                            "type": "os",
-                            "name": "Linux",
-                            "version": platform.release(),
-                            "build": platform.version(),
-                        },
-                    )
-                if system == "Windows":
-                    sentry_sdk.set_context(
-                        "windows",
-                        {
-                            "type": "os",
-                            "name": "Windows",
-                            "version": platform.version(),
-                        },
-                    )
-            except Exception:
-                QMessageBox.warning(
-                    self.iface.mainWindow(),
-                    "Error",
-                    "Error initializing Planet Explorer.\n"
-                    "Please restart QGIS to load updated libraries.",
-                )
+
+        self._init_sentry()
 
         self.qgis_hook = sys.excepthook
 
-        def plugin_hook(t, value, tb):
-            trace = "".join(traceback.format_exception(t, value, tb))
-            if PLUGIN_NAMESPACE in trace.lower():
-                s = ""
-                if issubclass(t, exceptions.Timeout):
-                    s = "Connection to Planet server timed out."
-                elif issubclass(t, exceptions.ConnectionError):
-                    s = (
-                        "Connection error.\n Verify that your computer is correctly"
-                        " connected to the Internet"
-                    )
-                elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
-                    s = (
-                        "ProxyError.\n Verify that your proxy is correctly configured"
-                        " in the QGIS settings"
-                    )
-                elif issubclass(t, planet.api.exceptions.ServerError):
-                    s = "Server Error.\n Please, try again later"
-                elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
-                    s = (
-                        "Proxy Error\n Proxy URL must start with 'http://' or"
-                        " 'https://'"
-                    )
+        sys.excepthook = self._plugin_exception_hook
 
-                if s:
-                    QMessageBox.warning(self.iface.mainWindow(), "Error", s)
-                else:
-                    try:
-                        sentry_sdk.capture_exception(value)
-                    except Exception:
-                        pass  # we swallow all exceptions here, to avoid entering an endless loop
-                    self.qgis_hook(t, value, tb)
+    def _plugin_exception_hook(self, t, value, tb):
+        trace = "".join(traceback.format_exception(t, value, tb))
+        if PLUGIN_NAMESPACE in trace.lower():
+            s = ""
+            if issubclass(t, exceptions.Timeout):
+                s = "Connection to Planet server timed out."
+            elif issubclass(t, exceptions.ConnectionError):
+                s = (
+                    "Connection error.\n Verify that your computer is correctly"
+                    " connected to the Internet"
+                )
+            elif issubclass(t, (exceptions.ProxyError, exceptions.InvalidProxyURL)):
+                s = (
+                    "ProxyError.\n Verify that your proxy is correctly configured"
+                    " in the QGIS settings"
+                )
+            elif issubclass(t, planet.exceptions.ServerError):
+                s = "Server Error.\n Please, try again later"
+            elif issubclass(t, urllib3.exceptions.ProxySchemeUnknown):
+                s = "Proxy Error\n Proxy URL must start with 'http://' or" " 'https://'"
+
+            if s:
+                QMessageBox.warning(self.iface.mainWindow(), "Error", s)
             else:
+                try:
+                    sentry_sdk.capture_exception(value)
+                except Exception:
+                    log("Error sending exception to Sentry", exc_info=True)
+                    pass  # we swallow all exceptions here, to avoid entering an endless loop
                 self.qgis_hook(t, value, tb)
-
-        sys.excepthook = plugin_hook
+        else:
+            self.qgis_hook(t, value, tb)
 
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
         We implement this ourselves since we do not inherit QObject.
 
-        :param message: String for translation.
-        :type message: str, QString
+        Args:
+            message (str | QString): String for translation.
 
-        :returns: Translated version of message.
-        :rtype: QString
+        Returns:
+            QString: Translated version of message.
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate(PE, message)
@@ -291,41 +286,27 @@ class PlanetExplorer(object):
     ):
         """Add a toolbar icon to the toolbar.
 
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
+        Args:
+            icon_path (str): Path to the icon for this action. Can be a resource
+                path (for example, ':/plugins/foo/bar.png') or a normal file system
+                path.
+            text (str): Text shown in menu items for this action.
+            callback (function): Function called when the action is triggered.
+            enabled_flag (bool): Whether the action should be enabled by default.
+                Defaults to True.
+            add_to_menu (bool): Whether the action should also be added to the
+                menu. Defaults to True.
+            add_to_toolbar (bool): Whether the action should also be added to the
+                toolbar. Defaults to True.
+            status_tip (str): Optional text to show in a popup when the mouse
+                pointer hovers over the action.
+            whats_this (str): Optional text to show in the status bar when the
+                mouse pointer hovers over the action.
+            parent (QWidget): Parent widget for the new action. Defaults to None.
 
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
+        Returns:
+            QAction: The action that was created. The action is also added to
+                self.actions.
         """
 
         icon = QIcon(icon_path)
@@ -356,7 +337,6 @@ class PlanetExplorer(object):
             add_to_toolbar=True,
             parent=self.iface.mainWindow(),
         )
-
         self.showbasemaps_act = self.add_action(
             os.path.join(plugin_path, "resources", "basemap.svg"),
             text=self.tr("Show Basemaps Search"),
@@ -396,6 +376,7 @@ class PlanetExplorer(object):
         )
 
         self.add_user_button()
+
         self.add_info_button()
 
         self.settings_act = self.add_action(
@@ -415,21 +396,20 @@ class PlanetExplorer(object):
         QgsProject.instance().layerRemoved.connect(self.layer_removed)
 
         PlanetClient.getInstance().loginChanged.connect(self.login_changed)
-
         self.enable_buttons(False)
 
     def add_central_toolbar_button(self):
         widget = QWidget()
-        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout = QHBoxLayout()
         layout.addStretch()
         self.btnLogin = QPushButton()
         palette = self.btnLogin.palette()
-        palette.setColor(QPalette.Button, PLANET_COLOR)
+        palette.setColor(QPalette.ColorRole.Button, PLANET_COLOR)
         self.btnLogin.setPalette(palette)
         self.btnLogin.setText("Log in")
         # self.btnLogin.setAutoRaise(True)
-        self.btnLogin.setAttribute(Qt.WA_TranslucentBackground)
+        self.btnLogin.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.btnLogin.clicked.connect(self.btn_login_clicked)
         icon = QIcon(os.path.join(plugin_path, "resources", "planet-logo-p.svg"))
         labelIcon = QLabel()
@@ -444,7 +424,7 @@ class PlanetExplorer(object):
         self.toolbar.addWidget(widget)
 
     def btn_login_clicked(self):
-        if PlanetClient.getInstance().has_api_key():
+        if PlanetClient.getInstance().client_is_setup():
             self.logout()
         else:
             self.login()
@@ -464,6 +444,7 @@ class PlanetExplorer(object):
             pass
 
         if not loggedin:
+            hide_explorer()
             hide_orders_monitor()
             hide_inspector()
 
@@ -530,7 +511,7 @@ class PlanetExplorer(object):
         )
         btn.setMenu(info_menu)
 
-        btn.setPopupMode(QToolButton.MenuButtonPopup)
+        btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         btn.clicked.connect(btn.showMenu)
 
@@ -550,7 +531,7 @@ class PlanetExplorer(object):
         user_menu.addAction(self.logout_act)
 
         self.user_button = QToolButton()
-        self.user_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.user_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.user_button.setIcon(
             QIcon(
                 os.path.join(plugin_path, "resources", "account.svg"),
@@ -558,7 +539,7 @@ class PlanetExplorer(object):
         )
         self.user_button.setMenu(user_menu)
 
-        self.user_button.setPopupMode(QToolButton.MenuButtonPopup)
+        self.user_button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         # Also show menu on click, to keep disclosure triangle visible
         self.user_button.clicked.connect(self.user_button.showMenu)
 
@@ -580,6 +561,7 @@ class PlanetExplorer(object):
 
         remove_inspector()
         remove_explorer()
+
         remove_orders_monitor()
         remove_tasking_widget()
 
@@ -592,7 +574,6 @@ class PlanetExplorer(object):
         QgsProject.instance().layerRemoved.disconnect(self.layer_removed)
 
     # -----------------------------------------------------------
-
     def show_settings(self):
         dlg = SettingsDialog()
         dlg.exec()
@@ -608,7 +589,7 @@ class PlanetExplorer(object):
             self._terms_browser.setSource(
                 QUrl("qrc:/plugins/planet_explorer/terms.html")
             )
-            self._terms_browser.setWindowModality(Qt.ApplicationModal)
+            self._terms_browser.setWindowModality(Qt.WindowModality.ApplicationModal)
         self._terms_browser.show()
 
     def login(self):
@@ -628,7 +609,16 @@ class PlanetExplorer(object):
                 " page here</a>."
             )
             QMessageBox.warning(self.iface.mainWindow(), "Planet Explorer", text)
-        show_explorer()
+        try:
+            self.auth_dialog_window = PlanetAuthenticationDialog(
+                self.iface.mainWindow()
+            )
+            self.auth_dialog_window.exec()
+
+        except Exception:
+            traceback.print_exc()
+        else:
+            show_explorer()
 
     def logout(self):
         PlanetClient.getInstance().log_out()
@@ -637,33 +627,41 @@ class PlanetExplorer(object):
         self.btnLogin.setVisible(not loggedin)
         labelText = "<b>Welcome to Planet</b>" if not loggedin else "<b>Planet</b>"
         self.labelLoggedIn.setText(labelText)
-        self.showdailyimages_act.setEnabled(loggedin)
-        self.showbasemaps_act.setEnabled(loggedin)
-        self.showinspector_act.setEnabled(loggedin)
-        self.showorders_act.setEnabled(loggedin)
-        self.showtasking_act.setEnabled(loggedin)
+
+        features_to_toggle = {
+            "showdailyimages_act": (
+                "Show / Hide the Planet Imagery Search Panel",
+                "Login to access Imagery Search",
+            ),
+            "showbasemaps_act": (
+                "Show / Hide the Planet Basemaps Search Panel",
+                "Login to access Basemaps Search",
+            ),
+            "showorders_act": (
+                "Show / Hide the Order Status Panel",
+                "Login to access Order Status",
+            ),
+            "showinspector_act": (
+                "Show / Hide the Planet Inspector Panel",
+                "Login to access Planet Inspector",
+            ),
+            "showtasking_act": (
+                "Show / Hide the Tasking Panel",
+                "Login to access Tasking Panel",
+            ),
+        }
+
+        for attr_name, (login_tip, logout_tip) in features_to_toggle.items():
+            action = getattr(self, attr_name, None)
+            if action:
+                action.setEnabled(loggedin)
+                action.setToolTip(login_tip if loggedin else logout_tip)
+
         self.user_button.setEnabled(loggedin)
-        self.user_button.setText(
-            PlanetClient.getInstance().user()["user_name"] if loggedin else ""
-        )
-        if loggedin:
-            self.showdailyimages_act.setToolTip(
-                "Show / Hide the Planet Imagery Search Panel"
-            )
-            self.showbasemaps_act.setToolTip(
-                "Show / Hide the Planet Basemaps Search Panel"
-            )
-            self.showorders_act.setToolTip("Show / Hide the Order Status Panel")
-            self.showinspector_act.setToolTip("Show / Hide the Planet Inspector Panel")
-            self.showtasking_act.setToolTip("Show / Hide the Tasking Panel")
-        else:
-            self.showdailyimages_act.setToolTip("Login to access Imagery Search")
-            self.showbasemaps_act.setToolTip("Login to access Basemaps Search")
-            self.showorders_act.setToolTip("Login to access Order Status")
-            self.showinspector_act.setToolTip("Login to access Planet Inspector")
-            self.showtasking_act.setToolTip("Login to access Tasking Panel")
+        self.user_button.setText("Logged in" if loggedin else "")
 
     def project_saved(self):
+        # TODO: Remove API keys from QGIS project file after saving, if any
         if PlanetClient.getInstance().has_api_key():
 
             def resave():
@@ -673,7 +671,7 @@ class PlanetExplorer(object):
                         with open(path, encoding="utf-8") as f:
                             s = f.read()
                         with open(path, "w", encoding="utf-8") as f:
-                            f.write(s.replace(PlanetClient.getInstance().api_key(), ""))
+                            f.write(s.replace(PlanetClient.getInstance().api_key, ""))
                     else:
                         tmpfilename = path + ".temp"
                         qgsfilename = (
@@ -688,7 +686,7 @@ class PlanetExplorer(object):
                                     else:
                                         s = zin.read(item.filename).decode("utf-8")
                                         s = s.replace(
-                                            PlanetClient.getInstance().api_key(), ""
+                                            PlanetClient.getInstance().api_key, ""
                                         )
                                         qgsfilename = item.filename
                         os.remove(path)

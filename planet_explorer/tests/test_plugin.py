@@ -1,8 +1,10 @@
-import requests
+import unittest
 from urllib.parse import urljoin
-from planet_explorer.tests.utils import get_recent_release_from_changelog
 
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
+import requests
+
+from planet_explorer.tests.utils import get_recent_release_from_changelog
 
 REPO_URL = "https://api.github.com/repos/planetlabs/qgis-planet-plugin/"
 
@@ -12,61 +14,66 @@ CUSTOM_REPOSITORY_URL = (
 )
 
 
-def test_import_planet():
-    try:
-        import planet  # noqa: F401
+class TestPlugin(unittest.TestCase):
+    def test_import_planet(self):
+        try:
+            import planet  # noqa: F401
 
-        assert True
-    except ImportError:
-        assert False
+            self.assertTrue(True)
+        except ImportError:
+            self.fail("Could not import 'planet' module")
 
+    def test_changelog_up_to_date(self):
+        """
+        Verifies:
+            - PLQGIS-TC19
+        """
+        # This test assumes pytest's request fixture is not used.
+        # You may need to adapt root_dir for your environment.
+        import pathlib
 
-def test_changelog_up_to_date(request):
-    """
-    Verifies:
-        - PLQGIS-TC19
-    """
-    root_dir = request.config.rootdir
-    if root_dir.basename == "tests":
-        root_dir = root_dir / ".." / ".."
-    most_recent_release_on_github = requests.get(
-        urljoin(REPO_URL, "releases?per_page=1")
-    ).json()[0]["name"]
-    most_recent_release_in_changelog = get_recent_release_from_changelog(root_dir)
-    assert (
-        most_recent_release_in_changelog == most_recent_release_on_github
-    ), "Release on Github does not match the most recent changelog entry!"
+        root_dir = pathlib.Path(__file__).parent.parent.parent
+        if root_dir.name == "tests":
+            root_dir = root_dir.parent.parent
+        most_recent_release_on_github = requests.get(
+            urljoin(REPO_URL, "releases?per_page=1"), timeout=10
+        ).json()[0]["name"]
+        most_recent_release_in_changelog = get_recent_release_from_changelog(root_dir)
+        self.assertEqual(
+            most_recent_release_in_changelog,
+            most_recent_release_on_github,
+            "Release on Github does not match the most recent changelog entry!",
+        )
 
+    def test_plugin_repository_content(self):
+        repo_content_resp = requests.get(CUSTOM_REPOSITORY_URL, timeout=10)
+        self.assertEqual(repo_content_resp.status_code, 200)
 
-def test_plugin_repository_content():
-    repo_content_resp = requests.get(CUSTOM_REPOSITORY_URL)
+        root = ET.fromstring(repo_content_resp.text)
+        plugin = root.find("pyqgis_plugin")
 
-    assert repo_content_resp.status_code == 200
+        self.assertIsNotNone(plugin)
+        self.assertEqual(plugin.find("qgis_minimum_version").text, "3.10")
+        self.assertEqual(plugin.find("icon").text, "resources/planet-logo-p.png")
+        self.assertEqual(
+            plugin.find("homepage").text,
+            "https://developers.planet.com/docs/integrations/qgis/",
+        )
+        self.assertEqual(
+            plugin.find("repository").text,
+            "https://github.com/planetlabs/qgis-planet-plugin",
+        )
+        self.assertEqual(
+            plugin.find("tracker").text,
+            "https://github.com/planetlabs/qgis-planet-plugin/issues",
+        )
+        self.assertEqual(
+            plugin.find("tags").text, "landsat, raster, analytics, remote sensing"
+        )
 
-    root = ET.fromstring(repo_content_resp.text)
-    plugin = root.find("pyqgis_plugin")
-
-    assert plugin is not None
-    assert plugin.find("qgis_minimum_version").text == "3.10"
-    assert plugin.find("icon").text == "resources/planet-logo-p.png"
-
-    assert (
-        plugin.find("homepage").text
-        == "https://developers.planet.com/docs/integrations/qgis/"
-    )
-    assert (
-        plugin.find("repository").text
-        == "https://github.com/planetlabs/qgis-planet-plugin"
-    )
-    assert (
-        plugin.find("tracker").text
-        == "https://github.com/planetlabs/qgis-planet-plugin/issues"
-    )
-    assert plugin.find("tags").text == "landsat, raster, analytics, remote sensing"
-
-    assert plugin.find("file_name").text is not None
-    assert plugin.find("version") is not None
-    assert plugin.find("experimental") is not None
-    assert plugin.find("deprecated") is not None
-    assert plugin.find("about") is not None
-    assert plugin.find("description") is not None
+        self.assertIsNotNone(plugin.find("file_name").text)
+        self.assertIsNotNone(plugin.find("version"))
+        self.assertIsNotNone(plugin.find("experimental"))
+        self.assertIsNotNone(plugin.find("deprecated"))
+        self.assertIsNotNone(plugin.find("about"))
+        self.assertIsNotNone(plugin.find("description"))

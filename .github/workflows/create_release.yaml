@@ -1,0 +1,50 @@
+name: Create release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install plugin dependencies
+        run: pip3 install --break-system-packages -r ./requirements.txt
+
+      - name: Setup
+        run: |
+          pip install --break-system-packages paver
+          paver setup
+
+      - name: Build package
+        env:
+          SENTRY_KEY: ${{ secrets.SENTRY_KEY }}
+          SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          paver package.sentry="${SENTRY_KEY}" package.segments="${SEGMENTS_KEY}" package.version="${GITHUB_REF#refs/tags/}" package
+          ls -lah planet_explorer.zip
+
+      - name: Create release and upload zip
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: planet_explorer.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true

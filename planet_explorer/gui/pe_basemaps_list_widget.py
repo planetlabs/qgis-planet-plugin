@@ -24,6 +24,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QIcon, QImage, QPalette, QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -37,7 +38,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsApplication
 
 from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR, iface
 
@@ -50,7 +50,6 @@ from ..pe_utils import (
     mosaic_title,
     qgsrectangle_for_canvas_from_4326_bbox_coords,
 )
-from ..planet_api import PlanetClient
 from .pe_thumbnails import download_thumbnail
 
 ID = "id"
@@ -72,7 +71,7 @@ class BasemapsListWidget(QListWidget):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
         p = self.palette()
-        p.setColor(QPalette.Highlight, ITEM_BACKGROUND_COLOR)
+        p.setColor(QPalette.ColorRole.Highlight, ITEM_BACKGROUND_COLOR)
         self.setPalette(p)
         self.widgets = []
         self.onlysr = False
@@ -100,7 +99,7 @@ class BasemapsListWidget(QListWidget):
                 widget.basemapSelected.connect(self.basemapsSelectionChanged.emit)
                 self.widgets.append(widget)
 
-        self.sortItems(Qt.DescendingOrder)
+        self.sortItems(Qt.SortOrder.DescendingOrder)
         self._update_for_only_sr_setting()
 
     def resizeEvent(self, evt):
@@ -163,7 +162,12 @@ class BasemapItemWidget(QWidget):
         self.toolsButton.mousePressEvent = self.showContextMenu
 
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
         self.checkBox.stateChanged.connect(self.basemapSelected.emit)
@@ -187,19 +191,21 @@ class BasemapItemWidget(QWidget):
             download_thumbnail(mosaic[LINKS][THUMB], self)
         else:
             THUMBNAIL_DEFAULT_URL = (
-                "https://tiles.planet.com/basemaps/v1/planet-tiles/"
-                "{name}/thumb?api_key={apikey}"
+                "https://tiles.planet.com/basemaps/v1/planet-tiles/" "{name}/thumb"
             )
             download_thumbnail(
-                THUMBNAIL_DEFAULT_URL.format(
-                    name=mosaic[NAME], apikey=PlanetClient.getInstance().api_key()
-                ),
+                THUMBNAIL_DEFAULT_URL.format(name=mosaic[NAME]),
                 self,
             )
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
 
     def showContextMenu(self, evt):
@@ -211,7 +217,7 @@ class BasemapItemWidget(QWidget):
         copy_id_act = QAction("Copy ID to clipboard", menu)
         copy_id_act.triggered.connect(self.copy_id)
         menu.addAction(copy_id_act)
-        menu.exec_(self.toolsButton.mapToGlobal(evt.pos()))
+        menu.exec(self.toolsButton.mapToGlobal(evt.pos()))
 
     def copy_id(self):
         cb = QgsApplication.clipboard()
@@ -227,7 +233,12 @@ class BasemapItemWidget(QWidget):
         img = QImage()
         img.loadFromData(reply.readAll())
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
 
     def isSelected(self):

@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    pe_save_search_dialog.py
+    ------------------------
+    Date                 : August 2019
+    Copyright            : (C) 2019 Planet Inc, https://planet.com
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
 import copy
 import json
 import os
@@ -8,7 +24,7 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QDateTime, Qt
 from qgis.PyQt.QtWidgets import QDialogButtonBox, QInputDialog, QSizePolicy, QVBoxLayout
 
-from ..pe_utils import qgsgeometry_from_geojson, iface
+from ..pe_utils import iface, qgsgeometry_from_geojson
 from ..planet_api.p_client import PlanetClient
 from .pe_filters import filters_as_text_from_request, filters_from_request
 
@@ -28,11 +44,15 @@ class SaveSearchDialog(BASE, WIDGET):
         self.setupUi(self)
 
         self.bar = QgsMessageBar()
-        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.layout().addWidget(self.bar)
 
-        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.save)
-        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(
+            self.save
+        )
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(
+            self.reject
+        )
 
         self.btnCreateFolder.clicked.connect(self.createFolder)
 
@@ -56,8 +76,8 @@ class SaveSearchDialog(BASE, WIDGET):
         if self._folder_names is None:
             self._folder_names = [""]
             client = PlanetClient.getInstance()
-            res = client.get_searches().get()
-            for search in res["searches"]:
+            searches = list(client.client.data.list_searches(limit=0))
+            for search in searches:
                 tokens = search["name"].split("/")
                 if len(tokens) > 1 and tokens[0] not in self._folder_names:
                     self._folder_names.append(tokens[0])
@@ -89,7 +109,7 @@ class SaveSearchDialog(BASE, WIDGET):
             gte = filters[0]["config"].get("gte")
             if gte is not None:
                 self.lblStartDate.setText(
-                    QDateTime.fromString(gte, Qt.ISODate).date().toString()
+                    QDateTime.fromString(gte, Qt.DateFormat.ISODate).date().toString()
                 )
             else:
                 self.lblStartDate.setText("---")
@@ -97,7 +117,7 @@ class SaveSearchDialog(BASE, WIDGET):
             lte = filters[0]["config"].get("lte")
             if lte is not None:
                 self.lblEndDate.setText(
-                    QDateTime.fromString(lte, Qt.ISODate).date().toString()
+                    QDateTime.fromString(lte, Qt.DateFormat.ISODate).date().toString()
                 )
             else:
                 self.lblEndDate.setText("---")
@@ -107,7 +127,7 @@ class SaveSearchDialog(BASE, WIDGET):
     def save(self):
         name = self.txtName.text()
         if len(name) == 0:
-            self.bar.pushMessage("", "Invalid name", Qgis.Warning)
+            self.bar.pushMessage("", "Invalid name", Qgis.MessageLevel.Warning)
             return
 
         folder = self.comboFolder.currentText()
