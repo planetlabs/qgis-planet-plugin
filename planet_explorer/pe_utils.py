@@ -959,19 +959,3 @@ def safe_locale(loc: str) -> str:
     if not SAFE_LOCALE.fullmatch(loc):
         raise ValueError("Invalid locale")
     return loc
-
-
-# TODO: Remove reference to API key once /thumb endpoints can be authenticated using
-# OAuth2 token.
-def get_api_key_from_mosaic_tile_url(mosaic_tile_url: str) -> str:
-    """Get the API key from a mosaic tile url for use in downloading
-        a mosaic thumbnail.
-
-    Args:
-        mosaic_tile_url (str): Mosaic URL with API key parameter
-
-    Returns:
-        str: API key from mosaic URL
-    """
-    client = PlanetClient.getInstance()
-    return client.extract_auth_param(mosaic_tile_url).get("api_key", None)

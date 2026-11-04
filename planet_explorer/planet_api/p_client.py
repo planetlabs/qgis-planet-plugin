@@ -1248,28 +1248,6 @@ class PlanetClient(QObject):
         raw_bytes = response.content
         return raw_bytes
 
-    @staticmethod
-    def fetch_image_using_api_key(image_url: str) -> bytes | None:
-        """Fetch image bytes from a URL that already carries an api_key.
-
-        Args:
-            image_url: URL of the image to download.
-
-        Returns:
-            bytes | None The downloaded image data (bytes), or None if the request fails.
-        """
-        try:
-            response = httpx.get(image_url, follow_redirects=True, timeout=30)
-            response.raise_for_status()
-            return response.content
-        except httpx.HTTPStatusError as e:
-            # Don't log the URL or the exception text, both can contain the api key
-            log.error(f"Failed to fetch image: HTTP {e.response.status_code}")
-            return None
-        except httpx.HTTPError as e:
-            log.error(f"Failed to fetch image: {type(e).__name__}")
-            return None
-
     @verify_session
     @verify_async_runner
     def _get_image_bytes_with_session(self, image_url: str) -> bytes | None:
@@ -1284,11 +1262,7 @@ class PlanetClient(QObject):
         Returns:
             bytes | None: Raw image bytes, or None if the request failed.
         """
-        # TODO: remove once /thumb endpoints can be authenticated using OAuth2 token.
-        if "api_key=" in image_url:
-            return self.fetch_image_using_api_key(image_url)
-        else:
-            return self._get_image_bytes_with_session(image_url)
+        return self._get_image_bytes_with_session(image_url)
 
     def update_search(self, request: dict[str, Any], search_id: str) -> dict[str, Any]:
         """Update an existing saved search.
@@ -1570,9 +1544,6 @@ def tile_service_hash(item_type_ids: list[str]) -> str | None:
 
     item_type_ids.reverse()
 
-    # TODO: Delete commented line once verified that
-    # tiles are able to be previewed.
-    # data = {"ids": ",".join(item_type_ids)}
     data = {"ids": item_type_ids}
 
     tile_url = TILE_SERVICE_URL.format("")
