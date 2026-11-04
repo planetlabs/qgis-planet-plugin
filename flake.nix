@@ -35,7 +35,7 @@
       };
       darglint = darglint-repo.packages.${system}.darglint;
       # Common python for all package groups
-      python = pkgs.python314;
+      python = pkgs.python313;
       pythonPkgs = python.pkgs;
       # Split packages into groups for better tracking
       lintersFormatters = with pkgs; [

@@ -8,9 +8,6 @@
 # - Direct references to `pkgs` should remain in flake shell hooks.
 # - This script only establishes repo-local path variables.
 
-# Save the caller's shell options so they can be restored at the end.
-set -euo pipefail
-
 echo ""
 echo "Setting up repo-local path variables ..."
 scripts_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,8 +34,10 @@ export VIRTUAL_ENV="$REPO_ROOT_DIR/.venv"
 pip_log="$LOGS_DIR/.pip-install.log"
 
 if [ ! -d "$VIRTUAL_ENV" ]; then
-    python -m venv "$VIRTUAL_ENV"
+    python3 -m venv "$VIRTUAL_ENV"
 fi
+
+echo "Virtual env python version: $("$VIRTUAL_ENV/bin/python" --version 2>&1)"
 env -u PYTHONPATH "$VIRTUAL_ENV/bin/python" -m pip install --upgrade pip
 
 requirements_file="$REPO_ROOT_DIR/requirements.txt"
@@ -68,4 +67,3 @@ source "$VIRTUAL_ENV/bin/activate"
 
 echo "✅ Repo-local path variables and Python virtual venv setup complete."
 echo ""
-set +euo pipefail

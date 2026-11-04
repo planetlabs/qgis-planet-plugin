@@ -9,6 +9,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.13'
       - run: python -m pip install PyQt5
       - run: pyrcc5 planet_explorer/resources/resources.qrc -o planet_explorer/resources/resources.py
