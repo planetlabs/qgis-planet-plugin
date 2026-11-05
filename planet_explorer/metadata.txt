@@ -8,7 +8,7 @@ name=Planet_Explorer
 qgisMinimumVersion=3.10
 qgisMaximumVersion=4.99
 description=The Planet Plugin enables QGIS users to quickly discover, stream, and download Planet imagery and Planet Basemaps. The plug-in provides an imagery discovery interface that allows users to search for, stream, and download Planet imagery within QGIS.<br><br>Full documentation for the Plugin is available <a href="https://developers.planet.com/docs/integrations/qgis/">here</a>.
-version=3.0.1
+version=3.1.0
 author=Planet Inc
 email=support@planet.com
 
@@ -23,17 +23,14 @@ repository=https://github.com/planetlabs/qgis-planet-plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
-  v3.1.0 (2026-10-28)
+  v3.1.0 (2026-11-05)
   * Add "show only tasked imagery" search filter for daily imagery
-  v3.0.1 (2026-10-15)
   * Fixed missing SR Mosaic visualization options
-  * Authenticate basemap thumbnails using API keys
   v3.0.0 (2026-09-14)
   * Use planet SDK v3.6.0
   * Add support for QGIS 4.0
   * Switch to OAuth2 token for all authentication from API keys
   * Remove API key actions
-  v2.3.6 (2025-12-02)
   * Use QgsBlockingNetworkRequest for API calls.
   v2.3.5 (2025-06-18)
   * Support DefaultProxy type
