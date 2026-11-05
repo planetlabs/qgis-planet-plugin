@@ -58,6 +58,8 @@ from ..pe_utils import (
 )
 from ..planet_api import PlanetClient
 
+IS_QGIS4 = Qgis.versionInt() >= 40000
+
 
 class CustomSlider(QSlider):
     def paintEvent(self, event):
@@ -439,9 +441,17 @@ class BasemapLayerWidget(QWidget):
             )
 
             # QGIS treats every "&" in its URI as the start of a new QGIS setting.
-            # Percent-encode the whole tile URL so its "?", "&" and "=" are hidden
-            # from QGIS and ua and proc/color reach Planet as part of the tile request.
-            tile_url = quote(tile_url, safe=":/{}")
+            if IS_QGIS4:
+                # QGIS 4.X.X:
+                # Percent-encode the whole tile URL so its "?", "&" and "=" are hidden
+                # from QGIS and ua, proc and color reach Planet as part of the tile request.
+                tile_url = quote(tile_url, safe=":/{}%")
+            else:
+                # QGIS 3.44 LTR:
+                # Keep "?" plain, or ? becomes "%3F", so the request becomes
+                # "...gmap/{z}/{x}/{y}.png%3Fua%3Dqgis-3.44.12-Solothurn..." and Planet
+                # returns the error "Invalid image format".
+                tile_url = quote(tile_url, safe=":/?{}%")
 
             # Add QGIS settings
             zoom = ""
@@ -459,6 +469,7 @@ class BasemapLayerWidget(QWidget):
             provider = self.layer.dataProvider()
             if provider is not None:
                 provider.setDataSourceUri(uri)
+                provider.reloadData()
                 self.layer.triggerRepaint()
             self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
             self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
