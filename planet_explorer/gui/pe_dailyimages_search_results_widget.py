@@ -106,7 +106,7 @@ ZOOMTO_ICON = QIcon(":/plugins/planet_explorer/zoom-target.svg")
 SORT_ICON = QIcon(iconPath("sort.svg"))
 LOCK_ICON = QIcon(":/plugins/planet_explorer/lock-light.svg")
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
-TASKED_ICON = QIcon(":/plugins/planet_explorer/tasked.svg")
+TASKED_ICON = QIcon(iconPath("tasking.svg"))
 
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
