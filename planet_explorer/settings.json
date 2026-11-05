@@ -1,34 +1,34 @@
 [
   {
-    "name": "ordersPath",
-    "label": "Order download location",
-    "description": "Default location of the downloaded orders",
-    "type": "folder",
     "default": "",
-    "group": "Orders"
+    "description": "Default location of the downloaded orders",
+    "group": "Orders",
+    "label": "Order download location",
+    "name": "ordersPath",
+    "type": "folder"
   },
   {
-  	"name": "enableClip",
-  	"label": "Enable Clip tool by default",
-  	"description": "Enable Clip tool by default in orders panel",
-  	"type": "bool",
-  	"default": false,
-  	"group": "Orders"
+    "default": false,
+    "description": "Enable Clip tool by default in orders panel",
+    "group": "Orders",
+    "label": "Enable Clip tool by default",
+    "name": "enableClip",
+    "type": "bool"
   },
   {
-    "name": "enableHarmonization",
-    "label": "Enable Harmonization tool by default",
+    "default": false,
     "description": "Enable Harmonization tool by default in orders panel",
-    "type": "bool",
-    "default": false,
-    "group": "Orders"
+    "group": "Orders",
+    "label": "Enable Harmonization tool by default",
+    "name": "enableHarmonization",
+    "type": "bool"
   },
   {
-    "name": "enableStacMetadata",
-    "label": "Enable STAC Metadata tool by default",
-    "description": "Enable STAC Metadata tool by default in orders panel",
-    "type": "bool",
     "default": false,
-    "group": "Orders"
+    "description": "Enable STAC Metadata tool by default in orders panel",
+    "group": "Orders",
+    "label": "Enable STAC Metadata tool by default",
+    "name": "enableStacMetadata",
+    "type": "bool"
   }
 ]

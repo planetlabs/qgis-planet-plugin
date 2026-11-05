@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -44,16 +45,12 @@ except ModuleNotFoundError:
     from range_slider import RangeSlider
 
 SLIDER_WIDGET, SLIDER_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_range_slider_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_range_slider_base.ui")
 )
 
 
 # noinspection PyPep8Naming
 class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
-
     rangeSlider: RangeSlider
     lblTitle: QLabel
     lblRange: QLabel
@@ -81,25 +78,19 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         control widget for defining a value range. Offers visual feedback on
         active vaule range and minimum and maximum values.
 
-        :param parent: Parent widget
-        :type parent: QWidget
-        :param title: Title of value range
-        :param suffix: Any suffix to the value, e.g. km, miles, degrees
-        :param prefix: Any prefix to all vaule labels (need to include spaces)
-        :param minimum: Minimum value for slider
-        :type minimum: float | int
-        :param maximum: Maximum value for the slider
-        :type maximum: float | int
-        :param low: Low value for the slider range
-        :type low: float | int
-        :param high: High value for the slider range
-        :type high: float | int
-        :param step: Slider step increment (will be adjusted by precision)
-        :type step: int
-        :param precision: A 10-based value to apply to the value range to
-        ensure its result is an integer (as slider only works with integers),
-        e.g. precision of 10 makes -0.5 -> 0.5 floats become -5 -> 5 integers.
-        :type precision: int
+        Args:
+            parent (QWidget | None): Parent widget.
+            title (str): Title of value range.
+            filter_key (str): Filter key.
+            suffix (str): Any suffix to the value, e.g. km, miles, degrees.
+            prefix (str): Any prefix to all value labels (include spaces if needed).
+            minimum (float | int): Minimum value for slider.
+            maximum (float | int): Maximum value for slider.
+            low (float | int | None): Low value for the slider range.
+            high (float | int | None): High value for the slider range.
+            step (int | None): Slider step increment (adjusted by precision).
+            precision (int): 10-based scale factor to map float ranges to integers
+                (slider is integer-based), e.g. precision 10 maps -0.5..0.5 to -5..5.
         """
         super().__init__(parent=parent)
 
@@ -136,12 +127,8 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         # Let setting defaults for rangeSlider auto-update labels
         self.blockSignals(True)
 
-        self.rangeSlider.setSingleStep(
-            int(step * self.precision if step else 1 * self.precision)
-        )
-        self.rangeSlider.setPageStep(
-            int(step * self.precision if step else 1 * self.precision)
-        )
+        self.rangeSlider.setSingleStep(int(step * self.precision if step else 1 * self.precision))
+        self.rangeSlider.setPageStep(int(step * self.precision if step else 1 * self.precision))
         self.rangeSlider.setMinimum(int(minimum * self.precision))
         self.rangeSlider.setMaximum(int(maximum * self.precision))
         self.rangeSlider.setLow(int(init_low * self.precision))
@@ -152,7 +139,7 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
 
         # This makes the slider look OK (and like Planet Explorer web app's)
         #   across multiple platforms
-        self.rangeSlider.setTickPosition(self.rangeSlider.TicksBelow)
+        self.rangeSlider.setTickPosition(self.rangeSlider.TickPosition.TicksBelow)
         self.rangeSlider.setTickInterval(
             int((self.rangeSlider.maximum() - self.rangeSlider.minimum()) / 2)
         )
@@ -199,8 +186,7 @@ class PlanetExplorerRangeSlider(SLIDER_BASE, SLIDER_WIDGET):
         # Validate range values
         invalid = ""
         if not (
-            self.validRange(self.rangeSlider.low())
-            and self.validRange(self.rangeSlider.high())
+            self.validRange(self.rangeSlider.low()) and self.validRange(self.rangeSlider.high())
         ):
             invalid = " (invalid)"
             self.rangeSlider.blockSignals(True)
@@ -280,4 +266,4 @@ if __name__ == "__main__":
     # layout.setMargin(0)
 
     dlg.show()
-    app.exec_()
+    app.exec()

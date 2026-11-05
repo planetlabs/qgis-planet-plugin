@@ -1,11 +1,11 @@
 {
-	"Landsat8L1G": ["analytic"],
-	"REOrthoTile": ["analytic_sr"],
-	"Sentinel2L1C": ["analytic"],
-	"SkySatCollect": ["pansharpened_udm2"],
-	"SkySatScene": ["pansharpened_udm2"],
-	"PSOrthoTile": ["analytic_sr_udm2"],
-	"PSScene3Band": ["visual"],
-	"PSScene4Band": ["analytic_sr_udm2"],
-	"PSScene": ["analytic_sr_udm2", "visual"]
+  "Landsat8L1G": ["analytic"],
+  "PSOrthoTile": ["analytic_sr_udm2"],
+  "PSScene": ["analytic_sr_udm2", "visual"],
+  "PSScene3Band": ["visual"],
+  "PSScene4Band": ["analytic_sr_udm2"],
+  "REOrthoTile": ["analytic_sr"],
+  "Sentinel2L1C": ["analytic"],
+  "SkySatCollect": ["pansharpened_udm2"],
+  "SkySatScene": ["pansharpened_udm2"]
 }

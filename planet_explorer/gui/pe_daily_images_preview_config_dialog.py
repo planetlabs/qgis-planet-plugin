@@ -45,17 +45,13 @@ class DailyImagesPreviewConfigDialog(BASE, WIDGET):
             if filename:
                 self.footprintsFilename = filename
             else:
-                self.txtFilename.setStyleSheet(
-                    "QLineEdit { background: rgba(255, 0, 0, 150); }"
-                )
+                self.txtFilename.setStyleSheet("QLineEdit { background: rgba(255, 0, 0, 150); }")
                 return
         if self.chkAddToCatalog.isChecked():
             name = self.txtLayerName.text()
             if name:
                 self.layerName = name
             else:
-                self.txtLayerName.setStyleSheet(
-                    "QLineEdit { background: rgba(255, 0, 0, 150); }"
-                )
+                self.txtLayerName.setStyleSheet("QLineEdit { background: rgba(255, 0, 0, 150); }")
                 return
         super().accept()

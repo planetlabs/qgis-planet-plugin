@@ -1,7 +1,7 @@
-from .p_client import API_KEY_DEFAULT, LoginException, PlanetClient
+# -*- coding: utf-8 -*-
+from .p_client import LoginException, PlanetClient
 
-__all_ = [
+__all__ = [
     PlanetClient,
-    API_KEY_DEFAULT,
     LoginException,
 ]

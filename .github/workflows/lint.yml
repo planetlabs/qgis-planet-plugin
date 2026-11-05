@@ -10,19 +10,67 @@ on:
 
 jobs:
   pre-commit-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Lint
+
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
+
       - name: Set up Python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.8"
-      - name: Install pre-commit
-        run: pip install pre-commit
+          python-version: "3.13"
+
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install nixfmt binary for GitHub Actions
+        run: |
+          # Download the official stable binary (fixes the 404 error)
+          curl -sSfL -o nixfmt https://github.com/NixOS/nixfmt/releases/download/v1.5.0/nixfmt
+          chmod +x nixfmt
+
+          # Move it to your local runner path
+          sudo mv nixfmt /usr/local/bin/
+
+          # Create an alias so both 'nixfmt' and 'nixfmt-rfc-style' commands function perfectly
+          sudo ln -s /usr/local/bin/nixfmt /usr/local/bin/nixfmt-rfc-style
+
+      - name: Main Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libhunspell-dev \
+            hunspell \
+            jq \
+            shellcheck \
+            git \
+            ca-certificates \
+            apt-transport-https \
+            fd-find
+
+          # Install bearer CLI
+          sudo update-ca-certificates
+          echo -e "Types: deb\nURIs: https://apt.fury.io/bearer/\nSuites: /\nTrusted: yes" | sudo tee /etc/apt/sources.list.d/fury.sources
+          sudo apt-get update
+          sudo apt-get install bearer=2.0.2
+
+          npm install -g markdownlint-cli@0.48.0 cspell@9.7.0 prettier@3.8.3 @biomejs/biome@2.4.15
+
+          mkdir -p ~/.local/bin
+          ln -sf "$(which fdfind)" ~/.local/bin/fd
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install Python dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
       - name: Run pre-commit
         run: pre-commit run --all --verbose
+
       - name: Analysis (git diff)
         if: failure()
         run: git diff

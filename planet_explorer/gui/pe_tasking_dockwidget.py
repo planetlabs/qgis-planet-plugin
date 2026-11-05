@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -34,14 +35,13 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
-
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
-from ..pe_analytics import analytics_track, SKYSAT_TASK_CREATED
-from ..pe_utils import PLANET_COLOR, open_link_with_browser, iface
+from ..pe_analytics import SKYSAT_TASK_CREATED, analytics_track
+from ..pe_utils import PLANET_COLOR, iface, open_link_with_browser
 from ..planet_api import PlanetClient
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
@@ -54,23 +54,17 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui"),
-    from_imports=True,
-    import_from=os.path.basename(plugin_path),
-    resource_suffix="",
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui"))
 
 
 class AOICaptureMapTool(QgsMapTool):
-
     aoi_captured = pyqtSignal(QgsRectangle, QgsPointXY)
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
 
         self.canvas = canvas
-        self.cursor = Qt.CrossCursor
+        self.cursor = Qt.CursorShape.CrossCursor
 
     def activate(self):
         self.canvas.setCursor(self.cursor)
@@ -79,12 +73,12 @@ class AOICaptureMapTool(QgsMapTool):
         pt = event.mapPoint()
         transform3857 = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:3857"),
+            QgsCoordinateReferenceSystem.fromEpsgId(3857),
             QgsProject.instance(),
         )
         transform4326 = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
         pt4326 = transform4326.transform(pt)
@@ -97,7 +91,7 @@ class AOICaptureMapTool(QgsMapTool):
             pt3857.y() + SIZE / 2,
         )
         rect = transform3857.transform(
-            rect3857, QgsCoordinateTransform.ReverseTransform
+            rect3857, QgsCoordinateTransform.TransformDirection.ReverseTransform
         )
         self.aoi_captured.emit(rect, pt4326)
 
@@ -155,14 +149,14 @@ class TaskingDockWidget(BASE, WIDGET):
         self.prev_map_tool = None
 
         self.btnMapTool.setIcon(TASKING_ICON)
-        self.btnMapTool.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.btnMapTool.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.marker = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PointGeometry)
-        self.marker.setIcon(QgsRubberBand.ICON_SVG)
+        self.marker = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry)
+        self.marker.setIcon(QgsRubberBand.IconType.ICON_SVG)
         self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 
         self.map_tool = AOICaptureMapTool(iface.mapCanvas())
@@ -185,7 +179,7 @@ class TaskingDockWidget(BASE, WIDGET):
         self.rect = rect
         self.footprint.setToGeometry(QgsGeometry.fromRect(rect))
         transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().crs(),
             QgsProject.instance(),
         )
@@ -203,8 +197,8 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnOpenDashboard.setEnabled(True)
 
     def cancel_clicked(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.marker.reset(QgsWkbTypes.PointGeometry)
+        self.footprint.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
+        self.marker.reset(QgsWkbTypes.GeometryType.PointGeometry)
         self.btnOpenDashboard.setEnabled(False)
         self.textBrowserPoint.setHtml("")
         self.btnCancel.setEnabled(False)
@@ -239,14 +233,15 @@ dockwidget_instance = None
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
-        if not PlanetClient.getInstance().has_api_key():
+        if not PlanetClient.getInstance().client_is_setup():
             return None
         dockwidget_instance = TaskingDockWidget(parent=iface.mainWindow())
+        dockwidget_instance.setObjectName("PlanetTaskingDockWidget")
         dockwidget_instance.setAllowedAreas(
-            Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
         )
 
-        iface.addDockWidget(Qt.LeftDockWidgetArea, dockwidget_instance)
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dockwidget_instance)
 
         dockwidget_instance.hide()
     return dockwidget_instance

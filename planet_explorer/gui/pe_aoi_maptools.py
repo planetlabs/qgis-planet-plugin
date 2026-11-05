@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -51,7 +52,6 @@ RB_FILL = QColor(204, 235, 239, 100)
 
 # noinspection DuplicatedCode
 class PlanetExtentMapTool(QgsMapTool):
-
     extentSelected = pyqtSignal(object)
 
     def __init__(self, canvas):
@@ -65,13 +65,13 @@ class PlanetExtentMapTool(QgsMapTool):
 
     def canvasPressEvent(self, event):
         self.select_rect.setRect(0, 0, 0, 0)
-        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
+        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.GeometryType.PolygonGeometry)
         self.rubber_band.setFillColor(RB_FILL)
         self.rubber_band.setStrokeColor(RB_STROKE)
         self.rubber_band.setWidth(1)
 
     def canvasMoveEvent(self, event):
-        if event.buttons() != Qt.LeftButton:
+        if event.buttons() != Qt.MouseButton.LeftButton:
             return
 
         if not self.dragging:
@@ -95,7 +95,7 @@ class PlanetExtentMapTool(QgsMapTool):
         if self.rubber_band:
             self._set_rubber_band()
 
-            self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubber_band.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
             del self.rubber_band
             self.rubber_band = None
 
@@ -107,15 +107,11 @@ class PlanetExtentMapTool(QgsMapTool):
     def _set_rubber_band(self):
         transform = self.canvas.getCoordinateTransform()
 
-        ll = transform.toMapCoordinates(
-            self.select_rect.left(), self.select_rect.bottom()
-        )
-        ur = transform.toMapCoordinates(
-            self.select_rect.right(), self.select_rect.top()
-        )
+        ll = transform.toMapCoordinates(self.select_rect.left(), self.select_rect.bottom())
+        ur = transform.toMapCoordinates(self.select_rect.right(), self.select_rect.top())
 
         if self.rubber_band:
-            self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubber_band.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
             self.rubber_band.addPoint(ll, False)
             self.rubber_band.addPoint(QgsPointXY(ur.x(), ll.y()), False)
             self.rubber_band.addPoint(ur, False)
@@ -125,7 +121,6 @@ class PlanetExtentMapTool(QgsMapTool):
 
 # noinspection DuplicatedCode
 class PlanetCircleMapTool(QgsMapTool):
-
     circleSelected = pyqtSignal(object)
 
     def __init__(self, canvas):
@@ -141,13 +136,13 @@ class PlanetCircleMapTool(QgsMapTool):
 
     def canvasPressEvent(self, event):
         self.center = event.pos()
-        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
+        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.GeometryType.PolygonGeometry)
         self.rubber_band.setFillColor(RB_FILL)
         self.rubber_band.setStrokeColor(RB_STROKE)
         self.rubber_band.setWidth(1)
 
     def canvasMoveEvent(self, event):
-        if event.buttons() != Qt.LeftButton:
+        if event.buttons() != Qt.MouseButton.LeftButton:
             return
 
         if not self.dragging:
@@ -155,7 +150,7 @@ class PlanetCircleMapTool(QgsMapTool):
             self.center = event.pos()
 
         self.tangent_point = event.pos()
-        self.radius = sqrt(QPointF.dotProduct(self.center, self.tangent_point))
+        self.radius = sqrt(QPointF.dotProduct(QPointF(self.center), QPointF(self.tangent_point)))
         self._set_rubber_band()
 
     def canvasReleaseEvent(self, event):
@@ -166,7 +161,7 @@ class PlanetCircleMapTool(QgsMapTool):
         if self.rubber_band:
             self._set_rubber_band()
 
-            self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubber_band.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
             del self.rubber_band
             self.rubber_band = None
 
@@ -187,7 +182,7 @@ class PlanetCircleMapTool(QgsMapTool):
         circle_geom = QgsGeometry(rb_circle.toPolygon())
 
         if self.rubber_band:
-            self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubber_band.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
             self.rubber_band.addGeometry(circle_geom)
             self.circle = circle_geom
 
@@ -201,28 +196,28 @@ class PlanetPolyMapTool(QgsMapTool):
 
         self.canvas = canvas
         self.extent = None
-        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
+        self.rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.GeometryType.PolygonGeometry)
         self.rubber_band.setFillColor(RB_FILL)
         self.rubber_band.setStrokeColor(RB_STROKE)
         self.rubber_band.setWidth(1)
         self.vertex_count = 1  # two points are dropped initially
 
     def canvasReleaseEvent(self, event):
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             if self.rubber_band is None or self.extent is None:
                 return
             # TODO: validate geom before firing signal
             self.extent.removeDuplicateNodes()
             self.polygonSelected.emit(self.extent)
-            self.rubber_band.reset(QgsWkbTypes.PolygonGeometry)
+            self.rubber_band.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
             del self.rubber_band
             self.rubber_band = None
             self.vertex_count = 1  # two points are dropped initially
             return
-        elif event.button() == Qt.LeftButton:
+        elif event.button() == Qt.MouseButton.LeftButton:
             if self.rubber_band is None:
                 self.rubber_band = QgsRubberBand(
-                    self.canvas, QgsWkbTypes.PolygonGeometry
+                    self.canvas, QgsWkbTypes.GeometryType.PolygonGeometry
                 )
                 self.rubber_band.setFillColor(RB_FILL)
                 self.rubber_band.setStrokeColor(RB_STROKE)

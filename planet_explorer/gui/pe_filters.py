@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -23,19 +24,20 @@ __revision__ = "$Format:%H$"
 
 import json
 import logging
-from math import floor
 import os
 import re
+from datetime import datetime
+from math import floor
+from typing import Any
 
-from planet.api.filters import (
-    date_range,
-    geom_filter,
+from planet.data_filter import (
+    date_range_filter,
+    geometry_filter,
     not_filter,
-    permission_filter,
     range_filter,
-    string_filter,
+    string_in_filter,
 )
-from planet.api.utils import geometry_from_json
+from planet.geojson import geom_from_geojson
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -72,14 +74,14 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_utils import (
     MAIN_AOI_COLOR,
+    iface,
     qgsgeometry_from_geojson,
     zoom_canvas_to_aoi,
-    iface,
 )
 from ..planet_api.p_client import PlanetClient
 from .pe_aoi_maptools import PlanetCircleMapTool, PlanetExtentMapTool, PlanetPolyMapTool
-from .pe_range_slider import PlanetExplorerRangeSlider
 from .pe_legacy_warning_widget import LegacyWarningWidget
+from .pe_range_slider import PlanetExplorerRangeSlider
 
 LOCAL_FILTERS = ["area_coverage"]
 
@@ -188,20 +190,18 @@ log = logging.getLogger(__name__)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
 AOI_FILTER_WIDGET, AOI_FILTER_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_aoi_filter_base.ui")
 )
 DAILY_WIDGET, DAILY_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_daily_filter_base.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
+    os.path.join(plugin_path, "ui", "pe_daily_filter_base.ui")
 )
 
 
-def filters_from_request(request, field_name=None, filter_type=None):
+def filters_from_request(
+    request: dict[str, Any],
+    field_name: str | None = None,
+    filter_type: str | None = None,
+):
     filters = []
 
     def _add_filter(filterdict):
@@ -225,6 +225,23 @@ def filters_from_request(request, field_name=None, filter_type=None):
     return filters
 
 
+def _permission_filters_as_text_from_request(request):
+
+    permission_filters = filters_from_request(request, filter_type="PermissionFilter")
+
+    permissions = set()
+    for f in permission_filters:
+        permissions.update(f.get("config", []))
+
+    permission_filters_as_text = ""
+    permission_filters_as_text += (
+        f"Only show images you can download: {'assets:download' in permissions}\n"
+    )
+    permission_filters_as_text += f"Only show high resolution imagery that your organization has tasked: {'tasked' in permissions}\n"
+
+    return permission_filters_as_text
+
+
 def filters_as_text_from_request(request):
     s = ""
     for slider_filter in slider_filters:
@@ -245,30 +262,18 @@ def filters_as_text_from_request(request):
             minvalue = slider_filter["minimum"]
             maxvalue = slider_filter["maximum"]
         s += (
-            f'{slider_filter["title"]}: {minvalue}{slider_filter["suffix"]}'
-            f' - {maxvalue}{slider_filter["suffix"]}\n'
+            f"{slider_filter['title']}: {minvalue}{slider_filter['suffix']}"
+            f" - {maxvalue}{slider_filter['suffix']}\n"
         )
 
-    filters = filters_from_request(request, filter_type="PermissionFilter")
-    if filters:
-        s += (
-            "Only show images you can download:"
-            f" {'assets:download' in filters[0]['config']}\n"
-        )
-    else:
-        s += "Only show images you can download: False\n"
-    filters = filters_from_request(request, "ground_control")
-    if filters:
-        s += (
-            "Only show images with ground control:"
-            f" {'assets:download' in filters[0]['config']}\n"
-        )
-    else:
-        s += "Only show images with ground control: False\n"
+    s += _permission_filters_as_text_from_request(request)
 
-    filters = filters_from_request(request, "id")
-    if filters:
-        s += f'IDs: {",".join(filters[0]["config"])}'
+    ground_control_filters = filters_from_request(request, "ground_control")
+    s += f"Only show images with ground control: {bool(ground_control_filters)}\n"
+
+    id_filters = filters_from_request(request, "id")
+    if id_filters:
+        s += f"IDs: {','.join(id_filters[0]['config'])}"
 
     return s
 
@@ -288,12 +293,11 @@ class PlanetFilterMixin(QObject):
 
         self._plugin = plugin
 
-    def _show_message(self, message, level=Qgis.Info, duration=None, show_more=None):
+    def _show_message(self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None):
         self._plugin.show_message(message, level, duration, show_more)
 
 
 class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
-
     filtersChanged = pyqtSignal()
     savedSearchSelected = pyqtSignal(object)
     zoomToAOIRequested = pyqtSignal()
@@ -313,11 +317,11 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         self.color = color
 
-        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(color)
         self._aoi_box.setWidth(3)
-        self._aoi_box.setLineStyle(Qt.DashLine)
+        self._aoi_box.setLineStyle(Qt.PenStyle.DashLine)
 
         self._canvas: QgsMapCanvas = iface.mapCanvas()
         # This may later be a nullptr, if no active tool when queried
@@ -337,7 +341,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def reset_aoi_box(self):
         self.leAOI.setText("")
         if self._aoi_box:
-            self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+            self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
 
     def filters(self):
         filters = []
@@ -346,14 +350,16 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 qgsgeom = qgsgeometry_from_geojson(self.leAOI.text())
                 if not qgsgeom.isEmpty():
                     geom_json = json.loads(qgsgeom.asJson())
-                    filters.append(geom_filter(geom_json))
+                    filters.append(geometry_filter(geom_json))
                 else:
                     self._show_message(
-                        "AOI not valid GeoJSON polygon", level=Qgis.Warning, duration=10
+                        "AOI not valid GeoJSON polygon",
+                        level=Qgis.MessageLevel.Warning,
+                        duration=10,
                     )
             except Exception:
                 self._show_message(
-                    "AOI not valid JSON", level=Qgis.Warning, duration=10
+                    "AOI not valid JSON", level=Qgis.MessageLevel.Warning, duration=10
                 )
             finally:
                 return filters
@@ -426,14 +432,10 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         selection_menu = QMenu(self)
 
         self.multi_polygon_select_act = QAction("Selected features", selection_menu)
-        self.multi_polygon_select_act.triggered[bool].connect(
-            self.aoi_from_multiple_polygons
-        )
+        self.multi_polygon_select_act.triggered[bool].connect(self.aoi_from_multiple_polygons)
         selection_menu.addAction(self.multi_polygon_select_act)
 
-        self.bound_select_act = QAction(
-            "Selected features (bounding box)", selection_menu
-        )
+        self.bound_select_act = QAction("Selected features (bounding box)", selection_menu)
         self.bound_select_act.triggered[bool].connect(self.aoi_from_bound)
         selection_menu.addAction(self.bound_select_act)
 
@@ -454,121 +456,108 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.btnUpload.setMenu(upload_menu)
         self.btnUpload.clicked.connect(self.btnUpload.showMenu)
 
+    def _is_valid_polygon_layer(self, layer: QgsVectorLayer) -> bool:
+        """Checks if a layer is a valid polygon vector layer.
+
+        Args:
+            layer (QgsVectorLayer): Layer to check
+
+        Returns:
+            bool: True if the layer is a valid polygon vector layer, False otherwise.
+        """
+        if not layer.isValid():
+            self._show_message("Invalid layer", level=Qgis.MessageLevel.Warning, duration=10)
+            return False
+        if not isinstance(layer, QgsVectorLayer):
+            self._show_message(
+                "Active layer must be a vector layer.",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
+            )
+            return False
+        if layer.geometryType() != QgsWkbTypes.GeometryType.PolygonGeometry:
+            self._show_message(
+                "AOI geometry type invalid",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
+            )
+            return False
+        return True
+
+    def _get_valid_polygon_layers(self, layer: QgsVectorLayer) -> list[QgsVectorLayer] | None:
+        """Returns a list of valid polygon layers from a file, handling embedded layers.
+
+        Args:
+            layer (QgsVectorLayer): Layer to check
+
+        Returns:
+            list[QgsVectorLayer] | None: List of valid polygon layers or None if none are valid.
+        """
+        if len(layer.dataProvider().subLayers()) <= 1:
+            return [layer] if self._is_valid_polygon_layer(layer) else None
+        embedded_layers = []
+        # If the file contains embedded layers
+        # Therefore need to process each layer
+        for subLayer in layer.dataProvider().subLayers():
+            sublayer_name = subLayer.split("!!::!!")[1]
+            embedded_file = "{}|layername={}".format(layer.source(), sublayer_name)
+            embedded_layer = QgsVectorLayer(embedded_file, "")
+            if (
+                embedded_layer.isValid()
+                and embedded_layer.geometryType() == QgsWkbTypes.GeometryType.PolygonGeometry
+            ):
+                embedded_layers.append(embedded_layer)
+        return embedded_layers if embedded_layers else None
+
     def upload_file_bb(self):
         """Loads a vector file provided by a user. Considers embedded gpkg files.
         Checks if the layer(s) are valid. Then calls the function to calculate the
         bounding box AOI.
+
+        Returns:
+            None: If errors encountered such as file name is not provided or
+                if no valid polygon layers are found.
         """
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Select AOI file", "", "All files(*.*)"
-        )
-        if filename:
-            layer = QgsVectorLayer(filename, "")
-            embedded_layers = []
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "All files(*.*)")
+        if not filename:
+            return None
+
+        layer = QgsVectorLayer(filename, "")
+        layers = self._get_valid_polygon_layers(layer)
+
+        if layers is None:
             if len(layer.dataProvider().subLayers()) > 1:
-                # If the file contains embedded layers
-                # Therefore need to process each layer
-                for subLayer in layer.dataProvider().subLayers():
-                    sublayer_name = subLayer.split("!!::!!")[1]
-                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
-                    embedded_layer = QgsVectorLayer(embedded_file, "")
-                    if not embedded_layer.isValid():
-                        # Skip invalid layers
-                        continue
-                    elif not isinstance(layer, QgsVectorLayer):
-                        # Skip non-vector layers
-                        continue
-                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
-                        # Only add the embedded layer if it's a valid polygon layer
-                        embedded_layers.append(embedded_layer)
+                self._show_message(
+                    "None of the embedded layers are valid polygons",
+                    level=Qgis.MessageLevel.Warning,
+                    duration=10,
+                )
+            return
 
-                if len(embedded_layers) == 0:
-                    # If none of the embedded layers are polygons
-                    self._show_message(
-                        "None of the embedded layers are valid polygons",
-                        level=Qgis.Warning,
-                        duration=10,
-                    )
-                    return
-                self.aoi_bb_from_layer(embedded_layers)
-            else:
-                # No embedded layers in the file
-                if not layer.isValid():
-                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
-                    return
-                elif not isinstance(layer, QgsVectorLayer):
-                    self._show_message(
-                        "Active layer must be a vector layer.",
-                        level=Qgis.Warning,
-                        duration=10,
-                    )
-                    return
-                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
-                    # If the geometry is not polygon
-                    self._show_message(
-                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
-                    )
-                    return
-                else:
-                    self.aoi_bb_from_layer([layer])
+        self.aoi_bb_from_layer(layers)
 
-    def upload_file(self):
+    def upload_file(self) -> None:
         """Loads a vector file provided by a user. Considers embedded gpkg files.
         Checks if the layer(s) are valid. Then calls the function to calculate the
         AOI.
         """
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Select AOI file", "", "All files(*.*)"
-        )
-        if filename:
-            layer = QgsVectorLayer(filename, "")
-            embedded_layers = []
-            if len(layer.dataProvider().subLayers()) > 1:
-                # If the file contains embedded layers
-                # Therefore need to process each layer
-                for subLayer in layer.dataProvider().subLayers():
-                    sublayer_name = subLayer.split("!!::!!")[1]
-                    embedded_file = "{}|layername={}".format(filename, sublayer_name)
-                    embedded_layer = QgsVectorLayer(embedded_file, "")
-                    if not embedded_layer.isValid():
-                        # Skip invalid layers
-                        continue
-                    elif not isinstance(layer, QgsVectorLayer):
-                        # Skip non-vector layers
-                        continue
-                    elif embedded_layer.geometryType() == QgsWkbTypes.PolygonGeometry:
-                        # Only add the embedded layer if it's a valid polygon layer
-                        embedded_layers.append(embedded_layer)
+        filename, _ = QFileDialog.getOpenFileName(self, "Select AOI file", "", "All files(*.*)")
+        if not filename:
+            return
 
-                if len(embedded_layers) == 0:
-                    # If none of the embedded layers are polygons
-                    self._show_message(
-                        "None of the embedded layers are valid polygons",
-                        level=Qgis.Warning,
-                        duration=10,
-                    )
-                    return
-                self.aoi_from_layer(embedded_layers)
-            else:
-                # No embedded layers in the file
-                if not layer.isValid():
-                    self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
-                    return
-                elif not isinstance(layer, QgsVectorLayer):
-                    self._show_message(
-                        "Active layer must be a vector layer.",
-                        level=Qgis.Warning,
-                        duration=10,
-                    )
-                    return
-                elif layer.geometryType() != QgsWkbTypes.PolygonGeometry:
-                    # If the geometry is not polygon
-                    self._show_message(
-                        "AOI geometry type invalid", level=Qgis.Warning, duration=10
-                    )
-                    return
-                else:
-                    self.aoi_from_layer([layer])
+        layer = QgsVectorLayer(filename, "")
+        layers = self._get_valid_polygon_layers(layer)
+
+        if layers is None:
+            if len(layer.dataProvider().subLayers()) > 1:
+                self._show_message(
+                    "None of the embedded layers are valid polygons",
+                    level=Qgis.MessageLevel.Warning,
+                    duration=10,
+                )
+            return
+
+        self.aoi_from_layer(layers)
 
     def show_aoi_area_size(self):
         """Displays the aoi area size in square kilometers."""
@@ -580,26 +569,31 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.laAOISize.setText(f"Total AOI area (sqkm): {formatted_area_sq}")
 
     def calculate_aoi_area(self):
-        """Calculate the current aoi area in square kilometers"""
+        """Calculate the current aoi area in square kilometers
+
+        Returns:
+            float: The area of the AOI in square kilometers, rounded to 2 decimal places.
+        """
 
         geometry = self.aoi_as_4326_geom()
         area = QgsDistanceArea()
         area.setSourceCrs(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().transformContext(),
         )
         area.setEllipsoid(QgsProject.instance().ellipsoid())
         geometry_area = area.measureArea(geometry)
         geometry_area_sq = area.convertAreaMeasurement(
-            geometry_area, QgsUnitTypes.AreaSquareKilometers
+            geometry_area, QgsUnitTypes.AreaUnit.AreaSquareKilometers
         )
 
         return round(geometry_area_sq, 2)
 
     def aoi_from_layer(self, layers):
         """Determine AOI from polygons. Considers all polygons.
-        :param layers: List of QgsVectorLayers
-        :type layers: list
+
+        Args:
+            layers (list[QgsVectorLayer]): List of vector layers to calculate AOI from.
         """
         multipart_polygon = None
         for layer in layers:
@@ -617,7 +611,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -626,7 +620,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -649,14 +643,17 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             # There were no features to process
             self._show_message(
-                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+                "Layer(s) contains no valid features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
     def aoi_bb_from_layer(self, layers):
         """Determine AOI as a bounding box from polygons. Considers all polygons.
-        :param layers: List of QgsVectorLayers
-        :type layers: list
+
+        Args:
+            layers (list[QgsVectorLayer]): List of vector layers to calculate AOI from.
         """
         multipart_polygon = None
         for layer in layers:
@@ -674,7 +671,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -683,7 +680,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -711,7 +708,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         else:
             # There were no features to process
             self._show_message(
-                "Layer(s) contains no valid features", level=Qgis.Warning, duration=10
+                "Layer(s) contains no valid features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -721,7 +720,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         canvas = iface.mapCanvas()
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -730,7 +729,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(canvas_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -759,7 +760,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         transform = QgsCoordinateTransform(
             map_layer.crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -768,7 +769,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(ml_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -788,7 +791,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -799,7 +802,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             transform_extent = transform.transformBoundingBox(canvas_extent)
         except QgsCsException:
             self._show_message(
-                "Could not convert AOI to EPSG:4326", level=Qgis.Warning, duration=10
+                "Could not convert AOI to EPSG:4326",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         geom_extent = QgsGeometry.fromRect(transform_extent)
@@ -816,7 +821,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_box(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetExtentMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.extentSelected.connect(self.set_draw_aoi)
@@ -824,7 +829,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_circle(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetCircleMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.circleSelected.connect(self.set_draw_aoi)
@@ -832,7 +837,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     @pyqtSlot()
     def aoi_from_polygon(self):
         self._cur_maptool: QgsMapTool = self._canvas.mapTool()
-        self._aoi_box.reset(QgsWkbTypes.PolygonGeometry)
+        self._aoi_box.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
         aoi_draw = PlanetPolyMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(aoi_draw)
         aoi_draw.polygonSelected.connect(self.set_draw_aoi)
@@ -841,7 +846,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def set_draw_aoi(self, aoi):
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -873,23 +878,29 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 # Fallback to activating pan tool
                 iface.actionPan().trigger()
         else:
-            self._show_message("AOI unable to be set", level=Qgis.Warning, duration=10)
+            self._show_message(
+                "AOI unable to be set", level=Qgis.MessageLevel.Warning, duration=10
+            )
 
     def aoi_from_multiple_polygons(self):
         layer = iface.activeLayer()
         if not layer.isValid():
-            self._show_message("Invalid layer", level=Qgis.Warning, duration=10)
+            self._show_message("Invalid layer", level=Qgis.MessageLevel.Warning, duration=10)
             return
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
-                "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                "Active layer must be a vector layer.",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
         feature_count = layer.featureCount()
         if feature_count == 0:
             self._show_message(
-                "Layer contains no features", level=Qgis.Warning, duration=10
+                "Layer contains no features",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
         else:
@@ -908,7 +919,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -917,7 +928,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
                 except QgsCsException:
                     self._show_message(
                         "Could not convert AOI to EPSG:4326",
-                        level=Qgis.Warning,
+                        level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
                     return
@@ -942,7 +953,9 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         layer = iface.activeLayer()
         if not isinstance(layer, QgsVectorLayer):
             self._show_message(
-                "Active layer must be a vector layer.", level=Qgis.Warning, duration=10
+                "Active layer must be a vector layer.",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
@@ -960,12 +973,12 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
         trans_canvas = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().crs(),
             QgsProject.instance(),
         )
@@ -983,11 +996,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         self.show_aoi_area_size()
 
     def hide_aoi_if_matches_geom(self, geom):
-        color = (
-            QColor(0, 0, 0, 0)
-            if self._aoi_box.asGeometry().equals(geom)
-            else self.color
-        )
+        color = QColor(0, 0, 0, 0) if self._aoi_box.asGeometry().equals(geom) else self.color
         self._aoi_box.setStrokeColor(color)
 
     def show_aoi(self):
@@ -1001,7 +1010,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def aoi_as_4326_geom(self):
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
         geom = self.aoi_geom()
@@ -1018,11 +1027,13 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         geom: QgsGeometry = qgsgeometry_from_geojson(self.leAOI.text())
         if geom.isEmpty():
             self._show_message(
-                "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON geometry invalid",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
+        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem.fromEpsgId(4326))
 
         self.show_aoi()
 
@@ -1061,23 +1072,25 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             json_obj = json.loads(json_txt)
         except ValueError:
             self._show_message(
-                "AOI GeoJSON is invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON is invalid", level=Qgis.MessageLevel.Warning, duration=10
             )
             return
 
         try:
-            json_geom = geometry_from_json(json_obj)
+            json_geom = geom_from_geojson(json_obj)
         except Exception:
             json_geom = None
 
         if not json_geom:
             self._show_message(
-                "AOI GeoJSON geometry invalid", level=Qgis.Warning, duration=10
+                "AOI GeoJSON geometry invalid",
+                level=Qgis.MessageLevel.Warning,
+                duration=10,
             )
             return
 
         geom: QgsGeometry = qgsgeometry_from_geojson(json_geom)
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
+        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem.fromEpsgId(4326))
 
         self.leAOI.blockSignals(True)
         self.leAOI.setText(json.dumps(json_geom))
@@ -1150,9 +1163,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         layout = QVBoxLayout()
         layout.setMargin(0)
         self.legacyWarningWidget = LegacyWarningWidget()
-        self.legacyWarningWidget.updateLegacySearch.connect(
-            self.updateLegacySearch.emit
-        )
+        self.legacyWarningWidget.updateLegacySearch.connect(self.updateLegacySearch.emit)
         layout.addWidget(self.legacyWarningWidget)
         self.frameWarningLegacySearch.setLayout(layout)
         self.frameWarningLegacySearch.setVisible(False)
@@ -1175,6 +1186,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
 
         self.chkGroundControl.stateChanged[int].connect(self.filters_changed)
         self.chkFullCatalog.stateChanged[int].connect(self.filters_changed)
+        self.chkTaskedImagery.stateChanged[int].connect(self.filters_changed)
 
     def _yellowFilterToggled(self):
         if self.chkYellow.isChecked():
@@ -1223,39 +1235,57 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
         dates = self.frameDates.findChildren(QgsDateTimeEdit)
         for date in dates:
             if date.dateTime().isNull():
-                date.lineEdit().setEchoMode(QLineEdit.NoEcho)
+                date.lineEdit().setEchoMode(QLineEdit.EchoMode.NoEcho)
             else:
-                date.lineEdit().setEchoMode(QLineEdit.Normal)
+                date.lineEdit().setEchoMode(QLineEdit.EchoMode.Normal)
 
-    def filters(self):
-        populated_filters = []
+    def _build_date_filters(self) -> list:
+        """Build date range filters from the date edit widgets.
 
-        start_qdate = None
-        end_qdate = None
-        start_date = None
-        end_date = None
+        Returns:
+            list: List of date range filters.
+        """
+        filters = []
+        start_qdate = end_qdate = start_date = end_date = None
+
         if not self.startDateEdit.dateTime().isNull():
             start_qdate = self.startDateEdit.date()
-            start_date = start_qdate.toString(Qt.ISODate)
+            start_date = start_qdate.toString(Qt.DateFormat.ISODate)
         if not self.endDateEdit.dateTime().isNull():
             end_qdate = self.endDateEdit.date().addDays(1)
-            end_date = end_qdate.toString(Qt.ISODate)
+            end_date = end_qdate.toString(Qt.DateFormat.ISODate)
 
         if start_qdate and end_qdate:
             if start_qdate < end_qdate:
-                date_filter = date_range("acquired", gte=start_date, lte=end_date)
-                populated_filters.append(date_filter)
+                date_filter = date_range_filter(
+                    "acquired",
+                    gte=datetime.fromisoformat(start_date),
+                    lte=datetime.fromisoformat(end_date),
+                )
+                filters.append(date_filter)
             else:
                 self._show_message(
-                    "Start date later than end date.", level=Qgis.Warning, duration=10
+                    "Start date later than end date.",
+                    level=Qgis.MessageLevel.Warning,
+                    duration=10,
                 )
         elif start_date:
-            start_date_filter = date_range("acquired", gte=start_date)
-            populated_filters.append(start_date_filter)
+            start_date_filter = date_range_filter(
+                "acquired", gte=datetime.fromisoformat(start_date)
+            )
+            filters.append(start_date_filter)
         elif end_date:
-            end_date_filter = date_range("acquired", lte=end_date)
-            populated_filters.append(end_date_filter)
+            end_date_filter = date_range_filter("acquired", lte=datetime.fromisoformat(end_date))
+            filters.append(end_date_filter)
+        return filters
 
+    def _build_slide_filters(self) -> list:
+        """Build range filters from the range sliders.
+
+        Returns:
+            list: List of range filters.
+        """
+        filters = []
         # TODO: double check actual domain/range of sliders
         sliders = self.frameRangeSliders.findChildren(PlanetExplorerRangeSlider)
         for slider in sliders:
@@ -1267,38 +1297,50 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
                 slider_max = 1.0
             else:
                 slider_max = slider.max
+
             if range_low != slider.min and range_high != slider_max:
-                slide_filter = range_filter(
-                    slider.filter_key, gte=range_low, lte=range_high
-                )
+                slide_filter = range_filter(slider.filter_key, gte=range_low, lte=range_high)
             elif range_low != slider.min:
                 slide_filter = range_filter(slider.filter_key, gte=range_low)
             elif range_high != slider_max:
                 slide_filter = range_filter(slider.filter_key, lte=range_high)
             if slide_filter:
-                populated_filters.append(slide_filter)
+                filters.append(slide_filter)
+        return filters
 
+    def _build_string_id_filters(self) -> list:
+        """Build string ID filters from the ID text field.
+
+        Returns:
+            list: List of string ID filters.
+        """
+        filters = []
         s_ids = self.leStringIDs.text()
-        if s_ids:
-            ids_actual = []
-            s_ids.replace(" ", "")
-            for s_id in s_ids.split(","):
-                for text_chunk in s_id.split(":"):
-                    for pattern in self.id_regex:
-                        if pattern.match(text_chunk):
-                            ids_actual.append(text_chunk)
+        ids_actual = []
 
-            if ids_actual:
-                s_ids_list = ["id"]
-                s_ids_list.extend(ids_actual)
-                string_ids_filter = string_filter(*s_ids_list)
-                populated_filters.append(string_ids_filter)
-            else:
-                self._show_message(
-                    "No valid ID present", level=Qgis.Warning, duration=10
-                )
+        if not s_ids:
+            return filters
 
-        # Publishing stage
+        s_ids.replace(" ", "")
+        for s_id in s_ids.split(","):
+            for text_chunk in s_id.split(":"):
+                for pattern in self.id_regex:
+                    if pattern.match(text_chunk):
+                        ids_actual.append(text_chunk)
+
+        if ids_actual:
+            string_ids_filter = string_in_filter("id", ids_actual)
+            filters.append(string_ids_filter)
+        else:
+            self._show_message("No valid ID present", level=Qgis.MessageLevel.Warning, duration=10)
+        return filters
+
+    def _build_publish_filters(self) -> list:
+        """Build publishing stage filters from checkboxes.
+
+        Returns:
+            list: Publishing stage filters.
+        """
         publish_types = []
         publish_filters = None
         for chk in [
@@ -1313,50 +1355,89 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             # Adds the Publishing stage to the filters if any were active
             # Metadata name is "publishing_stage"
             # Publishing stage filters will only be used for SkySat and PlanetScope
-            publish_filters = string_filter("publishing_stage", *publish_types)
+            publish_filters = string_in_filter("publishing_stage", publish_types)
+        return publish_filters
+
+    def _build_server_filters(self, populated_filters: list) -> list:
+        """Build server-side filters.
+
+        Args:
+            populated_filters (list): List of populated filters to extend
+                server filters with.
+
+        Returns:
+            list: Server side filters.
+        """
+        server_filters = []
+        if not self.chkFullCatalog.isChecked():
+            # Include both download and streaming permissions so users with
+            # streaming-only access can still see and preview items
+            # NOTE: SDK permission_filter limits to permission downloads.
+            # dl_permission_filter = permission_filter()
+            dl_permission_filter = {
+                "type": "PermissionFilter",
+                "config": ["assets:download", "webtiles:stream"],
+            }
+            server_filters.append(dl_permission_filter)
+
+        if self.chkStandardQuality.isChecked():
+            quality_filter = string_in_filter("quality_category", ["standard"])
+            server_filters.append(quality_filter)
+
+        # Ground_control can be 'true', 'false, or a numeric value
+        # Safest to check for not 'false'
+        if self.chkGroundControl.isChecked():
+            gc_filter = not_filter(string_in_filter("ground_control", ["false"]))
+            server_filters.append(gc_filter)
+
+        if self.chkTaskedImagery.isChecked():
+            tasked_imagery_filter = {
+                "type": "PermissionFilter",
+                "config": ["tasked"],
+            }
+            server_filters.append(tasked_imagery_filter)
+
+        server_filters.extend(
+            [f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS]
+        )
+        return server_filters
+
+    def filters(self):
+        populated_filters = []
+        populated_filters.extend(self._build_date_filters())
+        populated_filters.extend(self._build_slide_filters())
+        populated_filters.extend(self._build_string_id_filters())
+        publish_filters = self._build_publish_filters()
 
         instruments = []
         for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
             if chk.isChecked():
                 instruments.append(chk.property("api-name"))
         if instruments:
-            instrument_filter = string_filter("instrument", *instruments)
+            instrument_filter = string_in_filter("instrument", instruments)
             populated_filters.append(instrument_filter)
 
-        server_filters = []
-        if not self.chkFullCatalog.isChecked():
-            dl_permission_filter = permission_filter("assets:download")
-            server_filters.append(dl_permission_filter)
-
-        if self.chkStandardQuality.isChecked():
-            quality_filter = string_filter("quality_category", "standard")
-            server_filters.append(quality_filter)
-
-        # Ground_control can be 'true', 'false, or a numeric value
-        # Safest to check for not 'false'
-        if self.chkGroundControl.isChecked():
-            gc_filter = not_filter(string_filter("ground_control", "false"))
-            server_filters.append(gc_filter)
-
-        server_filters.extend(
-            [f for f in populated_filters if f["field_name"] not in LOCAL_FILTERS]
-        )
-        local_filters = [
-            f for f in populated_filters if f["field_name"] in LOCAL_FILTERS
-        ]
+        server_filters = self._build_server_filters(populated_filters)
+        local_filters = [f for f in populated_filters if f["field_name"] in LOCAL_FILTERS]
         return server_filters, local_filters, publish_filters
 
-    def set_from_request(self, request):
+    def _set_source_filters(self, request: dict) -> None:
+        """Set item type checkboxes from request.
+
+        Args:
+            request (dict): The request dictionary.
         """
-        We assume here that the request has the structure of requests created
-        with the plugin. We are not fully parsing the request to analize it,
-        but instead making that assumption to simplify things.
-        """
-        self.emitFiltersChanged = False
         sources = request["item_types"]
         for checkbox in self.itemTypeCheckBoxes:
             checkbox.setChecked(checkbox.property("api-name") in sources)
 
+    def _set_asset_filters(self, request: dict) -> None:
+        """Set asset filter checkboxes (NIR, Yellow, Surface Reflectance) from request.
+
+        Args:
+            request (dict): The request dictionary.
+        """
+        sources = request["item_types"]
         asset_filters = filters_from_request(request, filter_type="AssetFilter")
         self.chkNIR.setChecked(False)
         self.chkYellow.setChecked(False)
@@ -1365,9 +1446,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             all_assets = []
             used_assets = []
             for item_type in sources:
-                all_assets.extend(
-                    PlanetClient.getInstance().asset_types_for_item_type(item_type)
-                )
+                all_assets.extend(PlanetClient.getInstance().asset_types_for_item_type(item_type))
             for filt in asset_filters:
                 used_assets.extend(filt.get("config", []))
             used_bands = []
@@ -1383,14 +1462,27 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             self.chkYellow.setChecked(yellow)
             self.chkSurfaceReflectance.setChecked(surface)
 
+    def _set_date_filters(self, request: dict) -> None:
+        """Set date range widgets from request.
+
+        Args:
+            request (dict): The request dictionary.
+        """
         filters = filters_from_request(request, "acquired")
         if filters:
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                self.startDateEdit.setDateTime(QDateTime.fromString(gte, Qt.ISODate))
+                self.startDateEdit.setDateTime(QDateTime.fromString(gte, Qt.DateFormat.ISODate))
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                self.endDateEdit.setDateTime(QDateTime.fromString(lte, Qt.ISODate))
+                self.endDateEdit.setDateTime(QDateTime.fromString(lte, Qt.DateFormat.ISODate))
+
+    def _set_slider_filters(self, request: dict) -> None:
+        """Set range slider values from request.
+
+        Args:
+            request (dict): The request dictionary.
+        """
         sliders = self.frameRangeSliders.findChildren(PlanetExplorerRangeSlider)
         for slider in sliders:
             filters = filters_from_request(request, slider.filter_key)
@@ -1412,16 +1504,29 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             else:
                 slider.setRangeLow(slider.min)
                 slider.setRangeHigh(slider.max)
-        filters = filters_from_request(request, filter_type="PermissionFilter")
-        if filters:
-            self.chkFullCatalog.setChecked(
-                "assets:download" not in filters[0]["config"]
-            )
-        else:
-            self.chkFullCatalog.setChecked(False)
-        filters = filters_from_request(request, "ground_control")
-        self.chkGroundControl.setChecked(bool(filters))
 
+    def _set_permission_filters(self, request: dict) -> None:
+        """Set full catalog checkbox and tasked imagery checkbox
+        from permission filters in request.
+
+        Args:
+            request (dict): The request dictionary.
+        """
+        filters = filters_from_request(request, filter_type="PermissionFilter")
+
+        permissions = set()
+        for f in filters:
+            permissions.update(f.get("config", []))
+
+        self.chkFullCatalog.setChecked("assets:download" not in permissions)
+        self.chkTaskedImagery.setChecked("tasked" in permissions)
+
+    def _set_instrument_filters(self, request: dict) -> None:
+        """Set instrument checkboxes from request.
+
+        Args:
+            request (dict): The request dictionary.
+        """
         filters = filters_from_request(request, "instrument")
         if filters:
             types = filters[0]["config"]
@@ -1431,14 +1536,44 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             for chk in [self.chkPs2, self.chkPs2Sd, self.chkPsbSd]:
                 chk.setChecked(False)
 
-        filters = filters_from_request(request, "quality_category")
-        self.chkStandardQuality.setChecked(bool(filters))
+    def _set_id_filters(self, request: dict) -> None:
+        """Set string ID field from request.
 
+        Args:
+            request (dict): The request dictionary.
+        """
         filters = filters_from_request(request, "id")
         if filters:
             self.leStringIDs.setText(",".join(filters[0]["config"]))
         else:
             self.leStringIDs.setText("")
+
+    def set_from_request(self, request: dict[str, Any]) -> None:
+        """
+        We assume here that the request has the structure of requests created
+        with the plugin. We are not fully parsing the request to analize it,
+        but instead making that assumption to simplify things.
+
+        Args:
+            request (dict[str, Any]): The request dictionary to set filters from.
+
+        """
+        self.emitFiltersChanged = False
+        self._set_source_filters(request)
+        self._set_asset_filters(request)
+        self._set_date_filters(request)
+        self._set_slider_filters(request)
+        self._set_permission_filters(request)
+
+        filters = filters_from_request(request, "ground_control")
+        self.chkGroundControl.setChecked(bool(filters))
+
+        self._set_instrument_filters(request)
+
+        filters = filters_from_request(request, "quality_category")
+        self.chkStandardQuality.setChecked(bool(filters))
+
+        self._set_id_filters(request)
 
         self.check_for_legacy_request(request)
         self.emitFiltersChanged = True

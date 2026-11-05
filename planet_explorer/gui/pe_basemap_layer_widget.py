@@ -14,11 +14,19 @@
 *                                                                         *
 ***************************************************************************
 """
+
 import json
 import os
-import re
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 
+from qgis.core import (
+    Qgis,
+    QgsLayerTreeGroup,
+    QgsLayerTreeLayer,
+    QgsMessageLog,
+    QgsProject,
+)
+from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 from qgis.PyQt.QtCore import QByteArray, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -34,14 +42,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import (
-    Qgis,
-    QgsLayerTreeGroup,
-    QgsLayerTreeLayer,
-    QgsMessageLog,
-    QgsProject,
-)
-from qgis.gui import QgsLayerTreeEmbeddedWidgetProvider
 
 from ..pe_utils import (
     PLANET_CURRENT_MOSAIC,
@@ -54,12 +54,11 @@ from ..pe_utils import (
     datatype_from_mosaic_name,
     is_planet_url,
     mosaic_name_from_url,
+    user_agent,
 )
 from ..planet_api import PlanetClient
 
-TILE_URL_TEMPLATE = (
-    "https://tiles.planet.com/basemaps/v1/planet-tiles/" "%s/gmap/{z}/{x}/{y}.png"
-)
+IS_QGIS4 = Qgis.versionInt() >= 40000
 
 
 class CustomSlider(QSlider):
@@ -67,81 +66,86 @@ class CustomSlider(QSlider):
         # based on
         # http://qt.gitorious.org/qt/qt/blobs/master/src/gui/widgets/qslider.cpp
 
-        painter = QPainter(self)
-        style = self.style()
-        opt = QStyleOptionSlider()
-        self.initStyleOption(opt)
+        with QPainter(self) as painter:
+            style = self.style()
+            opt = QStyleOptionSlider()
+            self.initStyleOption(opt)
 
-        groove_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderGroove, self
-        )
-        handle_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderHandle, self
-        )
+            groove_rect = style.subControlRect(
+                QStyle.ComplexControl.CC_Slider,
+                opt,
+                QStyle.SubControl.SC_SliderGroove,
+                self,
+            )
+            handle_rect = style.subControlRect(
+                QStyle.ComplexControl.CC_Slider,
+                opt,
+                QStyle.SubControl.SC_SliderHandle,
+                self,
+            )
 
-        slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
-        range_x = style.sliderPositionFromValue(
-            self.minimum(), self.maximum(), self.value(), slider_space
-        )
-        range_height = 4
+            slider_space = style.pixelMetric(style.PixelMetric.PM_SliderSpaceAvailable, opt)
+            range_x = style.sliderPositionFromValue(
+                self.minimum(), self.maximum(), self.value(), slider_space
+            )
+            range_height = 4
 
-        groove_rect = QRectF(
-            groove_rect.x(),
-            handle_rect.center().y() - (range_height / 2),
-            groove_rect.width(),
-            range_height,
-        )
+            groove_rect = QRectF(
+                groove_rect.x(),
+                handle_rect.center().y() - (range_height / 2),
+                groove_rect.width(),
+                range_height,
+            )
 
-        range_rect = QRectF(
-            groove_rect.x(),
-            handle_rect.center().y() - (range_height / 2),
-            range_x,
-            range_height,
-        )
+            range_rect = QRectF(
+                groove_rect.x(),
+                handle_rect.center().y() - (range_height / 2),
+                range_x,
+                range_height,
+            )
 
-        if style.metaObject().className() != "QMacStyle":
-            # Paint groove for Fusion and Windows styles
+            if style.metaObject().className() != "QMacStyle":
+                # Paint groove for Fusion and Windows styles
+                cur_brush = painter.brush()
+                cur_pen = painter.pen()
+                painter.setBrush(QBrush(QColor(169, 169, 169)))
+                painter.setPen(Qt.PenStyle.NoPen)
+                # painter.drawRect(groove_rect)
+                painter.drawRoundedRect(
+                    groove_rect, groove_rect.height() / 2, groove_rect.height() / 2
+                )
+                painter.setBrush(cur_brush)
+                painter.setPen(cur_pen)
+
             cur_brush = painter.brush()
             cur_pen = painter.pen()
-            painter.setBrush(QBrush(QColor(169, 169, 169)))
-            painter.setPen(Qt.NoPen)
-            # painter.drawRect(groove_rect)
-            painter.drawRoundedRect(
-                groove_rect, groove_rect.height() / 2, groove_rect.height() / 2
-            )
+            painter.setBrush(QBrush(QColor(18, 141, 148)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRect(range_rect)
             painter.setBrush(cur_brush)
             painter.setPen(cur_pen)
 
-        cur_brush = painter.brush()
-        cur_pen = painter.pen()
-        painter.setBrush(QBrush(QColor(18, 141, 148)))
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(range_rect)
-        painter.setBrush(cur_brush)
-        painter.setPen(cur_pen)
+            opt = QStyleOptionSlider()
+            self.initStyleOption(opt)
 
-        opt = QStyleOptionSlider()
-        self.initStyleOption(opt)
+            opt.subControls = QStyle.SubControl.SC_SliderHandle
 
-        opt.subControls = QStyle.SC_SliderHandle
+            if self.tickPosition() != self.TickPosition.NoTicks:
+                opt.subControls |= QStyle.SubControl.SC_SliderTickmarks
 
-        if self.tickPosition() != self.NoTicks:
-            opt.subControls |= QStyle.SC_SliderTickmarks
+            if self.isSliderDown():
+                opt.state |= QStyle.StateFlag.State_Sunken
+            else:
+                opt.state |= QStyle.StateFlag.State_Active
 
-        if self.isSliderDown():
-            opt.state |= QStyle.State_Sunken
-        else:
-            opt.state |= QStyle.State_Active
+            opt.activeSubControls = QStyle.SubControl.SC_None
 
-        opt.activeSubControls = QStyle.SC_None
-
-        opt.sliderPosition = self.value()
-        opt.sliderValue = self.value()
-        style.drawComplexControl(QStyle.CC_Slider, opt, painter, self)
+            opt.sliderPosition = self.value()
+            opt.sliderValue = self.value()
+            style.drawComplexControl(QStyle.ComplexControl.CC_Slider, opt, painter, self)
 
 
 class BasemapRenderingOptionsWidget(QFrame):
-
     values_changed = pyqtSignal()
 
     def __init__(self, datatype=None):
@@ -199,16 +203,14 @@ class BasemapRenderingOptionsWidget(QFrame):
                     icon = self.ramp_pixmaps[name]
                     self.comboRamp.addItem(name)
                     self.comboRamp.setItemData(
-                        self.comboRamp.count() - 1, icon, Qt.DecorationRole
+                        self.comboRamp.count() - 1, icon, Qt.ItemDataRole.DecorationRole
                     )
                 self.comboRamp.setCurrentText(default)
                 if len(ramps) != len(list(self.ramps["colors"].keys())):
                     item = QListWidgetItem()
                     self.listWidget.addItem(item)
-                    label = QLabel(
-                        "<a href='#' style='color: grey;'>Show all ramps</a>"
-                    )
-                    label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    label = QLabel("<a href='#' style='color: grey;'>Show all ramps</a>")
+                    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                     label.linkActivated.connect(self._show_all_ramps)
                     self.listWidget.setItemWidget(item, label)
             else:
@@ -226,7 +228,7 @@ class BasemapRenderingOptionsWidget(QFrame):
             icon = self.ramp_pixmaps[name]
             self.comboRamp.addItem(name)
             self.comboRamp.setItemData(
-                self.comboRamp.count() - 1, icon, Qt.DecorationRole
+                self.comboRamp.count() - 1, icon, Qt.ItemDataRole.DecorationRole
             )
         self.comboRamp.showPopup()
 
@@ -288,14 +290,20 @@ class BasemapLayerWidget(QWidget):
         self.layer = layer
         if self.is_planet_basemap():
             self.mosaics = json.loads(layer.customProperty(PLANET_MOSAICS))
-            self.mosaicnames = [m[0] for m in self.mosaics]
-            self.mosaicids = [m[1] for m in self.mosaics]
+
+            # Prevent breaking projects created before the update
+            # to PLANET_MOSAICS property in add_mosaics_to_qgis_project
+            try:
+                self.mosaicnames = [m["mosaic_name"] for m in self.mosaics]
+                self.mosaicids = [m["mosaic_id"] for m in self.mosaics]
+            except Exception:
+                self.mosaicnames = [m[0] for m in self.mosaics]
+                self.mosaicids = [m[1] for m in self.mosaics]
+
             self.layout = QVBoxLayout()
             self.renderingOptionsWidget = BasemapRenderingOptionsWidget(self.datatype)
             self.layout.addWidget(self.renderingOptionsWidget)
             if len(self.mosaics) > 1:
-                # We don't use the layer source url when there are multiple mosaics.
-                # It will be composed on-the-fly based on the mosaic parameters
                 current_mosaic_name = layer.customProperty(PLANET_CURRENT_MOSAIC)
                 try:
                     idx = self.mosaicnames.index(current_mosaic_name)
@@ -307,10 +315,10 @@ class BasemapLayerWidget(QWidget):
                 )
                 self.layout.addWidget(self.labelId)
                 self.labelName = QLabel(current_mosaic_name)
-                self.slider = CustomSlider(Qt.Horizontal)
+                self.slider = CustomSlider(Qt.Orientation.Horizontal)
                 self.slider.setRange(0, len(self.mosaics) - 1)
                 self.slider.setTickInterval(1)
-                self.slider.setTickPosition(QSlider.TicksAbove)
+                self.slider.setTickPosition(QSlider.TickPosition.TicksAbove)
                 self.slider.setPageStep(1)
                 self.slider.setTracking(True)
                 self.slider.setEnabled(True)
@@ -319,17 +327,12 @@ class BasemapLayerWidget(QWidget):
                 self.slider.sliderReleased.connect(self.change_source)
                 self.layout.addWidget(self.labelName)
                 self.layout.addWidget(self.slider)
-            else:
-                # if there are no multiple mosaics, we use the original url,
-                # and just add 'proc' and 'color' modifiers to it
-                layerurl = layer.source().split("&url=")[-1]
-                tokens = layerurl.split("?")
-                self.layerurl = f"{tokens[0]}?{quote(tokens[1])}"
+
             self.renderingOptionsWidget.set_process(proc)
             self.renderingOptionsWidget.set_ramp(ramp)
             self.renderingOptionsWidget.values_changed.connect(self.change_source)
             self.labelWarning = QLabel(
-                '<span style="color:red;"><b>No API key available</b></span>'
+                '<span style="color:red;"><b>No API key or Auth token available</b></span>'
             )
             self.layout.addWidget(self.labelWarning)
             self.setLayout(self.layout)
@@ -340,8 +343,7 @@ class BasemapLayerWidget(QWidget):
         else:
             self.layout = QVBoxLayout()
             self.labelWarning = QLabel(
-                '<span style="color:red;"><b>Not a valid Planet basemap'
-                " layer</b></span>"
+                '<span style="color:red;"><b>Not a valid Planet basemap layer</b></span>'
             )
             self.layout.addWidget(self.labelWarning)
             self.setLayout(self.layout)
@@ -357,73 +359,126 @@ class BasemapLayerWidget(QWidget):
         if not self.slider.isSliderDown():
             self.change_source()
 
-    def change_source(self):
+    def _resolve_tile_url(self, client, missing_auth) -> str:
+        if len(self.mosaics) > 1:
+            self.labelId.setVisible(not missing_auth)
+            self.labelName.setVisible(not missing_auth)
+            self.slider.setVisible(not missing_auth)
+            value = self.slider.value() if len(self.mosaics) > 1 else 0
+            mosaic = self.mosaics[value]
+
+            # Prevent breaking projects created before the update
+            # to PLANET_MOSAICS property in add_mosaics_to_qgis_project
+            try:
+                mosaicname = mosaic["mosaic_name"]
+                tile_url = mosaic["tile_url"]
+            except Exception:
+                mosaicname, mosaicid = self.mosaics[value]
+                TILE_URL_TEMPLATE = (
+                    "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png"
+                )
+                tile_url = TILE_URL_TEMPLATE % (mosaicid,)
+            self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaicname)
+            return tile_url
+
+        # Prevent breaking projects created before the update
+        # to PLANET_MOSAICS property in add_mosaics_to_qgis_project
         try:
-            # Searches for api_key parameter in the layer source, if
-            # found it will later be used as API key for authentication
-            # instead of the stored logged-in user API key from the plugin
-            # authentication settings.
-            pattern = re.compile("api_key=(.*)")
-            res = pattern.search(unquote(self.layer.source()))
-            passed_api_key = res.groups()[0] if res.groups() else None
+            return self.mosaics[0]["tile_url"]
+        except Exception:
+            _, tile_url = client._split_qgis_uri(unquote(self.layer.source()))
+            return client.clean_planet_tile_url(tile_url)
 
-            if "&" in passed_api_key:
-                passed_api_key = passed_api_key.split("&")[0]
+    def _build_auth_header_for_uri(self, client, missing_auth) -> str | None:
+        if missing_auth:
+            return None
 
-            has_api_key = PlanetClient.getInstance().has_api_key()
-
-            # The label warning should only be shown if a logged-in user doesn't
-            # have an API key or when layer source doesn't contain api_key parameter
-            # if no user has logged-in.
-            self.labelWarning.setVisible(not has_api_key and not passed_api_key)
-            self.renderingOptionsWidget.setVisible(has_api_key)
-
-            api_key = (
-                PlanetClient.getInstance().api_key()
-                if not passed_api_key or passed_api_key == ""
-                else passed_api_key
+        if client.client_is_setup():
+            return client.build_authorization_header(
+                auth_header_key="http-header:authorization", encode=True
             )
 
-            if len(self.mosaics) > 1:
-                self.labelId.setVisible(has_api_key)
-                self.labelName.setVisible(has_api_key)
-                self.slider.setVisible(has_api_key)
-                value = self.slider.value() if len(self.mosaics) > 1 else 0
-                name, mosaicid = self.mosaics[value]
-                tile_url = TILE_URL_TEMPLATE % (mosaicid,)
+        auth_param = client.extract_auth_param(unquote(self.layer.source()))
+        # Deliberately failing api keys for authentication
+        if auth_param is None or "api_key" in auth_param:
+            return None
+        else:
+            key, value = next(iter(auth_param.items()))
+            return f"{key}={quote(value, safe='')}"
 
-                tile_url = f"{tile_url}?{quote(f'&api_key={str(api_key)}')}"
+    def change_source(self):
+        try:
+            client = PlanetClient.getInstance()
 
-                self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, name)
-            else:
-                tile_url = f"{self.layerurl}/" f"{quote(f'&api_key={api_key}')}"
+            # The label warning should only be shown if a logged-in user doesn't
+            # does not have access to auth token or when layer source doesn't
+            # contain authentication parameters if no user has logged-in.
+            missing_auth = (
+                not client.auth_params_check(unquote(self.layer.source()))
+                and not client.client_is_setup()
+            )
+
+            self.labelWarning.setVisible(missing_auth)
+            self.renderingOptionsWidget.setVisible(not missing_auth)
+
+            tile_url = self._resolve_tile_url(client, missing_auth)
+
+            parts = urlparse(tile_url)
+            query_params = parse_qs(parts.query, keep_blank_values=True)
+
+            query_params["ua"] = [user_agent()]
 
             proc = self.renderingOptionsWidget.process()
-            ramp = self.renderingOptionsWidget.ramp()
+            if proc and proc != "default":
+                query_params["proc"] = [str(proc)]
 
-            procparam = quote(f"&proc={proc}") if proc != "default" else ""
-            rampparam = quote(f"&color={ramp}") if ramp else ""
+            ramp = self.renderingOptionsWidget.ramp()
+            if ramp:
+                query_params["color"] = [str(ramp)]
+
+            tile_url = urlunparse(
+                parts._replace(query=urlencode(query_params, doseq=True, quote_via=quote))
+            )
+
+            # QGIS treats every "&" in its URI as the start of a new QGIS setting.
+            if IS_QGIS4:
+                # QGIS 4.X.X:
+                # Percent-encode the whole tile URL so its "?", "&" and "=" are hidden
+                # from QGIS and ua, proc and color reach Planet as part of the tile request.
+                tile_url = quote(tile_url, safe=":/{}%")
+            else:
+                # QGIS 3.44 LTR:
+                # Keep "?" plain, or ? becomes "%3F", so the request becomes
+                # "...gmap/{z}/{x}/{y}.png%3Fua%3Dqgis-3.44.12-Solothurn..." and Planet
+                # returns the error "Invalid image format".
+                tile_url = quote(tile_url, safe=":/?{}%")
+
+            # Add QGIS settings
+            zoom = ""
             tokens = self.layer.source().split("&")
-            zoom = []
             for token in tokens:
-                if token.startswith("zmin="):
-                    zoom.append(token)
-                if token.startswith("zmax="):
-                    zoom.append(token)
-            szoom = f"&{'&'.join(zoom)}" if zoom else ""
-            uri = f"type=xyz&url={tile_url}{procparam}{rampparam}{szoom}"
+                if token.startswith(("zmin=", "zmax=")):
+                    zoom += f"&{token}"
+
+            uri = f"type=xyz&url={tile_url}{zoom}"
+
+            auth_header = self._build_auth_header_for_uri(client, missing_auth)
+            if auth_header is not None:
+                uri = f"{uri}&{auth_header}"
+
             provider = self.layer.dataProvider()
             if provider is not None:
                 provider.setDataSourceUri(uri)
+                provider.reloadData()
                 self.layer.triggerRepaint()
             self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
             self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
             self.ensure_correct_size()
         except RuntimeError as error:
             QgsMessageLog.logMessage(
-                f"Problem changing source" f" {error}",
+                f"Problem changing source {error}",
                 QGIS_LOG_SECTION_NAME,
-                Qgis.Info,
+                Qgis.MessageLevel.Info,
             )
 
     def login_changed(self):
@@ -452,7 +507,7 @@ class BasemapLayerWidget(QWidget):
 
         item = findLayerItem()
         if item is not None:
-            if not PlanetClient.getInstance().has_api_key():
+            if not PlanetClient.getInstance().client_is_setup():
                 item.setExpanded(True)
             isExpanded = item.isExpanded()
             item.setExpanded(not isExpanded)
@@ -472,6 +527,7 @@ class BasemapLayerWidgetProvider(QgsLayerTreeEmbeddedWidgetProvider):
 
     def createWidget(self, layer, widgetIndex):
         widget = BasemapLayerWidget(layer)
+
         self.widgets[layer.id()] = widget
         return self.widgets[layer.id()]
 

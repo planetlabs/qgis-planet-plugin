@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "files": ["**/*.md", "**/{*,.*}/**/*.md"],
+  "language": "en-GB",
+  "useGitignore": true,
+  "version": "0.2",
+  "words": [
+    "colour",
+    "colours",
+    "docstrings",
+    "gsettings",
+    "Kartoza",
+    "pgdata",
+    "Privoxy",
+    "pytest",
+    "qgis",
+    "QGIS",
+    "virsh",
+    "sandboxed",
+    "timlinux",
+    "Friesen",
+    "V\u00edctor",
+    "Olaya",
+    "Samweli",
+    "Twesa",
+    "QGIS",
+    "autopep",
+    "autoconfig",
+    "virbr",
+    "tlnp"
+  ]
+}

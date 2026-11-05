@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -32,6 +33,15 @@ from qgis.utils import qgsfunction
 def metadataValue(values, feature, parent):
     """Returns metadata value from the "metadata" field of the
     Planet Inc catalog layer.
+
+    Args:
+        values (list): Function arguments. `values[0]` is the metadata key (str).
+        feature (QgsFeature): Feature whose "metadata" field is read.
+        parent (QgsExpression): Expression used to report evaluation errors.
+
+    Returns:
+        int | str | None: The metadata value (an int if convertible, otherwise a str),
+        or None if the field or key is missing.
 
     <h4>Syntax</h4>
     <p>metadataValue(<i>metadata</i>)</p>

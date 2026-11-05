@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2020"
 __copyright__ = "(C) 2020 Planet Inc, https://planet.com"
@@ -23,10 +24,13 @@ __revision__ = "$Format:%H$"
 
 from collections import defaultdict
 
+from qgis.core import QgsGeometry, QgsWkbTypes
+from qgis.gui import QgsRubberBand
 from qgis.PyQt import QtCore
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -36,8 +40,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsGeometry, QgsWkbTypes
-from qgis.gui import QgsRubberBand
 
 from ..pe_utils import (
     LINKS,
@@ -59,7 +61,6 @@ PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 
 class QuadsTreeWidget(QTreeWidget):
-
     quadsSelectionChanged = pyqtSignal()
 
     def __init__(self):
@@ -69,7 +70,7 @@ class QuadsTreeWidget(QTreeWidget):
         self.setAutoScroll(True)
         self.setMouseTracking(True)
         self.setAlternatingRowColors(True)
-        self.setSelectionMode(self.NoSelection)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.widgets = {}
         self._updating = False
 
@@ -211,13 +212,13 @@ class ParentTreeItemWidget(QFrame):
         self.checkBox.blockSignals(True)
         if selected == total:
             self.checkBox.setTristate(False)
-            self.checkBox.setCheckState(Qt.Checked)
+            self.checkBox.setCheckState(Qt.CheckState.Checked)
         elif selected == 0:
             self.checkBox.setTristate(False)
-            self.checkBox.setCheckState(Qt.Unchecked)
+            self.checkBox.setCheckState(Qt.CheckState.Unchecked)
         else:
             self.checkBox.setTristate(True)
-            self.checkBox.setCheckState(Qt.PartiallyChecked)
+            self.checkBox.setCheckState(Qt.CheckState.PartiallyChecked)
         self.checkBox.blockSignals(False)
 
 
@@ -228,7 +229,6 @@ class QuadInstanceTreeItem(QTreeWidgetItem):
 
 
 class QuadInstanceItemWidget(QFrame):
-
     quadSelected = pyqtSignal()
 
     def __init__(self, quad):
@@ -242,7 +242,10 @@ class QuadInstanceItemWidget(QFrame):
         self.iconLabel = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
         thumb = pixmap.scaled(
-            48, 48, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            48,
+            48,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
         )
         self.iconLabel.setPixmap(thumb)
         self.checkBox = QCheckBox("")
@@ -263,13 +266,13 @@ class QuadInstanceItemWidget(QFrame):
 
         download_thumbnail(quad[LINKS][THUMBNAIL], self)
 
-        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.PolygonGeometry)
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setFillColor(QUADS_AOI_COLOR)
         self.footprint.setStrokeColor(QUADS_AOI_COLOR)
         self.footprint.setWidth(2)
 
         self.footprintfill = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
+            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
         )
         self.footprintfill.setFillColor(QUADS_AOI_BODY_COLOR)
         self.footprintfill.setWidth(0)
@@ -282,7 +285,12 @@ class QuadInstanceItemWidget(QFrame):
 
     def set_thumbnail(self, img):
         pixmap = QPixmap(img)
-        thumb = pixmap.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            48,
+            48,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.iconLabel.setPixmap(thumb)
         self.iconLabel.setStyleSheet("")
 
@@ -298,20 +306,20 @@ class QuadInstanceItemWidget(QFrame):
         self.footprintfill.setToGeometry(self.geom)
 
     def hide_footprint(self):
-        self.footprint.reset(QgsWkbTypes.PolygonGeometry)
-        self.footprintfill.reset(QgsWkbTypes.PolygonGeometry)
+        self.footprint.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
+        self.footprintfill.reset(QgsWkbTypes.GeometryType.PolygonGeometry)
 
     def show_solid_interior(self):
-        self.footprintfill.setBrushStyle(Qt.SolidPattern)
+        self.footprintfill.setBrushStyle(Qt.BrushStyle.SolidPattern)
         self.footprintfill.updateCanvas()
 
     def hide_solid_interior(self):
-        self.footprintfill.setBrushStyle(Qt.NoBrush)
+        self.footprintfill.setBrushStyle(Qt.BrushStyle.NoBrush)
         self.footprintfill.updateCanvas()
 
     def update_footprint_brush(self):
         self.footprint.setBrushStyle(
-            Qt.BDiagPattern if self.checkBox.isChecked() else Qt.NoBrush
+            Qt.BrushStyle.BDiagPattern if self.checkBox.isChecked() else Qt.BrushStyle.NoBrush
         )
         self.footprint.updateCanvas()
 
@@ -331,9 +339,7 @@ class QuadInstanceItemWidget(QFrame):
             self.checkBox.blockSignals(False)
 
     def enterEvent(self, event):
-        self.setStyleSheet(
-            "QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}"
-        )
+        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
         self.show_solid_interior()
 
     def leaveEvent(self, event):

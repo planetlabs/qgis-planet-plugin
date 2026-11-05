@@ -1,15 +1,13 @@
+# -*- coding: utf-8 -*-
 import os
 
+from planet_explorer.pe_utils import PLANET_COLOR, open_link_with_browser
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QPalette
 
-from planet_explorer.pe_utils import PLANET_COLOR, open_link_with_browser
-
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "ui", "pe_legacy_warning_widget.ui"
-    )
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "pe_legacy_warning_widget.ui")
 )
 
 text_without_id = """
@@ -24,14 +22,13 @@ Legacy search filters are disabled because we've updated PlanetScope items to PS
 
 
 class LegacyWarningWidget(BASE, WIDGET):
-
     updateLegacySearch = pyqtSignal()
 
     def __init__(self, parent=None):
         super(LegacyWarningWidget, self).__init__(parent)
         self.setupUi(self)
         palette = self.btnUpdate.palette()
-        palette.setColor(QPalette.Button, PLANET_COLOR)
+        palette.setColor(QPalette.ColorRole.Button, PLANET_COLOR)
         self.btnUpdate.setPalette(palette)
         self.btnUpdate.clicked.connect(self.update_search)
         self.labelLink.linkActivated.connect(self.link_clicked)

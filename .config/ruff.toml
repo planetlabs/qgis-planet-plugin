@@ -1,0 +1,41 @@
+line-length = 99
+indent-width = 4
+respect-gitignore = true
+exclude = [
+  "planet_explorer/resources/*",
+  "planet_explorer/pavement.py",
+  "planet_explorer/extlibs/*",
+]
+force-exclude = true
+
+[lint]
+select = [
+  "E",
+  "W", # Standard PEP 8 pycodestyle errors and warnings
+  "F", # Pyflakes (catches logical issues like unused imports)
+  "I", # Import sorting according to PEP 8
+  "N", # PEP 8 Naming conventions (CamelCase, snake_case, CONSTANTS)
+  #"D",        # PEP 257 / PEP 8 Docstring conventions (Optional)
+  "UP",  # pyupgrade: encourages newer, cleaner Python syntax when safe
+  "B",   # bugbear: catches common bug patterns and suspicious code
+  "C4",  # comprehensions: suggests cleaner/more idiomatic comprehension usage
+  "SIM", # simplifications: removes unnecessary verbosity and redundant code
+  "RUF", # Ruff-specific rules: extra consistency and correctness checks unique to Ruff,
+  "C90",
+]
+fixable = ["ALL"]
+ignore = [
+  "D203", # conflict with D211
+  "D212", # conflict with D213
+  "E501", # line too long
+]
+mccabe.max-complexity = 10
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

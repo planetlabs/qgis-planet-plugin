@@ -1,0 +1,12 @@
+# MD003/heading-style : Heading style : https://github.com/DavidAnson/markdownlint/blob/v0.41.1/doc/md003.md
+MD003:
+  # Heading style
+  style: atx
+# MD024/no-duplicate-heading : Multiple headings with the same content : https://github.com/DavidAnson/markdownlint/blob/v0.41.1/doc/md024.md
+MD024: false  # allow duplicate headers
+
+# MD013/line-length : Line length : https://github.com/DavidAnson/markdownlint/blob/v0.41.1/doc/md013.md
+MD013: false  # allow long lines
+
+# MD033/no-inline-html : Inline HTML : https://github.com/DavidAnson/markdownlint/blob/v0.41.1/doc/md033.md
+MD033: false  # allow inline HTML

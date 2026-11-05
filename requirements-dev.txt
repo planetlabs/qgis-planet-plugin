@@ -1,0 +1,13 @@
+actionlint-py==1.7.12.*
+bandit==1.9.4
+darglint==1.8.1
+detect-secrets==1.5.0
+gibberish-detector==0.1.1
+flake8==7.3.0
+mbake==1.4.6
+pre-commit==4.5.1
+pre-commit-hooks==6.0.0
+taplo==0.9.3
+shfmt-py==4.2.0
+ruff==0.15.14
+yamllint==1.37.1

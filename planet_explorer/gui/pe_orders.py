@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -27,10 +28,11 @@ import os
 from collections import OrderedDict, defaultdict
 from functools import partial
 
+from planet.exceptions import APIError
 from qgis.core import Qgis, QgsMessageLog
 from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal, pyqtSlot, QSettings
+from qgis.PyQt.QtCore import QSettings, QSize, Qt, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -47,13 +49,13 @@ from qgis.PyQt.QtWidgets import (
 
 from ..pe_analytics import send_analytics_for_order
 from ..pe_utils import (
-    resource_file,
-    iface,
     ENABLE_CLIP_SETTING,
-    ENABLE_HARMONIZATION_SETTING,
     ENABLE_COMPOSITE,
+    ENABLE_HARMONIZATION_SETTING,
     ENABLE_STAC_METADATA,
     SETTINGS_NAMESPACE,
+    iface,
+    resource_file,
 )
 from ..planet_api.p_client import PlanetClient
 from .pe_gui_utils import waitcursor
@@ -72,12 +74,7 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
-ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_orders.ui"),
-    from_imports=True,
-    import_from=f"{os.path.basename(plugin_path)}",
-    resource_suffix="",
-)
+ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "pe_orders.ui"))
 
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
@@ -130,17 +127,13 @@ class PlanetOrderBundleWidget(QFrame):
         self.description = bundle["description"]
         self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
         assets = bundle["assets"]
-        self.can_harmonize = (
-            "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
-        )
+        self.can_harmonize = "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
 
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
-        asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
-            item_type
-        )
+        asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(item_type)
         for asset in assets:
             asset_bands = asset_def[asset].get("bands", [])
             for band in asset_bands:
@@ -180,7 +173,7 @@ class PlanetOrderBundleWidget(QFrame):
             hlayoutudm.addStretch()
             layout.addLayout(hlayoutudm)
         layout.addStretch()
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
         self.setLayout(layout)
         self.checkStateChanged()
 
@@ -226,13 +219,18 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.labelThumbnail = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.labelThumbnail.setPixmap(thumb)
         self.labelThumbnail.setFixedSize(96, 96)
         layout.addWidget(self.labelThumbnail, 0, 0, 3, 1)
 
         for image in images:
-            url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+            url = f"{image['_links']['thumbnail']}"
             download_thumbnail(url, self)
 
         labelName = IconLabel(
@@ -253,8 +251,8 @@ class PlanetOrderItemTypeWidget(QWidget):
         layout.addWidget(self.widgetDetails, 3, 0, 1, 3)
 
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(line, 4, 0, 1, 3)
 
         self.setLayout(layout)
@@ -264,37 +262,26 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.populate_details()
 
-    def populate_details(self):
-        self.bundleWidgets = []
+    def _center(self, obj):
+        hlayout = QHBoxLayout()
+        hlayout.addStretch()
+        hlayout.addWidget(obj)
+        hlayout.addStretch()
+        return hlayout
 
-        client = PlanetClient.getInstance()
-        permissions = [img[PERMISSIONS] for img in self.images]
-        item_bundles = client.bundles_for_item_type_and_permissions(
-            self.item_type, permissions=permissions
-        )
-        default = default_bundles.get(self.item_type, [])
+    def _build_rectified_grid(self, layout: QVBoxLayout, item_bundles: dict, default: list):
+        """Build and add rectified asset grid to layout.
 
-        def _center(obj):
-            hlayout = QHBoxLayout()
-            hlayout.addStretch()
-            hlayout.addWidget(obj)
-            hlayout.addStretch()
-            return hlayout
+        Args:
+            layout (QVBoxLayout): Layout to add the rectified grid to.
+            item_bundles (dict): Available item bundles.
+            default (list): Default bundle IDs.
+        """
 
-        layout = QVBoxLayout()
-        layout.setMargin(0)
-        layout.setSpacing(20)
-
-        layout.addLayout(_center(QLabel("<b>RECTIFIED ASSETS</b>")))
+        layout.addLayout(self._center(QLabel("<b>RECTIFIED ASSETS</b>")))
 
         gridlayout = QGridLayout()
         gridlayout.setMargin(0)
-
-        assets = PlanetClient.getInstance().asset_types_for_item_type(self.item_type)
-        assets_and_bands = {}
-        for a in assets:
-            if "bands" in a:
-                assets_and_bands[a["id"]] = len(a["bands"])
 
         widgets = {}
         i = 0
@@ -320,8 +307,15 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         layout.addLayout(gridlayout)
 
+    def _build_unrectified_grid(self, layout: QVBoxLayout, item_bundles: dict):
+        """Build widget containing grid of unrectified assets.
+
+        Args:
+            layout (QVBoxLayout): Layout to add the unrectified grid to.
+            item_bundles (dict): Available item bundles.
+        """
         self.labelUnrectified = QLabel("<b>UNRECTIFIED ASSETS</b>")
-        layout.addLayout(_center(self.labelUnrectified))
+        layout.addLayout(self._center(self.labelUnrectified))
 
         self.widgetUnrectified = QWidget()
 
@@ -342,9 +336,32 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.labelMore = QLabel('<a href="#">+ Show More</a>')
         self.labelMore.setOpenExternalLinks(False)
-        self.labelMore.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.labelMore.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
         self.labelMore.linkActivated.connect(self._showMoreClicked)
-        layout.addLayout(_center(self.labelMore))
+        layout.addLayout(self._center(self.labelMore))
+
+    def populate_details(self):
+        self.bundleWidgets = []
+
+        client = PlanetClient.getInstance()
+        permissions = [img[PERMISSIONS] for img in self.images]
+        item_bundles = client.bundles_for_item_type_and_permissions(
+            self.item_type, permissions=permissions
+        )
+        default = default_bundles.get(self.item_type, [])
+
+        layout = QVBoxLayout()
+        layout.setMargin(0)
+        layout.setSpacing(20)
+
+        assets = PlanetClient.getInstance().asset_types_for_item_type(self.item_type)
+        assets_and_bands = {}
+        for a in assets:
+            if "bands" in a:
+                assets_and_bands[a["id"]] = len(a["bands"])
+
+        self._build_rectified_grid(layout, item_bundles, default)
+        self._build_unrectified_grid(layout, item_bundles)
 
         self.widgetUnrectified.hide()
         self.labelUnrectified.hide()
@@ -397,13 +414,23 @@ class PlanetOrderItemTypeWidget(QWidget):
     def set_thumbnail(self, img):
         thumbnail = QPixmap(img)
         self.thumbnails.append(
-            thumbnail.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumbnail.scaled(
+                96,
+                96,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         )
 
         if len(self.images) == len(self.thumbnails):
             bboxes = [img[GEOMETRY] for img in self.images]
             pixmap = createCompoundThumbnail(bboxes, self.thumbnails)
-            thumb = pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumb = pixmap.scaled(
+                128,
+                128,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             self.labelThumbnail.setPixmap(thumb)
 
 
@@ -426,16 +453,21 @@ class ImageReviewWidget(QFrame):
         vlayout.addLayout(hlayout)
         self.label = QLabel()
         pixmap = QPixmap(PLACEHOLDER_THUMB, "SVG")
-        thumb = pixmap.scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        thumb = pixmap.scaled(
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
         self.label.setPixmap(thumb)
         self.label.setFixedSize(96, 96)
 
-        url = f"{image['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key()}"
+        url = f"{image['_links']['thumbnail']}"
         download_thumbnail(url, self)
         vlayout.addWidget(self.label)
         self.setLayout(vlayout)
 
-        self.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
 
     def checkStateChanged(self):
         self.selectedChanged.emit()
@@ -447,7 +479,10 @@ class ImageReviewWidget(QFrame):
     def set_thumbnail(self, img):
         self.thumbnail = QPixmap(img)
         thumb = self.thumbnail.scaled(
-            96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            96,
+            96,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
         self.label.setPixmap(thumb)
 
@@ -491,8 +526,8 @@ class PlanetOrderReviewWidget(QWidget):
         self.widgetDetails = QWidget()
         layout.addWidget(self.widgetDetails)
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(line)
 
         self.setLayout(layout)
@@ -505,31 +540,35 @@ class PlanetOrderReviewWidget(QWidget):
     def _stac_box_clicked(self, checked):
         self.stac_order = checked
 
-    def populate_details(self):
-        self.imgWidgets = []
-        layout = QGridLayout()
-        layout.setMargin(0)
-        layout.setVerticalSpacing(15)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(2, 1)
-        self.chkClip = None
-        self.chkComposite = None
-        self.chkHarmonize = None
+    def _add_clip_section(self, layout: QGridLayout) -> None:
+        """Add clipping section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+
+        """
         if self.add_clip:
-            layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignCenter)
+            layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(
-                QLabel("Only get items delivered within your AOI"), 1, 1, Qt.AlignCenter
+                QLabel("Only get items delivered within your AOI"),
+                1,
+                1,
+                Qt.AlignmentFlag.AlignCenter,
             )
             self.chkClip = QCheckBox("Clip items to AOI")
-            enabled = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", False
-            )
+            enabled = QSettings().value(f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", True)
             self.chkClip.setChecked(str(enabled).lower() == str(True).lower())
             self.chkClip.stateChanged.connect(self.checkStateChanged)
-            layout.addWidget(self.chkClip, 2, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkClip, 2, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_composite_section(self, layout: QGridLayout) -> None:
+        """Add composite section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         if self.add_composite:
-            layout.addWidget(QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignCenter)
+            layout.addWidget(QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignmentFlag.AlignCenter)
             description_label = QLabel(
                 "The "
                 "<a style='color: #50a94e; text-decoration: none;' "
@@ -542,17 +581,15 @@ class PlanetOrderReviewWidget(QWidget):
                 description_label,
                 4,
                 1,
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
             )
             description_label.setOpenExternalLinks(True)
 
             self.chkComposite = QCheckBox("Enable composite")
-            enabled = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_COMPOSITE}", False
-            )
+            enabled = QSettings().value(f"{SETTINGS_NAMESPACE}/{ENABLE_COMPOSITE}", False)
             self.chkComposite.setChecked(str(enabled).lower() == str(True).lower())
             self.chkComposite.stateChanged.connect(self.compositeStateChanged)
-            layout.addWidget(self.chkComposite, 5, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkComposite, 5, 1, Qt.AlignmentFlag.AlignCenter)
 
             self.radio_btn_all = QRadioButton("All items")
             self.radio_btn_strip = QRadioButton("By strip")
@@ -573,11 +610,17 @@ class PlanetOrderReviewWidget(QWidget):
                 self.radio_btn_all.setVisible(False)
                 self.radio_btn_strip.setVisible(False)
 
-            layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignCenter)
-            layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignCenter)
+            layout.addWidget(self.radio_btn_all, 6, 1, Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(self.radio_btn_strip, 7, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_harmonize_section(self, layout: QGridLayout) -> None:
+        """Add harmonization section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         if self.add_harmonize:
-            layout.addWidget(QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignCenter)
+            layout.addWidget(QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(
                 QLabel(
                     "Radiometrically harmonize imagery captured by one satellite "
@@ -585,7 +628,7 @@ class PlanetOrderReviewWidget(QWidget):
                 ),
                 9,
                 1,
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
             )
             self.chkHarmonize = QCheckBox("Harmonize")
             enabled = QSettings().value(
@@ -593,21 +636,33 @@ class PlanetOrderReviewWidget(QWidget):
             )
             self.chkHarmonize.setChecked(str(enabled).lower() == str(True).lower())
             self.chkHarmonize.stateChanged.connect(self.checkStateChanged)
-            layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignCenter)
+            layout.addWidget(self.chkHarmonize, 10, 1, Qt.AlignmentFlag.AlignCenter)
 
+    def _add_metadata_section(self, layout: QGridLayout) -> None:
+        """Add metadata section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
         metadata_widget = PlanetOrderReviewMetadataWidget(self.stac_order)
         metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
-        layout.addWidget(metadata_widget, 11, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.description_label, 12, 1, Qt.AlignCenter)
-        layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignCenter)
+        layout.addWidget(metadata_widget, 11, 1, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(metadata_widget.description_label, 12, 1, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignCenter)
+    def _add_review_section(self, layout: QGridLayout) -> None:
+        """Add image review section to layout.
+
+        Args:
+            layout (QGridLayout): The layout to add the section to.
+        """
+        layout.addWidget(QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
             15,
             1,
-            Qt.AlignCenter,
+            Qt.AlignmentFlag.AlignCenter,
         )
 
         sublayout = QGridLayout()
@@ -619,7 +674,24 @@ class PlanetOrderReviewWidget(QWidget):
             col = i % 4 + 1
             sublayout.addWidget(w, row, col)
             self.imgWidgets.append(w)
-        layout.addLayout(sublayout, 16, 1, Qt.AlignCenter)
+        layout.addLayout(sublayout, 16, 1, Qt.AlignmentFlag.AlignCenter)
+
+    def populate_details(self) -> None:
+        self.imgWidgets = []
+        layout = QGridLayout()
+        layout.setMargin(0)
+        layout.setVerticalSpacing(15)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(2, 1)
+        self.chkClip = None
+        self.chkComposite = None
+        self.chkHarmonize = None
+
+        self._add_clip_section(layout)
+        self._add_composite_section(layout)
+        self._add_harmonize_section(layout)
+        self._add_metadata_section(layout)
+        self._add_review_section(layout)
 
         self.widgetDetails.setLayout(layout)
 
@@ -686,7 +758,6 @@ class PlanetOrderReviewWidget(QWidget):
 
 
 class PlanetOrderReviewMetadataWidget(QWidget):
-
     stac_metadata_box_clicked = pyqtSignal(bool)
 
     def __init__(self, stac_order):
@@ -700,9 +771,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         self.stac_box = QCheckBox()
         self.stac_box.setChecked(self.stac_order)
         self.stac_box.setText("Add STAC metadata")
-        self.stac_box.setToolTip(
-            "Click to enable/disable STAC metadata usage in the order."
-        )
+        self.stac_box.setToolTip("Click to enable/disable STAC metadata usage in the order.")
 
         self.stac_box.toggled.connect(self._stac_box_clicked)
 
@@ -723,7 +792,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         gridLayout.setColumnStretch(0, 1)
         gridLayout.setColumnStretch(2, 1)
 
-        gridLayout.addWidget(title_label, 0, 1, Qt.AlignCenter)
+        gridLayout.addWidget(title_label, 0, 1, Qt.AlignmentFlag.AlignCenter)
 
         layout.addLayout(gridLayout)
 
@@ -741,9 +810,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
         layout = QVBoxLayout()
         layout.setMargin(0)
         layout.addWidget(
-            QLabel(
-                f"<h3>{PlanetClient.getInstance().item_types_names()[summary['type']]}</h3>"
-            )
+            QLabel(f"<h3>{PlanetClient.getInstance().item_types_names()[summary['type']]}</h3>")
         )
         for bundle in summary["bundles"]:
             frame = QFrame()
@@ -766,7 +833,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
             hlayout.addStretch()
             framelayout.addLayout(hlayout)
             frame.setLayout(framelayout)
-            frame.setFrameStyle(QFrame.Panel | QFrame.Raised)
+            frame.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
             layout.addWidget(frame)
         layout.addStretch()
         self.setLayout(layout)
@@ -774,9 +841,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     NAME_HIGHLIGHT = "QLabel { color: rgb(175, 0, 0); }"
-    PLANET_COLOR_CSS = (
-        "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
-    )
+    PLANET_COLOR_CSS = "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
     TRANSPARENT_CSS = ""
 
     def __init__(self, images, tool_resources=None):
@@ -785,7 +850,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.setupUi(self)
 
         self.bar = QgsMessageBar()
-        self.bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.layout().addWidget(self.bar)
 
         layout = QVBoxLayout()
@@ -800,18 +865,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnContinueName.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(1)
-        )
-        self.btnContinueAssets.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(2)
-        )
-        self.btnBackReview.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(1)
-        )
-        self.btnBackAssets.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(0)
-        )
+        self.btnContinueName.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnContinueAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
+        self.btnBackReview.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnBackAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
@@ -942,68 +999,77 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
 
         self.labelNumberOfOrders.setText(f"{norders}")
 
-    @waitcursor
-    def _process_orders(self):
-        allbundles = []
-        for widget in self._item_type_widgets.values():
-            allbundles.extend(widget.bundles())
-        if not allbundles:
-            self.bar.pushMessage("", "No bundles have been selected", Qgis.Warning)
-            return
-        name = self.txtOrderName.text()
+    def _build_order(
+        self,
+        name: str,
+        item_type: str,
+        bundle: dict,
+        w: "PlanetOrderReviewWidget",
+        aoi: dict,
+    ) -> OrderedDict:
+        """Build a single order dictionary.
 
-        aoi = None
-        if self.tool_resources.get("aoi") is not None:
-            aoi = json.loads(self.tool_resources.get("aoi"))
+        Args:
+            name (str): Order name.
+            item_type (str): Item type.
+            bundle (dict): Bundle details.
+            w (PlanetOrderReviewWidget): Review widget for the bundle.
+            aoi (dict): Area of interest.
 
-        orders = []
-        for item_type, widget in self._item_type_widgets.items():
-            for bundle in widget.bundles():
-                w = self._review_widget_for_bundle(item_type, bundle["name"])
-                images = w.selected_images()
-                ids = [img["id"] for img in images]
-                # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
-                #            their order in Explorer web app
-                order = OrderedDict()  # necessary to maintain toolchain order
-                order["name"] = f'{name.replace(" ", "_")}_{item_type}'
-                order["order_type"] = "partial"
-                order["products"] = [
-                    {
-                        "item_ids": ids,
-                        "item_type": item_type,
-                        "product_bundle": bundle["id"],
-                    }
-                ]
-                order["delivery"] = {
-                    "archive_filename": f"{name}_QGIS.zip",
-                    "archive_type": "zip",
-                    "single_archive": True,
-                }
-                order["notifications"] = {"email": True}
+        Returns:
+            OrderedDict: Order dictionary.
+        """
+        images = w.selected_images()
+        ids = [img["id"] for img in images]
+        # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
+        #            their order in Explorer web app
+        order = OrderedDict()  # necessary to maintain toolchain order
+        order["name"] = f"{name.replace(' ', '_')}_{item_type}"
+        order["order_type"] = "partial"
+        order["products"] = [
+            {
+                "item_ids": ids,
+                "item_type": item_type,
+                "product_bundle": bundle["id"],
+            }
+        ]
+        order["delivery"] = {
+            "archive_filename": f"{name}_QGIS.zip",
+            "archive_type": "zip",
+            "single_archive": True,
+        }
+        order["notifications"] = {"email": True}
 
-                if w.stac_order:
-                    order["metadata"] = {"stac": {}}
-                tools = []
-                if w.clipping():
-                    tools.append({"clip": {"aoi": aoi}})
-                if w.composite():
-                    # 'order' or 'strip_id' for 'group_by'
-                    composite_type = w.getCompositeType()
-                    tools.append({"composite": {"group_by": composite_type}})
-                if w.harmonize():
-                    tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
-                if bundle["filetype"] == "NITF":
-                    tools.append({"file_format": {"format": "PL_NITF"}})
-                order["tools"] = tools
-                orders.append(order)
+        if w.stac_order:
+            order["metadata"] = {"stac": {}}
+        tools = []
+        if w.clipping():
+            tools.append({"clip": {"aoi": aoi}})
+        if w.composite():
+            # 'order' or 'strip_id' for 'group_by'
+            composite_type = w.getCompositeType()
+            tools.append({"composite": {"group_by": composite_type}})
+        if w.harmonize():
+            tools.append({"harmonize": {"target_sensor": "Sentinel-2"}})
+        if bundle["filetype"] == "NITF":
+            tools.append({"file_format": {"format": "PL_NITF"}})
+        order["tools"] = tools
+        return order
 
+    def _submit_orders(self, orders: list) -> bool:
+        """Submit orders to the Planet API.
+
+        Args:
+            orders (list): List of order dictionaries.
+
+        Returns:
+            bool: True if all orders were successful, False otherwise.
+        """
         responses_ok = True
         for order in orders:
-            resp = self._p_client.create_order(order)
-            resp_json = resp.json()
-
-            # If the order request failed
-            if resp.status_code >= 400:
+            try:
+                resp_json = self._p_client.client.orders.create_order(order)
+            except APIError:
                 order_name = order["name"]
 
                 if resp_json and resp_json["general"][0]["message"]:
@@ -1016,7 +1082,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 self.bar.pushMessage(
                     order_name,
                     err_message,
-                    Qgis.Warning,
+                    Qgis.MessageLevel.Warning,
                 )
 
                 responses_ok = False
@@ -1024,24 +1090,45 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
                 # Order were a success
                 responses_ok = responses_ok and resp_json
                 send_analytics_for_order(order)
+        return responses_ok
 
-        if responses_ok:
+    @waitcursor
+    def _process_orders(self):
+        allbundles = []
+        for widget in self._item_type_widgets.values():
+            allbundles.extend(widget.bundles())
+        if not allbundles:
+            self.bar.pushMessage("", "No bundles have been selected", Qgis.MessageLevel.Warning)
+            return
+        name = self.txtOrderName.text()
+
+        aoi = None
+        if self.tool_resources.get("aoi") is not None:
+            aoi = json.loads(self.tool_resources.get("aoi"))
+
+        orders = []
+        for item_type, widget in self._item_type_widgets.items():
+            for bundle in widget.bundles():
+                w = self._review_widget_for_bundle(item_type, bundle["name"])
+                # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
+                #  their order in Explorer web app
+                orders.append(self._build_order(name, item_type, bundle, w, aoi))
+
+        if self._submit_orders(orders):
             self.bar.pushMessage(
                 "",
-                "All orders correctly processed. Open the Order Monitor to check their"
-                " status",
-                Qgis.Success,
+                "All orders correctly processed. Open the Order Monitor to check their status",
+                Qgis.MessageLevel.Success,
             )
         else:
             self.bar.pushMessage(
                 "",
-                "Not all orders correctly processed. Open the QGIS log for more"
-                " information",
-                Qgis.Warning,
+                "Not all orders correctly processed. Open the QGIS log for more information",
+                Qgis.MessageLevel.Warning,
             )
 
     def _log(self, msg):
-        QgsMessageLog.logMessage(msg, level=Qgis.Warning)
+        QgsMessageLog.logMessage(msg, level=Qgis.MessageLevel.Warning)
 
     def _process_response(self, item_type: str, response: dict):
         if not item_type:

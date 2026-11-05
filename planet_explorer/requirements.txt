@@ -1,0 +1,7 @@
+# This file specifies plugin requirements that require compilation
+# or have non-python dependencies.
+cffi==2.1.0
+cryptography==49.0.0
+rpds-py==2026.6.3
+# Pure python but triggers QGIS plugin FILE_SUSPICIOUS security flag
+tqdm==4.68.4

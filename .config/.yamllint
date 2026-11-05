@@ -1,0 +1,11 @@
+# .yamllint
+---
+extends: default
+ignore-from-file: .gitignore
+
+rules:
+  document-start: disable
+  line-length: disable
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
