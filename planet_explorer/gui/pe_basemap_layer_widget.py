@@ -434,17 +434,23 @@ class BasemapLayerWidget(QWidget):
             if ramp:
                 query_params["color"] = [str(ramp)]
 
-            tokens = self.layer.source().split("&")
-            for token in tokens:
-                if token.startswith(("zmin=", "zmax=")):
-                    k, _, v = token.partition("=")
-                    if v:
-                        query_params[k] = [v]
-
             tile_url = urlunparse(
                 parts._replace(query=urlencode(query_params, doseq=True, quote_via=quote))
             )
-            uri = f"type=xyz&url={tile_url}"
+
+            # QGIS treats every "&" in its URI as the start of a new QGIS setting.
+            # Percent-encode the whole tile URL so its "?", "&" and "=" are hidden
+            # from QGIS and ua and proc/color reach Planet as part of the tile request.
+            tile_url = quote(tile_url, safe=":/{}")
+
+            # Add QGIS settings
+            zoom = ""
+            tokens = self.layer.source().split("&")
+            for token in tokens:
+                if token.startswith(("zmin=", "zmax=")):
+                    zoom += f"&{token}"
+
+            uri = f"type=xyz&url={tile_url}{zoom}"
 
             auth_header = self._build_auth_header_for_uri(client, missing_auth)
             if auth_header is not None:
