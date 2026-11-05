@@ -25,6 +25,7 @@ hasProcessingProvider=no
 changelog=
   v3.1.0 (2026-11-05)
   * Add "show only tasked imagery" search filter for daily imagery
+  * Enable clipping by default for orders
   * Fixed missing SR Mosaic visualization options
   v3.0.0 (2026-09-14)
   * Use planet SDK v3.6.0
