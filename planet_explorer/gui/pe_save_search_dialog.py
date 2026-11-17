@@ -97,7 +97,7 @@ class SaveSearchDialog(BASE, WIDGET):
         layout.setMargin(0)
         self.canvas = QgsMapCanvas()
         layers = iface.mapCanvas().mapSettings().layers()
-        crs = QgsCoordinateReferenceSystem("EPSG:4326")
+        crs = QgsCoordinateReferenceSystem.fromEpsgId(4326)
         self.canvas.setLayers(layers)
         self.canvas.setDestinationCrs(crs)
         self.canvas.setExtent(extent)

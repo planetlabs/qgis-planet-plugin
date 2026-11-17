@@ -502,7 +502,7 @@ class ItemWidgetBase(QFrame):
 
     def _geom_bbox_in_project_crs(self):
         transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().crs(),
             QgsProject.instance(),
         )
@@ -510,7 +510,7 @@ class ItemWidgetBase(QFrame):
 
     def _geom_in_project_crs(self):
         transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().crs(),
             QgsProject.instance(),
         )

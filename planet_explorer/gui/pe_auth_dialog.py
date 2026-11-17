@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import shutil
 
+import sentry_sdk
 from qgis.PyQt.QtCore import QCoreApplication, QThread, QTimer, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QButtonGroup,
@@ -12,6 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..pe_analytics import USER_LOGIN, analytics_track, is_sentry_dsn_valid
 from ..pe_utils import open_link_with_browser
 from ..planet_api.p_client import PlanetClient
 
@@ -29,33 +32,77 @@ class LoginWorker(QThread):
         self.login_info = login_info
         self.token_exists = token_exists
         self.clean_session = clean_session
+        self._stop_requested = False
+
+    def request_stop(self):
+        self._stop_requested = True
+
+    def _emit_finished(self, success, message):
+        if self._stop_requested:
+            return  # dialog may already be gone; don't touch it
+        self.finished_signal.emit(success, message)
+
+    def setup_analytics(self):
+        """
+        Setup sentry and analytics tracking
+
+        Note: This is done here instead of in
+        the planet client to avoid circular imports
+        hence tracking is only available in running
+        QGIS GUI session.
+        """
+
+        if is_sentry_dsn_valid():
+            with sentry_sdk.configure_scope() as scope:
+                user_email = self.p_client.user()["email"]
+                scope.user = {"email": user_email}
+        analytics_track(USER_LOGIN)
+
+    def _clear_session_if_needed(self) -> str | None:
+        if not self.clean_session:
+            return None
+        try:
+            auth_dir = getattr(self.p_client, "auth_storage_dir", None)
+            if auth_dir and auth_dir.exists():
+                shutil.rmtree(auth_dir.resolve())
+            return None
+        except Exception as e:
+            return f"Failed to clear existing token file: {str(e)}"
+
+    def _perform_login(self):
+        """Attempts log in using existing token or credentials."""
+        use_existing_token = self.token_exists and not self.clean_session
+        login_arg = None if use_existing_token else self.login_info
+
+        try:
+            self.p_client.complete_log_in(login_arg)
+            self.setup_analytics()
+            self._emit_finished(True, "Success")
+        except Exception as e:
+            msg = (
+                f"Token exists but failed to initialize client! {str(e)}"
+                if use_existing_token
+                else str(e)
+            )
+            self._emit_finished(False, msg)
 
     def run(self):
-        if self.clean_session:
-            try:
-                auth_dir = getattr(self.p_client, "auth_storage_dir", None)
-                if auth_dir and auth_dir.exists():
-                    shutil.rmtree(auth_dir.resolve())
-            except Exception as e:
-                self.finished_signal.emit(
-                    False, f"Failed to clear existing token file: {str(e)}"
-                )
+        if self._stop_requested:
+            return
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            if error := self._clear_session_if_needed():
+                self._emit_finished(False, error)
                 return
 
-        if self.token_exists and not self.clean_session:
-            try:
-                self.p_client.complete_log_in(None)
-                self.finished_signal.emit(True, "Success")
-            except Exception as e:
-                self.finished_signal.emit(
-                    False, f"Token exists but failed to initialize client! {str(e)}"
-                )
-        else:
-            try:
-                self.p_client.complete_log_in(self.login_info)
-                self.finished_signal.emit(True, "Success")
-            except Exception as e:
-                self.finished_signal.emit(False, str(e))
+            if self._stop_requested:
+                return
+
+            self._perform_login()
+        finally:
+            loop.close()
 
 
 class PlanetAuthenticationDialog(QDialog):
@@ -144,11 +191,22 @@ class PlanetAuthenticationDialog(QDialog):
         self.workflow_started = True
         self.options_group.setEnabled(False)
         self.ok_button.setEnabled(False)
+        self.cancel_button.setEnabled(False)
 
         if self.radio_existing.isChecked():
             self.setup_client_with_token()
         else:
             self.setup_client_device_user_workflow()
+
+    def _handle_pre_worker_failure(self, message):
+        # Mirrors handle_login_finished's failure branch, for failures that
+        # happen before a LoginWorker is even started/running.
+        self.log_box.setText(f"Login failed:\n{message}")
+        self.ok_button.setEnabled(True)
+        self.ok_button.setText("Close")
+        self.cancel_button.setEnabled(True)
+        self.button_box.accepted.disconnect(self.handle_proceed)
+        self.button_box.accepted.connect(self.reject)
 
     def setup_client_with_token(self):
         try:
@@ -164,9 +222,7 @@ class PlanetAuthenticationDialog(QDialog):
             self.worker.start()
 
         except Exception as e:
-            self.log_box.setText(f"Login failed:\n{str(e)}")
-            self.ok_button.setEnabled(True)
-            self.ok_button.setText("Close")
+            self._handle_pre_worker_failure(str(e))
 
     def setup_client_device_user_workflow(self):
         """Triggered ONLY if the background validation thread fails."""
@@ -197,9 +253,7 @@ class PlanetAuthenticationDialog(QDialog):
             self.worker.start()
 
         except Exception as e:
-            self.log_box.setText(f"Login failed:\n{str(e)}")
-            self.ok_button.setEnabled(True)
-            self.ok_button.setText("Close")
+            self._handle_pre_worker_failure(str(e))
 
     def handle_login_finished(self, success, message):
         if success:
@@ -216,15 +270,19 @@ class PlanetAuthenticationDialog(QDialog):
             self.log_box.append(f"\n[ERROR] Failed: {message}")
             self.ok_button.setEnabled(True)
             self.ok_button.setText("Close")
+            self.cancel_button.setEnabled(True)
+            self.button_box.accepted.disconnect(self.handle_proceed)
+            self.button_box.accepted.connect(self.reject)
 
     def closeEvent(self, event):
-        # Ensure the background thread terminates if the
-        # window is closed early
+        # Ask the background thread to stop cooperatively and wait for it to
+        # actually finish, rather than terminating it (which could corrupt
+        # the token file if killed mid-write or mid-network-call).
         if self.worker and self.worker.isRunning():
             try:
                 self.worker.finished_signal.disconnect(self.handle_login_finished)
             except TypeError:
                 pass
-            self.worker.terminate()
+            self.worker.request_stop()
             self.worker.wait()
         super().closeEvent(event)

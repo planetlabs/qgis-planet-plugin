@@ -31,7 +31,7 @@ import re
 import urllib
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import iso8601
 from planet.exceptions import APIError
@@ -159,7 +159,7 @@ def qgsrectangle_for_canvas_from_4326_bbox_coords(coords: tuple) -> QgsRectangle
         QgsRectangle: Transformed rectangle in the current project's CRS.
     """
     transform = QgsCoordinateTransform(
-        QgsCoordinateReferenceSystem("EPSG:4326"),
+        QgsCoordinateReferenceSystem.fromEpsgId(4326),
         QgsProject.instance().crs(),
         QgsProject.instance(),
     )
@@ -378,6 +378,7 @@ def _register_xyz_connection(catalog_layer_name: str, uri: str) -> None:
         catalog_layer_name (str): Name to register the connection under.
         uri (str): Tile datasource URI.
     """
+    client = PlanetClient.getInstance()
     url = uri.split("url=")[-1]
     s = QSettings()
     s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/username", "")
@@ -385,7 +386,7 @@ def _register_xyz_connection(catalog_layer_name: str, uri: str) -> None:
     s.setValue(f"qgis/connections-xyz/{catalog_layer_name}/authcfg", "")
     s.setValue(
         f"qgis/connections-xyz/{catalog_layer_name}/url",
-        url.replace(PlanetClient.getInstance().api_key, ""),
+        client.clean_planet_tile_url(url),
     )
 
 
@@ -409,7 +410,13 @@ def _build_raster_layer(
         log.debug("No tile URI for preview group")
         return None
 
-    log.debug(f"Tile datasource URI: \n{uri}")
+    log.debug(f"Tile datasource URI (no auth headers): \n{uri}")
+
+    client = PlanetClient.getInstance()
+    auth_params = client.build_authorization_header(
+        auth_header_key="http-header:authorization", encode=True
+    )
+    uri = f"{uri}&{auth_params}"
     rlayer = QgsRasterLayer(uri, "Image previews", "wms")
     rlayer.setCustomProperty(PLANET_PREVIEW_ITEM_IDS, json.dumps(item_ids))
 
@@ -541,7 +548,7 @@ def zoom_canvas_to_geometry(geom: QgsGeometry):
         geom (QgsGeometry): Geometry in EPSG:4326 to zoom to.
     """
     transform = QgsCoordinateTransform(
-        QgsCoordinateReferenceSystem("EPSG:4326"),
+        QgsCoordinateReferenceSystem.fromEpsgId(4326),
         QgsProject.instance().crs(),
         QgsProject.instance(),
     )
@@ -681,16 +688,35 @@ def add_mosaics_to_qgis_project(
         add_xyz_server (bool): If True, also saves the connection to QGIS's
             XYZ tile server registry under ``qgis/connections-xyz``.
     """
+    client = PlanetClient.getInstance()
+    tile_url = client.clean_planet_tile_url(mosaics[0][LINKS][TILES])
+    auth_params = client.build_authorization_header(
+        auth_header_key="http-header:authorization", encode=True
+    )
 
-    mosaic_names = [(mosaic_title(mosaic), mosaic[NAME]) for mosaic in mosaics]
-    tile_url = f"{mosaics[0][LINKS][TILES]}&ua={user_agent()}"
-    uri = f"type=xyz&url={tile_url}&zmin={zmin}&zmax={zmax}"
+    uri = f"type=xyz&url={tile_url}&ua={user_agent()}&zmin={zmin}&zmax={zmax}&{auth_params}"
     layer = QgsRasterLayer(uri, name, "wms")
+
+    # Set custom properties
     layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaic_title(mosaics[0]))
     layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
     layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
     layer.setCustomProperty(PLANET_MOSAIC_DATATYPE, mosaics[0][DATATYPE])
-    layer.setCustomProperty(PLANET_MOSAICS, json.dumps(mosaic_names))
+
+    layer.setCustomProperty(
+        PLANET_MOSAICS,
+        json.dumps(
+            [
+                {
+                    "mosaic_name": mosaic_title(m),
+                    "mosaic_id": m[NAME],
+                    "tile_url": client.clean_planet_tile_url(m[LINKS][TILES]),
+                }
+                for m in mosaics
+            ]
+        ),
+    )
+
     QgsProject.instance().addMapLayer(layer)
     layer.setCustomProperty("embeddedWidgets/count", 1)
     layer.setCustomProperty("embeddedWidgets/0/id", WIDGET_PROVIDER_NAME)
@@ -706,10 +732,10 @@ def add_mosaics_to_qgis_project(
         s.setValue(f"qgis/connections-xyz/{name}/authcfg", "")
         procparam = quote(f"&proc={proc}") if proc != "rgb" else ""
         rampparam = quote(f"&color={ramp}") if ramp else ""
-        full_uri = f"{tile_url}{procparam}{rampparam}"
+        full_uri = f"{tile_url}&ua={user_agent()}{procparam}{rampparam}"
         s.setValue(
             f"qgis/connections-xyz/{name}/url",
-            full_uri.replace(PlanetClient.getInstance().api_key, ""),
+            client.clean_planet_tile_url(full_uri),
         )
 
 
@@ -812,7 +838,7 @@ def add_widget_to_layer(layer):
             current_node.setExpanded(True) if current_node is not None else None
 
 
-def is_planet_url(url: str) -> bool:
+def is_planet_url_(url: str) -> bool:
     """Check whether a URL string refers to a Planet tile layer.
 
     Matches both authenticated (with API key) and unauthenticated
@@ -837,6 +863,30 @@ def is_planet_url(url: str) -> bool:
     singleUrl = url.count("&url=") == 1
 
     return singleUrl and (isloggedOutPattern or isloggedInPattern)
+
+
+def is_planet_url(url: str) -> bool:
+    """Check whether a URL string refers to a Planet tile layer.
+
+    Matches both authenticated (with API key) and unauthenticated
+    (with placeholder domain) Planet tile URLs.
+
+    Args:
+        url (str): URL-encoded layer URI string to check.
+
+    Returns:
+        bool: True if the URL contains exactly one Planet tile endpoint.
+    """
+    # This was created incase tile urls do not have
+    # api keys with the switch to using the Oauth tokens
+
+    url = urllib.parse.unquote(url)
+
+    if url.count("&url=") != 1:
+        return False
+
+    parts = urlparse(url.split("&url=", 1)[1].split("&", 1)[0])
+    return "planet" in parts.netloc and "tiles" in parts.netloc
 
 
 def plugin_version(add_commit: bool = False) -> str:

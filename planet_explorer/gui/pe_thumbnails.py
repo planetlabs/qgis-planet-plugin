@@ -192,8 +192,8 @@ def createCompoundThumbnail(_bboxes, thumbnails):
     """
     bboxes = []
     transform = QgsCoordinateTransform(
-        QgsCoordinateReferenceSystem("EPSG:4326"),
-        QgsCoordinateReferenceSystem("EPSG:3857"),
+        QgsCoordinateReferenceSystem.fromEpsgId(4326),
+        QgsCoordinateReferenceSystem.fromEpsgId(3857),
         QgsProject.instance(),
     )
     for box in _bboxes:

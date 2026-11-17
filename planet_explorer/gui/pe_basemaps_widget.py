@@ -261,9 +261,6 @@ class BasemapsWidget(BASE, WIDGET):
     def series(self):
         if self._series is None:
             self._series = self.p_client.list_mosaic_series()
-            # response = self.p_client.list_mosaic_series()
-            # for page in response.iter():
-            #    self._series.extend(page.get().get(SERIES))
         return self._series
 
     def _apply_filter(self):
@@ -404,7 +401,6 @@ class BasemapsWidget(BASE, WIDGET):
     def explore(self):
         if self._check_has_items_checked():
             selected = self.mosaicsList.selected_mosaics()
-
             analytics_track(BASEMAP_SERVICE_ADDED_TO_MAP)
 
             add_mosaics_to_qgis_project(

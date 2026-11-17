@@ -33,7 +33,6 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QDialog, QMenu, QVBoxLayout
 
 from ..pe_analytics import (
-    API_KEY_COPIED,
     ITEM_IDS_COPIED,
     analytics_track,
     send_analytics_for_search,
@@ -337,10 +336,6 @@ class DailyImagesWidget(BASE, WIDGET):
         ids_act.triggered[bool].connect(self.copy_checked_ids)
         actions_menu.addAction(ids_act)
 
-        api_act = QAction("Copy API Key to clipboard", actions_menu)
-        api_act.triggered[bool].connect(self.copy_api_key)
-        actions_menu.addAction(api_act)
-
         curl_act = QAction("View cURL Request", actions_menu)
         curl_act.triggered[bool].connect(self.view_curl)
         actions_menu.addAction(curl_act)
@@ -438,13 +433,6 @@ class DailyImagesWidget(BASE, WIDGET):
             self.parent.show_message(
                 "No search has been performed", level=Qgis.MessageLevel.Warning
             )
-
-    @pyqtSlot()
-    def copy_api_key(self):
-        cb = QgsApplication.clipboard()
-        cb.setText(PlanetClient.getInstance().api_key)
-        self.parent.show_message("API key copied to clipboard")
-        analytics_track(API_KEY_COPIED)
 
     def clean_up(self):
         self._aoi_filter.clean_up()

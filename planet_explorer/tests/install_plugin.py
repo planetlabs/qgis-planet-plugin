@@ -13,6 +13,7 @@ Verifies:
     - PLQGIS-TC01
     - PLQGIS-TC02
 """
+
 import logging
 import os
 import pathlib

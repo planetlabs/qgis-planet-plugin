@@ -28,6 +28,7 @@
         ps.psutil
         ps.httpcore
         ps.anyio
+        ps.pip
       ];
       qgisWithExtras = pkgs.qgis.override {
         extraPythonPackages = extraPythonPackages;
@@ -75,6 +76,7 @@
           (python3.withPackages (
             ps: with ps; [
               python
+              pip
               setuptools
               wheel
               pytest

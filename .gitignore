@@ -38,7 +38,10 @@ antigravity.log
 # Secrets
 **/.secrets
 # Test environment
-testnotebooks/**
 planet_explorer/test_area/**
 # Core files
 **/core**
+# Jupyter
+testnotebooks/**
+**/*jupyter.log
+testnotebooks

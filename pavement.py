@@ -64,6 +64,55 @@ options(
 )
 
 
+def read_requirements(file_path: str) -> list[str]:
+    """
+    Returns a list of runtime requirements
+
+    Args:
+        file_path (str): File path to the requrements.txt file
+
+    Returns:
+        list[str]: A list of runtime requirements
+    """
+    with open(file_path, "r") as f:
+        lines = [ln.strip() for ln in f.readlines()]
+    lines = [ln for ln in lines if ln and not ln.startswith("#")]
+    return lines
+
+
+def install_pure_dependencies(requirements: list[str], install_dir: str):
+    """Install pure Python dependencies into the specified directory using pip.
+
+    Args:
+        requirements (list[str]): List of package requirements to install.
+        install_dir (str): Directory where the dependencies will be installed.
+    """
+    for req in requirements:
+        try:
+            subprocess.check_call(
+                [
+                    "pip",  # Explicitly use pip instead of relying on sys.executable
+                    "install",
+                    "--no-deps",
+                    "--upgrade",
+                    "-t",
+                    f"{install_dir}",
+                    req,
+                ]
+            )  # nosec
+        except subprocess.CalledProcessError:
+            error(f"Error installing {req} with pip.")
+            sys.exit(1)
+
+
+def notify_user(requirements: list[str], install_dir: str, platform: str = None):
+    from paver.easy import info
+
+    names = ", ".join(requirements)
+    where = f" for {platform}" if platform else ""
+    info(f"Installing external dependencies{where} into {install_dir}: {names}")
+
+
 @task
 @cmdopts(
     [
@@ -76,24 +125,10 @@ def setup():
     if clean:
         ext_libs.rmtree()
     ext_libs.makedirs()
-    reqs = read_requirements()
     os.environ["PYTHONPATH"] = ext_libs.abspath()
-    for req in reqs:
-        try:
-            subprocess.check_call(
-                [
-                    "pip",  # Explicitly use pip instead of relying on sys.executable
-                    "install",
-                    "--no-deps",
-                    "--upgrade",
-                    "-t",
-                    f"{ext_libs.abspath()}",
-                    req,
-                ]
-            )  # nosec
-        except subprocess.CalledProcessError:
-            error(f"Error installing {req} with pip.")
-            sys.exit(1)
+
+    pure_python_reqs = read_requirements("requirements.txt")
+    install_pure_dependencies(pure_python_reqs, ext_libs.abspath())
 
 
 @task
@@ -103,7 +138,13 @@ def setup():
     ]
 )
 def install(options):
-    """Install plugin to QGIS."""
+    """
+    Install plugin to QGIS.
+
+    Args:
+        options: Paver options object, expects `options.plugin.name` and
+            optionally `options.pluginpath` for a custom install location.
+    """
     plugin_name = options.plugin.name
     src = path(__file__).dirname() / plugin_name
 
@@ -136,13 +177,6 @@ def install(options):
         src.symlink(dst)
 
 
-def read_requirements():
-    """Return a list of runtime requirements"""
-    lines = open("requirements.txt").readlines()
-    lines = [l for l in [l.strip() for l in lines] if l]
-    return lines
-
-
 @task
 @cmdopts(
     [
@@ -153,7 +187,22 @@ def read_requirements():
     ]
 )
 def package(options):
-    """Create plugin package"""
+    """Create plugin package
+
+    Args:
+        options: Paver options object, expects `options.plugin`, and
+            optionally `options.package.tests`, `options.package.segments`,
+            `options.package.sentry`, `options.package.version`.
+    """
+    # Because of the non-pure python dependencies that are
+    # platform dependent, remove the extlibs and install
+    # the pure python dependencies.
+    ext_libs = options.plugin.ext_libs
+    ext_libs.rmtree()
+    ext_libs.makedirs()
+    pure_python_reqs = read_requirements("requirements.txt")
+    install_pure_dependencies(pure_python_reqs, ext_libs.abspath())
+
     package_file = options.plugin.package_dir / ("%s.zip" % options.plugin.name)
     if os.path.exists(package_file):
         os.remove(package_file)
@@ -273,6 +322,14 @@ class GithubRelease:
 def generate_plugin_repo_xml(options):
     """Generates the plugin repository xml file, from which users
     can use to install the plugin in QGIS.
+
+    Args:
+        options: Paver options object, optionally expects
+            `options.version` to override the plugin version in the
+            generated metadata.
+
+    Returns:
+        str: The generated plugins.xml file contents.
     """
     repo_base_dir = Path(__file__).parent.resolve() / "docs" / "repository"
     repo_base_dir.mkdir(parents=True, exist_ok=True)
@@ -280,7 +337,7 @@ def generate_plugin_repo_xml(options):
     metadata_filename = os.path.join(
         os.path.dirname(__file__), "planet_explorer", "metadata.txt"
     )
-    metadata = SafeConfigParser()
+    metadata = ConfigParser()
     metadata.optionxform = str
     metadata.read(metadata_filename)
 
@@ -348,7 +405,12 @@ def generate_plugin_repo_xml(options):
 
 
 def _get_existing_releases():
-    """Gets the existing plugin releases from the plugin Github repository."""
+    """Gets the existing plugin releases from the plugin Github repository.
+
+    Returns:
+        list[GithubRelease]: A list of releases that have a downloadable
+            zip asset attached.
+    """
     base_url = "https://api.github.com/repos/" "planetlabs/qgis-planet-plugin/releases"
     response = httpx.get(base_url)
     result = []
@@ -376,7 +438,17 @@ def _get_existing_releases():
 
 
 def _get_latest_releases(current_releases):
-    """Gets the latest plugin releases from the Github plugin releases."""
+    """Gets the latest plugin releases from the Github plugin releases.
+
+    Args:
+        current_releases (list[GithubRelease]): All existing releases to
+            search through.
+
+    Returns:
+        tuple[GithubRelease | None, GithubRelease | None]: A tuple of
+            (latest_stable, latest_experimental), either of which may be
+            None if no matching release exists.
+    """
     latest_experimental = None
     latest_stable = None
     for release in current_releases:

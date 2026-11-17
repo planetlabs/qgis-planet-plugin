@@ -176,9 +176,9 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
 dockwidget_instance = None
 
 
-def _get_widget_instance():
+def _get_widget_instance(create: bool = True):
     global dockwidget_instance
-    if dockwidget_instance is None:
+    if dockwidget_instance is None and create:
         dockwidget_instance = PlanetExplorerDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetExplorerDockWidget")
         dockwidget_instance.setAllowedAreas(
@@ -202,7 +202,7 @@ def show_explorer():
 
 
 def hide_explorer():
-    wdgt = _get_widget_instance()
+    wdgt = _get_widget_instance(create=False)
     if wdgt is not None:
         wdgt.hide()
 
@@ -216,8 +216,10 @@ def show_explorer_and_search_daily_images(request):
 
 
 def remove_explorer():
+    global dockwidget_instance
     if dockwidget_instance is not None:
         iface.removeDockWidget(dockwidget_instance)
+        dockwidget_instance = None
 
 
 def toggle_images_search():

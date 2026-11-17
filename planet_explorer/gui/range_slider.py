@@ -191,7 +191,7 @@ class RangeSlider(QSlider):
             style.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self
         )
 
-        slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
+        slider_space = style.pixelMetric(style.PixelMetric.PM_SliderSpaceAvailable, opt)
         range_x1 = style.sliderPositionFromValue(
             self.minimum(), self.maximum(), self._low, slider_space
         )
@@ -247,7 +247,7 @@ class RangeSlider(QSlider):
             # else:
             opt.subControls = QStyle.SubControl.SC_SliderHandle
 
-            if self.tickPosition() != self.NoTicks:
+            if self.tickPosition() != self.TickPosition.NoTicks:
                 opt.subControls |= QStyle.SubControl.SC_SliderTickmarks
 
             if self.isSliderDown():
@@ -295,8 +295,8 @@ class RangeSlider(QSlider):
                     self.active_slider = i
                     self.pressed_control = hit
 
-                    self.triggerAction(self.SliderMove)
-                    self.setRepeatAction(self.SliderNoAction)
+                    self.triggerAction(self.SliderAction.SliderMove)
+                    self.setRepeatAction(self.SliderAction.SliderNoAction)
                     # self.setSliderDown(True)
                     break
 
@@ -305,8 +305,8 @@ class RangeSlider(QSlider):
                 self.click_offset = self.__pixelPosToRangeValue(
                     self.__pick(event.pos())
                 )
-                self.triggerAction(self.SliderMove)
-                self.setRepeatAction(self.SliderNoAction)
+                self.triggerAction(self.SliderAction.SliderMove)
+                self.setRepeatAction(self.SliderAction.SliderNoAction)
 
             self.update()
         else:
@@ -359,7 +359,7 @@ class RangeSlider(QSlider):
 
         old_pressed = QStyle.SubControl(self.pressed_control)
         self.pressed_control = QStyle.SubControl.SC_None
-        self.setRepeatAction(self.SliderNoAction)
+        self.setRepeatAction(self.SliderAction.SliderNoAction)
         if old_pressed == QStyle.SubControl.SC_SliderHandle:
             self.setSliderDown(False)
         # opt = QStyleOptionSlider()
@@ -445,7 +445,7 @@ if __name__ == "__main__":
     slider.setMaximum(100)
     slider.setLow(25)
     slider.setHigh(75)
-    slider.setTickPosition(slider.TicksBelow)
+    slider.setTickPosition(slider.TickPosition.TicksBelow)
     slider.setTickInterval(int((slider.maximum() - slider.minimum()) / 2))
 
     # slider.sliderMoved.connect(echo)

@@ -591,7 +591,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         geometry = self.aoi_as_4326_geom()
         area = QgsDistanceArea()
         area.setSourceCrs(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().transformContext(),
         )
         area.setEllipsoid(QgsProject.instance().ellipsoid())
@@ -624,7 +624,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -684,7 +684,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -733,7 +733,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
         canvas = iface.mapCanvas()
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -773,7 +773,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         transform = QgsCoordinateTransform(
             map_layer.crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -804,7 +804,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -859,7 +859,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def set_draw_aoi(self, aoi):
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
@@ -934,7 +934,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
                 transform = QgsCoordinateTransform(
                     layer.crs(),
-                    QgsCoordinateReferenceSystem("EPSG:4326"),
+                    QgsCoordinateReferenceSystem.fromEpsgId(4326),
                     QgsProject.instance(),
                 )
 
@@ -988,12 +988,12 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
 
         trans_layer = QgsCoordinateTransform(
             layer.sourceCrs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
 
         trans_canvas = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance().crs(),
             QgsProject.instance(),
         )
@@ -1029,7 +1029,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
     def aoi_as_4326_geom(self):
         transform = QgsCoordinateTransform(
             QgsProject.instance().crs(),
-            QgsCoordinateReferenceSystem("EPSG:4326"),
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
             QgsProject.instance(),
         )
         geom = self.aoi_geom()
@@ -1052,7 +1052,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             )
             return
 
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
+        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem.fromEpsgId(4326))
 
         self.show_aoi()
 
@@ -1109,7 +1109,7 @@ class PlanetAOIFilter(AOI_FILTER_BASE, AOI_FILTER_WIDGET, PlanetFilterMixin):
             return
 
         geom: QgsGeometry = qgsgeometry_from_geojson(json_geom)
-        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem("EPSG:4326"))
+        self._aoi_box.setToGeometry(geom, QgsCoordinateReferenceSystem.fromEpsgId(4326))
 
         self.leAOI.blockSignals(True)
         self.leAOI.setText(json.dumps(json_geom))
@@ -1433,7 +1433,7 @@ class PlanetDailyFilter(DAILY_BASE, DAILY_WIDGET, PlanetFilterMixin):
             if chk.isChecked():
                 instruments.append(chk.property("api-name"))
         if instruments:
-            instrument_filter = string_in_filter("instrument", *instruments)
+            instrument_filter = string_in_filter("instrument", instruments)
             populated_filters.append(instrument_filter)
 
         server_filters = self._build_server_filters(populated_filters)

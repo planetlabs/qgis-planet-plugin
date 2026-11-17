@@ -39,9 +39,8 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QSize, Qt, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QIcon, QImage, QPixmap
-from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -67,6 +66,7 @@ from ..pe_utils import (
 )
 from ..planet_api import PlanetClient
 from .pe_gui_utils import waitcursor
+from .pe_thumbnails import ThumbnailManager
 
 
 class PointCaptureMapTool(QgsMapToolEmitPoint):
@@ -118,6 +118,11 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         super().__init__(parent=parent)
         self.p_client = PlanetClient.getInstance()
 
+        # A new instance of ThumbnailManager is implemented here instead
+        # of using the global manager in pe_thumbnail.py due to long wait times
+        # of 5 or more minutes when using download_thumbnail.
+        self.thumbnail_manager = ThumbnailManager()
+
         self.setupUi(self)
 
         self.btnMapTool.setIcon(INSPECTOR_ICON)
@@ -146,20 +151,21 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         self.listScenes.clear()
         canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(
-            canvasCrs, QgsCoordinateReferenceSystem(4326), QgsProject.instance()
+            canvasCrs,
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
+            QgsProject.instance(),
         )
         wgspoint = transform.transform(point)
         mosaicname = self._mosaic_name_from_current_layer()
         if mosaicname:
-            client = PlanetClient.getInstance()
-            mosaic = client.get_mosaic(mosaicname)
+            mosaic = self.p_client.get_mosaic(mosaicname)
             analytics_track(
                 BASEMAP_INSPECTED, {"mosaic_type": basemap_name_for_analytics(mosaic)}
             )
             tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic["level"])
             url = "https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json"
             url = url.format(mosaicname, tile.z, tile.x, tile.y)
-            data = client._get(url).get_body().get()
+            data = self.p_client._get(url)
             grid = self.parse_utfgrid(data["grid"])
             links = data["keys"]
             idx = self.read_val_at_pixel(
@@ -167,10 +173,10 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
             )
             url = links[idx]
             try:
-                info = client._get(url).get_body().get()
+                info = self.p_client._get(url)
                 item = SceneItem(info)
                 self.listScenes.addItem(item)
-                widget = SceneItemWidget(info)
+                widget = SceneItemWidget(info, self.p_client, self.thumbnail_manager)
                 item.setSizeHint(widget.sizeHint())
                 self.listScenes.setItemWidget(item, widget)
                 self.textBrowser.setVisible(False)
@@ -284,8 +290,10 @@ class SceneItem(QListWidgetItem):
 
 
 class SceneItemWidget(QFrame):
-    def __init__(self, scene):
+    def __init__(self, scene, p_client, thumbnail_manager):
         QWidget.__init__(self)
+        self.p_client = p_client
+        self.thumbnail_manager = thumbnail_manager
         self.scene = scene
         self.properties = scene[PROPERTIES]
 
@@ -296,7 +304,7 @@ class SceneItemWidget(QFrame):
         date = datetime.strftime("%b %d, %Y")
 
         text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
-                        <b>{PlanetClient.getInstance().item_types_names()[self.properties['item_type']]}</b>
+                        <b>{self.p_client.item_types_names()[self.properties['item_type']]}</b>
                     """  # noqa
 
         self.nameLabel = QLabel(text)
@@ -327,10 +335,9 @@ class SceneItemWidget(QFrame):
         layout.addWidget(self.toolsButton)
         layout.addSpacing(10)
         self.setLayout(layout)
-        self.nam = QNetworkAccessManager()
-        self.nam.finished.connect(self.iconDownloaded)
-        url = f"{scene['_links']['thumbnail']}?api_key={PlanetClient.getInstance().api_key}"
-        self.nam.get(QNetworkRequest(QUrl(url)))
+
+        url = f"{scene['_links']['thumbnail']}"
+        self.thumbnail_manager.download_thumbnail(url, self)
 
         self.footprint = QgsRubberBand(
             iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
@@ -366,17 +373,17 @@ class SceneItemWidget(QFrame):
         rect = QgsRectangle(self.geom.boundingBox())
         canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem(4326), canvasCrs, QgsProject.instance()
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
+            canvasCrs,
+            QgsProject.instance(),
         )
         newrect = transform.transform(rect)
         newrect.scale(1.05)
         iface.mapCanvas().setExtent(newrect)
         iface.mapCanvas().refresh()
 
-    def iconDownloaded(self, reply):
-        img = QImage()
-        img.loadFromData(reply.readAll())
-        pixmap = QPixmap(img)
+    def set_thumbnail(self, img):
+        pixmap = QPixmap.fromImage(img)
         thumb = pixmap.scaled(
             48,
             48,
@@ -389,7 +396,9 @@ class SceneItemWidget(QFrame):
         rect = QgsRectangle(self.geom.boundingBox())
         canvasCrs = iface.mapCanvas().mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(
-            QgsCoordinateReferenceSystem(4326), canvasCrs, QgsProject.instance()
+            QgsCoordinateReferenceSystem.fromEpsgId(4326),
+            canvasCrs,
+            QgsProject.instance(),
         )
         newrect = transform.transform(rect)
         self.footprint.setToGeometry(QgsGeometry.fromRect(newrect))
@@ -412,7 +421,7 @@ dockwidget_instance = None
 def _get_widget_instance():
     global dockwidget_instance
     if dockwidget_instance is None:
-        if not PlanetClient.getInstance().has_api_key():
+        if not PlanetClient.getInstance().client_is_setup():
             return None
         dockwidget_instance = PlanetInspectorDockWidget(parent=iface.mainWindow())
         dockwidget_instance.setObjectName("PlanetInspectorDockWidget")

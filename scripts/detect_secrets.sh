@@ -17,4 +17,4 @@ echo "Running detect-secrets with plugins disabled: $DISABLED_LIST"
 # detect-secrets scan "${DISABLE_ARGS[@]}" --baseline .secrets.baseline planet_explorer/
 # Run through pre-commit to check for secrets
 mapfile -t FILES < <(git ls-files planet_explorer/ | grep -v 'planet_explorer/extlibs')
-detect-secrets-hook --baseline .secrets.baseline "${DISABLE_ARGS[@]}" "${FILES[@]}"
+detect-secrets-hook --baseline planet_explorer/.secrets.baseline "${DISABLE_ARGS[@]}" "${FILES[@]}"

@@ -11,7 +11,7 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
     && python3 get-pip.py --break-system-packages \
     && rm get-pip.py
 
-RUN pip3 install --break-system-packages -r /tmp/requirements.txt
+RUN pip3 install --break-system-packages --ignore-installed -r /tmp/requirements.txt
 
 COPY ./requirements_test.txt /tmp/
 RUN pip3 install --break-system-packages -r /tmp/requirements_test.txt

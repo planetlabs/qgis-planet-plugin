@@ -30,6 +30,8 @@ import analytics
 
 from planet_explorer.pe_utils import log
 
+from .planet_api import PlanetClient
+
 ITEM_TYPE = "item_type"
 ITEM_TYPES = "item_types"
 NAME = "name"
@@ -47,9 +49,7 @@ BASEMAP_COMPLETE_ORDER = "basemap_complete_order"
 BASEMAP_PARTIAL_ORDER = "basemap_partial_order"
 SAVED_SEARCH_CREATED = "saved_search_created"
 ITEM_IDS_COPIED = "item_ids_copied"
-API_KEY_COPIED = "api_key_copied"
 USER_LOGIN = "user_login"
-SAVE_CREDENTIALS = "save_credentials"
 SAVED_SEARCH_ACCESSED = "saved_search_accessed"
 BASEMAP_INSPECTED = "basemap_inspected"
 CURL_REQUEST_COPIED = "curl_request_copied"
@@ -98,12 +98,8 @@ def analytics_track(event, properties=None):
     properties = properties or {}
     if is_segments_write_key_valid():
         try:
-            # NOTE: v3 Oauth workflow does not provide access
-            # to the email address of the user, so we use "anonymous"
-            # for now.
-            # TODO: Workaround to get user email
-            # user = PlanetClient.getInstance().user()["email"]
-            user = "anonymous"
+            # analytics.track(user_email, event, properties)
+            user = PlanetClient.getInstance().user()["email"]
             analytics.track(user, event, properties)
         except Exception:
             log(f"Error tracking event {event} with properties {properties}")
