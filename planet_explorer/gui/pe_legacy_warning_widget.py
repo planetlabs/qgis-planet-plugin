@@ -31,7 +31,7 @@ class LegacyWarningWidget(BASE, WIDGET):
         super(LegacyWarningWidget, self).__init__(parent)
         self.setupUi(self)
         palette = self.btnUpdate.palette()
-        palette.setColor(QPalette.Button, PLANET_COLOR)
+        palette.setColor(QPalette.ColorRole.Button, PLANET_COLOR)
         self.btnUpdate.setPalette(palette)
         self.btnUpdate.clicked.connect(self.update_search)
         self.labelLink.linkActivated.connect(self.link_clicked)

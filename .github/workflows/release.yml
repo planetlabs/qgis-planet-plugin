@@ -13,10 +13,10 @@ jobs:
 
     steps:
     - name: Get source code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
@@ -34,7 +34,7 @@ jobs:
         SEGMENTS_KEY: ${{ secrets.SEGMENTS_KEY }}
         GITHUB_REF: ${{ github.ref }}
       run: |
-        paver package.sentry=${SENTRY_KEY} package.segments=$SEGMENTS_KEY package.version=${GITHUB_REF##*/} package
+        paver package.sentry="${SENTRY_KEY}" package.segments="${SEGMENTS_KEY}" package.version="${GITHUB_REF##*/}" package
 
     - name: Create/update release on GitHub
       uses: ncipollo/release-action@v1.8.8
@@ -45,7 +45,7 @@ jobs:
         artifacts: "planet_explorer.zip"
 
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
       with:
         ref: release
     - name: Update custom plugin repository to include latest release
@@ -59,3 +59,11 @@ jobs:
         git add -A
         git commit -m "Update plugins.xml"
         git push --force origin release
+    - name: Set up QGIS
+      uses: docker/setup-buildx-action@v3
+
+    - name: Pull QGIS Docker image
+      run: docker pull "qgis/qgis:${QGIS_TEST_VERSION}"
+
+    - name: Run QGIS commands
+      run: docker run --rm -v "$(pwd)":/tests_directory -t -w /tests_directory "qgis/qgis:${QGIS_TEST_VERSION}" sh -c "xvfb-run ${QGIS_COMMAND}"

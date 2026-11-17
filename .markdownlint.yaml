@@ -1,0 +1,8 @@
+{
+  "MD003": {
+    "style": "atx"
+  },
+  "MD024": false,  # allow duplicate headers
+  "MD013": false,  # allow long lines
+  "MD033": false   # allow inline HTML
+}
