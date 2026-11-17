@@ -36,8 +36,11 @@ close_firewall() {
 }
 
 start_pac_server() {
-  local proxy_ip=$(ip route get 1.1.1.1 | awk '{print $7}' | head -1)
-  local pac_file="$(pwd)/proxy.pac"
+  local proxy_ip
+  proxy_ip=$(ip route get 1.1.1.1 | awk '{print $7}' | head -1)
+
+  local pac_file
+  pac_file="$(pwd)/proxy.pac"
 
   if [ -f "$PAC_SERVER_PID_FILE" ] && kill -0 "$(cat "$PAC_SERVER_PID_FILE")" 2>/dev/null; then
     echo "🌐 PAC server already running (PID: $(cat "$PAC_SERVER_PID_FILE"))"
@@ -88,8 +91,11 @@ stop_pac_server() {
 }
 
 generate_pac() {
-  local proxy_ip=$(ip route get 1.1.1.1 | awk '{print $7}' | head -1)
-  local pac_file="$(pwd)/proxy.pac"
+  local proxy_ip
+  proxy_ip=$(ip route get 1.1.1.1 | awk '{print $7}' | head -1)
+
+  local pac_file
+  pac_file="$(pwd)/proxy.pac"
 
   cat >"$pac_file" <<EOF
 function FindProxyForURL(url, host) {

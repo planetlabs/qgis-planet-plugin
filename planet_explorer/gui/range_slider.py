@@ -94,8 +94,8 @@ class RangeSlider(QSlider):
         self._cur_low = self._low
         self._cur_high = self._high
 
-        self.pressed_control = QStyle.SC_None
-        self.hover_control = QStyle.SC_None
+        self.pressed_control = QStyle.SubControl.SC_None
+        self.hover_control = QStyle.SubControl.SC_None
         self.click_offset = 0
 
         # 0 for the low, 1 for the high, -1 for both
@@ -185,10 +185,10 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
 
         groove_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderGroove, self
+            style.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderGroove, self
         )
         handle_rect = style.subControlRect(
-            style.CC_Slider, opt, QStyle.SC_SliderHandle, self
+            style.ComplexControl.CC_Slider, opt, QStyle.SubControl.SC_SliderHandle, self
         )
 
         slider_space = style.pixelMetric(style.PM_SliderSpaceAvailable, opt)
@@ -219,7 +219,7 @@ class RangeSlider(QSlider):
             cur_brush = painter.brush()
             cur_pen = painter.pen()
             painter.setBrush(QBrush(QColor(169, 169, 169)))
-            painter.setPen(Qt.NoPen)
+            painter.setPen(Qt.PenStyle.NoPen)
             # painter.drawRect(groove_rect)
             painter.drawRoundedRect(
                 groove_rect, groove_rect.height() / 2, groove_rect.height() / 2
@@ -245,15 +245,15 @@ class RangeSlider(QSlider):
             #     opt.subControls = QStyle.SC_SliderGroove | \
             #                       QStyle.SC_SliderHandle
             # else:
-            opt.subControls = QStyle.SC_SliderHandle
+            opt.subControls = QStyle.SubControl.SC_SliderHandle
 
             if self.tickPosition() != self.NoTicks:
-                opt.subControls |= QStyle.SC_SliderTickmarks
+                opt.subControls |= QStyle.SubControl.SC_SliderTickmarks
 
             if self.isSliderDown():
-                opt.state |= QStyle.State_Sunken
+                opt.state |= QStyle.StateFlag.State_Sunken
             else:
-                opt.state |= QStyle.State_Active
+                opt.state |= QStyle.StateFlag.State_Active
 
             if self.pressed_control:
                 opt.activeSubControls = self.pressed_control
@@ -262,7 +262,9 @@ class RangeSlider(QSlider):
 
             opt.sliderPosition = value
             opt.sliderValue = value
-            style.drawComplexControl(QStyle.CC_Slider, opt, painter, self)
+            style.drawComplexControl(
+                QStyle.ComplexControl.CC_Slider, opt, painter, self
+            )
 
     def mousePressEvent(self, event):
         event.accept()
@@ -287,9 +289,9 @@ class RangeSlider(QSlider):
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
                 hit = style.hitTestComplexControl(
-                    style.CC_Slider, opt, event.pos(), self
+                    style.ComplexControl.CC_Slider, opt, event.pos(), self
                 )
-                if hit == style.SC_SliderHandle:
+                if hit == style.SubControl.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
 
@@ -299,7 +301,7 @@ class RangeSlider(QSlider):
                     break
 
             if self.active_slider < 0:
-                self.pressed_control = QStyle.SC_SliderHandle
+                self.pressed_control = QStyle.SubControl.SC_SliderHandle
                 self.click_offset = self.__pixelPosToRangeValue(
                     self.__pick(event.pos())
                 )
@@ -311,7 +313,7 @@ class RangeSlider(QSlider):
             event.ignore()
 
     def mouseMoveEvent(self, event):
-        if self.pressed_control != QStyle.SC_SliderHandle:
+        if self.pressed_control != QStyle.SubControl.SC_SliderHandle:
             event.ignore()
             return
 
@@ -349,16 +351,16 @@ class RangeSlider(QSlider):
         self.activeRangeChanged.emit(self._low, self._high)
 
     def mouseReleaseEvent(self, event):
-        if self.pressed_control == QStyle.SC_None or event.buttons():
+        if self.pressed_control == QStyle.SubControl.SC_None or event.buttons():
             event.ignore()
             return
 
         event.accept()
 
         old_pressed = QStyle.SubControl(self.pressed_control)
-        self.pressed_control = QStyle.SC_None
+        self.pressed_control = QStyle.SubControl.SC_None
         self.setRepeatAction(self.SliderNoAction)
-        if old_pressed == QStyle.SC_SliderHandle:
+        if old_pressed == QStyle.SubControl.SC_SliderHandle:
             self.setSliderDown(False)
         # opt = QStyleOptionSlider()
         # self.initStyleOption(opt)
@@ -373,7 +375,7 @@ class RangeSlider(QSlider):
             self.finalRangeChanged[int, int].emit(self._low, self._high)
 
     def __pick(self, pt):
-        if self.orientation() == Qt.Horizontal:
+        if self.orientation() == Qt.Orientation.Horizontal:
             return pt.x()
         else:
             return pt.y()
@@ -383,10 +385,14 @@ class RangeSlider(QSlider):
         self.initStyleOption(opt)
         style = self.style()
 
-        gr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderGroove, self)
-        sr = style.subControlRect(style.CC_Slider, opt, style.SC_SliderHandle, self)
+        gr = style.subControlRect(
+            style.ComplexControl.CC_Slider, opt, style.SubControl.SC_SliderGroove, self
+        )
+        sr = style.subControlRect(
+            style.ComplexControl.CC_Slider, opt, style.SubControl.SC_SliderHandle, self
+        )
 
-        if self.orientation() == Qt.Horizontal:
+        if self.orientation() == Qt.Orientation.Horizontal:
             slider_length = sr.width()
             slider_min = gr.x()
             slider_max = gr.right() - slider_length + 1
@@ -434,7 +440,7 @@ if __name__ == "__main__":
     dlg.setWindowTitle("RangeSlider test")
     layout = QVBoxLayout(dlg)
 
-    slider = RangeSlider(Qt.Horizontal, parent=dlg)
+    slider = RangeSlider(Qt.Orientation.Horizontal, parent=dlg)
     slider.setMinimum(0)
     slider.setMaximum(100)
     slider.setLow(25)
@@ -452,4 +458,4 @@ if __name__ == "__main__":
     # layout.setMargin(0)
 
     dlg.show()
-    app.exec_()
+    app.exec()

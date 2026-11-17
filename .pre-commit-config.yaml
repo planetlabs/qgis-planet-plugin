@@ -2,23 +2,179 @@
 # See https://pre-commit.com/hooks.html for more hooks
 ---
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+  - repo: local
     hooks:
       - id: end-of-file-fixer
+        name: "➡️ Fix End of Files"
+        entry: end-of-file-fixer
+        language: system
+        types: [text]
         exclude: ^(planet_explorer/tests/data/)
       - id: trailing-whitespace
+        name: "🧹 Trim Trailing Whitespace"
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [text]
         exclude: ^(planet_explorer/tests/data/)
       - id: check-yaml
+        name: "🔍 Check YAML Syntax"
+        entry: check-yaml
+        language: system
+        types: [yaml]
       - id: check-json
+        name: "🔍 Check JSON Syntax"
+        entry: check-json
+        language: system
+        types: [json]
         exclude: ^(planet_explorer/planet_api/request-result-samples/)
-  - repo: https://github.com/psf/black
-    rev: 22.6.0
+
+  - repo: local
     hooks:
       - id: black
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+        name: "🖤 black"
+        entry: black
+        language: system
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: remove-core-file
+        name: "🗑️ Remove core file if it exists"
+        entry: bash -c '[[ -f core && ! -d core ]] && rm core || exit 0'
+        language: system
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: ensure-utf8-encoding
+        name: "🌐 Ensure UTF-8 encoding declaration in Python files"
+        entry: bash scripts/encoding_check.sh
+        language: system
+        types: [python]
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: ensure-google-docstrings
+        name: "📚 Ensure Google-style docstrings in Python modules"
+        entry: bash scripts/docstrings_check.sh
+        language: system
+        types: [python]
+        stages: [pre-commit]
+
+  - repo: local
     hooks:
       - id: flake8
-        language_version: python3
-        args: ['--extend-ignore=E203']
+        name: " flake8 Python Linter"
+        entry: bash scripts/flake8_check.sh
+        language: system
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: isort
+        name: "📦 isort - sort Python imports"
+        entry: isort --check --diff
+        language: system
+        types: [python]
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: nixfmt
+        name: "❄️ Nixfmt (RFC style)"
+        description: Format Nix code with nixfmt-rfc-style
+        entry: nixfmt
+        language: system
+        args: ["--"]
+        types: [nix]
+
+  - repo: local
+    hooks:
+      - id: markdownlint
+        name: "📝 markdownlint - Markdown linter"
+        entry: markdownlint
+        language: system
+        types: [markdown]
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: cspell
+        name: "🔤 cspell - Spell checker for Markdown"
+        entry: cspell --config=.cspell.json --no-progress --no-summary
+        language: system
+        types: [markdown]
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: yamllint
+        name: "🔍 yamllint - YAML linter"
+        entry: yamllint
+        language: system
+        types: [yaml]
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: actionlint
+        name: "🤖 actionlint - GitHub Actions workflow linter"
+        entry: actionlint
+        language: system
+        types: [yaml]
+        files: ^\.github/workflows/.*\.ya?ml$
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: shellcheck-scripts
+        name: "🐚 ShellCheck - scripts"
+        entry: shellcheck
+        language: system
+        files: ^scripts/.*\.(sh|bash|zsh)$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
+      - id: bearer-plugin
+        name: "🛡️ Bearer - Security & privacy scanner - planet_explorer"
+        entry: bearer scan --exit-code 1 planet_explorer
+        language: system
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: bandit
+        name: "🔒 Bandit - Python security analysis"
+        entry: bash scripts/bandit_check.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: filecheck
+        name: "📂 File Check - File analysis"
+        entry: bash scripts/file_analysis.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: detect-secrets
+        name: "🔒 Detect Secrets"
+        entry: bash scripts/detect_secrets.sh
+        pass_filenames: false
+        language: system
+
+    # - repo: local
+  #   hooks:
+  #     - id: codeql-scan
+  #       name: "🔎 CodeQL - Static code analysis"
+  #       entry: codeql database analyze --format=sarifv2.1.0 --output=codeql-results.sarif codeql-db codeql-db/db-python-queries planet_explorer
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+  #       description: "Run CodeQL static analysis on the planet_explorer folder"

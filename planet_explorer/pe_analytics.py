@@ -15,6 +15,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "June 2021"
 __copyright__ = "(C) 2021 Planet Inc, https://planet.com"
@@ -27,7 +28,7 @@ from collections import Counter
 
 import analytics
 
-from .planet_api import PlanetClient
+from planet_explorer.pe_utils import log
 
 ITEM_TYPE = "item_type"
 ITEM_TYPES = "item_types"
@@ -97,9 +98,15 @@ def analytics_track(event, properties=None):
     properties = properties or {}
     if is_segments_write_key_valid():
         try:
-            user = PlanetClient.getInstance().user()["email"]
+            # NOTE: v3 Oauth workflow does not provide access
+            # to the email address of the user, so we use "anonymous"
+            # for now.
+            # TODO: Workaround to get user email
+            # user = PlanetClient.getInstance().user()["email"]
+            user = "anonymous"
             analytics.track(user, event, properties)
         except Exception:
+            log(f"Error tracking event {event} with properties {properties}")
             pass
 
 
