@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 import json
 import os
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
@@ -57,6 +58,8 @@ from ..pe_utils import (
 )
 from ..planet_api import PlanetClient
 
+IS_QGIS4 = Qgis.versionInt() >= 40000
+
 
 class CustomSlider(QSlider):
     def paintEvent(self, event):
@@ -81,9 +84,7 @@ class CustomSlider(QSlider):
                 self,
             )
 
-            slider_space = style.pixelMetric(
-                style.PixelMetric.PM_SliderSpaceAvailable, opt
-            )
+            slider_space = style.pixelMetric(style.PixelMetric.PM_SliderSpaceAvailable, opt)
             range_x = style.sliderPositionFromValue(
                 self.minimum(), self.maximum(), self.value(), slider_space
             )
@@ -141,13 +142,10 @@ class CustomSlider(QSlider):
 
             opt.sliderPosition = self.value()
             opt.sliderValue = self.value()
-            style.drawComplexControl(
-                QStyle.ComplexControl.CC_Slider, opt, painter, self
-            )
+            style.drawComplexControl(QStyle.ComplexControl.CC_Slider, opt, painter, self)
 
 
 class BasemapRenderingOptionsWidget(QFrame):
-
     values_changed = pyqtSignal()
 
     def __init__(self, datatype=None):
@@ -211,12 +209,8 @@ class BasemapRenderingOptionsWidget(QFrame):
                 if len(ramps) != len(list(self.ramps["colors"].keys())):
                     item = QListWidgetItem()
                     self.listWidget.addItem(item)
-                    label = QLabel(
-                        "<a href='#' style='color: grey;'>Show all ramps</a>"
-                    )
-                    label.setAlignment(
-                        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-                    )
+                    label = QLabel("<a href='#' style='color: grey;'>Show all ramps</a>")
+                    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                     label.linkActivated.connect(self._show_all_ramps)
                     self.listWidget.setItemWidget(item, label)
             else:
@@ -349,8 +343,7 @@ class BasemapLayerWidget(QWidget):
         else:
             self.layout = QVBoxLayout()
             self.labelWarning = QLabel(
-                '<span style="color:red;"><b>Not a valid Planet basemap'
-                " layer</b></span>"
+                '<span style="color:red;"><b>Not a valid Planet basemap layer</b></span>'
             )
             self.layout.addWidget(self.labelWarning)
             self.setLayout(self.layout)
@@ -382,8 +375,7 @@ class BasemapLayerWidget(QWidget):
             except Exception:
                 mosaicname, mosaicid = self.mosaics[value]
                 TILE_URL_TEMPLATE = (
-                    "https://tiles.planet.com/basemaps/v1/planet-tiles/"
-                    "%s/gmap/{z}/{x}/{y}.png"
+                    "https://tiles.planet.com/basemaps/v1/planet-tiles/%s/gmap/{z}/{x}/{y}.png"
                 )
                 tile_url = TILE_URL_TEMPLATE % (mosaicid,)
             self.layer.setCustomProperty(PLANET_CURRENT_MOSAIC, mosaicname)
@@ -427,7 +419,7 @@ class BasemapLayerWidget(QWidget):
             )
 
             self.labelWarning.setVisible(missing_auth)
-            self.renderingOptionsWidget.setVisible(missing_auth)
+            self.renderingOptionsWidget.setVisible(not missing_auth)
 
             tile_url = self._resolve_tile_url(client, missing_auth)
 
@@ -444,19 +436,31 @@ class BasemapLayerWidget(QWidget):
             if ramp:
                 query_params["color"] = [str(ramp)]
 
+            tile_url = urlunparse(
+                parts._replace(query=urlencode(query_params, doseq=True, quote_via=quote))
+            )
+
+            # QGIS treats every "&" in its URI as the start of a new QGIS setting.
+            if IS_QGIS4:
+                # QGIS 4.X.X:
+                # Percent-encode the whole tile URL so its "?", "&" and "=" are hidden
+                # from QGIS and ua, proc and color reach Planet as part of the tile request.
+                tile_url = quote(tile_url, safe=":/{}%")
+            else:
+                # QGIS 3.44 LTR:
+                # Keep "?" plain, or ? becomes "%3F", so the request becomes
+                # "...gmap/{z}/{x}/{y}.png%3Fua%3Dqgis-3.44.12-Solothurn..." and Planet
+                # returns the error "Invalid image format".
+                tile_url = quote(tile_url, safe=":/?{}%")
+
+            # Add QGIS settings
+            zoom = ""
             tokens = self.layer.source().split("&")
             for token in tokens:
                 if token.startswith(("zmin=", "zmax=")):
-                    k, _, v = token.partition("=")
-                    if v:
-                        query_params[k] = [v]
+                    zoom += f"&{token}"
 
-            tile_url = urlunparse(
-                parts._replace(
-                    query=urlencode(query_params, doseq=True, quote_via=quote)
-                )
-            )
-            uri = f"type=xyz&url={tile_url}"
+            uri = f"type=xyz&url={tile_url}{zoom}"
 
             auth_header = self._build_auth_header_for_uri(client, missing_auth)
             if auth_header is not None:
@@ -465,13 +469,14 @@ class BasemapLayerWidget(QWidget):
             provider = self.layer.dataProvider()
             if provider is not None:
                 provider.setDataSourceUri(uri)
+                provider.reloadData()
                 self.layer.triggerRepaint()
             self.layer.setCustomProperty(PLANET_MOSAIC_PROC, proc)
             self.layer.setCustomProperty(PLANET_MOSAIC_RAMP, ramp)
             self.ensure_correct_size()
         except RuntimeError as error:
             QgsMessageLog.logMessage(
-                f"Problem changing source" f" {error}",
+                f"Problem changing source {error}",
                 QGIS_LOG_SECTION_NAME,
                 Qgis.MessageLevel.Info,
             )

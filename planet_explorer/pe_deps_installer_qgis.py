@@ -101,12 +101,9 @@ class PipMissingDialog(QDialog):
         layout.addWidget(label)
 
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Retry
-            | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Retry | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Retry).clicked.connect(
-            self.accept
-        )
+        buttons.button(QDialogButtonBox.StandardButton.Retry).clicked.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -434,6 +431,6 @@ def ensure_deps_with_dialog(plugin_dir: str, parent_widget=None) -> bool:
         QMessageBox.critical(
             parent_widget,
             "Dependency installation failed",
-            "Could not install required Python packages.\n\n" f"{result['err'][:1500]}",
+            f"Could not install required Python packages.\n\n{result['err'][:1500]}",
         )
         return False

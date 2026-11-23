@@ -9,8 +9,9 @@ case $choice in
 esac
 
 # Running on local used to skip tests that will not work in a local dev env
-PLANET_LOG="$HOME/PLANET.log"
+PLANET_LOG="$LOGS_DIR/PLANET.log"
 rm -f "$PLANET_LOG"
+
 # This is the new way, using Ivan Mincis nix spatial project and a flake
 # see flake.nix for implementation details
 PLANET_LOG=${PLANET_LOG} \

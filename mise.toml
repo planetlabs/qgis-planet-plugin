@@ -1,0 +1,3 @@
+[env]
+QGIS_PROFILE = "PLANET"
+QGIS_PLUGIN_DIR = '{{env.APPDATA}}\QGIS\QGIS4\profiles\{{env.QGIS_PROFILE}}\python\plugins'

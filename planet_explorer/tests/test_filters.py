@@ -8,7 +8,6 @@ from planet_explorer.gui.pe_filters import PlanetAOIFilter
 
 
 class TestAOIFilter(unittest.TestCase):
-
     def test_aoi_area_size_calculation(self):
         """Tests the filter for calculating the aoi size in square kilometers"""
         test_cases = [
@@ -69,6 +68,4 @@ class TestAOIFilter(unittest.TestCase):
             size = aoi_filter.calculate_aoi_area()
 
             self.assertIsInstance(size, float)
-            self.assertAlmostEqual(
-                size, expected_size, places=2, msg=f"Failed for {name}"
-            )
+            self.assertAlmostEqual(size, expected_size, places=2, msg=f"Failed for {name}")

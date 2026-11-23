@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "September 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -36,12 +37,13 @@ plugin_path = os.path.split(os.path.dirname(__file__))[0]
 
 
 class PlanetClickableLabel(QLabel):
-
     clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         """
         Clickable QLabel
+
+        # noqa: DAR101
         """
         super().__init__(parent=parent)
 

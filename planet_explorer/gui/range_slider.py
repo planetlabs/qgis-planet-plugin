@@ -262,9 +262,7 @@ class RangeSlider(QSlider):
 
             opt.sliderPosition = value
             opt.sliderValue = value
-            style.drawComplexControl(
-                QStyle.ComplexControl.CC_Slider, opt, painter, self
-            )
+            style.drawComplexControl(QStyle.ComplexControl.CC_Slider, opt, painter, self)
 
     def mousePressEvent(self, event):
         event.accept()
@@ -302,9 +300,7 @@ class RangeSlider(QSlider):
 
             if self.active_slider < 0:
                 self.pressed_control = QStyle.SubControl.SC_SliderHandle
-                self.click_offset = self.__pixelPosToRangeValue(
-                    self.__pick(event.pos())
-                )
+                self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
                 self.triggerAction(self.SliderAction.SliderMove)
                 self.setRepeatAction(self.SliderAction.SliderNoAction)
 

@@ -19,16 +19,13 @@ TOOLBAR_BUTTONS = [
 
 
 class TestExplorerLogin(unittest.TestCase):
-
-    @pytest.mark.parametrize(
-        "use_mouse", [True, False], ids=["Mouse Click", "Hit Enter"]
-    )
-    def test_explorer_login(
-        self, qtbot, explorer_dock_widget, qgis_debug_enabled, use_mouse
-    ):
+    @pytest.mark.parametrize("use_mouse", [True, False], ids=["Mouse Click", "Hit Enter"])
+    def test_explorer_login(self, qtbot, explorer_dock_widget, qgis_debug_enabled, use_mouse):
         """
         Verifies:
             - PLQGIS-TC03
+
+        # noqa: DAR101
         """
         username, password = get_testing_credentials()
         dock_widget = explorer_dock_widget()
@@ -48,14 +45,14 @@ class TestExplorerLogin(unittest.TestCase):
         self.assertTrue(dock_widget.logged_in())
 
     @pytest.mark.qt_no_exception_capture
-    def test_explorer_login_incorrect(
-        self, qtbot, explorer_dock_widget, qgis_debug_enabled
-    ):
+    def test_explorer_login_incorrect(self, qtbot, explorer_dock_widget, qgis_debug_enabled):
         """
         As this is a negative test case, we do not capture exceptions.
 
         Verifies:
             - PLQGIS-TC03
+
+        # noqa: DAR101
         """
         dock_widget = explorer_dock_widget()
 
@@ -70,12 +67,12 @@ class TestExplorerLogin(unittest.TestCase):
         self.assertEqual(current, 0)
         self.assertFalse(dock_widget.logged_in())
 
-    def test_explorer_reacts_to_login(
-        self, qtbot, explorer_dock_widget, qgis_debug_enabled
-    ):
+    def test_explorer_reacts_to_login(self, qtbot, explorer_dock_widget, qgis_debug_enabled):
         """
         Verifies:
             - PLQGIS-TC03
+
+        # noqa: DAR101
         """
         dock_widget = explorer_dock_widget()
         current = dock_widget.stckdWidgetViews.currentIndex()
@@ -99,6 +96,8 @@ class TestExplorerLogin(unittest.TestCase):
 
         Verifies:
             - PLQGIS-TC20
+
+        # noqa: DAR101
         """
         dock_widget = logged_in_explorer_dock_widget()
         self.assertFalse(plugin.btnLogin.isVisible())

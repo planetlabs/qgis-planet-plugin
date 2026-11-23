@@ -1,6 +1,6 @@
 name: Build
 # This workflow tests if the plugin can be built and installed in
-# QGIS 3.44 (LTR) and 4.0. It is triggered on push to master and on pull requests.
+# QGIS 3.44 (LTR) and 4.2. It is triggered on push to master and on pull requests.
 on:
   push:
     branches:
@@ -15,17 +15,17 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Get source code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           clean: true
           fetch-depth: 1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -45,39 +45,39 @@ jobs:
 
       - name: Upload package artifact
         if: ${{ !env.ACT }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: planet_explorer_${{ github.sha }}
           path: planet_explorer.zip
 
   install:
     name: Install
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     strategy:
       matrix:
-        qgis_version: ["3.44", "4.0"]
+        qgis_version: ["3.44", "4.2"]
     env:
       QGIS_TEST_VERSION: ${{ matrix.qgis_version }}
       QGIS_COMMAND: qgis --noversioncheck --nologo --version-migration --code planet_explorer/tests/install_plugin.py'
 
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download artifact
         if: ${{ !env.ACT }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: planet_explorer_${{ github.sha }}
           path: .

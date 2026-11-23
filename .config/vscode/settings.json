@@ -1,0 +1,79 @@
+{
+  // ── Appearance ──
+  "editor.fontFamily": "'Anonymous Pro', monospace",
+  "editor.fontSize": 16,
+  "workbench.colorTheme": "Light Modern",
+  // ── end-of-file-fixer + trailing-whitespace ──
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.formatOnSave": false,
+  // ── Markdown: markdownlint --fix + cspell ──
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.markdownlint": "explicit"
+    }
+  },
+  "markdownlint.configFile": "${workspaceFolder}/.config/.markdownlint.yaml",
+  "cSpell.enabled": true,
+  "cSpell.enabledFileTypes": {
+    "*": false,
+    "markdown": true,
+    "quarto": true
+  },
+  "cSpell.import": ["${workspaceFolder}/.config/.cspell.json"],
+  // ── Python ──
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "isort.args": ["--settings-file", "${workspaceFolder}/.config/.isort.cfg"],
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.testing.pytestArgs": ["${workspaceFolder}/planet_explorer/tests/"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  // Shell ── shfmt + shellcheck ──
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "shellformat.useEditorConfig": true,
+  "shellcheck.enable": true,
+  "shellcheck.run": "onSave",
+  // TOML ── taplo ──
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "evenBetterToml.taplo.configFile.path": "${workspaceFolder}/.config/.taplo.toml",
+  // ── JSON: Prettier formatter ──
+  "prettier.configPath": "${workspaceFolder}/.config/.prettierrc",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // ── YAML: (lint only, no formatting) ──
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.formatOnSave": false
+  },
+  "yaml.validate": true,
+  // Nix
+  "[nix]": {
+    "editor.defaultFormatter": "jnoortheen.nix-ide",
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false
+  },
+  "nix.formatterPath": "nixfmt",
+  // ── mbake ──
+  "[makefile]": {
+    "editor.defaultFormatter": "EbodShojaei.bake"
+  },
+  "mbake.configPath": "${workspaceFolder}/.config/.bake.toml",
+  // ── Git ──
+  "git.enableCommitSigning": true
+}

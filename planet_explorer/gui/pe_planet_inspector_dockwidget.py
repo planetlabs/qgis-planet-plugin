@@ -70,7 +70,6 @@ from .pe_thumbnails import ThumbnailManager
 
 
 class PointCaptureMapTool(QgsMapToolEmitPoint):
-
     complete = pyqtSignal()
 
     def __init__(self, canvas):
@@ -159,18 +158,14 @@ class PlanetInspectorDockWidget(ORDERS_MONITOR_BASE, ORDERS_MONITOR_WIDGET):
         mosaicname = self._mosaic_name_from_current_layer()
         if mosaicname:
             mosaic = self.p_client.get_mosaic(mosaicname)
-            analytics_track(
-                BASEMAP_INSPECTED, {"mosaic_type": basemap_name_for_analytics(mosaic)}
-            )
+            analytics_track(BASEMAP_INSPECTED, {"mosaic_type": basemap_name_for_analytics(mosaic)})
             tile = mercantile.tile(wgspoint.x(), wgspoint.y(), mosaic["level"])
             url = "https://tiles.planet.com/basemaps/v1/pixprov/{}/{}/{}/{}.json"
             url = url.format(mosaicname, tile.z, tile.x, tile.y)
             data = self.p_client._get(url)
             grid = self.parse_utfgrid(data["grid"])
             links = data["keys"]
-            idx = self.read_val_at_pixel(
-                grid, wgspoint.y(), wgspoint.x(), mosaic["level"]
-            )
+            idx = self.read_val_at_pixel(grid, wgspoint.y(), wgspoint.x(), mosaic["level"])
             url = links[idx]
             try:
                 info = self.p_client._get(url)
@@ -304,7 +299,7 @@ class SceneItemWidget(QFrame):
         date = datetime.strftime("%b %d, %Y")
 
         text = f"""{date}<span style="color: rgb(100,100,100);"> {time} UTC</span><br>
-                        <b>{self.p_client.item_types_names()[self.properties['item_type']]}</b>
+                        <b>{self.p_client.item_types_names()[self.properties["item_type"]]}</b>
                     """  # noqa
 
         self.nameLabel = QLabel(text)
@@ -339,9 +334,7 @@ class SceneItemWidget(QFrame):
         url = f"{scene['_links']['thumbnail']}"
         self.thumbnail_manager.download_thumbnail(url, self)
 
-        self.footprint = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
-        )
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 

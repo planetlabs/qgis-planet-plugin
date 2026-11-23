@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 import copy
 import json
 import os
@@ -29,9 +30,7 @@ from ..planet_api.p_client import PlanetClient
 from .pe_filters import filters_as_text_from_request, filters_from_request
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "ui", "save_search_dialog.ui"
-    )
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "save_search_dialog.ui")
 )
 
 
@@ -47,12 +46,8 @@ class SaveSearchDialog(BASE, WIDGET):
         self.bar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.layout().addWidget(self.bar)
 
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(
-            self.save
-        )
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(
-            self.reject
-        )
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(self.reject)
 
         self.btnCreateFolder.clicked.connect(self.createFolder)
 

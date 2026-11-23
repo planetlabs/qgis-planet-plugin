@@ -10,27 +10,27 @@ on:
 
 jobs:
   pre-commit-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Lint
 
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Python environment
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
       - name: Set up Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: 24
 
       - name: Install nixfmt binary for GitHub Actions
         run: |
           # Download the official stable binary (fixes the 404 error)
-          curl -sSfL -o nixfmt https://github.com/NixOS/nixfmt/releases/download/v1.3.1/nixfmt
+          curl -sSfL -o nixfmt https://github.com/NixOS/nixfmt/releases/download/v1.5.0/nixfmt
           chmod +x nixfmt
 
           # Move it to your local runner path
@@ -48,17 +48,20 @@ jobs:
             shellcheck \
             git \
             ca-certificates \
-            apt-transport-https
+            apt-transport-https \
+            fd-find
 
           # Install bearer CLI
           sudo update-ca-certificates
           echo -e "Types: deb\nURIs: https://apt.fury.io/bearer/\nSuites: /\nTrusted: yes" | sudo tee /etc/apt/sources.list.d/fury.sources
           sudo apt-get update
-          sudo apt-get install bearer=2.0.1
+          sudo apt-get install bearer=2.0.2
 
-          npm install -g markdownlint-cli@0.48.0 cspell@9.7.0
-      - name: Install pre-commit
-        run: pip install pre-commit
+          npm install -g markdownlint-cli@0.48.0 cspell@9.7.0 prettier@3.8.3 @biomejs/biome@2.4.15
+
+          mkdir -p ~/.local/bin
+          ln -sf "$(which fdfind)" ~/.local/bin/fd
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install Python dependencies
         run: |

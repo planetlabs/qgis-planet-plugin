@@ -55,9 +55,7 @@ class ResultsConfigurationDialog(BASE, WIDGET):
         self._set_selected()
 
         self.btnRestoreDefaults.clicked.connect(self.restore_default)
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).clicked.connect(
-            self.accepted
-        )
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).clicked.connect(self.accepted)
         self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(
             self.rejected
         )

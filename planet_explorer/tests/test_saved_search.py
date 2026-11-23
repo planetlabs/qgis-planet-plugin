@@ -14,12 +14,12 @@ SAMPLE_AOI_SAVED_SEARCH_NAME = "QGIS Plugin Tests - Sample AOI"
 
 
 class TestSavedSearch(unittest.TestCase):
-    def test_load(
-        self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
-    ):
+    def test_load(self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi):
         """
         Verifies:
             - PLQGIS-TC15
+
+        # noqa: DAR101
         """
         dock_widget = logged_in_explorer_dock_widget()
         daily_images_widget = dock_widget.daily_images_widget
@@ -43,12 +43,12 @@ class TestSavedSearch(unittest.TestCase):
         qgis_debug_wait(qtbot, qgis_debug_enabled)
         self.assertEqual(daily_images_widget._aoi_filter.leAOI.text(), sample_aoi)
 
-    def test_create(
-        self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
-    ):
+    def test_create(self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi):
         """
         Verifies:
             - PLQGIS-TC08
+
+        # noqa: DAR101
         """
         dock_widget = logged_in_explorer_dock_widget()
         daily_images_widget = dock_widget.daily_images_widget
@@ -94,9 +94,7 @@ class TestSavedSearch(unittest.TestCase):
                 for index in range(dlg.comboSavedSearch.count())
             ]
             self.assertIn(saved_search_name, saved_searches)
-            dlg.comboSavedSearch.setCurrentIndex(
-                saved_searches.index(saved_search_name)
-            )
+            dlg.comboSavedSearch.setCurrentIndex(saved_searches.index(saved_search_name))
             qgis_debug_wait(qtbot, qgis_debug_enabled)
 
             # delete the search

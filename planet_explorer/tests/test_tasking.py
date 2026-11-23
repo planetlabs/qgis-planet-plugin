@@ -24,6 +24,8 @@ class TestTaskingWidget(unittest.TestCase):
         """
         Verifies:
             - PLQGIS-TC09
+
+        # noqa: DAR101
         """
         dock_widget = logged_in_explorer_dock_widget()
         task_dockwidget = tasking_widget(dock_widget)
@@ -53,13 +55,9 @@ class TestTaskingWidget(unittest.TestCase):
 
             def _dialog_interact():
                 text_browser = [
-                    widget
-                    for widget in dialog.children()
-                    if isinstance(widget, QTextBrowser)
+                    widget for widget in dialog.children() if isinstance(widget, QTextBrowser)
                 ][0]
-                self.assertTrue(
-                    text_browser.toPlainText(), "No text displayed in dialog!"
-                )
+                self.assertTrue(text_browser.toPlainText(), "No text displayed in dialog!")
                 dialog.close()
 
             QtCore.QTimer.singleShot(1000, _dialog_interact)

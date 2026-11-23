@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2019"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -36,6 +37,7 @@ from typing import (
 )
 from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 
+import httpx
 import requests
 from planet import Auth, PlanetOAuthScopes, Session
 from planet.exceptions import InvalidAPIKey, InvalidIdentity
@@ -55,8 +57,9 @@ log = logging.getLogger(__name__)
 
 ITEM_ASSET_DL_REGEX = re.compile(r"^assets\.(.*):download$")
 ITEM_STREAM_REGEX = re.compile(r"^webtiles?:stream$")
+ITEM_TASKED_REGEX = re.compile(r"^tasked$")
 
-QUOTA_URL = "https://api.planet.com/auth/v1/experimental" "/public/my/subscriptions"
+QUOTA_URL = "https://api.planet.com/auth/v1/experimental/public/my/subscriptions"
 
 TILE_SERVICE_URL = "https://tiles{0}.planet.com/data/v1/layers"
 
@@ -108,9 +111,7 @@ class QGISAdapter:
             return breq.post(self._build_qnetwork_request(request), body)
         return 0
 
-    def _build_qnetwork_request(
-        self, request: requests.PreparedRequest
-    ) -> QNetworkRequest:
+    def _build_qnetwork_request(self, request: requests.PreparedRequest) -> QNetworkRequest:
         """Build a QNetworkRequest from a prepared requests object.
 
         Args:
@@ -208,9 +209,7 @@ class QGISAdapter:
         if resp.headers.get("Content-Encoding") == "gzip":
             data = gzip.decompress(data)
         resp._content = data
-        resp.status_code = content.attribute(
-            QNetworkRequest.Attribute.HttpStatusCodeAttribute
-        )
+        resp.status_code = content.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
         return resp
 
     def send(self, request: requests.PreparedRequest, **kwargs) -> requests.Response:
@@ -256,9 +255,7 @@ class QGISProfileStorageProvider(_SOPSAwareFilesystemObjectStorageProvider):
             log.info(f"Using default Planet auth storage directory: {planet_auth_dir}")
         else:
             planet_auth_dir = Path(active_profile_dir)
-            log.info(
-                f"Using QGIS profile directory for Planet auth storage: {planet_auth_dir}"
-            )
+            log.info(f"Using QGIS profile directory for Planet auth storage: {planet_auth_dir}")
         super().__init__(root=planet_auth_dir)
 
 
@@ -347,8 +344,7 @@ class PlanetClient(QObject):
                 msg,
             )
             QGISAdapter._message_bar_item.setStyleSheet(
-                "QgsMessageBarItem {{ background-color: rgb({r},{g},{b}); "
-                "color: white; }}".format(
+                "QgsMessageBarItem {{ background-color: rgb({r},{g},{b}); color: white; }}".format(
                     r=PLANET_COLOR.red(), g=PLANET_COLOR.green(), b=PLANET_COLOR.blue()
                 )
             )
@@ -510,9 +506,7 @@ class PlanetClient(QObject):
             bool: True on success, False if auth is invalid or initialization fails.
         """
         if not self.auth_is_valid():
-            log.warning(
-                "Cannot build engines: Authentication context is missing or invalid."
-            )
+            log.warning("Cannot build engines: Authentication context is missing or invalid.")
             return False
 
         try:
@@ -542,17 +536,13 @@ class PlanetClient(QObject):
                 None if lookup is not successful.
         """
         if not self.auth_is_valid():
-            log.warning(
-                "Cannot get user info: Authentication context is missing or invalid."
-            )
+            log.warning("Cannot get user info: Authentication context is missing or invalid.")
             return None
 
         saved_token = FileBackedOidcCredential(None, self.token_file_path)
         saved_token.load()
         auth_client = self.auth._plauth.auth_client()
-        userinfo_json = auth_client.userinfo_from_access_token(
-            saved_token.access_token()
-        )
+        userinfo_json = auth_client.userinfo_from_access_token(saved_token.access_token())
         return userinfo_json
 
     def user(self) -> dict[str, Any]:
@@ -576,7 +566,7 @@ class PlanetClient(QObject):
                     "user_name": info["name"],
                 }
                 log.info(
-                    f'User name: {self.userinfo["user_name"]} \n User email: {self.userinfo["email"]}'
+                    f"User name: {self.userinfo['user_name']} \n User email: {self.userinfo['email']}"
                 )
             else:
                 self.userinfo = None
@@ -605,8 +595,8 @@ class PlanetClient(QObject):
             str: API key if decode is successful.
 
         """
-        _hazmat_header, hazmat_body, _hazmat_signature = (
-            TokenValidator.hazmat_unverified_decode(self.get_access_token())
+        _hazmat_header, hazmat_body, _hazmat_signature = TokenValidator.hazmat_unverified_decode(
+            self.get_access_token()
         )
         return hazmat_body["api_key"]
 
@@ -775,9 +765,7 @@ class PlanetClient(QObject):
         else:
             return auth_header
 
-    async def _aget_one_mosaic(
-        self, raise_on_error: bool = False
-    ) -> dict[str, Any] | None:
+    async def _aget_one_mosaic(self, raise_on_error: bool = False) -> dict[str, Any] | None:
         try:
             mosaics = self.mosaics_client.list_mosaics()
             first_mosaic = await anext(mosaics, None)
@@ -802,9 +790,7 @@ class PlanetClient(QObject):
 
         return first_mosaic is not None
 
-    async def _alist_mosaic_series(
-        self, name_contains: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def _alist_mosaic_series(self, name_contains: str | None = None) -> list[dict[str, Any]]:
         try:
             mosaic_series = self.mosaics_client.list_series(name_contains=name_contains)
             mosaic_series_ = [series async for series in mosaic_series]
@@ -814,16 +800,12 @@ class PlanetClient(QObject):
                 )
             return mosaic_series_
         except Exception:
-            log.exception(
-                f"Failed to list available mosaic series with filter: {name_contains}"
-            )
+            log.exception(f"Failed to list available mosaic series with filter: {name_contains}")
             return []
 
     @verify_mosaics_client
     @verify_async_runner
-    def list_mosaic_series(
-        self, name_contains: str | None = None
-    ) -> list[dict[str, Any]]:
+    def list_mosaic_series(self, name_contains: str | None = None) -> list[dict[str, Any]]:
         """
         List available mosaic series, optionally filtered by name.
 
@@ -837,21 +819,15 @@ class PlanetClient(QObject):
 
         return self.runner.run(self._alist_mosaic_series(name_filter))
 
-    async def _aget_mosaics(
-        self, name_contains: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def _aget_mosaics(self, name_contains: str | None = None) -> list[dict[str, Any]]:
         try:
             mosaics = self.mosaics_client.list_mosaics(name_contains=name_contains)
             mosaics_ = [mosaic async for mosaic in mosaics]
             if not mosaics_:
-                log.info(
-                    f"No mosaics found for the current user with filter: {name_contains}"
-                )
+                log.info(f"No mosaics found for the current user with filter: {name_contains}")
             return mosaics_
         except Exception:
-            log.exception(
-                f"Failed to list available mosaics with filter: {name_contains}"
-            )
+            log.exception(f"Failed to list available mosaics with filter: {name_contains}")
             return []
 
     @waitcursor
@@ -925,14 +901,10 @@ class PlanetClient(QObject):
         """
         return "{}/{}".format(self.base_url, endpoint)
 
-    async def _aget(
-        self, url: str, params: dict[Any, Any] | None = None
-    ) -> dict[Any, Any]:
+    async def _aget(self, url: str, params: dict[Any, Any] | None = None) -> dict[Any, Any]:
         try:
             if params:
-                response = await self.session.request(
-                    method="GET", url=url, params=params
-                )
+                response = await self.session.request(method="GET", url=url, params=params)
             else:
                 response = await self.session.request(method="GET", url=url)
             return response.json()
@@ -1270,9 +1242,7 @@ class PlanetClient(QObject):
         try:
             response.raise_for_status()
         except Exception as e:
-            log.exception(
-                f"Failed to fetch image from url: {image_url} due to: {str(e)}"
-            )
+            log.exception(f"Failed to fetch image from url: {image_url} due to: {str(e)}")
             return None
 
         raw_bytes = response.content
@@ -1280,6 +1250,9 @@ class PlanetClient(QObject):
 
     @verify_session
     @verify_async_runner
+    def _get_image_bytes_with_session(self, image_url: str) -> bytes | None:
+        return self.runner.run(self.aget_image_bytes(image_url))
+
     def get_image_bytes(self, image_url: str) -> bytes | None:
         """Fetch raw image bytes from a URL.
 
@@ -1289,7 +1262,7 @@ class PlanetClient(QObject):
         Returns:
             bytes | None: Raw image bytes, or None if the request failed.
         """
-        return self.runner.run(self.aget_image_bytes(image_url))
+        return self._get_image_bytes_with_session(image_url)
 
     def update_search(self, request: dict[str, Any], search_id: str) -> dict[str, Any]:
         """Update an existing saved search.
@@ -1344,9 +1317,7 @@ class PlanetClient(QObject):
             self._asset_types[item_type] = asset_types
         return self._asset_types[item_type]
 
-    def asset_types_for_item_type_as_dict(
-        self, item_type: str
-    ) -> dict[str, dict[str, Any]]:
+    def asset_types_for_item_type_as_dict(self, item_type: str) -> dict[str, dict[str, Any]]:
         """
         Return the available asset types for a given item type,
         keyed by asset type ID.
@@ -1547,9 +1518,7 @@ class PlanetClient(QObject):
 
         item_types = request["item_types"]
         search_filter = request["filter"]
-        return self.client.data.search(
-            item_types, search_filter=search_filter, limit=0, sort=sort
-        )
+        return self.client.data.search(item_types, search_filter=search_filter, limit=0, sort=sort)
 
 
 def tile_service_hash(item_type_ids: list[str]) -> str | None:
@@ -1575,9 +1544,6 @@ def tile_service_hash(item_type_ids: list[str]) -> str | None:
 
     item_type_ids.reverse()
 
-    # TODO: Delete commented line once verified that
-    # tiles are able to be previewed.
-    # data = {"ids": ",".join(item_type_ids)}
     data = {"ids": item_type_ids}
 
     tile_url = TILE_SERVICE_URL.format("")
@@ -1634,7 +1600,7 @@ def tile_service_url(
         url = f"{tile_url}/wmts/{tile_hash}"
     elif service.lower() == "xyz":
         tile_url = TILE_SERVICE_URL.format(secrets.choice([0, 1, 2, 3]))
-        url = f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}" f"?ua={user_agent()}"
+        url = f"{tile_url}/{tile_hash}/{{z}}/{{x}}/{{y}}?ua={user_agent()}"
 
     if url is None:
         log.debug("Unrecognized service type %r, skipping tile URL", service)

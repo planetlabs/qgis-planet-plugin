@@ -25,6 +25,7 @@ __revision__ = "$Format:%H$"
 import json
 import os
 
+from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface, log
 from qgis.core import QgsMapLayerProxyModel
 from qgis.gui import QgsMapLayerComboBox
 from qgis.PyQt.QtCore import QSettings, Qt
@@ -42,8 +43,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from planet_explorer.pe_utils import SETTINGS_NAMESPACE, iface, log
 
 BOOL = "bool"
 STRING = "string"
@@ -73,9 +72,7 @@ class TextBoxWithLink(QWidget):
         if not editable:
             self.lineEdit.setReadOnly(True)
         self.lineEdit.setText(value)
-        self.lineEdit.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        self.lineEdit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.lineEdit)
         if text:
             linkLabel = QLabel()
@@ -97,9 +94,7 @@ class TextBoxWithLink(QWidget):
 class SettingsDialog(QDialog):
     def __init__(self):
         QDialog.__init__(self, iface.mainWindow())
-        filepath = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "settings.json"
-        )
+        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), "settings.json")
         with open(filepath) as f:
             self.params = json.load(f)
         self.widgets = {}
@@ -334,9 +329,7 @@ class SettingsDialog(QDialog):
     def accept(self):
         for name, widget in self.widgets.items():
             try:
-                value = self.valueFromWidget(
-                    widget, parameterFromName(self.params, name)["type"]
-                )
+                value = self.valueFromWidget(widget, parameterFromName(self.params, name)["type"])
                 QSettings().setValue(f"{SETTINGS_NAMESPACE}/{name}", value)
             except WrongValueException:
                 # show warning

@@ -26,10 +26,7 @@ def test_aoi():
 
 
 def get_testing_credentials():
-    if (
-        os.environ.get("PLANET_USER") is None
-        or os.environ.get("PLANET_PASSWORD") is None
-    ):
+    if os.environ.get("PLANET_USER") is None or os.environ.get("PLANET_PASSWORD") is None:
         raise ValueError(
             "PLANET_USER and PLANET_PASSWORD env vars are undefined! Cannot run tests."
         )
@@ -37,7 +34,11 @@ def get_testing_credentials():
 
 
 def qgis_debug_wait(qtbot, qgis_debug_enabled, wait=1000):
-    """Helper function to see what is going on when running tests."""
+    """
+    Helper function to see what is going on when running tests.
+
+    # noqa: DAR101
+    """
     if qgis_debug_enabled:
         qtbot.wait(wait)
 
@@ -45,6 +46,9 @@ def qgis_debug_wait(qtbot, qgis_debug_enabled, wait=1000):
 def get_explorer_dockwidget(plugin_toolbar, login=True):
     """
     Setup the explorer dock_widget for tests
+
+    # noqa: DAR101
+    # noqa: DAR201
     """
     dock_widget = pe_explorer_dockwidget._get_widget_instance()  # noqa
     current_geometry = dock_widget.geometry()
@@ -66,6 +70,9 @@ def get_explorer_dockwidget(plugin_toolbar, login=True):
 def get_order_monitor_widget(explorer_dockwidget):
     """
     Setup orders monitor dock_widget for tests
+
+    # noqa: DAR101
+    # noqa: DAR201
     """
     order_widget = pe_orders_monitor_dockwidget._get_widget_instance()  # noqa
     current_geometry = order_widget.geometry()
@@ -81,8 +88,11 @@ def get_order_monitor_widget(explorer_dockwidget):
 def get_tasking_widget(explorer_dockwidget):
     """
     Setup orders monitor dock_widget for tests
+
+    # noqa: DAR101
+    # noqa: DAR201
     """
-    tasking_widget = pe_tasking_dockwidget._get_widget_instance()  # noqa
+    tasking_widget = pe_tasking_dockwidget._get_widget_instance()
     current_geometry = tasking_widget.geometry()
     tasking_widget.setGeometry(
         explorer_dockwidget.geometry().width() + 1,
@@ -120,8 +130,6 @@ def get_recent_release_from_changelog(root_dir: pathlib.Path):
             recent_release = entry.split(" ")[0]
             break
     if not recent_release:
-        raise RuntimeError(
-            "Could not find most recent release in 'planet_explorer/metadata.txt'"
-        )
+        raise RuntimeError("Could not find most recent release in 'planet_explorer/metadata.txt'")
     else:
         return recent_release

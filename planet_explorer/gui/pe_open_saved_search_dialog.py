@@ -14,6 +14,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 import os
 from typing import Any
 
@@ -107,10 +108,7 @@ class OpenSavedSearchDialog(BASE, WIDGET):
                 for t in request["item_types"]
             )
         )
-        if (
-            "PSScene4Band" in request["item_types"]
-            or "PSScene3Band" in request["item_types"]
-        ):
+        if "PSScene4Band" in request["item_types"] or "PSScene3Band" in request["item_types"]:
             if "PSScene3Band" in request["item_types"]:
                 assets = PlanetClient.getInstance().psscene_asset_types_for_nbands(3)
             else:
@@ -155,16 +153,12 @@ class OpenSavedSearchDialog(BASE, WIDGET):
             tokens = []
             gte = filters[0]["config"].get("gte")
             if gte is not None:
-                tokens.append(
-                    QDateTime.fromString(gte, Qt.DateFormat.ISODate).date().toString()
-                )
+                tokens.append(QDateTime.fromString(gte, Qt.DateFormat.ISODate).date().toString())
             else:
                 tokens.append("---")
             lte = filters[0]["config"].get("lte")
             if lte is not None:
-                tokens.append(
-                    QDateTime.fromString(lte, Qt.DateFormat.ISODate).date().toString()
-                )
+                tokens.append(QDateTime.fromString(lte, Qt.DateFormat.ISODate).date().toString())
             else:
                 tokens.append("---")
             self.labelDateRange.setText(" / ".join(tokens))

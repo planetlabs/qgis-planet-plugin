@@ -83,9 +83,7 @@ def quad_orders():
                     )
                 orders.append(order)
         except Exception:
-            log.error(
-                "Error reading quad orders file. The file may be corrupted or malformed."
-            )
+            log.error("Error reading quad orders file. The file may be corrupted or malformed.")
             pass  # will return an empty array if the file is corrupted
         return orders
     else:
@@ -99,9 +97,7 @@ def _add_order(order):
         json.dump(
             all_orders,
             f,
-            default=lambda x: {
-                k: v for k, v in x.__dict__.items() if not k.startswith("_")
-            },
+            default=lambda x: {k: v for k, v in x.__dict__.items() if not k.startswith("_")},
         )
 
 
@@ -129,9 +125,7 @@ class QuadOrder:
         for mosaic, mosaicquads in self.quads.items():
             mosaiclocations = []
             for quad in mosaicquads:
-                mosaiclocations.append(
-                    (f"{quad[LINKS][DOWNLOAD]}&ua={user_agent()}", quad[ID])
-                )
+                mosaiclocations.append((f"{quad[LINKS][DOWNLOAD]}&ua={user_agent()}", quad[ID]))
             locations[mosaic] = mosaiclocations
         return locations
 
@@ -162,9 +156,7 @@ class QuadCompleteOrder(QuadOrder):
         locations = {}
         for mosaic in self.mosaics:
             json_quads = p_client.get_quads_for_mosaic(mosaic, minimal=True)
-            locations[mosaic[NAME]] = [
-                (quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads
-            ]
+            locations[mosaic[NAME]] = [(quad[LINKS][DOWNLOAD], quad[ID]) for quad in json_quads]
         return locations
 
     def id(self):

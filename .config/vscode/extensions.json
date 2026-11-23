@@ -1,0 +1,48 @@
+{
+  "recommendations": [
+    // Bash files
+    "timonwong.shellcheck",
+    "foxundermoon.shell-format",
+    // Drawing tools
+    "hediet.vscode-drawio",
+    "pomdtr.excalidraw-editor",
+    // Github
+    "github.vscode-github-actions",
+    "GitHub.vscode-pull-request-github",
+    "waderyan.gitblame",
+    "eamodio.gitlens",
+    // HTML
+    "ecmel.vscode-html-css",
+    "george-alisson.html-preview-vscode",
+    // Makefile
+    "ms-vscode.makefile-tools",
+    "eshojaei.mbake-makefile-formatter",
+    // Markdown
+    "DavidAnson.vscode-markdownlint",
+    "streetsidesoftware.code-spell-checker",
+    "yzhang.markdown-all-in-one",
+    // Nix
+    "jnoortheen.nix-ide",
+    "mkhl.direnv",
+    // Python
+    "KevinRose.vsc-python-indent",
+    "ms-python.black-formatter",
+    "ms-python.debugpy",
+    "ms-python.python",
+    "ms-toolsai.jupyter",
+    "ms-python.vscode-python-envs",
+    "ms-python.vscode-pylance",
+    "naumovs.color-highlight",
+    "njpwerner.autodocstring",
+    // TOML
+    "tamasfe.even-better-toml",
+    // YAML
+    "redhat.vscode-yaml",
+    // JSON
+    "biomejs.biome",
+    // XML
+    "redhat.vscode-xml",
+    // Others
+    "gruntfuggly.todo-tree"
+  ]
+}

@@ -1,7 +1,8 @@
 {
-  description = "NixOS developer environment for QGIS plugins.";
+  description = "NixOS developer environment for the Planet QGIS plugin.";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     darglint-repo.url = "github:vikineema/darglint-nix";
   };
   outputs =
@@ -9,6 +10,7 @@
       self,
       darglint-repo,
       nixpkgs,
+      nixpkgs-unstable,
       ...
     }@inputs:
     let
@@ -17,102 +19,85 @@
       pkgs = import nixpkgs {
         inherit system;
         config = {
-          allowUnfree = true;
+          allowUnfree = false;
+          allowUnfreePredicate =
+            pkg:
+            builtins.elem (nixpkgs-unstable.lib.getName pkg) [
+              "bearer"
+            ];
+        };
+      };
+      pkgsUnstable = import nixpkgs-unstable {
+        inherit system;
+        config = {
+          allowUnfree = false;
         };
       };
       darglint = darglint-repo.packages.${system}.darglint;
-      extraPythonPackages = ps: [
-        ps.pyqtwebengine
-        ps.jsonschema
-        ps.debugpy
-        ps.psutil
-        ps.httpcore
-        ps.anyio
-        ps.pip
+      # Common python for all package groups
+      python = pkgs.python313;
+      pythonPkgs = python.pkgs;
+      # Split packages into groups for better tracking
+      lintersFormatters = with pkgs; [
+        actionlint
+        biome
+        cspell
+        darglint
+        jq
+        markdownlint-cli
+        mbake
+        nixfmt
+        pre-commit
+        pythonPkgs.pre-commit-hooks
+        ruff
+        shellcheck
+        shfmt
+        taplo
+        yamllint
       ];
-      qgisWithExtras = pkgs.qgis.override {
-        extraPythonPackages = extraPythonPackages;
-      };
-      qgisLtrWithExtras = pkgs.qgis-ltr.override {
-        extraPythonPackages = extraPythonPackages;
-      };
-
-      # Common packages shared between all devShells (Qt-agnostic)
-      makeCommonPackages =
-        p: with p; [
-          actionlint # for checking gh actions
-          act # for running github actions locally
-          bandit
-          bearer
-          chafa
-          # p.codeql # Build time is too long
-          cspell
-          detect-secrets
-          ffmpeg
-          glogg
-          gdb
-          git
-          glow # terminal markdown viewer
-          gource # Software version control visualization
-          gum # UX for TUIs
-          isort
-          jq
-          markdownlint-cli
-          nixfmt
-          pipewire
-          privoxy
-          pyprof2calltree # needed to convert cprofile call trees into a format kcachegrind can read
-          python3
-          ripgrep
-          shellcheck
-          shfmt
-          tailspin # Beautiful log tailing with syntax highlighting
-          vim
-          virtualenv
-          vscode
-          yamllint
-          yamlfmt
-          darglint
-          (python3.withPackages (
-            ps: with ps; [
-              python
-              pip
-              setuptools
-              wheel
-              pytest
-              pytest-qt
-              black
-              click # needed by black
-              jsonschema
-              pandas
-              odfpy
-              psutil
-              httpx
-              toml
-              typer
-              paver
-              detect-secrets
-              flake8
-              # For autocompletion in vscode
-              snakeviz # For visualising cprofiler outputs
-              sqlfmt
-              # This executes some shell code to initialize a venv in $venvDir before
-              # dropping into the shell
-              venvShellHook
-              virtualenv
-              # Those are dependencies that we would like to use from nixpkgs, which will
-              # add them to PYTHONPATH and thus make them accessible from within the venv.
-              debugpy
-              numpy
-              gdal
-              pip
-              pyqtwebengine
-              pre-commit-hooks
-            ]
-          ))
+      devUtils = with pkgs; [
+        act
+        gdb
+        gh
+        git
+        glogg
+        glow
+        gource
+        gum
+        pyprof2calltree
+        ripgrep
+        tailspin
+      ];
+      qgisPlanetDeps = with pkgs; [
+        pipewire
+        privoxy
+        pythonPkgs.httpx
+        pythonPkgs.paver
+      ];
+      qgisPluginsSecurity = with pkgs; [
+        bandit
+        bearer
+        detect-secrets
+        fd
+        pythonPkgs.flake8
+        pythonPkgs.requests
+      ];
+      # Extra python packages to be made available to QGIS
+      qgisCommonExtraPythonPackages =
+        ps: with ps; [
+          anyio
+          debugpy
+          httpcore
+          jsonschema
+          pip
+          psutil
         ];
-      commonPackages = makeCommonPackages pkgs;
-
+      qgisLtrWithExtras = pkgs.qgis-ltr.override {
+        extraPythonPackages = ps: (qgisCommonExtraPythonPackages ps) ++ [ ps.pyqtwebengine ];
+      };
+      qgisWithExtras = pkgs.qgis.override {
+        extraPythonPackages = ps: (qgisCommonExtraPythonPackages ps) ++ [ ps.pyqt6-webengine ];
+      };
       # Qt5 packages for QGIS 3 LTR development
       # Note: kcachegrind is only available in Qt6, use .#qt6 devShell for profiling
       qt5Packages = with pkgs; [
@@ -122,13 +107,12 @@
         qt5.qtquickcontrols2
         qt5.qttools
         qt5.qtsvg
-        (python3.withPackages (
+        (python.withPackages (
           ps: with ps; [
             pyqt5
           ]
         ))
       ];
-
       # Qt6 packages for QGIS 4 development
       qt6Packages = with pkgs; [
         qt6.qtbase
@@ -137,52 +121,27 @@
         qt6.qtdeclarative
         qt6.qtsvg
         kdePackages.kcachegrind
-        (python3.withPackages (
+        (python.withPackages (
           ps: with ps; [
             pyqt6
             qscintilla-qt6
           ]
         ))
       ];
-
-      # Jupyter notebooks
-      jupyterEnv = with pkgs; [
-        (python3.withPackages (
-          ps: with ps; [
-            jupyterlab
-            pillow
-            folium
-            shapely
-          ]
-        ))
+      commonLibPath = pkgs.lib.makeLibraryPath [
+        # Dynamically links the pipewire libraries so Qt can resolve the symbols
+        pkgs.pipewire
       ];
-      precommitHook = ''
-        pre-commit clean > /dev/null
-        pre-commit install --install-hooks > /dev/null
-        pre-commit run --all-files || true
+      qtPositioningHook = pyqt: ''
+        export QTPOSITIONING="${pyqt}/${python.sitePackages}"
       '';
+      qt6Positioning = qtPositioningHook pythonPkgs.pyqt6;
+      qt5Positioning = qtPositioningHook pythonPkgs.pyqt5;
+      commonPackages = lintersFormatters ++ qgisPluginsSecurity ++ devUtils ++ qgisPlanetDeps;
       commonShellHook = ''
-        unset SOURCE_DATE_EPOCH
-
-        # Create a virtual environment in .venv if it doesn't exist
-        if [ ! -d ".venv" ]; then
-          python -m venv .venv
-        fi
-
-        # Activate the virtual environment
-        source .venv/bin/activate
-
-        # Upgrade pip and install packages from requirements.txt if it exists
-        pip install --upgrade pip > /dev/null
-        if [ -f requirements.txt ]; then
-          echo "Installing Python requirements from requirements.txt..."
-          pip install -r requirements.txt > .pip-install.log 2>&1
-          if [ $? -ne 0 ]; then
-            echo "❌ Pip install failed. See .pip-install.log for details."
-          fi
-        else
-          echo "No requirements.txt found, skipping pip install."
-        fi
+        export QGIS_PROFILE_NAME=${profileName}
+        source ./scripts/setup_dev_env.sh
+        source ./scripts/setup_qgis_envs.sh
 
         echo "-----------------------"
         echo "🌈 Your Dev Environment is prepared."
@@ -212,7 +171,6 @@
         echo "-----------------------"
         echo ""
       '';
-
     in
     {
       packages.${system} = {
@@ -220,44 +178,16 @@
         qgis-ltr = qgisLtrWithExtras;
       };
 
-      devShells.${system} = {
-        # Default devShell uses Qt6 for QGIS 4 development
-        default = pkgs.mkShell {
-          name = "default";
-          packages = commonPackages ++ qt6Packages;
-          shellHook = ''
-            echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
-            echo "   Use 'nix develop .#qt5' for QGIS 3 LTR development tools"
-            echo ""
-            export QTPOSITIONING="${pkgs.python3Packages.pyqt6}/${pkgs.python3.sitePackages}"
-          ''
-          + commonShellHook;
-        };
-
+      devShells.${system} = rec {
         # Qt6 devShell for QGIS 4 development
         qt6 = pkgs.mkShell {
           name = "qt6";
           packages = commonPackages ++ qt6Packages;
+          LD_LIBRARY_PATH = commonLibPath;
           shellHook = ''
             echo "🔧 Using Qt6 devShell (for QGIS 4 development)"
-            echo ""
-            export QTPOSITIONING="${pkgs.python3Packages.pyqt6}/${pkgs.python3.sitePackages}"
-            # Dynamically links the pipewire libraries so Qt can resolve the symbols
-            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
           ''
-          + commonShellHook;
-        };
-
-        pyqgis-qt6 = pkgs.mkShell {
-          name = "pyqgis-qt6";
-          packages = commonPackages ++ qt6Packages ++ [ qgisWithExtras ] ++ jupyterEnv;
-          shellHook = ''
-            echo "🔧 Using PyQGIS and Qt6 devShell (for QGIS 4 development)"
-            echo ""
-            export PYTHONPATH="${qgisWithExtras}/share/qgis/python:${qgisWithExtras}/${pkgs.python3.sitePackages}:$PYTHONPATH"
-            export QTPOSITIONING="${pkgs.python3Packages.pyqt6}/${pkgs.python3.sitePackages}"
-            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
-          ''
+          + qt6Positioning
           + commonShellHook;
         };
 
@@ -265,26 +195,35 @@
         qt5 = pkgs.mkShell {
           name = "qt5";
           packages = commonPackages ++ qt5Packages;
+          LD_LIBRARY_PATH = commonLibPath;
           shellHook = ''
             echo "🔧 Using Qt5 devShell (for QGIS 3 LTR development)"
-            echo ""
-            export QTPOSITIONING="${pkgs.python3Packages.pyqt5}/${pkgs.python3.sitePackages}"
           ''
+          + qt5Positioning
           + commonShellHook;
         };
 
-        pyqgis-qt5 = pkgs.mkShell {
-          name = "pyqgis-qt5";
-          packages = commonPackages ++ qt5Packages ++ [ qgisLtrWithExtras ] ++ jupyterEnv;
+        pyqgis3-qt5 = pkgs.mkShell {
+          name = "pyqgis3-qt5";
+          packages = commonPackages ++ [ qgisLtrWithExtras ] ++ qt5Packages;
+          LD_LIBRARY_PATH = commonLibPath;
           shellHook = ''
-            echo "🔧 Using PyQGIS and Qt5 devShell (for QGIS 3 LTR development)"
-            echo ""
-            export PYTHONPATH="${qgisLtrWithExtras}/share/qgis/python:${qgisLtrWithExtras}/${pkgs.python3.sitePackages}:$PYTHONPATH"
-            export QTPOSITIONING="${pkgs.python3Packages.pyqt5}/${pkgs.python3.sitePackages}"
-            export LD_LIBRARY_PATH="${pkgs.pipewire}/lib:$LD_LIBRARY_PATH"
+            echo "🔧 Using PyQGIS for QGIS 3 and Qt5 devShell (for QGIS 3 LTR development)"
           ''
+          + qt5Positioning
           + commonShellHook;
         };
+        pyqgis4-qt6 = pkgs.mkShell {
+          name = "pyqgis4-qt6";
+          packages = commonPackages ++ [ qgisWithExtras ] ++ qt6Packages;
+          LD_LIBRARY_PATH = commonLibPath;
+          shellHook = ''
+            echo "🔧 Using PyQGIS for QGIS 4 and Qt6 devShell (for QGIS 4 development)"
+          ''
+          + qt6Positioning
+          + commonShellHook;
+        };
+        default = pyqgis4-qt6;
       };
       apps.${system} = {
         qgis = {

@@ -140,9 +140,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.btnFindQuads.clicked.connect(self.find_quads_clicked)
         self.btnSubmitOrder.clicked.connect(self.submit_button_clicked)
         self.btnCloseConfirmation.clicked.connect(self.close_aoi_page)
-        self.btnSubmitOrderStreaming.clicked.connect(
-            self.submit_streaming_button_clicked
-        )
+        self.btnSubmitOrderStreaming.clicked.connect(self.submit_streaming_button_clicked)
         self.chkMinZoomLevel.stateChanged.connect(self.min_zoom_level_checked)
         self.chkMaxZoomLevel.stateChanged.connect(self.max_zoom_level_checked)
 
@@ -155,9 +153,7 @@ class BasemapsWidget(BASE, WIDGET):
         self.textBrowserOrderConfirmation.anchorClicked.connect(show_orders_monitor)
         self.comboSeriesName.currentIndexChanged.connect(self.serie_selected)
         self.grpBoxFilter.collapsedStateChanged.connect(self.collapse_state_changed)
-        self.lblSelectAllMosaics.linkActivated.connect(
-            self.batch_select_mosaics_clicked
-        )
+        self.lblSelectAllMosaics.linkActivated.connect(self.batch_select_mosaics_clicked)
         self.lblSelectAllQuads.linkActivated.connect(self.batch_select_quads_clicked)
         self.chkGroupByQuad.stateChanged.connect(self._populate_quads)
         self.chkOnlySRBasemaps.stateChanged.connect(self._only_sr_basemaps_changed)
@@ -357,8 +353,7 @@ class BasemapsWidget(BASE, WIDGET):
                     mosaics = self.mosaics_for_serie(data[0])
                 except InvalidAPIKey:
                     self.parent.show_message(
-                        "Insufficient privileges. Cannot show mosaics of the selected"
-                        " series",
+                        "Insufficient privileges. Cannot show mosaics of the selected series",
                         level=Qgis.MessageLevel.Warning,
                         duration=10,
                     )
@@ -731,16 +726,8 @@ class BasemapsWidget(BASE, WIDGET):
 
     def submit_streaming_button_clicked(self):
         selected = self.mosaicsList.selected_mosaics()
-        zmin = (
-            self.comboMinZoomLevel.currentText()
-            if self.chkMinZoomLevel.isChecked()
-            else 0
-        )
-        zmax = (
-            self.comboMaxZoomLevel.currentText()
-            if self.chkMaxZoomLevel.isChecked()
-            else 18
-        )
+        zmin = self.comboMinZoomLevel.currentText() if self.chkMinZoomLevel.isChecked() else 0
+        zmax = self.comboMaxZoomLevel.currentText() if self.chkMaxZoomLevel.isChecked() else 18
         mosaicname = self.comboSeriesName.currentText() or selected[0][NAME]
         proc = self.renderingOptions.process()
         ramp = self.renderingOptions.ramp()
@@ -846,7 +833,6 @@ class BasemapsWidget(BASE, WIDGET):
 
 
 class QuadFinder(QObject):
-
     finished = pyqtSignal(list)
     pageRead = pyqtSignal(int)
     mosaicStarted = pyqtSignal(int, str)

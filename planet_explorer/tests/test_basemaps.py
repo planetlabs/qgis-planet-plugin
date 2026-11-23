@@ -37,13 +37,12 @@ def basemaps_widget(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
 
 
 class TestBasemaps(unittest.TestCase):
-
-    def test_basemaps_shown(
-        self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled
-    ):
+    def test_basemaps_shown(self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
         """
         Verifies:
             - PLQGIS-TC10
+
+        # noqa: DAR101
         """
         dock_widget = logged_in_explorer_dock_widget()
         qgis_debug_wait(qtbot, qgis_debug_enabled)
@@ -54,12 +53,8 @@ class TestBasemaps(unittest.TestCase):
                 basemaps_tab_index = index
                 break
 
-        self.assertIsNotNone(
-            basemaps_tab_index, "Basemaps tab is not enabled or not found!"
-        )
-        self.assertTrue(
-            dock_widget.tabWidgetResourceType.isTabEnabled(basemaps_tab_index)
-        )
+        self.assertIsNotNone(basemaps_tab_index, "Basemaps tab is not enabled or not found!")
+        self.assertTrue(dock_widget.tabWidgetResourceType.isTabEnabled(basemaps_tab_index))
 
         # determine where to click to hit the "Basemaps" tab
         tab_bar = dock_widget.tabWidgetResourceType.tabBar()
@@ -100,12 +95,12 @@ class TestBasemaps(unittest.TestCase):
         Verifies:
             - PLQGIS-TC11
             - PLQGIS-TC13
+
+        # noqa: DAR101
         """
         _, basemaps_widget = basemaps_widget
         num_months = 4
-        filter_basemaps_by_name(
-            "Global Monthly", qtbot, basemaps_widget, qgis_debug_enabled
-        )
+        filter_basemaps_by_name("Global Monthly", qtbot, basemaps_widget, qgis_debug_enabled)
         mosaics_list = basemaps_widget.mosaicsList
         for index in range(num_months):
             qtbot.mouseClick(
@@ -143,6 +138,8 @@ class TestBasemaps(unittest.TestCase):
         Verifies:
             - PLQGIS-TC11
             - PLQGIS-TC12
+
+        # noqa: DAR101
         """
         _, basemaps_widget = basemaps_widget
         filter_basemaps_by_name("Coral Sea", qtbot, basemaps_widget, qgis_debug_enabled)
@@ -195,15 +192,15 @@ class TestBasemaps(unittest.TestCase):
         """
         Verifies:
             - PLQGIS-TC14
+
+        # noqa: DAR101
         """
         if str(qgis_version).startswith("322") or str(qgis_version).startswith("324"):
             self.skipTest("This test causes a seg fault on QGIS 3.22 and 3.24")
         dock_widget, basemaps_widget = basemaps_widget
         order_name = f"test-qgis-basemaps-order-{get_random_string()}"
 
-        filter_basemaps_by_name(
-            "Global Monthly", qtbot, basemaps_widget, qgis_debug_enabled
-        )
+        filter_basemaps_by_name("Global Monthly", qtbot, basemaps_widget, qgis_debug_enabled)
         mosaics_list = basemaps_widget.mosaicsList
         qtbot.mouseClick(
             mosaics_list.itemWidget(mosaics_list.item(0)).checkBox, QtCore.Qt.LeftButton
@@ -251,9 +248,7 @@ class TestBasemaps(unittest.TestCase):
                 order_names,
                 f"New order missing from orders list: {order_names}",
             )
-            self.assertIsNotNone(
-                item_widget, "item_widget is None, cannot download basemap"
-            )
+            self.assertIsNotNone(item_widget, "item_widget is None, cannot download basemap")
             item_widget.download(is_unit_test=True)
             qtbot.waitUntil(item_widget.order.downloaded, timeout=60 * 1000)  # noqa
 

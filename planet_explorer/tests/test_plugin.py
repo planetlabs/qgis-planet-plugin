@@ -67,9 +67,7 @@ class TestPlugin(unittest.TestCase):
             plugin.find("tracker").text,
             "https://github.com/planetlabs/qgis-planet-plugin/issues",
         )
-        self.assertEqual(
-            plugin.find("tags").text, "landsat, raster, analytics, remote sensing"
-        )
+        self.assertEqual(plugin.find("tags").text, "landsat, raster, analytics, remote sensing")
 
         self.assertIsNotNone(plugin.find("file_name").text)
         self.assertIsNotNone(plugin.find("version"))

@@ -260,9 +260,7 @@ class OrderItemWidget(QWidget):
             hlayout.addWidget(label_open_folder)
             label_open_folder.setOpenExternalLinks(False)
             label_open_folder.linkActivated.connect(
-                lambda: QDesktopServices.openUrl(
-                    QUrl.fromLocalFile(self.order.download_folder())
-                )
+                lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.order.download_folder()))
             )
         else:
             # Add to map button will be disabled if the data has not been downloaded
@@ -339,7 +337,6 @@ class OrderItemWidget(QWidget):
 
         band_cnt = layer.bandCount()
         if band_cnt < 3:
-
             # These cases will be skipped for now, but removing this 'return'
             # will add singleband layers again
             return
@@ -448,9 +445,7 @@ class OrderItemWidget(QWidget):
         try:
             manifest_file_path = safe_join(sanitized_final_path, "manifest.json")
         except ValueError:
-            self.qgs_error_message(
-                "Cannot add data to map", "Invalid order directory path"
-            )
+            self.qgs_error_message("Cannot add data to map", "Invalid order directory path")
             return False
 
         if not Path(manifest_file_path).exists():
@@ -471,9 +466,7 @@ class OrderItemWidget(QWidget):
                 data_found = True
 
         if not data_found:
-            self.qgs_error_message(
-                "Cannot add data to map", "Image layer(s) is missing"
-            )
+            self.qgs_error_message("Cannot add data to map", "Image layer(s) is missing")
         return data_found
 
     def add_to_map(self) -> bool:
@@ -538,9 +531,7 @@ class QuadsOrderItemWidget(QWidget):
             vlayout.addWidget(labelOpenFolder)
             labelOpenFolder.setOpenExternalLinks(False)
             labelOpenFolder.linkActivated.connect(
-                lambda: QDesktopServices.openUrl(
-                    QUrl.fromLocalFile(self.order.download_folder())
-                )
+                lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.order.download_folder()))
             )
 
         layout = QHBoxLayout()

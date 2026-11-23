@@ -33,7 +33,6 @@ TEST_MULTIPOLY = "{}/data/aoi_tests/test_multipoly.gpkg".format(ABSOLUTE_PATH)
 
 
 class TestDailyImagery(unittest.TestCase):
-
     def test_search_default_filter(
         self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
     ):
@@ -45,9 +44,7 @@ class TestDailyImagery(unittest.TestCase):
         qtbot.mouseClick(dock_widget.btnSearch, QtCore.Qt.LeftButton)
         qgis_debug_wait(qtbot, qgis_debug_enabled)
         self.assertGreater(dock_widget.searchResultsWidget.tree.topLevelItemCount(), 1)
-        images_found = int(
-            dock_widget.searchResultsWidget.lblImageCount.text().split(" ")[0]
-        )
+        images_found = int(dock_widget.searchResultsWidget.lblImageCount.text().split(" ")[0])
         self.assertGreater(images_found, 1)
 
     def test_search_date_time_filter(
@@ -113,9 +110,7 @@ class TestDailyImagery(unittest.TestCase):
         for name, widget in ITEM_TYPE_CHECKBOXES.items():
             getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
 
-        checkbox = getattr(
-            dock_widget._daily_filters_widget, ITEM_TYPE_CHECKBOXES[item_type]
-        )
+        checkbox = getattr(dock_widget._daily_filters_widget, ITEM_TYPE_CHECKBOXES[item_type])
         qtbot.mouseClick(
             checkbox,
             QtCore.Qt.LeftButton,
@@ -154,9 +149,7 @@ class TestDailyImagery(unittest.TestCase):
         for name, widget in SPECTRAL_BAND_CHECKBOXES.items():
             getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
 
-        checkbox = getattr(
-            dock_widget._daily_filters_widget, SPECTRAL_BAND_CHECKBOXES[band]
-        )
+        checkbox = getattr(dock_widget._daily_filters_widget, SPECTRAL_BAND_CHECKBOXES[band])
         qtbot.mouseClick(
             checkbox,
             QtCore.Qt.LeftButton,
@@ -203,9 +196,7 @@ class TestDailyImagery(unittest.TestCase):
         for name, widget in INSTRUMENT_CHECKBOXES.items():
             getattr(dock_widget._daily_filters_widget, widget).setCheckState(0)
 
-        checkbox = getattr(
-            dock_widget._daily_filters_widget, INSTRUMENT_CHECKBOXES[instrument]
-        )
+        checkbox = getattr(dock_widget._daily_filters_widget, INSTRUMENT_CHECKBOXES[instrument])
         qtbot.mouseClick(
             checkbox,
             QtCore.Qt.LeftButton,
@@ -279,9 +270,7 @@ class TestDailyImagery(unittest.TestCase):
         qgis_debug_wait(qtbot, qgis_debug_enabled)
 
         filter_widget = dock_widget._daily_filters_widget
-        sliders = filter_widget.frameRangeSliders.findChildren(
-            PlanetExplorerRangeSlider
-        )
+        sliders = filter_widget.frameRangeSliders.findChildren(PlanetExplorerRangeSlider)
         for slider in sliders:
             if slider.filter_key == slider_key:
                 break
@@ -324,9 +313,7 @@ class TestDailyImagery(unittest.TestCase):
         layers = list(QgsProject.instance().mapLayers().values())
         self.assertEqual(len(layers), 2)
 
-    def test_search_wrong_aoi(
-        self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled
-    ):
+    def test_search_wrong_aoi(self, qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled):
         dock_widget = logged_in_explorer_dock_widget().daily_images_widget
 
         qgis_debug_wait(qtbot, qgis_debug_enabled)

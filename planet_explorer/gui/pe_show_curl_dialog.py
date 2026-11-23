@@ -37,9 +37,7 @@ curl_template = (
 )
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "ui", "show_curl_dialog.ui"
-    )
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "show_curl_dialog.ui")
 )
 
 

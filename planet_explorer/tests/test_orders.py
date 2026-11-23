@@ -18,9 +18,7 @@ pytestmark = [pytest.mark.qgis_show_map(add_basemap=False, timeout=1)]
 
 
 @pytest.fixture
-def checked_images(
-    qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi
-):
+def checked_images(qtbot, logged_in_explorer_dock_widget, qgis_debug_enabled, sample_aoi):
     dock_widget = logged_in_explorer_dock_widget()
     daily_images_widget = dock_widget.daily_images_widget
     qtbot.add_widget(daily_images_widget)
@@ -102,9 +100,11 @@ class TestOrders:
         qgis_debug_wait(qtbot, qgis_debug_enabled)
 
         qtbot.waitUntil(
-            lambda: order_monitor.listOrders.count() > 0
-            and order_monitor.listOrders.itemWidget(order_monitor.listOrders.item(0))
-            is not None,
+            lambda: (
+                order_monitor.listOrders.count() > 0
+                and order_monitor.listOrders.itemWidget(order_monitor.listOrders.item(0))
+                is not None
+            ),
             timeout=15000,
         )
 
@@ -112,9 +112,7 @@ class TestOrders:
             item = order_monitor.listOrders.item(index)
             item_widget = order_monitor.listOrders.itemWidget(item)
             download_button = [
-                widget
-                for widget in item_widget.children()
-                if isinstance(widget, QPushButton)
+                widget for widget in item_widget.children() if isinstance(widget, QPushButton)
             ][0]
             self.assertIn("download", download_button.text().lower())
 
@@ -271,15 +269,11 @@ class TestOrders:
             qtbot.keyClicks(order_dialog.txtOrderName, order_name)
             qgis_debug_wait(qtbot, qgis_debug_enabled)
             self.assertTrue(order_dialog.btnContinueName.isEnabled())
-            qtbot.mouseClick(
-                order_dialog.btnContinueName, QtCore.Qt.MouseButton.LeftButton
-            )
+            qtbot.mouseClick(order_dialog.btnContinueName, QtCore.Qt.MouseButton.LeftButton)
             qgis_debug_wait(qtbot, qgis_debug_enabled)
 
             # assets page
-            qtbot.mouseClick(
-                order_dialog.btnContinueAssets, QtCore.Qt.MouseButton.LeftButton
-            )
+            qtbot.mouseClick(order_dialog.btnContinueAssets, QtCore.Qt.MouseButton.LeftButton)
             qgis_debug_wait(qtbot, qgis_debug_enabled)
 
             # check STAC button state
@@ -292,9 +286,7 @@ class TestOrders:
             # review page and place the order. note we only actually place the order
             # on the latest version of QGIS to keep the total number of orders down.
             if qgis_version > 32600:
-                qtbot.mouseClick(
-                    order_dialog.btnPlaceOrder, QtCore.Qt.MouseButton.LeftButton
-                )
+                qtbot.mouseClick(order_dialog.btnPlaceOrder, QtCore.Qt.MouseButton.LeftButton)
                 qgis_debug_wait(qtbot, qgis_debug_enabled)
             order_dialog.close()
 
@@ -320,8 +312,7 @@ class TestOrders:
 
             # Check for all order metadata except QuadOrder orders
             order_metadata = [
-                order.metadata() if not isinstance(order, QuadOrder) else None
-                for order in orders
+                order.metadata() if not isinstance(order, QuadOrder) else None for order in orders
             ]
             stac_metadata = {"stac": {}}
 

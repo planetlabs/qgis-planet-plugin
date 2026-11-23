@@ -12,9 +12,11 @@ from qgis.testing import start_app
 
 from planet_explorer import classFactory
 
-if os.environ.get("IS_DOCKER_CONTAINER") and os.environ["IS_DOCKER_CONTAINER"].lower()[
-    0
-] in ["t", "y", "1"]:
+if os.environ.get("IS_DOCKER_CONTAINER") and os.environ["IS_DOCKER_CONTAINER"].lower()[0] in [
+    "t",
+    "y",
+    "1",
+]:
     # when running in a docker container, we use the start_app provided by qgis rather
     # than that of pytest-qgis. pytest-qgis does not cleanup the application properly
     # and results in a seg-fault
@@ -182,9 +184,7 @@ def large_aoi():
 
 
 @pytest.fixture
-def explorer_dock_widget(
-    plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface
-):
+def explorer_dock_widget(plugin, plugin_toolbar, qgis_debug_enabled, qtbot, pe_qgis_iface):
     """Provide a factory function to instantiate the explorer dock widget.
 
     This convenience fixture returns a callable that safely creates, configures,
@@ -339,7 +339,6 @@ def pytest_configure(config):
         config: The pytest config object.
     """
     try:
-
         print(f"\n[QGIS VERSION CHECK] Running tests on QGIS Version: {Qgis.version()}")
     except ImportError:
         print("\n[QGIS VERSION CHECK] Failed to import qgis.core")

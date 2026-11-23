@@ -24,7 +24,6 @@ codeql-db
 .claude
 .pac-server.pid
 proxy.pac
-core
 shell.nix
 # Log files
 vscode.log
@@ -40,7 +39,8 @@ antigravity.log
 # Test environment
 planet_explorer/test_area/**
 # Core files
-**/core**
+core
+core.[0-9]*
 # Jupyter
 testnotebooks/**
 **/*jupyter.log

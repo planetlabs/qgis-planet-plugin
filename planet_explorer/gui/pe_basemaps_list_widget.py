@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+
 __author__ = "Planet Federal"
 __date__ = "August 2020"
 __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
@@ -24,6 +25,7 @@ __copyright__ = "(C) 2019 Planet Inc, https://planet.com"
 __revision__ = "$Format:%H$"
 
 
+from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR, iface
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QIcon, QImage, QPalette, QPixmap
@@ -38,8 +40,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from planet_explorer.pe_utils import ITEM_BACKGROUND_COLOR, iface
 
 from ..pe_utils import (
     FIRST_ACQUIRED,
@@ -62,7 +62,6 @@ PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 
 class BasemapsListWidget(QListWidget):
-
     basemapsSelectionChanged = pyqtSignal()
 
     def __init__(self):
@@ -145,7 +144,6 @@ class BasemapListItem(QListWidgetItem):
 
 
 class BasemapItemWidget(QWidget):
-
     basemapSelected = pyqtSignal()
 
     def __init__(self, mosaic):
@@ -191,7 +189,7 @@ class BasemapItemWidget(QWidget):
             download_thumbnail(mosaic[LINKS][THUMB], self)
         else:
             THUMBNAIL_DEFAULT_URL = (
-                "https://tiles.planet.com/basemaps/v1/planet-tiles/" "{name}/thumb"
+                "https://tiles.planet.com/basemaps/v1/planet-tiles/{name}/thumb"
             )
             download_thumbnail(
                 THUMBNAIL_DEFAULT_URL.format(name=mosaic[NAME]),

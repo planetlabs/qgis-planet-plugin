@@ -58,20 +58,16 @@ def error_catcher(msg, tag, level):
 def find_plugin_zip_file():
     cwd = pathlib.Path(".").absolute()
     zip_files = list(cwd.glob("*.zip"))
-    zip_files_str = (
-        ", ".join(str(file) for file in zip_files) if zip_files else "(none)"
-    )
+    zip_files_str = ", ".join(str(file) for file in zip_files) if zip_files else "(none)"
 
     if not zip_files:
         raise PluginInstallException(f"No plugin zip file found at {cwd}.")
     else:
-        logger.info(
-            f"Found the following zip files in the current directory: {zip_files_str}"
-        )
+        logger.info(f"Found the following zip files in the current directory: {zip_files_str}")
 
     if len(zip_files) > 1:
         raise PluginInstallException(
-            f"More than one plugin zip file found at {cwd}." f" Found {zip_files_str}."
+            f"More than one plugin zip file found at {cwd}. Found {zip_files_str}."
         )
     else:
         plugin_install_zip = str(zip_files[0].absolute())
@@ -100,9 +96,7 @@ def unload_plugin():
             f"Plugin '{PLUGIN_KEY}' failed to unload and is still an active plugin."
         )
     else:
-        logger.info(
-            f"Plugin '{PLUGIN_KEY}' is no longer active as expected after unload."
-        )
+        logger.info(f"Plugin '{PLUGIN_KEY}' is no longer active as expected after unload.")
 
 
 def start_load_plugin():
@@ -127,9 +121,7 @@ def start_load_plugin():
 
 def install_plugin(plugin_install_zip: str):
     # Install from the zip file
-    logger.info(
-        f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ..."
-    )
+    logger.info(f"Installing the plugin {PLUGIN_KEY} from the zip file {plugin_install_zip} ...")
     plugin_installer.installFromZipFile(plugin_install_zip)
     if PLUGIN_KEY in pyplugin_installer.installer_data.plugins.all():
         logger.info(f"Plugin '{PLUGIN_KEY}' installed successfully!")
@@ -167,9 +159,7 @@ try:
         utils.unloadPlugin(PLUGIN_KEY)
 
     if ERROR_OCCURRED:
-        raise PluginInstallException(
-            f"Python exception hit during plugin install: \n {ERROR_MSG}"
-        )
+        raise PluginInstallException(f"Python exception hit during plugin install: \n {ERROR_MSG}")
 
     start_load_plugin()
     unload_plugin()

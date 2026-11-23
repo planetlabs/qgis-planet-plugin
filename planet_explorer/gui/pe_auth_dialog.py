@@ -24,9 +24,7 @@ class LoginWorker(QThread):
 
     finished_signal = pyqtSignal(bool, str)
 
-    def __init__(
-        self, p_client, login_info=None, token_exists=False, clean_session=False
-    ):
+    def __init__(self, p_client, login_info=None, token_exists=False, clean_session=False):
         super().__init__()
         self.p_client = p_client
         self.login_info = login_info
@@ -106,7 +104,6 @@ class LoginWorker(QThread):
 
 
 class PlanetAuthenticationDialog(QDialog):
-
     def __init__(self, parent=None):
         super(PlanetAuthenticationDialog, self).__init__(parent)
 
@@ -122,9 +119,7 @@ class PlanetAuthenticationDialog(QDialog):
         self.radio_group = QButtonGroup(self)
 
         self.radio_existing = QRadioButton("Use an existing token", self)
-        self.radio_fresh = QRadioButton(
-            "Create a new token (Fresh login - no history)", self
-        )
+        self.radio_fresh = QRadioButton("Create a new token (Fresh login - no history)", self)
 
         self.radio_group.addButton(self.radio_existing)
         self.radio_group.addButton(self.radio_fresh)
@@ -149,9 +144,7 @@ class PlanetAuthenticationDialog(QDialog):
         )
         self.ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
         self.ok_button.setText("Proceed")
-        self.cancel_button = self.button_box.button(
-            QDialogButtonBox.StandardButton.Cancel
-        )
+        self.cancel_button = self.button_box.button(QDialogButtonBox.StandardButton.Cancel)
         self.main_layout.addWidget(self.button_box)
 
         self.button_box.accepted.connect(self.handle_proceed)
@@ -179,9 +172,7 @@ class PlanetAuthenticationDialog(QDialog):
         else:
             self.radio_existing.setEnabled(False)
             self.radio_fresh.setChecked(True)
-            self.log_box.setText(
-                "System status: No active authentication configuration detected."
-            )
+            self.log_box.setText("System status: No active authentication configuration detected.")
 
     def handle_proceed(self):
         """Triggered when the user confirms their chosen option."""
@@ -214,9 +205,7 @@ class PlanetAuthenticationDialog(QDialog):
             self.log_box.append("User already logged in!\n")
             QCoreApplication.processEvents()
 
-            self.worker = LoginWorker(
-                self.p_client, token_exists=True, clean_session=False
-            )
+            self.worker = LoginWorker(self.p_client, token_exists=True, clean_session=False)
             self.worker.finished_signal.connect(self.handle_login_finished)
             self.worker.finished.connect(self.worker.deleteLater)
             self.worker.start()
@@ -234,14 +223,10 @@ class PlanetAuthenticationDialog(QDialog):
             login_info = auth.device_user_login_initiate()
 
             user_code = login_info.get("user_code", "ERROR")
-            url = login_info.get("verification_uri_complete") or login_info.get(
-                "verification_uri"
-            )
+            url = login_info.get("verification_uri_complete") or login_info.get("verification_uri")
 
             self.log_box.append(f"Authorization Code: {user_code}\n")
-            self.log_box.append(
-                "Opening browser link... Please click confirm in your browser."
-            )
+            self.log_box.append("Opening browser link... Please click confirm in your browser.")
             self.log_box.append("\nWaiting for browser confirmation...")
 
             QCoreApplication.processEvents()

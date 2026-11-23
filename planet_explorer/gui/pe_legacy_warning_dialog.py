@@ -4,14 +4,11 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "ui", "pe_legacy_warning_dialog.ui"
-    )
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "pe_legacy_warning_dialog.ui")
 )
 
 
 class LegacyWarningDialog(BASE, WIDGET):
-
     updateLegacySearch = pyqtSignal()
 
     def __init__(self, request, parent=None):

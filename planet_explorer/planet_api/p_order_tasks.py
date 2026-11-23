@@ -70,9 +70,7 @@ class OrderProcessorTask(QgsTask):
                 r = requests.get(url, stream=True, timeout=60)
                 file_size = r.headers.get("content-length") or 0
                 file_size = int(file_size)
-                percentage_per_chunk = (100.0 / len(zip_locations)) / (
-                    file_size / chunk_size
-                )
+                percentage_per_chunk = (100.0 / len(zip_locations)) / (file_size / chunk_size)
                 progress = 0
                 with open(local_fullpath, "wb") as f:
                     for chunk in r.iter_content(chunk_size):
@@ -121,9 +119,9 @@ class OrderProcessorTask(QgsTask):
                 else:
                     # A workaround for composite
                     image_path = img["path"]
-                    if not image_path.endswith(
-                        "composite.tif"
-                    ) and not image_path.endswith("composite_file_format.ntf"):
+                    if not image_path.endswith("composite.tif") and not image_path.endswith(
+                        "composite_file_format.ntf"
+                    ):
                         # Skips if it's not a composite file
                         continue
                     else:
@@ -168,15 +166,13 @@ class OrderProcessorTask(QgsTask):
                 )
         elif self.exception is not None:
             QgsMessageLog.logMessage(
-                f"Order '{self.order.name()}' could not be"
-                f" downloaded.\n{self.exception}",
+                f"Order '{self.order.name()}' could not be downloaded.\n{self.exception}",
                 QGIS_LOG_SECTION_NAME,
                 Qgis.MessageLevel.Warning,
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
-                f"Order '{self.order.name()}' could not be downloaded. See log for"
-                " details",
+                f"Order '{self.order.name()}' could not be downloaded. See log for details",
                 level=Qgis.MessageLevel.Warning,
                 duration=5,
             )
@@ -205,9 +201,7 @@ class QuadsOrderProcessorTask(QgsTask):
                     os.makedirs(folder, exist_ok=True)
                     for url, path in files:
                         local_filename = os.path.basename(path) + ".tif"
-                        local_fullpath = os.path.join(
-                            download_folder, mosaic, local_filename
-                        )
+                        local_fullpath = os.path.join(download_folder, mosaic, local_filename)
                         self.filenames[mosaic].append(local_fullpath)
                         r = requests.get(url, stream=True, timeout=60)
                         with open(local_fullpath, "wb") as f:
@@ -277,8 +271,7 @@ class QuadsOrderProcessorTask(QgsTask):
             )
             iface.messageBar().pushMessage(
                 "Planet Explorer",
-                f"Order '{self.order.name}' could not be downloaded. See log for"
-                " details",
+                f"Order '{self.order.name}' could not be downloaded. See log for details",
                 level=Qgis.MessageLevel.Warning,
                 duration=5,
             )

@@ -46,16 +46,13 @@ log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
 plugin_path = os.path.split(os.path.dirname(__file__))[0]
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_explorer_dockwidget.ui")
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "pe_explorer_dockwidget.ui"))
 
 LOG_NAME = "PlanetExplorer"
 
 PLANET_COM = "https://planet.com"
 SAT_SPECS_PDF = (
-    "https://assets.planet.com/docs/"
-    "Planet_Combined_Imagery_Product_Specs_letter_screen.pdf"
+    "https://assets.planet.com/docs/Planet_Combined_Imagery_Product_Specs_letter_screen.pdf"
 )
 PLANET_SUPPORT_COMMUNITY = "https://support.planet.com"
 PLANET_EXPLORER = f"{PLANET_COM}/explorer"
@@ -141,9 +138,7 @@ class PlanetExplorerDockWidget(BASE, WIDGET):
     def show_mosaics_panel(self):
         self.tabWidgetResourceType.setCurrentIndex(1)
 
-    def show_message(
-        self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None
-    ):
+    def show_message(self, message, level=Qgis.MessageLevel.Info, duration=None, show_more=None):
         """Displays a message in the QGIS message bar omitting the bold title.
 
         Args:

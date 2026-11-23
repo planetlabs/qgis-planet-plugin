@@ -27,7 +27,6 @@ import os
 from collections import Counter
 
 import analytics
-
 from planet_explorer.pe_utils import log
 
 from .planet_api import PlanetClient

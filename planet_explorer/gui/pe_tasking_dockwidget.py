@@ -54,13 +54,10 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
-WIDGET, BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui")
-)
+WIDGET, BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "pe_tasking_dockwidget.ui"))
 
 
 class AOICaptureMapTool(QgsMapTool):
-
     aoi_captured = pyqtSignal(QgsRectangle, QgsPointXY)
 
     def __init__(self, canvas):
@@ -154,15 +151,11 @@ class TaskingDockWidget(BASE, WIDGET):
         self.btnMapTool.setIcon(TASKING_ICON)
         self.btnMapTool.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
-        self.footprint = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
-        )
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setFillColor(QColor(204, 235, 239, 100))
         self.footprint.setWidth(2)
-        self.marker = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry
-        )
+        self.marker = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PointGeometry)
         self.marker.setIcon(QgsRubberBand.IconType.ICON_SVG)
         self.marker.setSvgIcon(SVG_ICON, QPoint(-15, -30))
 

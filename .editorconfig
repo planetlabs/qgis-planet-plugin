@@ -1,0 +1,14 @@
+# EditorConfig is awesome: https://editorconfig.org
+
+# top-most EditorConfig file
+root = true
+
+[*.{sh,bash}]
+indent_style = space
+indent_size = 4
+switch_case_indent = true
+binary_next_line = true
+
+# Tab indentation (no size specified)
+[Makefile]
+indent_style = tab

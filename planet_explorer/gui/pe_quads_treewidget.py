@@ -61,7 +61,6 @@ PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
 
 class QuadsTreeWidget(QTreeWidget):
-
     quadsSelectionChanged = pyqtSignal()
 
     def __init__(self):
@@ -230,7 +229,6 @@ class QuadInstanceTreeItem(QTreeWidgetItem):
 
 
 class QuadInstanceItemWidget(QFrame):
-
     quadSelected = pyqtSignal()
 
     def __init__(self, quad):
@@ -268,9 +266,7 @@ class QuadInstanceItemWidget(QFrame):
 
         download_thumbnail(quad[LINKS][THUMBNAIL], self)
 
-        self.footprint = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
-        )
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setFillColor(QUADS_AOI_COLOR)
         self.footprint.setStrokeColor(QUADS_AOI_COLOR)
         self.footprint.setWidth(2)
@@ -323,9 +319,7 @@ class QuadInstanceItemWidget(QFrame):
 
     def update_footprint_brush(self):
         self.footprint.setBrushStyle(
-            Qt.BrushStyle.BDiagPattern
-            if self.checkBox.isChecked()
-            else Qt.BrushStyle.NoBrush
+            Qt.BrushStyle.BDiagPattern if self.checkBox.isChecked() else Qt.BrushStyle.NoBrush
         )
         self.footprint.updateCanvas()
 
@@ -345,9 +339,7 @@ class QuadInstanceItemWidget(QFrame):
             self.checkBox.blockSignals(False)
 
     def enterEvent(self, event):
-        self.setStyleSheet(
-            "QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}"
-        )
+        self.setStyleSheet("QuadInstanceItemWidget{border: 2px solid rgb(157, 165, 0);}")
         self.show_solid_interior()
 
     def leaveEvent(self, event):

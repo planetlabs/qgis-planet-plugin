@@ -98,9 +98,7 @@ plugin_path = os.path.dirname(__file__)
 
 SETTINGS_NAMESPACE = "planet_explorer"
 
-EMPTY_THUMBNAIL = os.path.join(
-    plugin_path, "planet_api", "resources", "empty_thumb.png"
-)
+EMPTY_THUMBNAIL = os.path.join(plugin_path, "planet_api", "resources", "empty_thumb.png")
 
 QGIS_LOG_SECTION_NAME = "Planet"
 
@@ -599,8 +597,7 @@ def orders_download_folder():
         str: Absolute path to the orders download folder.
     """
     download_folder = (
-        QSettings().value(f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}", "")
-        or ""
+        QSettings().value(f"{SETTINGS_NAMESPACE}/{ORDERS_DOWNLOAD_FOLDER_SETTING}", "") or ""
     )
     if not os.path.exists(download_folder):
         try:
@@ -658,7 +655,7 @@ def date_interval_from_mosaics(mosaics: list) -> str:
     """
     date = iso8601.parse_date(mosaics[0][FIRST_ACQUIRED])
     date2 = iso8601.parse_date(mosaics[-1][LAST_ACQUIRED])
-    dates = f'{date.strftime("%B %Y")} - {date2.strftime("%B %Y")}'
+    dates = f"{date.strftime('%B %Y')} - {date2.strftime('%B %Y')}"
     return dates
 
 
@@ -784,9 +781,7 @@ def mosaic_name_from_url(url: str) -> str | None:
             else returns None.
     """
     url = urllib.parse.unquote(url)
-    pattern = re.compile(
-        r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*"
-    )
+    pattern = re.compile(r".*&url=https://tiles[0-3]?\..*?/basemaps/v1/planet-tiles/(.*?)/.*")
     result = pattern.search(url)
     if result is not None:
         mosaic = result.group(1)
@@ -808,10 +803,7 @@ def add_widget_to_layer(layer):
     Args:
         layer (QgsRasterLayer): The raster layer to update.
     """
-    if (
-        is_planet_url(layer.source())
-        and PLANET_MOSAICS not in layer.customPropertyKeys()
-    ):
+    if is_planet_url(layer.source()) and PLANET_MOSAICS not in layer.customPropertyKeys():
         proc = "default"
         ramp = ""
         mosaic = mosaic_name_from_url(layer.source())
@@ -851,12 +843,8 @@ def is_planet_url_(url: str) -> bool:
         bool: True if the URL contains exactly one Planet tile endpoint.
     """
     url = urllib.parse.unquote(url)
-    loggedInPattern = re.compile(
-        r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*"
-    )
-    loggedOutPattern = re.compile(
-        r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*"
-    )
+    loggedInPattern = re.compile(r".*&url=https://tiles[0-3]?\.planet\.com/.*?api_key=.*")
+    loggedOutPattern = re.compile(r".*&url=https://tiles[0-3]?\.\{planet_url\}/.*?api_key=.*")
     isloggedInPattern = loggedInPattern.search(url) is not None
     isloggedOutPattern = loggedOutPattern.search(url) is not None
 
@@ -913,9 +901,7 @@ def user_agent() -> str:
     Returns:
         str: User-Agent formatted as ``"qgis-{version};planet-explorer{plugin_version}"``.
     """
-    return (
-        f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
-    )
+    return f"qgis-{Qgis.QGIS_VERSION};planet-explorer{plugin_version()}"  # noqa: E702 E231
 
 
 SAFE_LOCALE = re.compile(r"^[a-z]{2}(?:_[A-Z]{2})?$")

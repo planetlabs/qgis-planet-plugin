@@ -74,9 +74,7 @@ logging.basicConfig(level=LOG_LEVEL)
 log = logging.getLogger(__name__)
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
-ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(
-    os.path.join(plugin_path, "ui", "pe_orders.ui")
-)
+ORDERS_WIDGET, ORDERS_BASE = uic.loadUiType(os.path.join(plugin_path, "ui", "pe_orders.ui"))
 
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
 
@@ -129,17 +127,13 @@ class PlanetOrderBundleWidget(QFrame):
         self.description = bundle["description"]
         self.udm = bundle.get("auxiliaryFiles", "").lower().startswith("udm2")
         assets = bundle["assets"]
-        self.can_harmonize = (
-            "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
-        )
+        self.can_harmonize = "ortho_analytic_4b_sr" in assets or "ortho_analytic_8b_sr" in assets
         self.can_harmonize = bundle.get("canHarmonize", False)
         self.can_clip = bundle.get("canClip", False)
 
         self.rectified = bundle["rectification"] == "orthorectified"
         bands = []
-        asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(
-            item_type
-        )
+        asset_def = PlanetClient.getInstance().asset_types_for_item_type_as_dict(item_type)
         for asset in assets:
             asset_bands = asset_def[asset].get("bands", [])
             for band in asset_bands:
@@ -275,9 +269,7 @@ class PlanetOrderItemTypeWidget(QWidget):
         hlayout.addStretch()
         return hlayout
 
-    def _build_rectified_grid(
-        self, layout: QVBoxLayout, item_bundles: dict, default: list
-    ):
+    def _build_rectified_grid(self, layout: QVBoxLayout, item_bundles: dict, default: list):
         """Build and add rectified asset grid to layout.
 
         Args:
@@ -344,9 +336,7 @@ class PlanetOrderItemTypeWidget(QWidget):
 
         self.labelMore = QLabel('<a href="#">+ Show More</a>')
         self.labelMore.setOpenExternalLinks(False)
-        self.labelMore.setTextInteractionFlags(
-            Qt.TextInteractionFlag.LinksAccessibleByMouse
-        )
+        self.labelMore.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
         self.labelMore.linkActivated.connect(self._showMoreClicked)
         layout.addLayout(self._center(self.labelMore))
 
@@ -558,9 +548,7 @@ class PlanetOrderReviewWidget(QWidget):
 
         """
         if self.add_clip:
-            layout.addWidget(
-                QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignmentFlag.AlignCenter
-            )
+            layout.addWidget(QLabel("<b>Clipping</b>"), 0, 1, Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(
                 QLabel("Only get items delivered within your AOI"),
                 1,
@@ -568,9 +556,7 @@ class PlanetOrderReviewWidget(QWidget):
                 Qt.AlignmentFlag.AlignCenter,
             )
             self.chkClip = QCheckBox("Clip items to AOI")
-            enabled = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", False
-            )
+            enabled = QSettings().value(f"{SETTINGS_NAMESPACE}/{ENABLE_CLIP_SETTING}", True)
             self.chkClip.setChecked(str(enabled).lower() == str(True).lower())
             self.chkClip.stateChanged.connect(self.checkStateChanged)
             layout.addWidget(self.chkClip, 2, 1, Qt.AlignmentFlag.AlignCenter)
@@ -582,9 +568,7 @@ class PlanetOrderReviewWidget(QWidget):
             layout (QGridLayout): The layout to add the section to.
         """
         if self.add_composite:
-            layout.addWidget(
-                QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignmentFlag.AlignCenter
-            )
+            layout.addWidget(QLabel("<b>Composite Items</b>"), 3, 1, Qt.AlignmentFlag.AlignCenter)
             description_label = QLabel(
                 "The "
                 "<a style='color: #50a94e; text-decoration: none;' "
@@ -602,9 +586,7 @@ class PlanetOrderReviewWidget(QWidget):
             description_label.setOpenExternalLinks(True)
 
             self.chkComposite = QCheckBox("Enable composite")
-            enabled = QSettings().value(
-                f"{SETTINGS_NAMESPACE}/{ENABLE_COMPOSITE}", False
-            )
+            enabled = QSettings().value(f"{SETTINGS_NAMESPACE}/{ENABLE_COMPOSITE}", False)
             self.chkComposite.setChecked(str(enabled).lower() == str(True).lower())
             self.chkComposite.stateChanged.connect(self.compositeStateChanged)
             layout.addWidget(self.chkComposite, 5, 1, Qt.AlignmentFlag.AlignCenter)
@@ -638,9 +620,7 @@ class PlanetOrderReviewWidget(QWidget):
             layout (QGridLayout): The layout to add the section to.
         """
         if self.add_harmonize:
-            layout.addWidget(
-                QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignmentFlag.AlignCenter
-            )
+            layout.addWidget(QLabel("<b>Harmonization</b>"), 8, 1, Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(
                 QLabel(
                     "Radiometrically harmonize imagery captured by one satellite "
@@ -668,9 +648,7 @@ class PlanetOrderReviewWidget(QWidget):
         metadata_widget.stac_metadata_box_clicked.connect(self._stac_box_clicked)
 
         layout.addWidget(metadata_widget, 11, 1, Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(
-            metadata_widget.description_label, 12, 1, Qt.AlignmentFlag.AlignCenter
-        )
+        layout.addWidget(metadata_widget.description_label, 12, 1, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(metadata_widget.stac_box, 13, 1, Qt.AlignmentFlag.AlignCenter)
 
     def _add_review_section(self, layout: QGridLayout) -> None:
@@ -679,9 +657,7 @@ class PlanetOrderReviewWidget(QWidget):
         Args:
             layout (QGridLayout): The layout to add the section to.
         """
-        layout.addWidget(
-            QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignmentFlag.AlignCenter
-        )
+        layout.addWidget(QLabel("<b>Review Items</b>"), 14, 1, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(
             QLabel("We recommend deselecting items that appear to have no pixels"),
             15,
@@ -782,7 +758,6 @@ class PlanetOrderReviewWidget(QWidget):
 
 
 class PlanetOrderReviewMetadataWidget(QWidget):
-
     stac_metadata_box_clicked = pyqtSignal(bool)
 
     def __init__(self, stac_order):
@@ -796,9 +771,7 @@ class PlanetOrderReviewMetadataWidget(QWidget):
         self.stac_box = QCheckBox()
         self.stac_box.setChecked(self.stac_order)
         self.stac_box.setText("Add STAC metadata")
-        self.stac_box.setToolTip(
-            "Click to enable/disable STAC metadata usage in the order."
-        )
+        self.stac_box.setToolTip("Click to enable/disable STAC metadata usage in the order.")
 
         self.stac_box.toggled.connect(self._stac_box_clicked)
 
@@ -837,9 +810,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
         layout = QVBoxLayout()
         layout.setMargin(0)
         layout.addWidget(
-            QLabel(
-                f"<h3>{PlanetClient.getInstance().item_types_names()[summary['type']]}</h3>"
-            )
+            QLabel(f"<h3>{PlanetClient.getInstance().item_types_names()[summary['type']]}</h3>")
         )
         for bundle in summary["bundles"]:
             frame = QFrame()
@@ -870,9 +841,7 @@ class PlanetOrderSummaryOrderWidget(QWidget):
 
 class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
     NAME_HIGHLIGHT = "QLabel { color: rgb(175, 0, 0); }"
-    PLANET_COLOR_CSS = (
-        "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
-    )
+    PLANET_COLOR_CSS = "QLabel { border-radius: 10px; background-color: rgba(0, 157, 165, 0.25);}"
     TRANSPARENT_CSS = ""
 
     def __init__(self, images, tool_resources=None):
@@ -896,18 +865,10 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         self.txtOrderName.textChanged.connect(self._nameChanged)
         self.btnPlaceOrder.clicked.connect(self._btnPlaceOrderClicked)
         self.btnPlaceOrderReview.clicked.connect(self._btnPlaceOrderClicked)
-        self.btnContinueName.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(1)
-        )
-        self.btnContinueAssets.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(2)
-        )
-        self.btnBackReview.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(1)
-        )
-        self.btnBackAssets.clicked.connect(
-            lambda: self.stackedWidget.setCurrentIndex(0)
-        )
+        self.btnContinueName.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnContinueAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
+        self.btnBackReview.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.btnBackAssets.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
         self.labelPageReview.linkActivated.connect(self._pageLabelClicked)
         self.labelPageAssets.linkActivated.connect(self._pageLabelClicked)
         self.labelPageName.linkActivated.connect(self._pageLabelClicked)
@@ -1063,7 +1024,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         # IMPORTANT: The '_QGIS' suffix is needed, for the user to see
         #            their order in Explorer web app
         order = OrderedDict()  # necessary to maintain toolchain order
-        order["name"] = f'{name.replace(" ", "_")}_{item_type}'
+        order["name"] = f"{name.replace(' ', '_')}_{item_type}"
         order["order_type"] = "partial"
         order["products"] = [
             {
@@ -1137,9 +1098,7 @@ class PlanetOrdersDialog(ORDERS_BASE, ORDERS_WIDGET):
         for widget in self._item_type_widgets.values():
             allbundles.extend(widget.bundles())
         if not allbundles:
-            self.bar.pushMessage(
-                "", "No bundles have been selected", Qgis.MessageLevel.Warning
-            )
+            self.bar.pushMessage("", "No bundles have been selected", Qgis.MessageLevel.Warning)
             return
         name = self.txtOrderName.text()
 

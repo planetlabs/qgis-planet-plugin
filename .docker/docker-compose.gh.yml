@@ -6,5 +6,7 @@ services:
       args:
         QGIS_TEST_VERSION: ${QGIS_TEST_VERSION}
     tty: true
+    environment:
+      - QT_QPA_PLATFORM=offscreen
     volumes:
       - ${GITHUB_WORKSPACE}:/usr/src

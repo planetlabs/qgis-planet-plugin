@@ -69,7 +69,12 @@ from ..pe_utils import (
     qgsgeometry_from_geojson,
     safe_join,
 )
-from ..planet_api.p_client import ITEM_ASSET_DL_REGEX, ITEM_STREAM_REGEX, PlanetClient
+from ..planet_api.p_client import (
+    ITEM_ASSET_DL_REGEX,
+    ITEM_STREAM_REGEX,
+    ITEM_TASKED_REGEX,
+    PlanetClient,
+)
 from .pe_gui_utils import waitcursor
 from .pe_thumbnails import createCompoundThumbnail, download_thumbnail
 
@@ -101,6 +106,7 @@ ZOOMTO_ICON = QIcon(":/plugins/planet_explorer/zoom-target.svg")
 SORT_ICON = QIcon(iconPath("sort.svg"))
 LOCK_ICON = QIcon(":/plugins/planet_explorer/lock-light.svg")
 PLACEHOLDER_THUMB = ":/plugins/planet_explorer/thumb-placeholder-128.svg"
+TASKED_ICON = QIcon(iconPath("tasking.svg"))
 
 LOG_VERBOSE = os.environ.get("PYTHON_LOG_VERBOSE", None)
 
@@ -110,7 +116,6 @@ RESULTS_WIDGET, RESULTS_BASE = uic.loadUiType(
 
 
 class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
-
     setAOIRequested = pyqtSignal(dict)
     checkedCountChanged = pyqtSignal(int)
 
@@ -387,16 +392,12 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
     def item_count_changed(self):
         if self._image_count < self._total_count:
-            self.lblImageCount.setText(
-                f"{self._image_count} images. <a href='#'>Load more</a>"
-            )
+            self.lblImageCount.setText(f"{self._image_count} images. <a href='#'>Load more</a>")
         else:
             self.lblImageCount.setText(f"{self._image_count} images")
 
     def _setup_request_aoi_box(self):
-        self._aoi_box = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
-        )
+        self._aoi_box = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self._aoi_box.setFillColor(QColor(0, 0, 0, 0))
         self._aoi_box.setStrokeColor(SEARCH_AOI_COLOR)
         self._aoi_box.setWidth(2)
@@ -427,7 +428,6 @@ class DailyImagesSearchResultsWidget(RESULTS_BASE, RESULTS_WIDGET):
 
 
 class ItemWidgetBase(QFrame):
-
     checkedStateChanged = pyqtSignal()
     thumbnailChanged = pyqtSignal()
 
@@ -447,6 +447,10 @@ class ItemWidgetBase(QFrame):
         self.checkBox.clicked.connect(self.check_box_state_changed)
         self.nameLabel = QLabel(text)
         self.iconLabel = QLabel()
+        self.labelTasked = QLabel()
+        self.labelTasked.setPixmap(TASKED_ICON.pixmap(QSize(18, 18)))
+        self.labelTasked.setToolTip("Contains tasked items")
+        self.labelTasked.setVisible(True)
         self.labelZoomTo = QLabel()
         self.labelZoomTo.setPixmap(ZOOMTO_ICON.pixmap(QSize(18, 18)))
         self.labelZoomTo.setToolTip("Zoom to extent")
@@ -475,14 +479,13 @@ class ItemWidgetBase(QFrame):
             download_thumbnail(thumbnailurl, self)
         layout.addWidget(self.nameLabel)
         layout.addStretch()
+        layout.addWidget(self.labelTasked)
         layout.addWidget(self.labelZoomTo)
         layout.addWidget(self.labelAddPreview)
         layout.addSpacing(10)
         self.setLayout(layout)
 
-        self.footprint = QgsRubberBand(
-            iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry
-        )
+        self.footprint = QgsRubberBand(iface.mapCanvas(), QgsWkbTypes.GeometryType.PolygonGeometry)
         self.footprint.setStrokeColor(PLANET_COLOR)
         self.footprint.setWidth(2)
 
@@ -646,9 +649,7 @@ class DateItemWidget(ItemWidgetBase):
         for i in range(self.item.childCount()):
             child = self.item.child(i)
             size += child.childCount()
-        count_style = (
-            SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
-        )
+        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
         self.children_count = size
         text = f"""{self.date}<br>
                     <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
@@ -687,14 +688,10 @@ class DateItemWidget(ItemWidgetBase):
             self.labelAddPreview.setToolTip(
                 "Contact sales to purchase access.\nUse the link in the ⓘ menu."
             )
-            self.setToolTip(
-                "Contact sales to purchase access.\nUse the link in the ⓘ menu."
-            )
+            self.setToolTip("Contact sales to purchase access.\nUse the link in the ⓘ menu.")
             self.labelAddPreview.setEnabled(False)
         elif self.streamable and not self.downloadable:
-            self.labelAddPreview.setToolTip(
-                "Streaming only - add preview to map (cannot order)"
-            )
+            self.labelAddPreview.setToolTip("Streaming only - add preview to map (cannot order)")
         elif nscenes > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
@@ -732,9 +729,7 @@ class SatelliteItemWidget(ItemWidgetBase):
 
     def update_for_children(self):
         size = self.item.childCount()
-        count_style = (
-            SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
-        )
+        count_style = SUBTEXT_STYLE if not self.has_new else SUBTEXT_STYLE_WITH_NEW_CHILDREN
         self.children_count = size
         text = f"""<span style="{SUBTEXT_STYLE}"> Satellite {self.satellite} {self.instrument} </span>
                     <span style="{count_style}">({size} images)</span>"""  # noqa
@@ -769,9 +764,7 @@ class SatelliteItemWidget(ItemWidgetBase):
             self.labelAddPreview.setToolTip("Contact sales to purchase access")
             self.labelAddPreview.setEnabled(False)
         elif self.streamable and not self.downloadable:
-            self.labelAddPreview.setToolTip(
-                "Streaming only - add preview to map (cannot order)"
-            )
+            self.labelAddPreview.setToolTip("Streaming only - add preview to map (cannot order)")
         elif self.item.childCount() > CHILD_COUNT_THRESHOLD_FOR_PREVIEW:
             self.labelAddPreview.setToolTip("Too many images to preview")
             self.labelAddPreview.setEnabled(False)
@@ -827,16 +820,23 @@ class SceneItemWidget(ItemWidgetBase):
         if len(permissions) == 0:
             self.downloadable = False
             self.streamable = False
+            self.contains_tasked_items = False
         else:
             # Check for download permissions (can order/download)
             dl_matches = [ITEM_ASSET_DL_REGEX.match(s) is not None for s in permissions]
             self.downloadable = any(dl_matches)
 
             # Check for streaming permissions (can view on map)
-            stream_matches = [
-                ITEM_STREAM_REGEX.match(s) is not None for s in permissions
-            ]
+            stream_matches = [ITEM_STREAM_REGEX.match(s) is not None for s in permissions]
             self.streamable = any(stream_matches)
+
+            # Check if contains assets that user's organisation
+            # has ordered via tasking API or tasking dashboard.
+            tasked_matches = [ITEM_TASKED_REGEX.match(s) is not None for s in permissions]
+            self.contains_tasked_items = any(tasked_matches)
+
+        # Tasked item icon: only show if image contains tasked items.
+        self.labelTasked.setVisible(self.contains_tasked_items)
 
         # Lock icon: only show if user has NO access (neither download nor streaming)
         has_any_access = self.downloadable or self.streamable
@@ -852,9 +852,7 @@ class SceneItemWidget(ItemWidgetBase):
             self.labelAddPreview.setToolTip("Contact sales to purchase access")
             self.labelAddPreview.setEnabled(False)
         elif self.streamable and not self.downloadable:
-            self.labelAddPreview.setToolTip(
-                "Streaming only - add preview to map (cannot order)"
-            )
+            self.labelAddPreview.setToolTip("Streaming only - add preview to map (cannot order)")
             self.labelAddPreview.setEnabled(True)
         # else: downloadable - default tooltip and enabled state from _setup_ui
 
@@ -876,7 +874,7 @@ class SceneItemWidget(ItemWidgetBase):
                 else:
                     metadata += f"{value.value}:--{spacer}"  # noqa
             else:
-                metadata += f'{value.value}:{self.properties.get(value.value, "--")}{spacer}'  # noqa
+                metadata += f"{value.value}:{self.properties.get(value.value, '--')}{spacer}"  # noqa
         text = f"""{self.date}<span style="color: rgb(100,100,100);"> {self.time} UTC</span><br>
                         <b>{PlanetClient.getInstance().item_types_names()[self.properties[ITEM_TYPE]]}</b><br>
                         <span style="{SUBTEXT_STYLE}">{metadata}</span>

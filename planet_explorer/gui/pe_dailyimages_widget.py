@@ -143,9 +143,7 @@ class DailyImagesWidget(BASE, WIDGET):
             self._collect_sources_filters()
             request = {"item_types": self._sources, "filter": self._filters}
             request["name"] = self.current_saved_search["name"]
-            PlanetClient.getInstance().update_search(
-                request, self.current_saved_search["id"]
-            )
+            PlanetClient.getInstance().update_search(request, self.current_saved_search["id"])
             self.frameWarningLegacySearch.setVisible(False)
             self._daily_filters_widget.hide_legacy_search_elements()
             self.perform_search()
@@ -195,9 +193,7 @@ class DailyImagesWidget(BASE, WIDGET):
 
         all_filters = main_filters + item_filters
 
-        id_filters = [
-            f for f in all_filters if "field_name" in f and f["field_name"] == "id"
-        ]
+        id_filters = [f for f in all_filters if "field_name" in f and f["field_name"] == "id"]
 
         # RapidEye, Landsat and Sentinel does not have a publishing stage field
         non_publish_filter_items = [
@@ -307,9 +303,7 @@ class DailyImagesWidget(BASE, WIDGET):
         self.searchResultsWidget.update_request(search_request, self.local_filters)
 
     def _setup_aoi_filter(self):
-        self._aoi_filter = PlanetAOIFilter(
-            parent=self.frameAOIFilter, plugin=self.parent
-        )
+        self._aoi_filter = PlanetAOIFilter(parent=self.frameAOIFilter, plugin=self.parent)
         layout = QVBoxLayout()
         layout.setMargin(0)
         layout.addWidget(self._aoi_filter)

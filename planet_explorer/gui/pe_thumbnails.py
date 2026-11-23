@@ -199,9 +199,7 @@ def createCompoundThumbnail(_bboxes, thumbnails):
     for box in _bboxes:
         rect4326 = qgsgeometry_from_geojson(box).boundingBox()
         rect = transform.transformBoundingBox(rect4326)
-        bboxes.append(
-            [rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()]
-        )
+        bboxes.append([rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()])
     globalbox = (
         min([v[0] for v in bboxes]),
         min([v[1] for v in bboxes]),
