@@ -55,11 +55,15 @@ class ResultsConfigurationDialog(BASE, WIDGET):
         self._set_selected()
 
         self.btnRestoreDefaults.clicked.connect(self.restore_default)
-        self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self.accepted)
-        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.rejected)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).clicked.connect(
+            self.accepted
+        )
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(
+            self.rejected
+        )
 
     def selection_changed(self, state):
-        if len(self.selection) > 3 and state != Qt.Unchecked:
+        if len(self.selection) > 3 and state != Qt.CheckState.Unchecked:
             self._set_selected()
         else:
             self.selection = []

@@ -1,10 +1,32 @@
-click
-requests-futures<1.0
-planet~=1.4
-iso8601
-mercantile
-analytics-python
-sentry-sdk
-monotonic
-backoff
-httpx
+# This file specifies plugin requirements that are pure python packages.
+# Packages that require compilation or have non-python dependencies should be
+# specified in planet_explorer/requirements.txt instead.
+click==8.4.2
+requests-futures==0.9.9
+planet==3.6.0
+iso8601==2.1.0
+mercantile==1.2.1
+six==1.17.0
+analytics-python==1.4.post1
+sentry-sdk==2.64.0
+monotonic==1.6
+backoff==1.10.0
+httpx==0.28.1
+PyQt6-stubs==20250824
+PyQt5-stubs==5.15.6
+anyio==4.14.1
+sniffio==1.3.1
+geojson==3.3.0
+planet-auth==2.3.1
+prompt-toolkit==3.0.52
+PyJWT==2.13.0
+pyqrcode==1.2.1
+StrEnum==0.4.15
+wcwidth==0.8.2
+httpcore[asyncio]==1.0.9
+h11==0.16.0
+typing-extensions==4.16.0
+jsonschema==4.26.0
+attrs==26.1.0
+referencing==0.37.0
+jsonschema-specifications==2025.9.1
